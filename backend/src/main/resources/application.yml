@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: flashback-backend
+  profiles:
+    # 本地开发默认启用 dev，生产环境通过启动参数或环境变量切换为 prod
+    active: dev
+
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.flashback.domain
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 8080
+
+app:
+  time:
+    # 业务时区，避免依赖部署机默认时区导致解锁与时间轴偏移
+    zone-id: Asia/Shanghai
+  cors:
+    # 默认本地联调来源，可在各环境文件或环境变量中覆盖
+    allowed-origin-patterns:
+      - http://localhost:*
+      - http://127.0.0.1:*
+      - https://localhost:*
+      - https://127.0.0.1:*

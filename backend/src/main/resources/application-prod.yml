@@ -1,0 +1,29 @@
+spring:
+  # 生产环境全部由环境变量注入，避免敏感信息落盘
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DB:0}
+      timeout: 3000ms
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-millis: ${JWT_EXPIRATION_MILLIS:7200000}
+
+logging:
+  level:
+    root: info
+    "[com.flashback]": info
+
+app:
+  time:
+    zone-id: ${APP_TIME_ZONE_ID:Asia/Shanghai}
+  cors:
+    allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,https://localhost:*,https://127.0.0.1:*}
