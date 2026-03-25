@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.flashback.domain.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="nickname" column="nickname"/>
+        <result property="email" column="email"/>
+        <result property="avatar" column="avatar"/>
+        <result property="openid" column="openid"/>
+        <result property="status" column="status" javaType="com.flashback.domain.UserStatus"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id, username, password_hash, nickname, email, avatar, openid, status, created_at, updated_at
+    </sql>
+
+    <select id="selectByUsername" resultMap="UserResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `user`
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="selectById" resultMap="UserResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `user`
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.flashback.domain.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `user` (
+            username,
+            password_hash,
+            nickname,
+            email,
+            avatar,
+            openid,
+            status,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{username},
+            #{passwordHash},
+            #{nickname},
+            #{email},
+            #{avatar},
+            #{openid},
+            #{status},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateProfileById">
+        UPDATE `user`
+        SET
+            nickname = #{nickname},
+            email = #{email},
+            avatar = #{avatar},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
