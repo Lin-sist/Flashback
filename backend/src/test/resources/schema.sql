@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `unlock_notice_log`;
 DROP TABLE IF EXISTS `record`;
 DROP TABLE IF EXISTS `user`;
 
@@ -32,4 +33,16 @@ CREATE TABLE `record` (
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `unlock_notice_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `notice_type` VARCHAR(30) NOT NULL,
+  `notice_status` VARCHAR(20) NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_unlock_notice_record_id` (`record_id`),
+  KEY `idx_unlock_notice_user_id` (`user_id`)
 );

@@ -6,10 +6,12 @@ import com.flashback.common.exception.NotFoundException;
 import com.flashback.common.page.PageResult;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
+import com.flashback.domain.UnlockNoticeLog;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
@@ -27,12 +29,17 @@ import java.util.List;
 public class RecordServiceImpl implements RecordService {
 
     private static final int PREVIEW_MAX_LENGTH = 60;
+    private static final int UNLOCK_BATCH_SIZE = 100;
+    private static final String NOTICE_TYPE_SYSTEM_UNLOCK = "SYSTEM_UNLOCK";
+    private static final String NOTICE_STATUS_SUCCESS = "SUCCESS";
 
     private final RecordMapper recordMapper;
+    private final UnlockNoticeLogMapper unlockNoticeLogMapper;
     private final Clock clock;
 
-    public RecordServiceImpl(RecordMapper recordMapper, Clock clock) {
+    public RecordServiceImpl(RecordMapper recordMapper, UnlockNoticeLogMapper unlockNoticeLogMapper, Clock clock) {
         this.recordMapper = recordMapper;
+        this.unlockNoticeLogMapper = unlockNoticeLogMapper;
         this.clock = clock;
     }
 
@@ -132,6 +139,45 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
+    public PageResult<RecordListItemVO> pageMyUnlocked(Long userId, RecordPageQuery query) {
+        int pageNum = query.getPageNum();
+        int pageSize = query.getPageSize();
+        int offset = (pageNum - 1) * pageSize;
+
+        long total = recordMapper.countUnlockedByUser(userId);
+        List<Record> records = recordMapper.selectUnlockedPageByUser(userId, offset, pageSize);
+        List<RecordListItemVO> list = records.stream().map(this::toListItemVO).toList();
+        return PageResult.of(list, total, pageNum, pageSize);
+    }
+
+    @Override
+    public int runUnlockJob() {
+        int unlockedCount = 0;
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        while (true) {
+            List<Record> expiredSealedRecords = recordMapper.selectExpiredSealedRecords(now, UNLOCK_BATCH_SIZE);
+            if (expiredSealedRecords.isEmpty()) {
+                break;
+            }
+
+            for (Record record : expiredSealedRecords) {
+                int affected = recordMapper.unlockSealedById(record.getId(), now, now);
+                if (affected == 1) {
+                    insertUnlockNoticeLog(record.getId(), record.getUserId(), now);
+                    unlockedCount++;
+                }
+            }
+
+            if (expiredSealedRecords.size() < UNLOCK_BATCH_SIZE) {
+                break;
+            }
+        }
+
+        return unlockedCount;
+    }
+
+    @Override
     public RecordDetailVO detail(Long userId, Long id) {
         return toDetailVO(requireOwnedRecord(id, userId));
     }
@@ -152,6 +198,16 @@ public class RecordServiceImpl implements RecordService {
 
     private BizException badRequest(String message) {
         return new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, message);
+    }
+
+    private void insertUnlockNoticeLog(Long recordId, Long userId, LocalDateTime createdAt) {
+        UnlockNoticeLog unlockNoticeLog = new UnlockNoticeLog();
+        unlockNoticeLog.setRecordId(recordId);
+        unlockNoticeLog.setUserId(userId);
+        unlockNoticeLog.setNoticeType(NOTICE_TYPE_SYSTEM_UNLOCK);
+        unlockNoticeLog.setNoticeStatus(NOTICE_STATUS_SUCCESS);
+        unlockNoticeLog.setCreatedAt(createdAt);
+        unlockNoticeLogMapper.insert(unlockNoticeLog);
     }
 
     private String normalizeRequired(String value, String message) {

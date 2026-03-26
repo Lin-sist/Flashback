@@ -8,6 +8,7 @@ import com.flashback.domain.RecordType;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.UnlockNoticeLogMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,12 +36,15 @@ class RecordServiceImplTest {
     @Mock
     private RecordMapper recordMapper;
 
+    @Mock
+    private UnlockNoticeLogMapper unlockNoticeLogMapper;
+
     private RecordServiceImpl recordService;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-03-26T08:00:00Z"), ZoneId.of("Asia/Shanghai"));
-        recordService = new RecordServiceImpl(recordMapper, clock);
+        recordService = new RecordServiceImpl(recordMapper, unlockNoticeLogMapper, clock);
     }
 
     @Test
@@ -120,6 +127,51 @@ class RecordServiceImplTest {
         var result = recordService.seal(1L, 103L);
         assertThat(result.getStatus()).isEqualTo(RecordStatus.SEALED);
         assertThat(result.getSealedAt()).isNotNull();
+    }
+
+    @Test
+    void shouldUnlockExpiredSealedRecordsAndWriteLog() {
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(201L);
+        expired.setUserId(11L);
+        expired.setUnlockAt(LocalDateTime.of(2026, 3, 26, 15, 0, 0));
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired), List.of());
+        when(recordMapper.unlockSealedById(eq(201L), any(), any())).thenReturn(1);
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(recordMapper, times(1)).unlockSealedById(eq(201L), any(), any());
+        verify(unlockNoticeLogMapper, times(1)).insert(any());
+    }
+
+    @Test
+    void shouldNotUnlockWhenRecordNotExpired() {
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100))).thenReturn(List.of());
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(0);
+        verify(recordMapper, never()).unlockSealedById(any(), any(), any());
+        verify(unlockNoticeLogMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldBeIdempotentWhenAlreadyUnlockedByAnotherRun() {
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(301L);
+        expired.setUserId(21L);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired), List.of());
+        when(recordMapper.unlockSealedById(eq(301L), any(), any())).thenReturn(0);
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(0);
+        verify(unlockNoticeLogMapper, never()).insert(any());
     }
 
     private Record mockRecord(RecordStatus status) {

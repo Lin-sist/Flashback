@@ -68,6 +68,13 @@ public class RecordController {
         return ApiResponse.success(recordService.pageMine(authUser.getUserId(), query));
     }
 
+    @GetMapping("/unlocked")
+    public ApiResponse<PageResult<RecordListItemVO>> unlocked(
+            @CurrentUser AuthUser authUser,
+            @Valid RecordPageQuery query) {
+        return ApiResponse.success(recordService.pageMyUnlocked(authUser.getUserId(), query));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<RecordDetailVO> detail(@CurrentUser AuthUser authUser, @PathVariable("id") Long id) {
         return ApiResponse.success(recordService.detail(authUser.getUserId(), id));

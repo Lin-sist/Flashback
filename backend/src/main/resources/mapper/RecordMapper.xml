@@ -111,6 +111,27 @@
           AND status = 'DRAFT'
     </update>
 
+    <select id="selectExpiredSealedRecords" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record`
+        WHERE status = 'SEALED'
+          AND unlock_at IS NOT NULL
+          AND unlock_at &lt;= #{now}
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="unlockSealedById">
+        UPDATE `record`
+        SET
+            status = 'UNLOCKED',
+            unlocked_at = #{unlockedAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND status = 'SEALED'
+    </update>
+
     <select id="countByUserAndCondition" resultType="long">
         SELECT COUNT(1)
         FROM `record`
@@ -135,6 +156,23 @@
             AND record_type = #{recordType}
         </if>
         ORDER BY created_at DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countUnlockedByUser" resultType="long">
+        SELECT COUNT(1)
+        FROM `record`
+        WHERE user_id = #{userId}
+          AND status = 'UNLOCKED'
+    </select>
+
+    <select id="selectUnlockedPageByUser" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record`
+        WHERE user_id = #{userId}
+          AND status = 'UNLOCKED'
+        ORDER BY unlocked_at DESC, id DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 

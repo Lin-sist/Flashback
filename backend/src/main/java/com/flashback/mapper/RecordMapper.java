@@ -34,6 +34,15 @@ public interface RecordMapper {
             @Param("sealedAt") LocalDateTime sealedAt,
             @Param("updatedAt") LocalDateTime updatedAt);
 
+    List<Record> selectExpiredSealedRecords(
+            @Param("now") LocalDateTime now,
+            @Param("limit") int limit);
+
+    int unlockSealedById(
+            @Param("id") Long id,
+            @Param("unlockedAt") LocalDateTime unlockedAt,
+            @Param("updatedAt") LocalDateTime updatedAt);
+
     long countByUserAndCondition(
             @Param("userId") Long userId,
             @Param("status") RecordStatus status,
@@ -43,6 +52,13 @@ public interface RecordMapper {
             @Param("userId") Long userId,
             @Param("status") RecordStatus status,
             @Param("recordType") RecordType recordType,
+            @Param("offset") int offset,
+            @Param("pageSize") int pageSize);
+
+    long countUnlockedByUser(@Param("userId") Long userId);
+
+    List<Record> selectUnlockedPageByUser(
+            @Param("userId") Long userId,
             @Param("offset") int offset,
             @Param("pageSize") int pageSize);
 }

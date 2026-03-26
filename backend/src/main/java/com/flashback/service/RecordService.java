@@ -22,5 +22,9 @@ public interface RecordService {
 
     PageResult<RecordListItemVO> pageMine(Long userId, RecordPageQuery query);
 
+    PageResult<RecordListItemVO> pageMyUnlocked(Long userId, RecordPageQuery query);
+
+    int runUnlockJob();
+
     RecordDetailVO detail(Long userId, Long id);
 }

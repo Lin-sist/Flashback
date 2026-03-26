@@ -65,6 +65,32 @@ class RecordControllerAuthIntegrationTest {
     }
 
     @Test
+    void shouldReturnUnlockedRecordsWhenAuthorized() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        RecordListItemVO item = mockListItem();
+        item.setStatus(RecordStatus.UNLOCKED);
+
+        when(recordService.pageMyUnlocked(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(PageResult.of(List.of(item), 1L, 1, 10));
+
+        mockMvc.perform(get("/api/records/unlocked")
+                .header("Authorization", "Bearer " + token)
+                .param("pageNum", "1")
+                .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.list[0].status").value("UNLOCKED"));
+    }
+
+    @Test
+    void shouldReturn401WhenAccessUnlockedApiWithoutLogin() throws Exception {
+        mockMvc.perform(get("/api/records/unlocked"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(40100));
+    }
+
+    @Test
     void shouldReturnNotFoundWhenAccessOthersRecord() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
         when(recordService.detail(5001L, 9999L))
