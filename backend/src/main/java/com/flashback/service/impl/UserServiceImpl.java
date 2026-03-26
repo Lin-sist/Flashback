@@ -58,7 +58,6 @@ public class UserServiceImpl implements UserService {
         user.setNickname(nickname);
         user.setEmail(normalizeOptional(request.getEmail()));
         user.setAvatar(normalizeOptional(request.getAvatar()));
-        user.setOpenid(normalizeOptional(request.getOpenid()));
         user.setStatus(UserStatus.ENABLED);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
@@ -129,7 +128,12 @@ public class UserServiceImpl implements UserService {
         if (passwordHash == null || passwordHash.isBlank()) {
             return false;
         }
-        return BCrypt.checkpw(plainPassword, passwordHash);
+        try {
+            return BCrypt.checkpw(plainPassword, passwordHash);
+        } catch (IllegalArgumentException ex) {
+            // 兼容历史脏数据或错误初始化数据，避免将口令格式问题暴露为 500。
+            return false;
+        }
     }
 
     private String normalizeRequired(String value, String message) {

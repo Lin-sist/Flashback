@@ -98,4 +98,23 @@ class UserServiceImplTest {
                 .isInstanceOf(BizException.class)
                 .hasMessage("用户名或密码错误");
     }
+
+    @Test
+    void shouldFailWhenStoredPasswordHashMalformed() {
+        LoginRequest request = new LoginRequest();
+        request.setUsername("dave");
+        request.setPassword("secret123");
+
+        User user = new User();
+        user.setId(102L);
+        user.setUsername("dave");
+        user.setPasswordHash("plain-text-password");
+        user.setNickname("Dave");
+        user.setStatus(UserStatus.ENABLED);
+        when(userMapper.selectByUsername("dave")).thenReturn(user);
+
+        assertThatThrownBy(() -> userService.login(request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("用户名或密码错误");
+    }
 }

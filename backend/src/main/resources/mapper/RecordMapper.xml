@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.RecordMapper">
+
+    <resultMap id="RecordResultMap" type="com.flashback.domain.Record">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="recordType" column="record_type" javaType="com.flashback.domain.RecordType"/>
+        <result property="coreQuestion" column="core_question"/>
+        <result property="status" column="status" javaType="com.flashback.domain.RecordStatus"/>
+        <result property="unlockAt" column="unlock_at"/>
+        <result property="sealedAt" column="sealed_at"/>
+        <result property="unlockedAt" column="unlocked_at"/>
+        <result property="aiSummary" column="ai_summary"/>
+        <result property="aiPromptResult" column="ai_prompt_result"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id,
+        user_id,
+        title,
+        content,
+        record_type,
+        core_question,
+        status,
+        unlock_at,
+        sealed_at,
+        unlocked_at,
+        ai_summary,
+        ai_prompt_result,
+        created_at,
+        updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.Record" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `record` (
+            user_id,
+            title,
+            content,
+            record_type,
+            core_question,
+            status,
+            unlock_at,
+            sealed_at,
+            unlocked_at,
+            ai_summary,
+            ai_prompt_result,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{userId},
+            #{title},
+            #{content},
+            #{recordType},
+            #{coreQuestion},
+            #{status},
+            #{unlockAt},
+            #{sealedAt},
+            #{unlockedAt},
+            #{aiSummary},
+            #{aiPromptResult},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <select id="selectByIdAndUserId" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record`
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <update id="updateDraftByIdAndUserId">
+        UPDATE `record`
+        SET
+            title = #{title},
+            content = #{content},
+            record_type = #{recordType},
+            core_question = #{coreQuestion},
+            unlock_at = #{unlockAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+    </update>
+
+    <delete id="deleteDraftByIdAndUserId">
+        DELETE FROM `record`
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+    </delete>
+
+    <update id="sealDraftByIdAndUserId">
+        UPDATE `record`
+        SET
+            status = 'SEALED',
+            sealed_at = #{sealedAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+    </update>
+
+    <select id="countByUserAndCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM `record`
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="recordType != null">
+            AND record_type = #{recordType}
+        </if>
+    </select>
+
+    <select id="selectPageByUserAndCondition" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record`
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="recordType != null">
+            AND record_type = #{recordType}
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+</mapper>
