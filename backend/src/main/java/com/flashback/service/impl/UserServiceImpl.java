@@ -58,6 +58,7 @@ public class UserServiceImpl implements UserService {
         user.setNickname(nickname);
         user.setEmail(normalizeOptional(request.getEmail()));
         user.setAvatar(normalizeOptional(request.getAvatar()));
+        user.setOpenid(normalizeOptional(request.getOpenid()));
         user.setStatus(UserStatus.ENABLED);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);

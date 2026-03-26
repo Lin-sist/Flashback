@@ -11,13 +11,14 @@
         <result property="nickname" column="nickname"/>
         <result property="email" column="email"/>
         <result property="avatar" column="avatar"/>
+        <result property="openid" column="openid"/>
         <result property="status" column="status" javaType="com.flashback.domain.UserStatus"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <sql id="BaseColumnList">
-        id, username, password_hash, nickname, email, avatar, status, created_at, updated_at
+        id, username, password_hash, nickname, email, avatar, openid, status, created_at, updated_at
     </sql>
 
     <select id="selectByUsername" resultMap="UserResultMap">
@@ -43,6 +44,7 @@
             nickname,
             email,
             avatar,
+            openid,
             status,
             created_at,
             updated_at
@@ -52,6 +54,7 @@
             #{nickname},
             #{email},
             #{avatar},
+            #{openid},
             #{status},
             #{createdAt},
             #{updatedAt}
