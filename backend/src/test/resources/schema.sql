@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS `unlock_notice_log`;
+DROP TABLE IF EXISTS `reply`;
 DROP TABLE IF EXISTS `record`;
 DROP TABLE IF EXISTS `user`;
 
@@ -45,4 +46,16 @@ CREATE TABLE `unlock_notice_log` (
   PRIMARY KEY (`id`),
   KEY `idx_unlock_notice_record_id` (`record_id`),
   KEY `idx_unlock_notice_user_id` (`user_id`)
+);
+
+CREATE TABLE `reply` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `content` VARCHAR(500) NOT NULL,
+  `reply_type` VARCHAR(20) NOT NULL DEFAULT 'SHORT_REPLY',
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_reply_record_id` (`record_id`),
+  KEY `idx_reply_user_id` (`user_id`)
 );
