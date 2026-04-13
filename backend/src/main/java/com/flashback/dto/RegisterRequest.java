@@ -1,6 +1,7 @@
 package com.flashback.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -20,6 +21,7 @@ public class RegisterRequest {
     @Size(max = 50, message = "nickname长度不能超过50")
     private String nickname;
 
+    @Email(message = "email格式不正确")
     @Size(max = 100, message = "email长度不能超过100")
     private String email;
 

@@ -1,6 +1,9 @@
 package com.flashback.controller.api;
 
+import com.flashback.domain.User;
+import com.flashback.domain.UserStatus;
 import com.flashback.dto.UpdateUserProfileRequest;
+import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
@@ -18,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -37,6 +41,9 @@ class UserControllerAuthIntegrationTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
+    private UserMapper userMapper;
+
+    @MockBean
     private UserService userService;
 
     @Test
@@ -49,6 +56,7 @@ class UserControllerAuthIntegrationTest {
     @Test
     void shouldReturnCurrentUserWhenAccessMeWithToken() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(4001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(userService.getCurrentUser(4001L)).thenReturn(mockUserInfo("Neo"));
 
         mockMvc.perform(get("/api/user/me")
@@ -62,6 +70,7 @@ class UserControllerAuthIntegrationTest {
     @Test
     void shouldReturnUpdatedUserAfterUpdateProfile() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(4001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(userService.updateProfile(eq(4001L), any(UpdateUserProfileRequest.class)))
                 .thenReturn(mockUserInfo("Neo-Updated"));
 
@@ -74,6 +83,13 @@ class UserControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.nickname").value("Neo-Updated"))
                 .andExpect(jsonPath("$.data.email").value("neo@example.com"));
+    }
+
+    private User enabledUser() {
+        User user = new User();
+        user.setId(4001L);
+        user.setStatus(UserStatus.ENABLED);
+        return user;
     }
 
     private UserInfoVO mockUserInfo(String nickname) {

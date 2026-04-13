@@ -297,6 +297,7 @@ class RecordMapperIntegrationTest {
 
         private Record newRecord(Long userId, String title, RecordStatus status, RecordType recordType,
                         LocalDateTime createdAt) {
+                ensureUser(userId);
                 Record record = new Record();
                 record.setUserId(userId);
                 record.setTitle(title);
@@ -312,5 +313,36 @@ class RecordMapperIntegrationTest {
                 record.setCreatedAt(createdAt);
                 record.setUpdatedAt(createdAt);
                 return record;
+        }
+
+        private void ensureUser(Long userId) {
+                Integer count = jdbcTemplate.queryForObject(
+                                "SELECT COUNT(1) FROM `user` WHERE id = ?",
+                                Integer.class,
+                                userId);
+                if (count != null && count > 0) {
+                        return;
+                }
+
+                LocalDateTime now = LocalDateTime.of(2026, 1, 1, 0, 0, 0);
+                jdbcTemplate.update(
+                                """
+                                                INSERT INTO `user` (
+                                                    id,
+                                                    username,
+                                                    password_hash,
+                                                    nickname,
+                                                    status,
+                                                    created_at,
+                                                    updated_at
+                                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                                                """,
+                                userId,
+                                "user_" + userId,
+                                "test-password-hash",
+                                "User-" + userId,
+                                "ENABLED",
+                                now,
+                                now);
         }
 }

@@ -2,6 +2,9 @@ package com.flashback.controller.api;
 
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.domain.ReplyType;
+import com.flashback.domain.User;
+import com.flashback.domain.UserStatus;
+import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
@@ -19,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -38,6 +42,9 @@ class ReplyControllerAuthIntegrationTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
+    private UserMapper userMapper;
+
+    @MockBean
     private ReplyService replyService;
 
     @Test
@@ -50,6 +57,7 @@ class ReplyControllerAuthIntegrationTest {
     @Test
     void shouldCreateReplyWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(replyService.create(eq(5001L), eq(9001L), any()))
                 .thenReturn(mockReplyVO());
 
@@ -72,6 +80,7 @@ class ReplyControllerAuthIntegrationTest {
     @Test
     void shouldReturn400WhenContentBlank() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(post("/api/records/9001/reply")
                 .header("Authorization", "Bearer " + token)
@@ -89,6 +98,7 @@ class ReplyControllerAuthIntegrationTest {
     @Test
     void shouldReturn400WhenContentTooLong() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         String tooLong = "a".repeat(501);
         String body = "{\"content\":\"" + tooLong + "\",\"replyType\":\"SHORT_REPLY\"}";
 
@@ -103,6 +113,7 @@ class ReplyControllerAuthIntegrationTest {
     @Test
     void shouldReturn400WhenReplyTypeInvalid() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(post("/api/records/9001/reply")
                 .header("Authorization", "Bearer " + token)
@@ -120,6 +131,7 @@ class ReplyControllerAuthIntegrationTest {
     @Test
     void shouldReturnNullWhenNoReply() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(replyService.detail(5001L, 9002L)).thenReturn(null);
 
         mockMvc.perform(get("/api/records/9002/reply")
@@ -132,12 +144,20 @@ class ReplyControllerAuthIntegrationTest {
     @Test
     void shouldReturn404WhenRecordNotFound() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(replyService.detail(5001L, 9999L)).thenThrow(new NotFoundException("记录不存在"));
 
         mockMvc.perform(get("/api/records/9999/reply")
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(40400));
+    }
+
+    private User enabledUser() {
+        User user = new User();
+        user.setId(5001L);
+        user.setStatus(UserStatus.ENABLED);
+        return user;
     }
 
     private ReplyVO mockReplyVO() {

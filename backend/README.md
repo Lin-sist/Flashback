@@ -18,3 +18,8 @@
 ## 说明
 - 当前仅为项目骨架，不包含任何业务代码。
 - 可直接在对应分层目录补充具体模块实现。
+- 默认不激活任何 Spring Profile，避免部署时误用开发配置。
+- 本地启动请显式指定：`--spring.profiles.active=dev`
+- 生产启动请显式指定：`--spring.profiles.active=prod`
+- 生产环境请显式注入 `APP_CORS_ALLOWED_ORIGIN_PATTERNS`，未配置时浏览器跨域请求默认不放行
+- MySQL 建表参考见 `backend/sql/mysql/schema.mysql.sql`

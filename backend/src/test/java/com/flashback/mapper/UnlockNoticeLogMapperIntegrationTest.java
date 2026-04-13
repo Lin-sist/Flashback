@@ -7,6 +7,7 @@ import com.flashback.domain.UnlockNoticeLog;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +26,12 @@ class UnlockNoticeLogMapperIntegrationTest {
     @Autowired
     private UnlockNoticeLogMapper unlockNoticeLogMapper;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void shouldInsertUnlockNoticeLog() {
+        ensureUser(8001L);
         Record sealed = new Record();
         sealed.setUserId(8001L);
         sealed.setTitle("to-unlock");
@@ -48,5 +53,36 @@ class UnlockNoticeLogMapperIntegrationTest {
         int inserted = unlockNoticeLogMapper.insert(log);
         assertThat(inserted).isEqualTo(1);
         assertThat(log.getId()).isNotNull();
+    }
+
+    private void ensureUser(Long userId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM `user` WHERE id = ?",
+                Integer.class,
+                userId);
+        if (count != null && count > 0) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.of(2026, 3, 24, 8, 0, 0);
+        jdbcTemplate.update(
+                """
+                        INSERT INTO `user` (
+                            id,
+                            username,
+                            password_hash,
+                            nickname,
+                            status,
+                            created_at,
+                            updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                userId,
+                "user_" + userId,
+                "test-password-hash",
+                "User-" + userId,
+                "ENABLED",
+                now,
+                now);
     }
 }

@@ -35,7 +35,13 @@ CREATE TABLE `record` (
   `ai_prompt_result` TEXT DEFAULT NULL,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_record_user_id` (`user_id`),
+  KEY `idx_record_status` (`status`),
+  KEY `idx_record_unlock_at` (`unlock_at`),
+  KEY `idx_record_user_status_created` (`user_id`, `status`, `created_at`),
+  KEY `idx_record_status_unlock_at` (`status`, `unlock_at`),
+  CONSTRAINT `fk_record_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `tag` (
@@ -56,7 +62,9 @@ CREATE TABLE `record_tag` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_record_tag` (`record_id`, `tag_id`),
   KEY `idx_record_tag_record_id` (`record_id`),
-  KEY `idx_record_tag_tag_id` (`tag_id`)
+  KEY `idx_record_tag_tag_id` (`tag_id`),
+  CONSTRAINT `fk_record_tag_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_record_tag_tag_id` FOREIGN KEY (`tag_id`) REFERENCES `tag` (`id`) ON DELETE RESTRICT
 );
 
 CREATE TABLE `unlock_notice_log` (
@@ -68,7 +76,9 @@ CREATE TABLE `unlock_notice_log` (
   `created_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_unlock_notice_record_id` (`record_id`),
-  KEY `idx_unlock_notice_user_id` (`user_id`)
+  KEY `idx_unlock_notice_user_id` (`user_id`),
+  CONSTRAINT `fk_unlock_notice_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_unlock_notice_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `reply` (
@@ -80,5 +90,7 @@ CREATE TABLE `reply` (
   `created_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_reply_record_id` (`record_id`),
-  KEY `idx_reply_user_id` (`user_id`)
+  KEY `idx_reply_user_id` (`user_id`),
+  CONSTRAINT `fk_reply_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_reply_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );

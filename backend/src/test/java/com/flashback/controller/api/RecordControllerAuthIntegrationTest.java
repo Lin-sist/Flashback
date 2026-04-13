@@ -3,6 +3,9 @@ package com.flashback.controller.api;
 import com.flashback.common.page.PageResult;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
+import com.flashback.domain.User;
+import com.flashback.domain.UserStatus;
+import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
@@ -23,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,6 +44,9 @@ class RecordControllerAuthIntegrationTest {
         private JwtTokenProvider jwtTokenProvider;
 
         @MockBean
+        private UserMapper userMapper;
+
+        @MockBean
         private RecordService recordService;
 
         @Test
@@ -52,6 +59,7 @@ class RecordControllerAuthIntegrationTest {
         @Test
         void shouldReturnPagedMineRecordsWhenAuthorized() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
                 when(recordService.pageMine(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
                                 .thenReturn(PageResult.of(List.of(mockListItem()), 1L, 1, 10));
 
@@ -71,6 +79,7 @@ class RecordControllerAuthIntegrationTest {
         @Test
         void shouldReturn400WhenRecordStatusIsInvalid() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
                 mockMvc.perform(get("/api/records")
                                 .header("Authorization", "Bearer " + token)
@@ -83,6 +92,7 @@ class RecordControllerAuthIntegrationTest {
         @Test
         void shouldReturnUnlockedRecordsWhenAuthorized() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
                 RecordListItemVO item = mockListItem();
                 item.setStatus(RecordStatus.UNLOCKED);
 
@@ -110,6 +120,7 @@ class RecordControllerAuthIntegrationTest {
         @Test
         void shouldReturnTimelineWhenAuthorized() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
                 TimelineItemVO item = new TimelineItemVO();
                 item.setId(9001L);
@@ -146,6 +157,7 @@ class RecordControllerAuthIntegrationTest {
         @Test
         void shouldReturnRecordDetailWithAiAndReplyFlagsWhenAuthorized() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
                 when(recordService.detail(5001L, 9001L)).thenReturn(mockDetail());
 
                 mockMvc.perform(get("/api/records/9001")
@@ -164,6 +176,7 @@ class RecordControllerAuthIntegrationTest {
         @Test
         void shouldReturnNotFoundWhenAccessOthersRecord() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
                 when(recordService.detail(5001L, 9999L))
                                 .thenThrow(new com.flashback.common.exception.NotFoundException("记录不存在"));
 
@@ -171,6 +184,13 @@ class RecordControllerAuthIntegrationTest {
                                 .header("Authorization", "Bearer " + token))
                                 .andExpect(status().isNotFound())
                                 .andExpect(jsonPath("$.code").value(40400));
+        }
+
+        private User enabledUser() {
+                User user = new User();
+                user.setId(5001L);
+                user.setStatus(UserStatus.ENABLED);
+                return user;
         }
 
         private RecordListItemVO mockListItem() {

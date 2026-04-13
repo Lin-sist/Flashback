@@ -1,5 +1,8 @@
 package com.flashback;
 
+import com.flashback.domain.User;
+import com.flashback.domain.UserStatus;
+import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
@@ -7,11 +10,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,6 +42,9 @@ class InfrastructureSmokeTest {
     @Autowired
     private Clock clock;
 
+    @MockBean
+    private UserMapper userMapper;
+
     @Test
     void contextLoads() {
         assertThat(clock).isNotNull();
@@ -54,6 +63,7 @@ class InfrastructureSmokeTest {
     @Test
     void shouldReturn403WhenUserAccessAdminApi() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(1001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(get("/admin/test/protected")
                 .header("Authorization", "Bearer " + token))
@@ -66,6 +76,7 @@ class InfrastructureSmokeTest {
     @Test
     void shouldReturn400WhenValidationFailed() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(1002L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(post("/api/test/validation")
                 .header("Authorization", "Bearer " + token)
@@ -109,6 +120,7 @@ class InfrastructureSmokeTest {
     @Test
     void shouldResolveCurrentUserFromArgumentResolver() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(4001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(get("/api/test/current-user")
                 .header("Authorization", "Bearer " + token))
@@ -130,6 +142,7 @@ class InfrastructureSmokeTest {
     @Test
     void shouldReturn400WhenPageQueryInvalid() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(get("/api/test/page")
                 .header("Authorization", "Bearer " + token)
@@ -143,6 +156,7 @@ class InfrastructureSmokeTest {
     @Test
     void shouldReturn200WhenPageQueryValid() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5002L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(get("/api/test/page")
                 .header("Authorization", "Bearer " + token)
@@ -152,5 +166,12 @@ class InfrastructureSmokeTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.pageNum").value(2))
                 .andExpect(jsonPath("$.data.pageSize").value(20));
+    }
+
+    private User enabledUser() {
+        User user = new User();
+        user.setId(1001L);
+        user.setStatus(UserStatus.ENABLED);
+        return user;
     }
 }

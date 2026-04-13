@@ -1,9 +1,6 @@
 spring:
   application:
     name: flashback-backend
-  profiles:
-    # 本地开发默认启用 dev，生产环境通过启动参数或环境变量切换为 prod
-    active: dev
 
 mybatis:
   mapper-locations: classpath:/mapper/**/*.xml
@@ -32,10 +29,3 @@ app:
       emotion: 待整理
       core-question: 暂无
       desired-outcome: 暂无
-  cors:
-    # 默认本地联调来源，可在各环境文件或环境变量中覆盖
-    allowed-origin-patterns:
-      - http://localhost:*
-      - http://127.0.0.1:*
-      - https://localhost:*
-      - https://127.0.0.1:*

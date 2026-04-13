@@ -1,5 +1,8 @@
 package com.flashback.controller.api;
 
+import com.flashback.domain.User;
+import com.flashback.domain.UserStatus;
+import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
@@ -18,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,6 +40,9 @@ class AiControllerAuthIntegrationTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
+    private UserMapper userMapper;
+
+    @MockBean
     private AiService aiService;
 
     @Test
@@ -50,6 +57,7 @@ class AiControllerAuthIntegrationTest {
     @Test
     void shouldReturnWritingPromptsWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(aiService.generateWritingPrompts(eq(5001L), any())).thenReturn(mockPrompts());
 
         mockMvc.perform(post("/api/ai/writing-prompts")
@@ -71,6 +79,7 @@ class AiControllerAuthIntegrationTest {
     @Test
     void shouldReturn400WhenSummarizeContentBlank() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
 
         mockMvc.perform(post("/api/ai/summarize-record")
                 .header("Authorization", "Bearer " + token)
@@ -88,6 +97,7 @@ class AiControllerAuthIntegrationTest {
     @Test
     void shouldReturnSummaryWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
         when(aiService.summarizeRecord(eq(5001L), any())).thenReturn(mockSummary());
 
         mockMvc.perform(post("/api/ai/summarize-record")
@@ -104,6 +114,13 @@ class AiControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.data.source").value("mock"))
                 .andExpect(jsonPath("$.data.summary").value("当前主要困惑集中在职业方向选择"))
                 .andExpect(jsonPath("$.data.confusion").value("职业方向不清晰"));
+    }
+
+    private User enabledUser() {
+        User user = new User();
+        user.setId(5001L);
+        user.setStatus(UserStatus.ENABLED);
+        return user;
     }
 
     private AiWritingPromptsVO mockPrompts() {

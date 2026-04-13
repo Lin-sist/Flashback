@@ -1,7 +1,10 @@
 package com.flashback.controller.api;
 
+import com.flashback.domain.User;
 import com.flashback.domain.TagStatus;
 import com.flashback.domain.TagType;
+import com.flashback.domain.UserStatus;
+import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
@@ -17,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,6 +38,9 @@ class TagControllerAuthIntegrationTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @MockBean
+    private UserMapper userMapper;
+
+    @MockBean
     private TagService tagService;
 
     @Test
@@ -46,6 +53,7 @@ class TagControllerAuthIntegrationTest {
     @Test
     void shouldReturnEnabledTagsWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser(UserStatus.ENABLED));
 
         TagVO tag = new TagVO();
         tag.setId(1L);
@@ -69,6 +77,7 @@ class TagControllerAuthIntegrationTest {
     @Test
     void shouldReturn400WhenTagTypeIsInvalid() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser(UserStatus.ENABLED));
 
         mockMvc.perform(get("/api/tags")
                 .header("Authorization", "Bearer " + token)
@@ -76,5 +85,24 @@ class TagControllerAuthIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(40000))
                 .andExpect(jsonPath("$.message").value("type: 参数格式不正确"));
+    }
+
+    @Test
+    void shouldReturn403WhenUserDisabled() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser(UserStatus.DISABLED));
+
+        mockMvc.perform(get("/api/tags")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(40300))
+                .andExpect(jsonPath("$.message").value("用户已禁用"));
+    }
+
+    private User enabledUser(UserStatus status) {
+        User user = new User();
+        user.setId(5001L);
+        user.setStatus(status);
+        return user;
     }
 }

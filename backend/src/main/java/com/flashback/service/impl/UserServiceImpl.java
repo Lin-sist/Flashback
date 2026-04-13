@@ -61,7 +61,8 @@ public class UserServiceImpl implements UserService {
         user.setNickname(nickname);
         user.setEmail(normalizeOptional(request.getEmail()));
         user.setAvatar(normalizeOptional(request.getAvatar()));
-        user.setOpenid(normalizeOptional(request.getOpenid()));
+        // 普通注册链路不信任客户端直接传入 openid，避免为后续小程序登录埋下身份污染风险。
+        user.setOpenid(null);
         user.setStatus(UserStatus.ENABLED);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);

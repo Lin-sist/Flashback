@@ -15,11 +15,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "app.cors")
 public class AppCorsProperties {
 
-    private List<String> allowedOriginPatterns = new ArrayList<>(List.of(
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "https://localhost:*",
-            "https://127.0.0.1:*"));
+    private List<String> allowedOriginPatterns = new ArrayList<>();
 
     public List<String> getAllowedOriginPatterns() {
         return allowedOriginPatterns;

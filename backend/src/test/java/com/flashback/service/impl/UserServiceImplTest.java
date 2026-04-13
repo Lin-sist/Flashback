@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mindrot.jbcrypt.BCrypt;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Clock;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,6 +75,28 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.register(request))
                 .isInstanceOf(BizException.class)
                 .hasMessage("用户名已存在");
+    }
+
+    @Test
+    void shouldIgnoreOpenidWhenRegisterNormally() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("alice");
+        request.setPassword("secret123");
+        request.setNickname("Alice");
+        request.setOpenid("wx-openid-from-client");
+
+        when(userMapper.selectByUsername("alice")).thenReturn(null);
+        when(userMapper.insert(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(1L);
+            return 1;
+        });
+
+        userService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userMapper).insert(captor.capture());
+        assertThat(captor.getValue().getOpenid()).isNull();
     }
 
     @Test
