@@ -22,3 +22,8 @@ logging:
   level:
     root: info
     "[com.flashback]": debug
+
+app:
+  ai:
+    provider: mock
+    timeout-millis: 5000
