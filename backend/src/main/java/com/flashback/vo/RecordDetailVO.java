@@ -4,6 +4,7 @@ import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 记录详情视图。
@@ -19,6 +20,7 @@ public class RecordDetailVO {
     private LocalDateTime unlockAt;
     private LocalDateTime sealedAt;
     private LocalDateTime unlockedAt;
+    private List<RecordTagVO> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -92,6 +94,14 @@ public class RecordDetailVO {
 
     public void setUnlockedAt(LocalDateTime unlockedAt) {
         this.unlockedAt = unlockedAt;
+    }
+
+    public List<RecordTagVO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<RecordTagVO> tags) {
+        this.tags = tags;
     }
 
     public LocalDateTime getCreatedAt() {

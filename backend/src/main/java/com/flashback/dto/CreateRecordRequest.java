@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 新建记录请求。
@@ -25,6 +26,9 @@ public class CreateRecordRequest {
     private String coreQuestion;
 
     private LocalDateTime unlockAt;
+
+    @Size(max = 20, message = "tagIds数量不能超过20")
+    private List<Long> tagIds;
 
     public String getTitle() {
         return title;
@@ -64,5 +68,13 @@ public class CreateRecordRequest {
 
     public void setUnlockAt(LocalDateTime unlockAt) {
         this.unlockAt = unlockAt;
+    }
+
+    public List<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Long> tagIds) {
+        this.tagIds = tagIds;
     }
 }

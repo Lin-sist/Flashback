@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.RecordTagMapper">
+
+    <delete id="deleteByRecordId">
+        DELETE FROM record_tag
+        WHERE record_id = #{recordId}
+    </delete>
+
+    <insert id="batchInsert">
+        INSERT INTO record_tag (record_id, tag_id)
+        VALUES
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{recordId}, #{tagId})
+        </foreach>
+    </insert>
+
+</mapper>

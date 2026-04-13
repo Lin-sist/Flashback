@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.TagMapper">
+
+    <resultMap id="TagResultMap" type="com.flashback.domain.Tag">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="type" column="type" javaType="com.flashback.domain.TagType"/>
+        <result property="status" column="status" javaType="com.flashback.domain.TagStatus"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="RecordTagNameResultMap" type="com.flashback.domain.RecordTagName">
+        <result property="recordId" column="record_id"/>
+        <result property="tagName" column="tag_name"/>
+    </resultMap>
+
+    <select id="selectEnabledByType" resultMap="TagResultMap">
+        SELECT
+            id,
+            name,
+            type,
+            status,
+            created_at
+        FROM tag
+        WHERE status = 'ENABLED'
+        <if test="type != null">
+            AND type = #{type}
+        </if>
+        ORDER BY id ASC
+    </select>
+
+    <select id="countEnabledByIds" resultType="long">
+        SELECT COUNT(1)
+        FROM tag
+        WHERE status = 'ENABLED'
+          AND id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </select>
+
+    <select id="selectTagsByRecordId" resultMap="TagResultMap">
+        SELECT
+            t.id,
+            t.name,
+            t.type,
+            t.status,
+            t.created_at
+        FROM record_tag rt
+        INNER JOIN tag t ON t.id = rt.tag_id
+        WHERE rt.record_id = #{recordId}
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="selectTagNamesByRecordIds" resultMap="RecordTagNameResultMap">
+        SELECT
+            rt.record_id,
+            t.name AS tag_name
+        FROM record_tag rt
+        INNER JOIN tag t ON t.id = rt.tag_id
+        WHERE rt.record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+          AND t.status = 'ENABLED'
+        ORDER BY rt.record_id ASC, t.id ASC
+    </select>
+
+</mapper>

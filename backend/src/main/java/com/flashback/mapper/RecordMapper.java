@@ -46,12 +46,16 @@ public interface RecordMapper {
     long countByUserAndCondition(
             @Param("userId") Long userId,
             @Param("status") RecordStatus status,
-            @Param("recordType") RecordType recordType);
+            @Param("recordType") RecordType recordType,
+            @Param("tagId") Long tagId,
+            @Param("keyword") String keyword);
 
     List<Record> selectPageByUserAndCondition(
             @Param("userId") Long userId,
             @Param("status") RecordStatus status,
             @Param("recordType") RecordType recordType,
+            @Param("tagId") Long tagId,
+            @Param("keyword") String keyword,
             @Param("offset") int offset,
             @Param("pageSize") int pageSize);
 
@@ -61,4 +65,9 @@ public interface RecordMapper {
             @Param("userId") Long userId,
             @Param("offset") int offset,
             @Param("pageSize") int pageSize);
+
+    List<Record> selectTimelineByUserAndCondition(
+            @Param("userId") Long userId,
+            @Param("tagId") Long tagId,
+            @Param("year") Integer year);
 }

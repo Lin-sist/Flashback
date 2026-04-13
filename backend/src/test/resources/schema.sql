@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS `unlock_notice_log`;
 DROP TABLE IF EXISTS `reply`;
+DROP TABLE IF EXISTS `record_tag`;
+DROP TABLE IF EXISTS `tag`;
 DROP TABLE IF EXISTS `record`;
 DROP TABLE IF EXISTS `user`;
 
@@ -34,6 +36,27 @@ CREATE TABLE `record` (
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `tag` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL,
+  `type` VARCHAR(20) NOT NULL,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'ENABLED',
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tag_name_type` (`name`, `type`),
+  KEY `idx_tag_type` (`type`)
+);
+
+CREATE TABLE `record_tag` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `tag_id` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_tag` (`record_id`, `tag_id`),
+  KEY `idx_record_tag_record_id` (`record_id`),
+  KEY `idx_record_tag_tag_id` (`tag_id`)
 );
 
 CREATE TABLE `unlock_notice_log` (

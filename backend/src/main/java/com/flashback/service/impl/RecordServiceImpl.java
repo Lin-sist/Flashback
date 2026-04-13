@@ -5,22 +5,36 @@ import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.common.page.PageResult;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordTagName;
 import com.flashback.domain.RecordStatus;
+import com.flashback.domain.Tag;
 import com.flashback.domain.UnlockNoticeLog;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
+import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
+import com.flashback.vo.RecordTagVO;
+import com.flashback.vo.TimelineGroupVO;
+import com.flashback.vo.TimelineItemVO;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 记录模块核心业务实现。
@@ -32,20 +46,33 @@ public class RecordServiceImpl implements RecordService {
     private static final int UNLOCK_BATCH_SIZE = 100;
     private static final String NOTICE_TYPE_SYSTEM_UNLOCK = "SYSTEM_UNLOCK";
     private static final String NOTICE_STATUS_SUCCESS = "SUCCESS";
+    private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     private final RecordMapper recordMapper;
+    private final TagMapper tagMapper;
+    private final RecordTagMapper recordTagMapper;
     private final UnlockNoticeLogMapper unlockNoticeLogMapper;
     private final Clock clock;
 
-    public RecordServiceImpl(RecordMapper recordMapper, UnlockNoticeLogMapper unlockNoticeLogMapper, Clock clock) {
+    public RecordServiceImpl(
+            RecordMapper recordMapper,
+            TagMapper tagMapper,
+            RecordTagMapper recordTagMapper,
+            UnlockNoticeLogMapper unlockNoticeLogMapper,
+            Clock clock) {
         this.recordMapper = recordMapper;
+        this.tagMapper = tagMapper;
+        this.recordTagMapper = recordTagMapper;
         this.unlockNoticeLogMapper = unlockNoticeLogMapper;
         this.clock = clock;
     }
 
     @Override
+    @Transactional
     public RecordDetailVO create(Long userId, CreateRecordRequest request) {
         LocalDateTime now = LocalDateTime.now(clock);
+        List<Long> tagIds = normalizeTagIds(request.getTagIds());
+        validateTagIdsExist(tagIds);
 
         Record record = new Record();
         record.setUserId(userId);
@@ -59,14 +86,18 @@ public class RecordServiceImpl implements RecordService {
         record.setUpdatedAt(now);
 
         recordMapper.insert(record);
+        rebindRecordTags(record.getId(), tagIds);
         Record created = requireOwnedRecord(record.getId(), userId);
         return toDetailVO(created);
     }
 
     @Override
+    @Transactional
     public RecordDetailVO update(Long userId, Long id, UpdateRecordRequest request) {
         Record current = requireOwnedRecord(id, userId);
         ensureDraft(current, "仅DRAFT状态允许编辑");
+        List<Long> tagIds = normalizeTagIds(request.getTagIds());
+        validateTagIdsExist(tagIds);
 
         int affected = recordMapper.updateDraftByIdAndUserId(
                 id,
@@ -80,6 +111,8 @@ public class RecordServiceImpl implements RecordService {
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
+
+        rebindRecordTags(id, tagIds);
 
         return toDetailVO(requireOwnedRecord(id, userId));
     }
@@ -125,16 +158,27 @@ public class RecordServiceImpl implements RecordService {
         int pageNum = query.getPageNum();
         int pageSize = query.getPageSize();
         int offset = (pageNum - 1) * pageSize;
+        String keyword = normalizeOptional(query.getKeyword());
 
-        long total = recordMapper.countByUserAndCondition(userId, query.getStatus(), query.getRecordType());
+        long total = recordMapper.countByUserAndCondition(
+            userId,
+            query.getStatus(),
+            query.getRecordType(),
+            query.getTagId(),
+            keyword);
         List<Record> records = recordMapper.selectPageByUserAndCondition(
                 userId,
                 query.getStatus(),
                 query.getRecordType(),
+            query.getTagId(),
+            keyword,
                 offset,
                 pageSize);
 
-        List<RecordListItemVO> list = records.stream().map(this::toListItemVO).toList();
+        Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
+        List<RecordListItemVO> list = records.stream()
+            .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of())))
+            .toList();
         return PageResult.of(list, total, pageNum, pageSize);
     }
 
@@ -146,8 +190,33 @@ public class RecordServiceImpl implements RecordService {
 
         long total = recordMapper.countUnlockedByUser(userId);
         List<Record> records = recordMapper.selectUnlockedPageByUser(userId, offset, pageSize);
-        List<RecordListItemVO> list = records.stream().map(this::toListItemVO).toList();
+        Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
+        List<RecordListItemVO> list = records.stream()
+                .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of())))
+                .toList();
         return PageResult.of(list, total, pageNum, pageSize);
+    }
+
+    @Override
+    public List<TimelineGroupVO> timeline(Long userId, RecordTimelineQuery query) {
+        List<Record> records = recordMapper.selectTimelineByUserAndCondition(userId, query.getTagId(), query.getYear());
+        Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
+
+        Map<String, List<TimelineItemVO>> grouped = new LinkedHashMap<>();
+        for (Record record : records) {
+            String yearMonth = record.getCreatedAt().format(YEAR_MONTH_FORMATTER);
+            TimelineItemVO item = toTimelineItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of()));
+            grouped.computeIfAbsent(yearMonth, key -> new ArrayList<>()).add(item);
+        }
+
+        List<TimelineGroupVO> timeline = new ArrayList<>();
+        for (Map.Entry<String, List<TimelineItemVO>> entry : grouped.entrySet()) {
+            TimelineGroupVO group = new TimelineGroupVO();
+            group.setYearMonth(entry.getKey());
+            group.setItems(entry.getValue());
+            timeline.add(group);
+        }
+        return timeline;
     }
 
     @Override
@@ -226,7 +295,74 @@ public class RecordServiceImpl implements RecordService {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    private RecordListItemVO toListItemVO(Record record) {
+    private List<Long> normalizeTagIds(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return List.of();
+        }
+
+        LinkedHashSet<Long> unique = new LinkedHashSet<>();
+        for (Long tagId : tagIds) {
+            if (tagId == null) {
+                throw badRequest("tagIds存在空值");
+            }
+            unique.add(tagId);
+        }
+        return List.copyOf(unique);
+    }
+
+    private void validateTagIdsExist(List<Long> tagIds) {
+        if (tagIds.isEmpty()) {
+            return;
+        }
+        long count = tagMapper.countEnabledByIds(tagIds);
+        if (count != tagIds.size()) {
+            throw badRequest("标签不存在");
+        }
+    }
+
+    private void rebindRecordTags(Long recordId, List<Long> tagIds) {
+        recordTagMapper.deleteByRecordId(recordId);
+        if (!tagIds.isEmpty()) {
+            recordTagMapper.batchInsert(recordId, tagIds);
+        }
+    }
+
+    private Map<Long, List<String>> loadTagNamesByRecordIds(List<Record> records) {
+        if (records == null || records.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> recordIds = records.stream().map(Record::getId).toList();
+        List<RecordTagName> rows = tagMapper.selectTagNamesByRecordIds(recordIds);
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, List<String>> result = new LinkedHashMap<>();
+        for (RecordTagName row : rows) {
+            result.computeIfAbsent(row.getRecordId(), key -> new ArrayList<>()).add(row.getTagName());
+        }
+        return result;
+    }
+
+    private List<RecordTagVO> loadRecordTags(Long recordId) {
+        List<Tag> tags = tagMapper.selectTagsByRecordId(recordId);
+        if (tags == null || tags.isEmpty()) {
+            return List.of();
+        }
+
+        return tags.stream().map(this::toRecordTagVO).toList();
+    }
+
+    private RecordTagVO toRecordTagVO(Tag tag) {
+        RecordTagVO vo = new RecordTagVO();
+        vo.setId(tag.getId());
+        vo.setName(tag.getName());
+        vo.setType(tag.getType());
+        return vo;
+    }
+
+    private RecordListItemVO toListItemVO(Record record, List<String> tagNames) {
         RecordListItemVO vo = new RecordListItemVO();
         vo.setId(record.getId());
         vo.setTitle(record.getTitle());
@@ -235,7 +371,19 @@ public class RecordServiceImpl implements RecordService {
         vo.setStatus(record.getStatus());
         vo.setUnlockAt(record.getUnlockAt());
         vo.setCreatedAt(record.getCreatedAt());
+        vo.setTagNames(tagNames);
         return vo;
+    }
+
+    private TimelineItemVO toTimelineItemVO(Record record, List<String> tagNames) {
+        TimelineItemVO item = new TimelineItemVO();
+        item.setId(record.getId());
+        item.setTitle(record.getTitle());
+        item.setStatus(record.getStatus());
+        item.setRecordType(record.getRecordType());
+        item.setCreatedAt(record.getCreatedAt());
+        item.setTagNames(tagNames);
+        return item;
     }
 
     private String toPreview(String content) {
@@ -260,6 +408,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setUnlockAt(record.getUnlockAt());
         vo.setSealedAt(record.getSealedAt());
         vo.setUnlockedAt(record.getUnlockedAt());
+        vo.setTags(loadRecordTags(record.getId()));
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
         return vo;

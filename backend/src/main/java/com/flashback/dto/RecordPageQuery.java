@@ -11,6 +11,8 @@ public class RecordPageQuery extends PageQuery {
 
     private RecordStatus status;
     private RecordType recordType;
+    private Long tagId;
+    private String keyword;
 
     public RecordStatus getStatus() {
         return status;
@@ -26,5 +28,21 @@ public class RecordPageQuery extends PageQuery {
 
     public void setRecordType(RecordType recordType) {
         this.recordType = recordType;
+    }
+
+    public Long getTagId() {
+        return tagId;
+    }
+
+    public void setTagId(Long tagId) {
+        this.tagId = tagId;
+    }
+
+    public String getKeyword() {
+        return keyword;
+    }
+
+    public void setKeyword(String keyword) {
+        this.keyword = keyword;
     }
 }

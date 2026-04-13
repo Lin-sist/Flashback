@@ -4,12 +4,14 @@ import com.flashback.common.page.PageResult;
 import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
+import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.auth.CurrentUser;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
+import com.flashback.vo.TimelineGroupVO;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,6 +22,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 记录主链路接口。
@@ -73,6 +77,13 @@ public class RecordController {
             @CurrentUser AuthUser authUser,
             @Valid RecordPageQuery query) {
         return ApiResponse.success(recordService.pageMyUnlocked(authUser.getUserId(), query));
+    }
+
+    @GetMapping("/timeline")
+    public ApiResponse<List<TimelineGroupVO>> timeline(
+            @CurrentUser AuthUser authUser,
+            @Valid RecordTimelineQuery query) {
+        return ApiResponse.success(recordService.timeline(authUser.getUserId(), query));
     }
 
     @GetMapping("/{id}")

@@ -6,8 +6,11 @@ import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import com.flashback.dto.RecordPageQuery;
+import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,12 +43,18 @@ class RecordServiceImplTest {
     @Mock
     private UnlockNoticeLogMapper unlockNoticeLogMapper;
 
+    @Mock
+    private TagMapper tagMapper;
+
+    @Mock
+    private RecordTagMapper recordTagMapper;
+
     private RecordServiceImpl recordService;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-03-26T08:00:00Z"), ZoneId.of("Asia/Shanghai"));
-        recordService = new RecordServiceImpl(recordMapper, unlockNoticeLogMapper, clock);
+        recordService = new RecordServiceImpl(recordMapper, tagMapper, recordTagMapper, unlockNoticeLogMapper, clock);
     }
 
     @Test
@@ -98,8 +108,9 @@ class RecordServiceImplTest {
     @Test
     void shouldReturnCorrectPageStructureForMineList() {
         Record draft = mockRecord(RecordStatus.DRAFT);
-        when(recordMapper.countByUserAndCondition(1L, RecordStatus.DRAFT, RecordType.NODE_RECORD)).thenReturn(1L);
-        when(recordMapper.selectPageByUserAndCondition(1L, RecordStatus.DRAFT, RecordType.NODE_RECORD, 0, 10))
+        when(recordMapper.countByUserAndCondition(1L, RecordStatus.DRAFT, RecordType.NODE_RECORD, null, null))
+            .thenReturn(1L);
+        when(recordMapper.selectPageByUserAndCondition(1L, RecordStatus.DRAFT, RecordType.NODE_RECORD, null, null, 0, 10))
                 .thenReturn(List.of(draft));
 
         RecordPageQuery query = new RecordPageQuery();
@@ -114,6 +125,70 @@ class RecordServiceImplTest {
         assertThat(result.getTotal()).isEqualTo(1);
         assertThat(result.getList()).hasSize(1);
         assertThat(result.getList().get(0).getStatus()).isEqualTo(RecordStatus.DRAFT);
+    }
+
+    @Test
+    void shouldRejectUpdateWhenTagNotExists() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft);
+        when(tagMapper.countEnabledByIds(List.of(1L, 2L))).thenReturn(1L);
+
+        UpdateRecordRequest request = new UpdateRecordRequest();
+        request.setContent("new content");
+        request.setRecordType(RecordType.NODE_RECORD);
+        request.setTagIds(List.of(1L, 2L));
+
+        assertThatThrownBy(() -> recordService.update(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("标签不存在");
+    }
+
+    @Test
+    void shouldRebindTagsWhenUpdateDraft() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
+        when(tagMapper.countEnabledByIds(List.of(1L, 2L))).thenReturn(2L);
+        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any()))
+                .thenReturn(1);
+
+        UpdateRecordRequest request = new UpdateRecordRequest();
+        request.setTitle("updated");
+        request.setContent("new content");
+        request.setRecordType(RecordType.NODE_RECORD);
+        request.setTagIds(List.of(1L, 2L, 2L));
+
+        recordService.update(1L, 100L, request);
+
+        verify(recordTagMapper, times(1)).deleteByRecordId(100L);
+        verify(recordTagMapper, times(1)).batchInsert(100L, List.of(1L, 2L));
+    }
+
+    @Test
+    void shouldGroupTimelineByYearMonth() {
+        Record march = mockRecord(RecordStatus.SEALED);
+        march.setId(201L);
+        march.setCreatedAt(LocalDateTime.of(2026, 3, 26, 10, 0, 0));
+
+        Record february = mockRecord(RecordStatus.UNLOCKED);
+        february.setId(202L);
+        february.setCreatedAt(LocalDateTime.of(2026, 2, 10, 11, 0, 0));
+
+        when(recordMapper.selectTimelineByUserAndCondition(1L, null, 2026)).thenReturn(List.of(march, february));
+
+        com.flashback.domain.RecordTagName row = new com.flashback.domain.RecordTagName();
+        row.setRecordId(201L);
+        row.setTagName("焦虑");
+        when(tagMapper.selectTagNamesByRecordIds(List.of(201L, 202L))).thenReturn(new ArrayList<>(List.of(row)));
+
+        RecordTimelineQuery query = new RecordTimelineQuery();
+        query.setYear(2026);
+
+        var timeline = recordService.timeline(1L, query);
+        assertThat(timeline).hasSize(2);
+        assertThat(timeline.get(0).getYearMonth()).isEqualTo("2026-03");
+        assertThat(timeline.get(0).getItems()).hasSize(1);
+        assertThat(timeline.get(0).getItems().get(0).getTagNames()).containsExactly("焦虑");
+        assertThat(timeline.get(1).getYearMonth()).isEqualTo("2026-02");
     }
 
     @Test
@@ -137,7 +212,8 @@ class RecordServiceImplTest {
         expired.setUnlockAt(LocalDateTime.of(2026, 3, 26, 15, 0, 0));
 
         when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
-                .thenReturn(List.of(expired), List.of());
+            .thenReturn(List.of(expired))
+            .thenReturn(List.of());
         when(recordMapper.unlockSealedById(eq(201L), any(), any())).thenReturn(1);
 
         int unlockedCount = recordService.runUnlockJob();
@@ -165,7 +241,8 @@ class RecordServiceImplTest {
         expired.setUserId(21L);
 
         when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
-                .thenReturn(List.of(expired), List.of());
+            .thenReturn(List.of(expired))
+            .thenReturn(List.of());
         when(recordMapper.unlockSealedById(eq(301L), any(), any())).thenReturn(0);
 
         int unlockedCount = recordService.runUnlockJob();

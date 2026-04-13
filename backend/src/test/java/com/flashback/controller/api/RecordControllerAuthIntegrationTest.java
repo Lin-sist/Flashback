@@ -8,6 +8,8 @@ import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordListItemVO;
+import com.flashback.vo.TimelineGroupVO;
+import com.flashback.vo.TimelineItemVO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -86,6 +88,42 @@ class RecordControllerAuthIntegrationTest {
     @Test
     void shouldReturn401WhenAccessUnlockedApiWithoutLogin() throws Exception {
         mockMvc.perform(get("/api/records/unlocked"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(40100));
+    }
+
+    @Test
+    void shouldReturnTimelineWhenAuthorized() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+
+        TimelineItemVO item = new TimelineItemVO();
+        item.setId(9001L);
+        item.setTitle("节点记录");
+        item.setRecordType(RecordType.NODE_RECORD);
+        item.setStatus(RecordStatus.SEALED);
+        item.setCreatedAt(LocalDateTime.of(2026, 3, 26, 9, 0, 0));
+        item.setTagNames(List.of("焦虑"));
+
+        TimelineGroupVO group = new TimelineGroupVO();
+        group.setYearMonth("2026-03");
+        group.setItems(List.of(item));
+
+        when(recordService.timeline(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of(group));
+
+        mockMvc.perform(get("/api/records/timeline")
+                .header("Authorization", "Bearer " + token)
+                .param("year", "2026"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data[0].yearMonth").value("2026-03"))
+                .andExpect(jsonPath("$.data[0].items[0].id").value(9001))
+                .andExpect(jsonPath("$.data[0].items[0].tagNames[0]").value("焦虑"));
+    }
+
+    @Test
+    void shouldReturn401WhenAccessTimelineWithoutLogin() throws Exception {
+        mockMvc.perform(get("/api/records/timeline"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(40100));
     }

@@ -134,28 +134,56 @@
 
     <select id="countByUserAndCondition" resultType="long">
         SELECT COUNT(1)
-        FROM `record`
-        WHERE user_id = #{userId}
+        FROM `record` r
+        WHERE r.user_id = #{userId}
         <if test="status != null">
-            AND status = #{status}
+            AND r.status = #{status}
         </if>
         <if test="recordType != null">
-            AND record_type = #{recordType}
+            AND r.record_type = #{recordType}
+        </if>
+        <if test="tagId != null">
+            AND EXISTS (
+                SELECT 1
+                FROM record_tag rt
+                WHERE rt.record_id = r.id
+                  AND rt.tag_id = #{tagId}
+            )
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                r.title LIKE CONCAT('%', #{keyword}, '%')
+                OR r.content LIKE CONCAT('%', #{keyword}, '%')
+            )
         </if>
     </select>
 
     <select id="selectPageByUserAndCondition" resultMap="RecordResultMap">
         SELECT
         <include refid="BaseColumnList"/>
-        FROM `record`
-        WHERE user_id = #{userId}
+        FROM `record` r
+        WHERE r.user_id = #{userId}
         <if test="status != null">
-            AND status = #{status}
+            AND r.status = #{status}
         </if>
         <if test="recordType != null">
-            AND record_type = #{recordType}
+            AND r.record_type = #{recordType}
         </if>
-        ORDER BY created_at DESC
+        <if test="tagId != null">
+            AND EXISTS (
+                SELECT 1
+                FROM record_tag rt
+                WHERE rt.record_id = r.id
+                  AND rt.tag_id = #{tagId}
+            )
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                r.title LIKE CONCAT('%', #{keyword}, '%')
+                OR r.content LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY r.created_at DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
@@ -174,6 +202,25 @@
           AND status = 'UNLOCKED'
         ORDER BY unlocked_at DESC, id DESC
         LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectTimelineByUserAndCondition" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record` r
+        WHERE r.user_id = #{userId}
+        <if test="year != null">
+            AND YEAR(r.created_at) = #{year}
+        </if>
+        <if test="tagId != null">
+            AND EXISTS (
+                SELECT 1
+                FROM record_tag rt
+                WHERE rt.record_id = r.id
+                  AND rt.tag_id = #{tagId}
+            )
+        </if>
+        ORDER BY r.created_at DESC, r.id DESC
     </select>
 
 </mapper>

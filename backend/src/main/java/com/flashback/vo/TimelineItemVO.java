@@ -7,16 +7,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 记录列表项视图。
+ * 时间轴记录项视图。
  */
-public class RecordListItemVO {
+public class TimelineItemVO {
 
     private Long id;
     private String title;
-    private String contentPreview;
-    private RecordType recordType;
     private RecordStatus status;
-    private LocalDateTime unlockAt;
+    private RecordType recordType;
     private LocalDateTime createdAt;
     private List<String> tagNames;
 
@@ -36,22 +34,6 @@ public class RecordListItemVO {
         this.title = title;
     }
 
-    public String getContentPreview() {
-        return contentPreview;
-    }
-
-    public void setContentPreview(String contentPreview) {
-        this.contentPreview = contentPreview;
-    }
-
-    public RecordType getRecordType() {
-        return recordType;
-    }
-
-    public void setRecordType(RecordType recordType) {
-        this.recordType = recordType;
-    }
-
     public RecordStatus getStatus() {
         return status;
     }
@@ -60,12 +42,12 @@ public class RecordListItemVO {
         this.status = status;
     }
 
-    public LocalDateTime getUnlockAt() {
-        return unlockAt;
+    public RecordType getRecordType() {
+        return recordType;
     }
 
-    public void setUnlockAt(LocalDateTime unlockAt) {
-        this.unlockAt = unlockAt;
+    public void setRecordType(RecordType recordType) {
+        this.recordType = recordType;
     }
 
     public LocalDateTime getCreatedAt() {
