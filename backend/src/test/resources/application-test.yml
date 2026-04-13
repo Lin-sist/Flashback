@@ -20,6 +20,9 @@ security:
 app:
   time:
     zone-id: Asia/Shanghai
+  ai:
+    provider: mock
+    timeout-millis: 1000
   cors:
     allowed-origin-patterns:
       - http://frontend.test:5173

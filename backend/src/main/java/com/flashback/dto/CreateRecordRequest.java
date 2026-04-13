@@ -25,6 +25,12 @@ public class CreateRecordRequest {
     @Size(max = 255, message = "coreQuestion长度不能超过255")
     private String coreQuestion;
 
+    @Size(max = 2000, message = "aiSummary长度不能超过2000")
+    private String aiSummary;
+
+    @Size(max = 10, message = "aiPromptResults数量不能超过10")
+    private List<@Size(max = 255, message = "aiPromptResults单项长度不能超过255") String> aiPromptResults;
+
     private LocalDateTime unlockAt;
 
     @Size(max = 20, message = "tagIds数量不能超过20")
@@ -60,6 +66,22 @@ public class CreateRecordRequest {
 
     public void setCoreQuestion(String coreQuestion) {
         this.coreQuestion = coreQuestion;
+    }
+
+    public String getAiSummary() {
+        return aiSummary;
+    }
+
+    public void setAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+
+    public List<String> getAiPromptResults() {
+        return aiPromptResults;
+    }
+
+    public void setAiPromptResults(List<String> aiPromptResults) {
+        this.aiPromptResults = aiPromptResults;
     }
 
     public LocalDateTime getUnlockAt() {

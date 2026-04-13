@@ -25,5 +25,8 @@ logging:
 app:
   time:
     zone-id: ${APP_TIME_ZONE_ID:Asia/Shanghai}
+  ai:
+    provider: ${APP_AI_PROVIDER:mock}
+    timeout-millis: ${APP_AI_TIMEOUT_MILLIS:5000}
   cors:
     allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,https://localhost:*,https://127.0.0.1:*}

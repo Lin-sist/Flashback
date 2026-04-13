@@ -1,5 +1,8 @@
 package com.flashback.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
@@ -15,6 +18,7 @@ import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.ReplyMapper;
 import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.service.RecordService;
@@ -47,23 +51,31 @@ public class RecordServiceImpl implements RecordService {
     private static final String NOTICE_TYPE_SYSTEM_UNLOCK = "SYSTEM_UNLOCK";
     private static final String NOTICE_STATUS_SUCCESS = "SUCCESS";
     private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
+    };
 
     private final RecordMapper recordMapper;
     private final TagMapper tagMapper;
     private final RecordTagMapper recordTagMapper;
+    private final ReplyMapper replyMapper;
     private final UnlockNoticeLogMapper unlockNoticeLogMapper;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
 
     public RecordServiceImpl(
             RecordMapper recordMapper,
             TagMapper tagMapper,
             RecordTagMapper recordTagMapper,
+            ReplyMapper replyMapper,
             UnlockNoticeLogMapper unlockNoticeLogMapper,
+            ObjectMapper objectMapper,
             Clock clock) {
         this.recordMapper = recordMapper;
         this.tagMapper = tagMapper;
         this.recordTagMapper = recordTagMapper;
+        this.replyMapper = replyMapper;
         this.unlockNoticeLogMapper = unlockNoticeLogMapper;
+        this.objectMapper = objectMapper;
         this.clock = clock;
     }
 
@@ -80,6 +92,8 @@ public class RecordServiceImpl implements RecordService {
         record.setContent(normalizeRequired(request.getContent(), "content不能为空"));
         record.setRecordType(request.getRecordType());
         record.setCoreQuestion(normalizeOptional(request.getCoreQuestion()));
+        record.setAiSummary(normalizeOptional(request.getAiSummary()));
+        record.setAiPromptResult(serializeAiPromptResults(request.getAiPromptResults()));
         record.setStatus(RecordStatus.DRAFT);
         record.setUnlockAt(request.getUnlockAt());
         record.setCreatedAt(now);
@@ -106,6 +120,8 @@ public class RecordServiceImpl implements RecordService {
                 normalizeRequired(request.getContent(), "content不能为空"),
                 request.getRecordType(),
                 normalizeOptional(request.getCoreQuestion()),
+                normalizeOptional(request.getAiSummary()),
+                serializeAiPromptResults(request.getAiPromptResults()),
                 request.getUnlockAt(),
                 LocalDateTime.now(clock));
         if (affected == 0) {
@@ -161,24 +177,24 @@ public class RecordServiceImpl implements RecordService {
         String keyword = normalizeOptional(query.getKeyword());
 
         long total = recordMapper.countByUserAndCondition(
-            userId,
-            query.getStatus(),
-            query.getRecordType(),
-            query.getTagId(),
-            keyword);
+                userId,
+                query.getStatus(),
+                query.getRecordType(),
+                query.getTagId(),
+                keyword);
         List<Record> records = recordMapper.selectPageByUserAndCondition(
                 userId,
                 query.getStatus(),
                 query.getRecordType(),
-            query.getTagId(),
-            keyword,
+                query.getTagId(),
+                keyword,
                 offset,
                 pageSize);
 
         Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
         List<RecordListItemVO> list = records.stream()
-            .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of())))
-            .toList();
+                .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of())))
+                .toList();
         return PageResult.of(list, total, pageNum, pageSize);
     }
 
@@ -408,9 +424,55 @@ public class RecordServiceImpl implements RecordService {
         vo.setUnlockAt(record.getUnlockAt());
         vo.setSealedAt(record.getSealedAt());
         vo.setUnlockedAt(record.getUnlockedAt());
+        vo.setAiSummary(record.getAiSummary());
+        vo.setAiPromptResults(deserializeAiPromptResults(record.getAiPromptResult()));
         vo.setTags(loadRecordTags(record.getId()));
+        boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
+                && replyMapper.selectByRecordId(record.getId()) != null;
+        vo.setHasReply(hasReply);
+        vo.setCanReply(record.getStatus() == RecordStatus.UNLOCKED && !hasReply);
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
         return vo;
+    }
+
+    private String serializeAiPromptResults(List<String> aiPromptResults) {
+        List<String> normalized = normalizeAiPromptResults(aiPromptResults);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(normalized);
+        } catch (JsonProcessingException ex) {
+            throw badRequest("aiPromptResults格式错误");
+        }
+    }
+
+    private List<String> deserializeAiPromptResults(String rawValue) {
+        String normalized = normalizeOptional(rawValue);
+        if (normalized == null) {
+            return List.of();
+        }
+        try {
+            List<String> values = objectMapper.readValue(normalized, STRING_LIST_TYPE);
+            return normalizeAiPromptResults(values);
+        } catch (Exception ex) {
+            return List.of(normalized);
+        }
+    }
+
+    private List<String> normalizeAiPromptResults(List<String> aiPromptResults) {
+        if (aiPromptResults == null || aiPromptResults.isEmpty()) {
+            return List.of();
+        }
+
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String item : aiPromptResults) {
+            String value = normalizeOptional(item);
+            if (value != null) {
+                normalized.add(value);
+            }
+        }
+        return List.copyOf(normalized);
     }
 }

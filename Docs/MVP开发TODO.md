@@ -298,10 +298,10 @@ AI、提醒、后台、成长分析都只能围绕这个主链路服务，不能
 - 标签筛选结果正确。
 
 ### 阶段 8：接入最小 AI 能力
-- [ ] 提供“写作提示”接口
-- [ ] 提供“内容整理”接口
-- [ ] 封装 AI 服务层，避免业务代码直接依赖模型 SDK
-- [ ] 对 AI 超时、失败、空结果做兜底
+- [x] 提供“写作提示”接口
+- [x] 提供“内容整理”接口
+- [x] 封装 AI 服务层，避免业务代码直接依赖模型 SDK
+- [x] 对 AI 超时、失败、空结果做兜底
 
 实现建议：
 - 先写 `AiService` 接口
@@ -310,6 +310,13 @@ AI、提醒、后台、成长分析都只能围绕这个主链路服务，不能
 
 交给 Copilot 的任务描述建议：
 `请为项目设计一个可替换的 AI 服务层，先实现 mock 版本，支持“写作提示生成”和“记录内容整理”两个接口，并处理超时和空结果兜底。`
+
+验收结果（2026-04-13）：
+- 已新增 `POST /api/ai/writing-prompts` 与 `POST /api/ai/summarize-record`，并纳入 `/api/**` 统一鉴权链路。
+- 已新增可替换 `AiService` 与默认 `AiServiceImpl`（mock），支持 provider 非 mock 时自动 fallback。
+- 已新增 `AiServiceImplTest`、`AiControllerAuthIntegrationTest` 覆盖正常/鉴权/参数校验/兜底场景。
+- 后端编译与全量测试通过，未破坏既有测试。
+- 已明确草稿页 AI 字段落库策略：`aiSummary` 持久化摘要文案，`aiPromptResults` 以 JSON 数组落入 `record.ai_prompt_result`，创建/编辑草稿接口统一负责保存与回传。
 
 ### 阶段 9：完成前端 MVP 页面
 - [ ] 登录/注册页

@@ -18,6 +18,20 @@ app:
   time:
     # 业务时区，避免依赖部署机默认时区导致解锁与时间轴偏移
     zone-id: Asia/Shanghai
+  ai:
+    # 第一阶段固定默认走 mock，可通过环境变量切换 provider。
+    provider: mock
+    timeout-millis: 5000
+    fallback:
+      writing-prompts:
+        - 你此刻最担心的是什么？
+        - 如果三个月后回看现在，你希望自己记住什么？
+        - 今天最想先推进的一件小事是什么？
+      summary: 建议先把当前状态整理成一句简短总结
+      confusion: 待补充
+      emotion: 待整理
+      core-question: 暂无
+      desired-outcome: 暂无
   cors:
     # 默认本地联调来源，可在各环境文件或环境变量中覆盖
     allowed-origin-patterns:

@@ -86,6 +86,8 @@
             content = #{content},
             record_type = #{recordType},
             core_question = #{coreQuestion},
+            ai_summary = #{aiSummary},
+            ai_prompt_result = #{aiPromptResult},
             unlock_at = #{unlockAt},
             updated_at = #{updatedAt}
         WHERE id = #{id}

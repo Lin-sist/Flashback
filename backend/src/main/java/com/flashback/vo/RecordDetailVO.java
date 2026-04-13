@@ -20,7 +20,11 @@ public class RecordDetailVO {
     private LocalDateTime unlockAt;
     private LocalDateTime sealedAt;
     private LocalDateTime unlockedAt;
+    private String aiSummary;
+    private List<String> aiPromptResults;
     private List<RecordTagVO> tags;
+    private Boolean canReply;
+    private Boolean hasReply;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -96,12 +100,44 @@ public class RecordDetailVO {
         this.unlockedAt = unlockedAt;
     }
 
+    public String getAiSummary() {
+        return aiSummary;
+    }
+
+    public void setAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+
+    public List<String> getAiPromptResults() {
+        return aiPromptResults;
+    }
+
+    public void setAiPromptResults(List<String> aiPromptResults) {
+        this.aiPromptResults = aiPromptResults;
+    }
+
     public List<RecordTagVO> getTags() {
         return tags;
     }
 
     public void setTags(List<RecordTagVO> tags) {
         this.tags = tags;
+    }
+
+    public Boolean getCanReply() {
+        return canReply;
+    }
+
+    public void setCanReply(Boolean canReply) {
+        this.canReply = canReply;
+    }
+
+    public Boolean getHasReply() {
+        return hasReply;
+    }
+
+    public void setHasReply(Boolean hasReply) {
+        this.hasReply = hasReply;
     }
 
     public LocalDateTime getCreatedAt() {

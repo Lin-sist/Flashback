@@ -12,62 +12,64 @@ import java.util.List;
 @Mapper
 public interface RecordMapper {
 
-    int insert(Record record);
+        int insert(Record record);
 
-    Record selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+        Record selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-    int updateDraftByIdAndUserId(
-            @Param("id") Long id,
-            @Param("userId") Long userId,
-            @Param("title") String title,
-            @Param("content") String content,
-            @Param("recordType") RecordType recordType,
-            @Param("coreQuestion") String coreQuestion,
-            @Param("unlockAt") LocalDateTime unlockAt,
-            @Param("updatedAt") LocalDateTime updatedAt);
+        int updateDraftByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("title") String title,
+                        @Param("content") String content,
+                        @Param("recordType") RecordType recordType,
+                        @Param("coreQuestion") String coreQuestion,
+                        @Param("aiSummary") String aiSummary,
+                        @Param("aiPromptResult") String aiPromptResult,
+                        @Param("unlockAt") LocalDateTime unlockAt,
+                        @Param("updatedAt") LocalDateTime updatedAt);
 
-    int deleteDraftByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+        int deleteDraftByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-    int sealDraftByIdAndUserId(
-            @Param("id") Long id,
-            @Param("userId") Long userId,
-            @Param("sealedAt") LocalDateTime sealedAt,
-            @Param("updatedAt") LocalDateTime updatedAt);
+        int sealDraftByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("sealedAt") LocalDateTime sealedAt,
+                        @Param("updatedAt") LocalDateTime updatedAt);
 
-    List<Record> selectExpiredSealedRecords(
-            @Param("now") LocalDateTime now,
-            @Param("limit") int limit);
+        List<Record> selectExpiredSealedRecords(
+                        @Param("now") LocalDateTime now,
+                        @Param("limit") int limit);
 
-    int unlockSealedById(
-            @Param("id") Long id,
-            @Param("unlockedAt") LocalDateTime unlockedAt,
-            @Param("updatedAt") LocalDateTime updatedAt);
+        int unlockSealedById(
+                        @Param("id") Long id,
+                        @Param("unlockedAt") LocalDateTime unlockedAt,
+                        @Param("updatedAt") LocalDateTime updatedAt);
 
-    long countByUserAndCondition(
-            @Param("userId") Long userId,
-            @Param("status") RecordStatus status,
-            @Param("recordType") RecordType recordType,
-            @Param("tagId") Long tagId,
-            @Param("keyword") String keyword);
+        long countByUserAndCondition(
+                        @Param("userId") Long userId,
+                        @Param("status") RecordStatus status,
+                        @Param("recordType") RecordType recordType,
+                        @Param("tagId") Long tagId,
+                        @Param("keyword") String keyword);
 
-    List<Record> selectPageByUserAndCondition(
-            @Param("userId") Long userId,
-            @Param("status") RecordStatus status,
-            @Param("recordType") RecordType recordType,
-            @Param("tagId") Long tagId,
-            @Param("keyword") String keyword,
-            @Param("offset") int offset,
-            @Param("pageSize") int pageSize);
+        List<Record> selectPageByUserAndCondition(
+                        @Param("userId") Long userId,
+                        @Param("status") RecordStatus status,
+                        @Param("recordType") RecordType recordType,
+                        @Param("tagId") Long tagId,
+                        @Param("keyword") String keyword,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize);
 
-    long countUnlockedByUser(@Param("userId") Long userId);
+        long countUnlockedByUser(@Param("userId") Long userId);
 
-    List<Record> selectUnlockedPageByUser(
-            @Param("userId") Long userId,
-            @Param("offset") int offset,
-            @Param("pageSize") int pageSize);
+        List<Record> selectUnlockedPageByUser(
+                        @Param("userId") Long userId,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize);
 
-    List<Record> selectTimelineByUserAndCondition(
-            @Param("userId") Long userId,
-            @Param("tagId") Long tagId,
-            @Param("year") Integer year);
+        List<Record> selectTimelineByUserAndCondition(
+                        @Param("userId") Long userId,
+                        @Param("tagId") Long tagId,
+                        @Param("year") Integer year);
 }
