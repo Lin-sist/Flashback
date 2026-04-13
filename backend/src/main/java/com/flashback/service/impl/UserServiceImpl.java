@@ -16,8 +16,10 @@ import com.flashback.vo.LoginResponseVO;
 import com.flashback.vo.RegisterResponseVO;
 import com.flashback.vo.UserInfoVO;
 import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -41,6 +43,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public RegisterResponseVO register(RegisterRequest request) {
         String username = normalizeRequired(request.getUsername(), "username不能为空");
         String password = normalizeRequired(request.getPassword(), "password不能为空");
@@ -63,7 +66,11 @@ public class UserServiceImpl implements UserService {
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
 
-        userMapper.insert(user);
+        try {
+            userMapper.insert(user);
+        } catch (DuplicateKeyException ex) {
+            throw badRequest("用户名已存在");
+        }
         return new RegisterResponseVO(user.getId());
     }
 

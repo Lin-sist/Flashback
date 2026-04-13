@@ -107,6 +107,17 @@ class RecordServiceImplTest {
     }
 
     @Test
+    void shouldClearRecordTagsWhenDeleteDraft() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(101L, 1L)).thenReturn(draft);
+        when(recordMapper.deleteDraftByIdAndUserId(101L, 1L)).thenReturn(1);
+
+        recordService.delete(1L, 101L);
+
+        verify(recordTagMapper).deleteByRecordId(101L);
+    }
+
+    @Test
     void shouldRejectSealWhenUnlockAtBeforeNow() {
         Record draft = mockRecord(RecordStatus.DRAFT);
         draft.setUnlockAt(LocalDateTime.of(2026, 3, 26, 15, 30, 0));

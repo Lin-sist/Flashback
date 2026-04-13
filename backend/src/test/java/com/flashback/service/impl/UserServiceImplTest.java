@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mindrot.jbcrypt.BCrypt;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -22,6 +23,7 @@ import java.time.ZoneId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +54,21 @@ class UserServiceImplTest {
         existed.setId(1L);
         existed.setUsername("alice");
         when(userMapper.selectByUsername("alice")).thenReturn(existed);
+
+        assertThatThrownBy(() -> userService.register(request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("用户名已存在");
+    }
+
+    @Test
+    void shouldMapDuplicateKeyWhenConcurrentRegister() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("alice");
+        request.setPassword("secret123");
+        request.setNickname("Alice");
+
+        when(userMapper.selectByUsername("alice")).thenReturn(null);
+        doThrow(new DuplicateKeyException("duplicate")).when(userMapper).insert(any(User.class));
 
         assertThatThrownBy(() -> userService.register(request))
                 .isInstanceOf(BizException.class)

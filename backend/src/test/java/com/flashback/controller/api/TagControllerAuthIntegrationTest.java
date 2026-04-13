@@ -65,4 +65,16 @@ class TagControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.data[0].type").value("MOOD"))
                 .andExpect(jsonPath("$.data[0].status").value("ENABLED"));
     }
+
+    @Test
+    void shouldReturn400WhenTagTypeIsInvalid() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+
+        mockMvc.perform(get("/api/tags")
+                .header("Authorization", "Bearer " + token)
+                .param("type", "INVALID"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000))
+                .andExpect(jsonPath("$.message").value("type: 参数格式不正确"));
+    }
 }

@@ -69,6 +69,18 @@ class RecordControllerAuthIntegrationTest {
         }
 
         @Test
+        void shouldReturn400WhenRecordStatusIsInvalid() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+
+                mockMvc.perform(get("/api/records")
+                                .header("Authorization", "Bearer " + token)
+                                .param("status", "INVALID"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value(40000))
+                                .andExpect(jsonPath("$.message").value("status: 参数格式不正确"));
+        }
+
+        @Test
         void shouldReturnUnlockedRecordsWhenAuthorized() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
                 RecordListItemVO item = mockListItem();

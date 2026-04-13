@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -57,6 +58,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ErrorCode.BAD_REQUEST, "请求体格式错误"));
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String name = ex.getName() == null ? "参数" : ex.getName();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ErrorCode.BAD_REQUEST, name + ": 参数格式不正确"));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -73,6 +81,9 @@ public class GlobalExceptionHandler {
 
     private String formatFieldError(FieldError error) {
         String field = error.getField();
+        if (error.isBindingFailure()) {
+            return field + ": 参数格式不正确";
+        }
         String defaultMessage = error.getDefaultMessage();
         return field + ": " + (defaultMessage == null ? "参数不合法" : defaultMessage);
     }

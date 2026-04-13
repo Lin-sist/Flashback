@@ -134,6 +134,7 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
+    @Transactional
     public void delete(Long userId, Long id) {
         Record current = requireOwnedRecord(id, userId);
         ensureDraft(current, "仅DRAFT状态允许删除");
@@ -142,6 +143,7 @@ public class RecordServiceImpl implements RecordService {
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
+        recordTagMapper.deleteByRecordId(id);
     }
 
     @Override
@@ -236,6 +238,7 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
+    @Transactional
     public int runUnlockJob() {
         int unlockedCount = 0;
         LocalDateTime now = LocalDateTime.now(clock);
