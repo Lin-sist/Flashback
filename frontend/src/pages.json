@@ -1,0 +1,75 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "Login"
+      }
+    },
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "Flashback"
+      }
+    },
+    {
+      "path": "pages/record-editor/index",
+      "style": {
+        "navigationBarTitleText": "Record Editor"
+      }
+    },
+    {
+      "path": "pages/record-list/index",
+      "style": {
+        "navigationBarTitleText": "My Records"
+      }
+    },
+    {
+      "path": "pages/record-detail/index",
+      "style": {
+        "navigationBarTitleText": "Record Detail"
+      }
+    },
+    {
+      "path": "pages/timeline/index",
+      "style": {
+        "navigationBarTitleText": "Timeline"
+      }
+    },
+    {
+      "path": "pages/user-center/index",
+      "style": {
+        "navigationBarTitleText": "Profile"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#667085",
+    "selectedColor": "#0ea5e9",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "Home"
+      },
+      {
+        "pagePath": "pages/record-list/index",
+        "text": "Records"
+      },
+      {
+        "pagePath": "pages/timeline/index",
+        "text": "Timeline"
+      },
+      {
+        "pagePath": "pages/user-center/index",
+        "text": "Profile"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f7f8fa"
+  }
+}

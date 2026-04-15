@@ -1,0 +1,15 @@
+{
+  "name": "Flashback",
+  "appid": "",
+  "description": "Flashback miniapp MVP",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    },
+    "usingComponents": true
+  }
+}
