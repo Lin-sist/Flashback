@@ -9,67 +9,63 @@
     {
       "path": "pages/home/index",
       "style": {
-        "navigationBarTitleText": "Flashback"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/record-editor/index",
       "style": {
-        "navigationBarTitleText": "Record Editor"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/record-list/index",
       "style": {
-        "navigationBarTitleText": "My Records"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/record-detail/index",
       "style": {
-        "navigationBarTitleText": "Record Detail"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/timeline/index",
       "style": {
-        "navigationBarTitleText": "Timeline"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/user-center/index",
       "style": {
-        "navigationBarTitleText": "Profile"
+        "navigationStyle": "custom"
       }
     }
   ],
   "tabBar": {
-    "color": "#667085",
-    "selectedColor": "#0ea5e9",
+    "color": "#7f8c93",
+    "selectedColor": "#3b647a",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/home/index",
-        "text": "Home"
-      },
-      {
-        "pagePath": "pages/record-list/index",
-        "text": "Records"
+        "text": "首页"
       },
       {
         "pagePath": "pages/timeline/index",
-        "text": "Timeline"
+        "text": "时间轴"
       },
       {
         "pagePath": "pages/user-center/index",
-        "text": "Profile"
+        "text": "个人中心"
       }
     ]
   },
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f7f8fa"
+    "backgroundColor": "#f8fafb"
   }
 }

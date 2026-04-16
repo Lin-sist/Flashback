@@ -1,0 +1,31 @@
+:root {
+  --fb-color-bg: #f8fafb;
+  --fb-color-surface: #ffffff;
+  --fb-color-primary: #3b647a;
+  --fb-color-text: #1a1a1a;
+  --fb-color-text-muted: #7f8c93;
+  --fb-color-paper-warm: #fffdf5;
+  --fb-color-paper-emphasis: #fdf2d9;
+
+  --fb-radius-xl: 32rpx;
+  --fb-radius-lg: 28rpx;
+  --fb-radius-md: 24rpx;
+  --fb-radius-sm: 8rpx;
+  --fb-radius-pill: 999rpx;
+
+  --fb-space-page: 24rpx;
+  --fb-space-hero: 32rpx;
+  --fb-space-section: 20rpx;
+  --fb-space-list: 16rpx;
+  --fb-space-inner: 32rpx;
+
+  --fb-font-title-main: 52rpx;
+  --fb-font-number: 64rpx;
+  --fb-font-title-sub: 36rpx;
+  --fb-font-body: 32rpx;
+  --fb-font-body-sub: 28rpx;
+  --fb-font-meta: 24rpx;
+
+  --fb-shadow-strong: 0 16rpx 40rpx rgba(59, 100, 122, 0.14);
+  --fb-shadow-soft: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
+}

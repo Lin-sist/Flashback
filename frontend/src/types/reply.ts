@@ -1,15 +1,15 @@
 import type { ReplyType } from './enums'
 
 export interface CreateReplyDTO {
-  recordId: string
+  recordId: number
   content: string
   replyType: ReplyType
 }
 
 export interface ReplyVO {
-  id: string
-  recordId: string
+  id: number
+  recordId: number
   content: string
   replyType: ReplyType
-  createdAt: number
+  createdAt: string | number
 }

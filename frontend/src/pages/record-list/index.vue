@@ -1,14 +1,36 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
-import EmptyState from '../../components/common/EmptyState.vue'
-import RecordCard from '../../components/card/RecordCard.vue'
+import { computed, ref } from 'vue'
+import AppTopBar from '../../components/common/AppTopBar.vue'
+import FilterSegment from '../../components/common/FilterSegment.vue'
+import PaperContainer from '../../components/common/PaperContainer.vue'
+import SearchBar from '../../components/common/SearchBar.vue'
 import { useRecordStore } from '../../stores'
 import { RecordStatus } from '../../types'
-import { getToken, toUserMessage } from '../../utils'
+import { formatDateTime, getToken, toUserMessage } from '../../utils'
 
 const recordStore = useRecordStore()
-const status = ref<RecordStatus | 'ALL'>('ALL')
+const selectedStatus = ref<RecordStatus | 'ALL'>('ALL')
+const keyword = ref('')
+
+const statusOptions = [
+  { label: '全部', value: 'ALL' },
+  { label: '草稿', value: RecordStatus.DRAFT },
+  { label: '已封存', value: RecordStatus.SEALED },
+  { label: '已解锁', value: RecordStatus.UNLOCKED },
+]
+
+const filteredList = computed(() => {
+  if (!keyword.value.trim()) {
+    return recordStore.list
+  }
+  const q = keyword.value.trim().toLowerCase()
+  return recordStore.list.filter((item) => {
+    const title = (item.title || '').toLowerCase()
+    const preview = (item.contentPreview || '').toLowerCase()
+    return title.includes(q) || preview.includes(q)
+  })
+})
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -23,85 +45,133 @@ const loadList = async () => {
     return
   }
   try {
-    await recordStore.fetchList(status.value)
+    await recordStore.fetchList(selectedStatus.value)
   } catch (error) {
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
   }
 }
 
-onShow(() => {
-  loadList()
-})
-
-const setStatus = (value: RecordStatus | 'ALL') => {
-  status.value = value
+const onStatusChange = (value: string) => {
+  selectedStatus.value = value as RecordStatus | 'ALL'
   loadList()
 }
 
-const openDetail = (id: string) => {
+const openDetail = (id: number) => {
   uni.navigateTo({ url: `/pages/record-detail/index?id=${id}` })
 }
+
+const goBack = () => uni.navigateBack({ delta: 1 })
+
+onShow(loadList)
 </script>
 
 <template>
   <view class="page">
-    <scroll-view scroll-x class="filters">
-      <view class="chips">
-        <view class="chip" :class="{ active: status === 'ALL' }" @tap="setStatus('ALL')">All</view>
-        <view class="chip" :class="{ active: status === RecordStatus.DRAFT }" @tap="setStatus(RecordStatus.DRAFT)">Draft</view>
-        <view class="chip" :class="{ active: status === RecordStatus.SEALED }" @tap="setStatus(RecordStatus.SEALED)">Sealed</view>
-        <view class="chip" :class="{ active: status === RecordStatus.UNLOCKED }" @tap="setStatus(RecordStatus.UNLOCKED)">Unlocked</view>
-      </view>
-    </scroll-view>
+    <AppTopBar title="我的档案" show-back @back="goBack" />
 
-    <view v-if="recordStore.loading" class="loading">Loading...</view>
-    <view v-else-if="recordStore.list.length === 0">
-      <EmptyState text="No records" />
+    <view class="panel-row">
+      <SearchBar v-model="keyword" placeholder="搜索标题或正文片段" />
+      <FilterSegment :model-value="selectedStatus" :options="statusOptions" @change="onStatusChange" />
     </view>
-    <view v-else class="list">
-      <view v-for="item in recordStore.list" :key="item.id" @tap="openDetail(item.id)">
-        <RecordCard :item="item" />
-      </view>
+
+    <view class="summary">当前列表 {{ filteredList.length }} 条</view>
+
+    <view v-if="recordStore.loading" class="state-text">载入中...</view>
+    <view v-else-if="filteredList.length === 0" class="state-text">没有符合条件的记录</view>
+
+    <view v-else class="list-wrap">
+      <PaperContainer
+        v-for="item in filteredList"
+        :key="item.id"
+        radius="lg"
+        class="list-item"
+        @tap="openDetail(item.id)"
+      >
+        <view class="item-top">
+          <text class="item-title">{{ item.title || '未命名记录' }}</text>
+          <text class="item-status">{{ item.status }}</text>
+        </view>
+        <view class="item-preview">{{ item.contentPreview }}</view>
+        <view class="item-meta">{{ formatDateTime(item.createdAt) }}</view>
+      </PaperContainer>
     </view>
+
+    <view class="tail-decoration">Archive keeps your private timeline.</view>
   </view>
 </template>
 
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 24rpx;
+  padding: 20rpx var(--fb-space-page) 60rpx;
+  background: var(--fb-color-bg);
 }
 
-.filters {
-  white-space: nowrap;
-  margin-bottom: 18rpx;
-}
-
-.chips {
-  display: inline-flex;
-  gap: 12rpx;
-}
-
-.chip {
-  padding: 10rpx 20rpx;
-  border-radius: 9999rpx;
-  background: #eef2f6;
-  color: #344054;
-  font-size: 24rpx;
-}
-
-.chip.active {
-  background: #0ea5e9;
-  color: #ffffff;
-}
-
-.loading {
-  color: #667085;
-}
-
-.list {
+.panel-row {
+  margin-top: var(--fb-space-section);
   display: flex;
   flex-direction: column;
   gap: 14rpx;
+}
+
+.summary {
+  margin-top: 18rpx;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-body-sub);
+}
+
+.state-text {
+  margin-top: 30rpx;
+  color: var(--fb-color-text-muted);
+  text-align: center;
+  font-size: var(--fb-font-meta);
+}
+
+.list-wrap {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fb-space-list);
+}
+
+.list-item {
+  box-shadow: var(--fb-shadow-soft);
+}
+
+.item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.item-title {
+  font-size: var(--fb-font-title-sub);
+  color: var(--fb-color-text);
+  font-weight: 600;
+}
+
+.item-status {
+  color: var(--fb-color-primary);
+  font-size: var(--fb-font-meta);
+}
+
+.item-preview {
+  margin-top: 12rpx;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-body-sub);
+  line-height: 1.7;
+}
+
+.item-meta {
+  margin-top: 14rpx;
+  font-size: var(--fb-font-meta);
+  color: var(--fb-color-text-muted);
+}
+
+.tail-decoration {
+  margin-top: 26rpx;
+  text-align: center;
+  font-size: var(--fb-font-meta);
+  color: #a4aeb5;
 }
 </style>

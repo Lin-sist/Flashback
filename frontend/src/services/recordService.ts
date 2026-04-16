@@ -6,34 +6,47 @@ import type {
   RecordDetailVO,
   RecordListItemVO,
   RecordStatus,
+  TimelineGroupVO,
+  TimelineQuery,
+  UpdateRecordDTO,
 } from '../types'
+
+const toDraftPayload = (payload: CreateRecordDTO | UpdateRecordDTO) => ({
+  title: payload.title ?? null,
+  content: payload.content,
+  recordType: payload.recordType,
+  coreQuestion: payload.coreQuestion ?? null,
+  aiSummary: payload.aiSummary ?? null,
+  aiPromptResults: payload.aiPromptResults ?? [],
+  unlockAt: payload.unlockAt ?? null,
+  tagIds: payload.tagIds ?? [],
+})
 
 export const recordService = {
   createDraft(payload: CreateRecordDTO) {
     return httpRequest<RecordDetailVO>({
       url: '/api/records',
       method: 'POST',
-      data: payload as unknown as Record<string, unknown>,
+      data: toDraftPayload(payload),
     })
   },
-  updateDraft(id: string, payload: CreateRecordDTO) {
+  updateDraft(id: string | number, payload: UpdateRecordDTO) {
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}`,
       method: 'PUT',
-      data: payload as unknown as Record<string, unknown>,
+      data: toDraftPayload(payload),
     })
   },
-  deleteDraft(id: string) {
+  deleteDraft(id: string | number) {
     return httpRequest<void>({
       url: `/api/records/${id}`,
       method: 'DELETE',
     })
   },
-  sealRecord(id: string, unlockAt: number) {
-    return httpRequest<void>({
+  sealRecord(id: string | number) {
+    return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}/seal`,
       method: 'POST',
-      data: { unlockAt },
     })
   },
   getRecordList(status: RecordStatus | 'ALL', query: PageQuery) {
@@ -47,7 +60,7 @@ export const recordService = {
       url: `/api/records?${params.toString()}`,
     })
   },
-  getRecordDetail(id: string) {
+  getRecordDetail(id: string | number) {
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}`,
     })
@@ -58,10 +71,14 @@ export const recordService = {
       url: `/api/records/unlocked?${params.toString()}`,
     })
   },
-  getTimeline(pageNum = 1, pageSize = 20) {
-    const params = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) })
-    return httpRequest<PaginationResponse<RecordListItemVO>>({
-      url: `/api/records/timeline?${params.toString()}`,
+  getTimeline(query: TimelineQuery = {}) {
+    const params = new URLSearchParams({
+      ...(query.year ? { year: String(query.year) } : {}),
+      ...(query.tagId ? { tagId: String(query.tagId) } : {}),
+    })
+    const suffix = params.toString() ? `?${params.toString()}` : ''
+    return httpRequest<TimelineGroupVO[]>({
+      url: `/api/records/timeline${suffix}`,
     })
   },
 }

@@ -7,7 +7,7 @@ import type {
   RecordDetailVO,
   RecordListItemVO,
   RecordStatus,
-  SealRecordDTO,
+  UpdateRecordDTO,
 } from '../types'
 
 interface RecordState {
@@ -36,7 +36,7 @@ export const useRecordStore = defineStore('record', {
         this.loading = false
       }
     },
-    async fetchDetail(id: string) {
+    async fetchDetail(id: string | number) {
       this.loading = true
       try {
         const result = await recordService.getRecordDetail(id)
@@ -49,11 +49,11 @@ export const useRecordStore = defineStore('record', {
     async createDraft(payload: CreateRecordDTO) {
       return recordService.createDraft(payload)
     },
-    async updateDraft(id: string, payload: CreateRecordDTO) {
+    async updateDraft(id: string | number, payload: UpdateRecordDTO) {
       return recordService.updateDraft(id, payload)
     },
-    async sealRecord(payload: SealRecordDTO) {
-      return recordService.sealRecord(payload.id, payload.unlockAt)
+    async sealRecord(id: string | number) {
+      return recordService.sealRecord(id)
     },
   },
 })
