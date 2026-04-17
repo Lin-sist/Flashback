@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppTopBar from '../../components/common/AppTopBar.vue'
+import BottomNavBar from '../../components/common/BottomNavBar.vue'
 import TimelineNode from '../../components/common/TimelineNode.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
@@ -45,7 +46,7 @@ const openTimelineNode = (item: TimelineItemVO) => {
     return
   }
 
-  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}` })
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}&source=timeline` })
 }
 
 const loadTimeline = async () => {
@@ -64,12 +65,15 @@ const loadTimeline = async () => {
   }
 }
 
-onShow(loadTimeline)
+onShow(() => {
+  uni.hideTabBar({ animation: false })
+  loadTimeline()
+})
 </script>
 
 <template>
   <view class="page">
-    <AppTopBar title="Flashback" left-text="⌕" right-text="筛选" @right-tap="loadTimeline" />
+    <AppTopBar title="Flashback" right-text="筛选" @right-tap="loadTimeline" />
 
     <view class="hero">
       <view class="hero-title">时间长廊</view>
@@ -102,6 +106,8 @@ onShow(loadTimeline)
     </view>
 
     <view class="tail">You can only understand time by walking through it.</view>
+
+    <BottomNavBar current="timeline" />
   </view>
 </template>
 

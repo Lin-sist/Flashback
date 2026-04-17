@@ -28,4 +28,11 @@
 
   --fb-shadow-strong: 0 16rpx 40rpx rgba(59, 100, 122, 0.14);
   --fb-shadow-soft: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
+
+  --fb-bottom-nav-height: 108rpx;
+  --fb-bottom-nav-bg: rgba(255, 255, 255, 0.96);
+  --fb-bottom-nav-border-color: rgba(172, 179, 182, 0.2);
+  --fb-bottom-nav-text-color: #7f8c93;
+  --fb-bottom-nav-active-text-color: #3b647a;
+  --fb-bottom-nav-active-bg: #eef3f6;
 }

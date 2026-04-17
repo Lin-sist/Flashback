@@ -25,7 +25,7 @@ const onTap = () => emit('tap')
 .fab {
   position: fixed;
   right: 32rpx;
-  bottom: 160rpx;
+  bottom: calc(env(safe-area-inset-bottom) + var(--fb-bottom-nav-height) + 52rpx);
   width: 108rpx;
   height: 108rpx;
   border-radius: 54rpx;

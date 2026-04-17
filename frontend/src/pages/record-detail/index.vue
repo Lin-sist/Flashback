@@ -8,11 +8,14 @@ import { useRecordStore } from '../../stores'
 import { RecordStatus, ReplyType, type ReplyVO } from '../../types'
 import { formatDateTime, getToken, toUserMessage } from '../../utils'
 
+type EditorSource = 'home' | 'archive' | 'timeline'
+
 const recordStore = useRecordStore()
 const replyContent = ref('')
 const submittingReply = ref(false)
 const replyLoading = ref(false)
 const replyResult = ref<ReplyVO | null>(null)
+const source = ref<EditorSource>('home')
 
 const detail = computed(() => recordStore.detail)
 
@@ -30,13 +33,59 @@ const ensureLogin = () => {
   return true
 }
 
-const closePage = () => uni.navigateBack({ delta: 1 })
+const fallbackBySource = () => {
+  if (source.value === 'timeline') {
+    uni.switchTab({ url: '/pages/timeline/index' })
+    return
+  }
+
+  if (source.value === 'archive') {
+    uni.navigateTo({ url: '/pages/record-list/index' })
+    return
+  }
+
+  uni.switchTab({ url: '/pages/home/index' })
+}
+
+const closePage = () => {
+  uni.navigateBack({
+    delta: 1,
+    fail: () => {
+      fallbackBySource()
+    },
+  })
+}
+
+const resolveSource = (value: unknown): EditorSource | null => {
+  if (value === 'archive' || value === 'timeline' || value === 'home') {
+    return value
+  }
+
+  return null
+}
+
+const inferSourceFromPrevPage = (): EditorSource => {
+  const pages = getCurrentPages()
+  if (pages.length < 2) {
+    return 'home'
+  }
+
+  const prevRoute = pages[pages.length - 2]?.route
+  if (prevRoute === 'pages/record-list/index') {
+    return 'archive'
+  }
+  if (prevRoute === 'pages/timeline/index') {
+    return 'timeline'
+  }
+
+  return 'home'
+}
 
 const openEditor = () => {
   if (!detail.value) {
     return
   }
-  uni.navigateTo({ url: `/pages/record-editor/index?id=${detail.value.id}` })
+  uni.navigateTo({ url: `/pages/record-editor/index?id=${detail.value.id}&source=${source.value}` })
 }
 
 const loadReplyResult = async (recordId: number, hasReply: boolean) => {
@@ -95,6 +144,10 @@ onLoad(async (query) => {
   if (!ensureLogin()) {
     return
   }
+
+  const querySource = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
+  source.value = querySource || inferSourceFromPrevPage()
+
   if (!query?.id || typeof query.id !== 'string') {
     uni.showToast({ title: '记录ID无效', icon: 'none' })
     return

@@ -65,13 +65,13 @@ const openRecord = (item: RecordListItemVO) => {
   if (item.status === RecordStatus.SEALED) {
     const remainingDays = calculateRemainingDays(item.unlockAt)
     uni.showToast({
-      title: `距离解封还有 ${remainingDays} 天`,
+      title: remainingDays > 0 ? `距离解封还有 ${remainingDays} 天` : '已到解封时间，请稍后查看',
       icon: 'none',
     })
     return
   }
 
-  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}` })
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}&source=archive` })
 }
 
 const goBack = () => uni.navigateBack({ delta: 1 })

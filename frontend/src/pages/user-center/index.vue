@@ -2,6 +2,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppTopBar from '../../components/common/AppTopBar.vue'
+import BottomNavBar from '../../components/common/BottomNavBar.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import SettingGroupCard, { type SettingItem } from '../../components/common/SettingGroupCard.vue'
 import { recordService } from '../../services'
@@ -66,7 +67,10 @@ const loadCenterData = async () => {
 
 const logout = () => userStore.logout()
 
-onShow(loadCenterData)
+onShow(() => {
+  uni.hideTabBar({ animation: false })
+  loadCenterData()
+})
 </script>
 
 <template>
@@ -99,6 +103,8 @@ onShow(loadCenterData)
     </view>
 
     <view class="logout" @tap="logout">退出登录</view>
+
+    <BottomNavBar current="user-center" />
   </view>
 </template>
 

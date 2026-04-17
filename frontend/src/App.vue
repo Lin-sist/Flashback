@@ -1,7 +1,14 @@
 <script lang="ts">
+const hideNativeTabBar = () => {
+  uni.hideTabBar({ animation: false })
+}
+
 export default {
   onLaunch() {
-    // App launch hook for MVP bootstrap.
+    hideNativeTabBar()
+  },
+  onShow() {
+    hideNativeTabBar()
   },
 }
 </script>

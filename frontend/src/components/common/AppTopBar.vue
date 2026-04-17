@@ -20,17 +20,28 @@ const props = withDefaults(
 const emit = defineEmits<{
   (event: 'back'): void
   (event: 'close'): void
+  (event: 'leftTap'): void
   (event: 'rightTap'): void
 }>()
 
 const onBack = () => emit('back')
 const onClose = () => emit('close')
+const onLeftTap = () => emit('leftTap')
 const onRightTap = () => emit('rightTap')
+
+const handleLeftTap = () => {
+  if (props.showBack) {
+    onBack()
+    return
+  }
+
+  onLeftTap()
+}
 </script>
 
 <template>
   <view class="top-bar" :class="{ transparent: props.transparent }">
-    <view class="side left" @tap="onBack" v-if="props.showBack || props.leftText">
+    <view class="side left" @tap="handleLeftTap" v-if="props.showBack || props.leftText">
       <text v-if="props.showBack" class="icon">‹</text>
       <text v-else class="text">{{ props.leftText }}</text>
     </view>

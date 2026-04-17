@@ -18,6 +18,19 @@ const recordId = ref<number | null>(null)
 const source = ref<EditorSource>('home')
 const closing = ref(false)
 
+interface EditorSnapshot {
+  title: string
+  content: string
+  recordType: RecordType
+  coreQuestion: string
+  unlockAtInput: string
+  aiSummary: string
+  aiPromptResults: string[]
+  tagIds: number[]
+}
+
+const initialSnapshot = ref<EditorSnapshot | null>(null)
+
 const form = reactive({
   volNo: 'Vol. 01',
   title: '',
@@ -64,8 +77,47 @@ const returnToSource = () => {
   })
 }
 
-const hasBodyContent = () => {
-  return form.content.trim().length > 0
+const buildSnapshot = (): EditorSnapshot => {
+  const sortedTagIds = [...form.tagIds].sort((a, b) => a - b)
+  return {
+    title: form.title,
+    content: form.content,
+    recordType: form.recordType,
+    coreQuestion: form.coreQuestion,
+    unlockAtInput: form.unlockAtInput,
+    aiSummary: form.aiSummary,
+    aiPromptResults: [...form.aiPromptResults],
+    tagIds: sortedTagIds,
+  }
+}
+
+const markSnapshot = () => {
+  initialSnapshot.value = buildSnapshot()
+}
+
+const hasDirtyChanges = () => {
+  if (!initialSnapshot.value) {
+    return false
+  }
+
+  return JSON.stringify(buildSnapshot()) !== JSON.stringify(initialSnapshot.value)
+}
+
+const confirmDiscardUnsavedChanges = () => {
+  const content = recordId.value
+    ? '正文为空，当前修改无法保存。是否放弃本次修改并返回？'
+    : '正文为空，当前内容无法保存草稿。是否放弃并返回？'
+
+  return new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '放弃修改？',
+      content,
+      confirmText: '放弃',
+      cancelText: '继续编辑',
+      success: (res) => resolve(Boolean(res.confirm)),
+      fail: () => resolve(false),
+    })
+  })
 }
 
 const handleCloseWithAutoSave = async () => {
@@ -73,8 +125,16 @@ const handleCloseWithAutoSave = async () => {
     return
   }
 
-  if (!hasBodyContent()) {
+  if (!hasDirtyChanges()) {
     returnToSource()
+    return
+  }
+
+  if (!validateRecordContent(form.content)) {
+    const shouldDiscard = await confirmDiscardUnsavedChanges()
+    if (shouldDiscard) {
+      returnToSource()
+    }
     return
   }
 
@@ -82,6 +142,7 @@ const handleCloseWithAutoSave = async () => {
   loading.value = true
   try {
     await persistDraft()
+    markSnapshot()
     returnToSource()
   } catch (error) {
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
@@ -146,6 +207,7 @@ const saveDraft = async () => {
   loading.value = true
   try {
     await persistDraft()
+    markSnapshot()
     uni.showToast({ title: '草稿已保存', icon: 'success' })
   } catch (error) {
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
@@ -200,6 +262,8 @@ onLoad(async (query) => {
       await fillByDetail(id)
     }
   }
+
+  markSnapshot()
 })
 </script>
 

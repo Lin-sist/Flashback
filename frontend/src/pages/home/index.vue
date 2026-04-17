@@ -2,6 +2,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppTopBar from '../../components/common/AppTopBar.vue'
+import BottomNavBar from '../../components/common/BottomNavBar.vue'
 import FloatingActionButton from '../../components/common/FloatingActionButton.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import { recordService } from '../../services'
@@ -12,8 +13,14 @@ const loading = ref(false)
 const draftCount = ref(0)
 const sealedCount = ref(0)
 const latestDraft = ref<RecordListItemVO | null>(null)
-const latestSealed = ref<RecordListItemVO | null>(null)
 const latestUnlocked = ref<RecordListItemVO | null>(null)
+const nearestSealedUnlockAt = ref<Date | null>(null)
+const hasReachedSealedUnlock = ref(false)
+const sealedSummaryApproximate = ref(false)
+
+const SEALED_PAGE_SIZE = 50
+const SEALED_FULL_SCAN_THRESHOLD = 300
+const SEALED_MAX_SCAN_PAGES = 8
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -30,22 +37,54 @@ const loadHomeSummary = async () => {
 
   loading.value = true
   try {
-    const [draftPage, sealedPage, unlockedPage] = await Promise.all([
+    const [draftPage, sealedFirstPage, unlockedPage] = await Promise.all([
       recordService.getRecordList(RecordStatus.DRAFT, { pageNum: 1, pageSize: 1 }),
-      recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
+      recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: SEALED_PAGE_SIZE }),
       recordService.getUnlockedRecords(1, 1),
     ])
+
+    const totalSealed = sealedFirstPage.total
+    const totalPages = Math.max(1, Math.ceil(totalSealed / SEALED_PAGE_SIZE))
+    const canScanAll = totalSealed <= SEALED_FULL_SCAN_THRESHOLD
+    const scanPages = canScanAll ? totalPages : Math.min(totalPages, SEALED_MAX_SCAN_PAGES)
+    sealedSummaryApproximate.value = scanPages < totalPages
+
+    const extraPageRequests: Array<Promise<{ list: RecordListItemVO[] }>> = []
+    for (let pageNum = 2; pageNum <= scanPages; pageNum += 1) {
+      extraPageRequests.push(recordService.getRecordList(RecordStatus.SEALED, { pageNum, pageSize: SEALED_PAGE_SIZE }))
+    }
+
+    const extraPages = await Promise.all(extraPageRequests)
+    const scannedSealedList = [
+      ...sealedFirstPage.list,
+      ...extraPages.flatMap((page) => page.list),
+    ]
+
     draftCount.value = draftPage.total
-    sealedCount.value = sealedPage.total
+    sealedCount.value = totalSealed
     latestDraft.value = draftPage.list[0] || null
-    latestSealed.value = sealedPage.list[0] || null
     latestUnlocked.value = unlockedPage.list[0] || null
+
+    const unlockDates = scannedSealedList
+      .map((item) => toDate(item.unlockAt))
+      .filter((date): date is Date => date !== null)
+
+    const now = Date.now()
+    hasReachedSealedUnlock.value = unlockDates.some((date) => date.getTime() <= now)
+
+    const upcomingUnlockDates = unlockDates
+      .filter((date) => date.getTime() > now)
+      .sort((a, b) => a.getTime() - b.getTime())
+
+    nearestSealedUnlockAt.value = upcomingUnlockDates[0] || null
   } catch {
     draftCount.value = 0
     sealedCount.value = 0
     latestDraft.value = null
-    latestSealed.value = null
     latestUnlocked.value = null
+    nearestSealedUnlockAt.value = null
+    hasReachedSealedUnlock.value = false
+    sealedSummaryApproximate.value = false
   } finally {
     loading.value = false
   }
@@ -79,18 +118,24 @@ const buildSealedTipText = () => {
     return '还没有封存记录'
   }
 
-  const unlockAt = toDate(latestSealed.value?.unlockAt)
-  if (!unlockAt) {
-    return `已封存 ${sealedCount.value} 条记录`
+  if (nearestSealedUnlockAt.value) {
+    const diff = nearestSealedUnlockAt.value.getTime() - Date.now()
+    const remainDays = Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)))
+    if (sealedSummaryApproximate.value) {
+      return `近期预计约 ${remainDays} 天解封（以档案页为准）`
+    }
+    return `距离解封还有 ${remainDays} 天`
   }
 
-  const diff = unlockAt.getTime() - Date.now()
-  if (diff <= 0) {
+  if (hasReachedSealedUnlock.value) {
     return '有记忆已到解封时间，去我的档案看看'
   }
 
-  const remainDays = Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)))
-  return `距离解封还有 ${remainDays} 天`
+  if (sealedSummaryApproximate.value) {
+    return `已封存 ${sealedCount.value} 条记录，解封时间请以档案页为准`
+  }
+
+  return `已封存 ${sealedCount.value} 条记录`
 }
 
 const onSealedSummaryTap = () => {
@@ -106,10 +151,13 @@ const goLatestUnlocked = () => {
     return
   }
 
-  uni.navigateTo({ url: `/pages/record-detail/index?id=${latestUnlocked.value.id}` })
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${latestUnlocked.value.id}&source=home` })
 }
 
-onShow(loadHomeSummary)
+onShow(() => {
+  uni.hideTabBar({ animation: false })
+  loadHomeSummary()
+})
 </script>
 
 <template>
@@ -156,6 +204,8 @@ onShow(loadHomeSummary)
 
     <FloatingActionButton text="＋" @tap="goEditor" />
     <view v-if="loading" class="loading">同步中...</view>
+
+    <BottomNavBar current="home" />
   </view>
 </template>
 
@@ -257,7 +307,7 @@ onShow(loadHomeSummary)
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 100rpx;
+  bottom: calc(env(safe-area-inset-bottom) + var(--fb-bottom-nav-height) + 40rpx);
   text-align: center;
   color: var(--fb-color-text-muted);
   font-size: var(--fb-font-meta);
