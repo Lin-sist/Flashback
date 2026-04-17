@@ -7,7 +7,7 @@ import PaperContainer from '../../components/common/PaperContainer.vue'
 import SearchBar from '../../components/common/SearchBar.vue'
 import { useRecordStore } from '../../stores'
 import { RecordStatus, type RecordListItemVO } from '../../types'
-import { formatDateTime, getToken, toUserMessage } from '../../utils'
+import { calculateRemainingDays, formatDateTime, getToken, toUserMessage } from '../../utils'
 
 const recordStore = useRecordStore()
 const selectedStatus = ref<RecordStatus | 'ALL'>('ALL')
@@ -61,6 +61,16 @@ const openRecord = (item: RecordListItemVO) => {
     uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=archive` })
     return
   }
+
+  if (item.status === RecordStatus.SEALED) {
+    const remainingDays = calculateRemainingDays(item.unlockAt)
+    uni.showToast({
+      title: `距离解封还有 ${remainingDays} 天`,
+      icon: 'none',
+    })
+    return
+  }
+
   uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}` })
 }
 

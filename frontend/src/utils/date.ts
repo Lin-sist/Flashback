@@ -71,3 +71,18 @@ export const isUnlockTimeReached = (unlockAt?: DateInput) => {
   }
   return Date.now() >= date.getTime()
 }
+
+export const calculateRemainingDays = (unlockAt?: DateInput) => {
+  const date = parseDate(unlockAt)
+  if (!date) {
+    return 0
+  }
+
+  const diffMs = date.getTime() - Date.now()
+  if (diffMs <= 0) {
+    return 0
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000
+  return Math.ceil(diffMs / dayMs)
+}

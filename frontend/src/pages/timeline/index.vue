@@ -31,11 +31,21 @@ const resolveVariant = (item: TimelineItemVO) => {
   return 'text'
 }
 
-const openDraftFromTimeline = (item: TimelineItemVO) => {
-  if (item.status !== RecordStatus.DRAFT) {
+const openTimelineNode = (item: TimelineItemVO) => {
+  if (item.status === RecordStatus.DRAFT) {
+    uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=timeline` })
     return
   }
-  uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=timeline` })
+
+  if (item.status === RecordStatus.SEALED) {
+    uni.showToast({
+      title: '该记录已封存，暂不可查看',
+      icon: 'none',
+    })
+    return
+  }
+
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}` })
 }
 
 const loadTimeline = async () => {
@@ -75,7 +85,7 @@ onShow(loadTimeline)
       <view class="group" v-for="group in timelineGroups" :key="group.yearMonth">
         <view class="group-title">{{ group.yearMonth }}</view>
         <view class="node-list">
-          <view v-for="(item, index) in group.items" :key="item.id" class="node-item" @tap="openDraftFromTimeline(item)">
+          <view v-for="(item, index) in group.items" :key="item.id" class="node-item" @tap="openTimelineNode(item)">
             <TimelineNode
               :title="item.title"
               :subtitle="item.recordType"

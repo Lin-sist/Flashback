@@ -10,7 +10,7 @@ export const replyService = {
     })
   },
   getReply(recordId: number) {
-    return httpRequest<ReplyVO>({
+    return httpRequest<ReplyVO | null>({
       url: `/api/records/${recordId}/reply`,
       method: 'GET',
     })
