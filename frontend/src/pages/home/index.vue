@@ -45,7 +45,7 @@ const loadHomeSummary = async () => {
   }
 }
 
-const goEditor = () => uni.navigateTo({ url: '/pages/record-editor/index' })
+const goEditor = () => uni.navigateTo({ url: '/pages/record-editor/index?source=home' })
 const goArchive = () => uni.navigateTo({ url: '/pages/record-list/index' })
 
 onShow(loadHomeSummary)

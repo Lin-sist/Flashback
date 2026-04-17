@@ -31,6 +31,13 @@ const resolveVariant = (item: TimelineItemVO) => {
   return 'text'
 }
 
+const openDraftFromTimeline = (item: TimelineItemVO) => {
+  if (item.status !== RecordStatus.DRAFT) {
+    return
+  }
+  uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=timeline` })
+}
+
 const loadTimeline = async () => {
   if (!ensureLogin()) {
     return
@@ -68,18 +75,18 @@ onShow(loadTimeline)
       <view class="group" v-for="group in timelineGroups" :key="group.yearMonth">
         <view class="group-title">{{ group.yearMonth }}</view>
         <view class="node-list">
-          <TimelineNode
-            v-for="(item, index) in group.items"
-            :key="item.id"
-            :title="item.title"
-            :subtitle="item.recordType"
-            :date-text="formatDateTime(item.createdAt)"
-            :tags="item.tagNames"
-            :status="item.status"
-            :record-type="item.recordType"
-            :variant="resolveVariant(item)"
-            :show-line="index < group.items.length - 1"
-          />
+          <view v-for="(item, index) in group.items" :key="item.id" class="node-item" @tap="openDraftFromTimeline(item)">
+            <TimelineNode
+              :title="item.title"
+              :subtitle="item.recordType"
+              :date-text="formatDateTime(item.createdAt)"
+              :tags="item.tagNames"
+              :status="item.status"
+              :record-type="item.recordType"
+              :variant="resolveVariant(item)"
+              :show-line="index < group.items.length - 1"
+            />
+          </view>
         </view>
       </view>
     </view>
@@ -151,6 +158,10 @@ onShow(loadTimeline)
   display: flex;
   flex-direction: column;
   gap: 24rpx;
+}
+
+.node-item {
+  width: 100%;
 }
 
 .tail {

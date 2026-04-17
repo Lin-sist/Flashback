@@ -11,8 +11,12 @@ import { formatDayText, formatDateTime, getToken, toLocalDateTime, toUserMessage
 const recordStore = useRecordStore()
 const tagStore = useTagStore()
 
+type EditorSource = 'home' | 'archive' | 'timeline'
+
 const loading = ref(false)
 const recordId = ref<number | null>(null)
+const source = ref<EditorSource>('home')
+const closing = ref(false)
 
 const form = reactive({
   volNo: 'Vol. 01',
@@ -34,8 +38,57 @@ const ensureLogin = () => {
   return true
 }
 
-const closePage = () => {
-  uni.navigateBack({ delta: 1 })
+const resolveSource = (value: unknown): EditorSource => {
+  if (value === 'archive' || value === 'timeline' || value === 'home') {
+    return value
+  }
+  return 'home'
+}
+
+const returnToSource = () => {
+  if (source.value === 'home') {
+    uni.switchTab({ url: '/pages/home/index' })
+    return
+  }
+
+  if (source.value === 'timeline') {
+    uni.switchTab({ url: '/pages/timeline/index' })
+    return
+  }
+
+  uni.navigateBack({
+    delta: 1,
+    fail: () => {
+      uni.navigateTo({ url: '/pages/record-list/index' })
+    },
+  })
+}
+
+const hasBodyContent = () => {
+  return form.content.trim().length > 0
+}
+
+const handleCloseWithAutoSave = async () => {
+  if (loading.value || closing.value) {
+    return
+  }
+
+  if (!hasBodyContent()) {
+    returnToSource()
+    return
+  }
+
+  closing.value = true
+  loading.value = true
+  try {
+    await persistDraft()
+    returnToSource()
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    loading.value = false
+    closing.value = false
+  }
 }
 
 const onRecordTypeChange = (event: { detail: { value: number } }) => {
@@ -118,7 +171,7 @@ const sealRecord = async () => {
     const draft = await persistDraft()
     await recordStore.sealRecord(draft.id)
     uni.showToast({ title: '已封存这一刻', icon: 'success' })
-    setTimeout(() => closePage(), 300)
+    setTimeout(() => returnToSource(), 300)
   } catch (error) {
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
   } finally {
@@ -135,6 +188,8 @@ onLoad(async (query) => {
     return
   }
 
+  source.value = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
+
   await tagStore.fetchTags()
 
   if (typeof query?.id === 'string') {
@@ -150,7 +205,7 @@ onLoad(async (query) => {
 
 <template>
   <view class="page">
-    <AppTopBar :title="form.volNo" show-close transparent @close="closePage" />
+    <AppTopBar :title="form.volNo" show-close transparent @close="handleCloseWithAutoSave" />
 
     <view class="header-copy">
       <view class="captured-at">Captured at</view>

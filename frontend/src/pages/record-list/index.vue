@@ -6,7 +6,7 @@ import FilterSegment from '../../components/common/FilterSegment.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import SearchBar from '../../components/common/SearchBar.vue'
 import { useRecordStore } from '../../stores'
-import { RecordStatus } from '../../types'
+import { RecordStatus, type RecordListItemVO } from '../../types'
 import { formatDateTime, getToken, toUserMessage } from '../../utils'
 
 const recordStore = useRecordStore()
@@ -56,8 +56,12 @@ const onStatusChange = (value: string) => {
   loadList()
 }
 
-const openDetail = (id: number) => {
-  uni.navigateTo({ url: `/pages/record-detail/index?id=${id}` })
+const openRecord = (item: RecordListItemVO) => {
+  if (item.status === RecordStatus.DRAFT) {
+    uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=archive` })
+    return
+  }
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}` })
 }
 
 const goBack = () => uni.navigateBack({ delta: 1 })
@@ -85,7 +89,7 @@ onShow(loadList)
         :key="item.id"
         radius="lg"
         class="list-item"
-        @tap="openDetail(item.id)"
+        @tap="openRecord(item)"
       >
         <view class="item-top">
           <text class="item-title">{{ item.title || '未命名记录' }}</text>
