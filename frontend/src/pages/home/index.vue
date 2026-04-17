@@ -3,6 +3,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppTopBar from '../../components/common/AppTopBar.vue'
 import BottomNavBar from '../../components/common/BottomNavBar.vue'
+import EmptyState from '../../components/common/EmptyState.vue'
 import FloatingActionButton from '../../components/common/FloatingActionButton.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import { recordService } from '../../services'
@@ -14,13 +15,9 @@ const draftCount = ref(0)
 const sealedCount = ref(0)
 const latestDraft = ref<RecordListItemVO | null>(null)
 const latestUnlocked = ref<RecordListItemVO | null>(null)
-const nearestSealedUnlockAt = ref<Date | null>(null)
-const hasReachedSealedUnlock = ref(false)
-const sealedSummaryApproximate = ref(false)
-
-const SEALED_PAGE_SIZE = 50
-const SEALED_FULL_SCAN_THRESHOLD = 300
-const SEALED_MAX_SCAN_PAGES = 8
+const homeLoadFailed = ref(false)
+const summaryLoadFailed = ref(false)
+const latestUnlockedLoadFailed = ref(false)
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -36,58 +33,51 @@ const loadHomeSummary = async () => {
   }
 
   loading.value = true
-  try {
-    const [draftPage, sealedFirstPage, unlockedPage] = await Promise.all([
-      recordService.getRecordList(RecordStatus.DRAFT, { pageNum: 1, pageSize: 1 }),
-      recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: SEALED_PAGE_SIZE }),
-      recordService.getUnlockedRecords(1, 1),
-    ])
+  homeLoadFailed.value = false
+  summaryLoadFailed.value = false
+  latestUnlockedLoadFailed.value = false
 
-    const totalSealed = sealedFirstPage.total
-    const totalPages = Math.max(1, Math.ceil(totalSealed / SEALED_PAGE_SIZE))
-    const canScanAll = totalSealed <= SEALED_FULL_SCAN_THRESHOLD
-    const scanPages = canScanAll ? totalPages : Math.min(totalPages, SEALED_MAX_SCAN_PAGES)
-    sealedSummaryApproximate.value = scanPages < totalPages
+  const [draftResult, sealedResult, unlockedResult] = await Promise.allSettled([
+    recordService.getRecordList(RecordStatus.DRAFT, { pageNum: 1, pageSize: 1 }),
+    recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
+    recordService.getUnlockedRecords(1, 1),
+  ])
 
-    const extraPageRequests: Array<Promise<{ list: RecordListItemVO[] }>> = []
-    for (let pageNum = 2; pageNum <= scanPages; pageNum += 1) {
-      extraPageRequests.push(recordService.getRecordList(RecordStatus.SEALED, { pageNum, pageSize: SEALED_PAGE_SIZE }))
-    }
-
-    const extraPages = await Promise.all(extraPageRequests)
-    const scannedSealedList = [
-      ...sealedFirstPage.list,
-      ...extraPages.flatMap((page) => page.list),
-    ]
-
-    draftCount.value = draftPage.total
-    sealedCount.value = totalSealed
-    latestDraft.value = draftPage.list[0] || null
-    latestUnlocked.value = unlockedPage.list[0] || null
-
-    const unlockDates = scannedSealedList
-      .map((item) => toDate(item.unlockAt))
-      .filter((date): date is Date => date !== null)
-
-    const now = Date.now()
-    hasReachedSealedUnlock.value = unlockDates.some((date) => date.getTime() <= now)
-
-    const upcomingUnlockDates = unlockDates
-      .filter((date) => date.getTime() > now)
-      .sort((a, b) => a.getTime() - b.getTime())
-
-    nearestSealedUnlockAt.value = upcomingUnlockDates[0] || null
-  } catch {
+  if (draftResult.status === 'fulfilled') {
+    draftCount.value = draftResult.value.total
+    latestDraft.value = draftResult.value.list[0] || null
+  } else {
     draftCount.value = 0
-    sealedCount.value = 0
     latestDraft.value = null
-    latestUnlocked.value = null
-    nearestSealedUnlockAt.value = null
-    hasReachedSealedUnlock.value = false
-    sealedSummaryApproximate.value = false
-  } finally {
-    loading.value = false
   }
+
+  if (sealedResult.status === 'fulfilled') {
+    sealedCount.value = sealedResult.value.total
+    summaryLoadFailed.value = false
+  } else {
+    sealedCount.value = 0
+    summaryLoadFailed.value = true
+  }
+
+  if (unlockedResult.status === 'fulfilled') {
+    latestUnlocked.value = unlockedResult.value.list[0] || null
+    latestUnlockedLoadFailed.value = false
+  } else {
+    latestUnlocked.value = null
+    latestUnlockedLoadFailed.value = true
+  }
+
+  homeLoadFailed.value =
+    draftResult.status === 'rejected' &&
+    sealedResult.status === 'rejected' &&
+    unlockedResult.status === 'rejected'
+
+  loading.value = false
+}
+
+const retryHomeSummary = () => {
+  loadHomeSummary()
+  uni.showToast({ title: '正在重试加载', icon: 'none' })
 }
 
 const goEditor = () => uni.navigateTo({ url: '/pages/record-editor/index?source=home' })
@@ -104,41 +94,28 @@ const goDraftEntry = () => {
   })
 }
 
-const toDate = (value?: string | number) => {
-  if (value === undefined || value === null) {
-    return null
-  }
-  const normalized = typeof value === 'string' && !value.includes('T') ? value.replace(' ', 'T') : value
-  const date = new Date(normalized)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
 const buildSealedTipText = () => {
+  if (summaryLoadFailed.value) {
+    return '摘要暂时不可用，请稍后重试'
+  }
+
+  if (loading.value) {
+    return '摘要同步中，请稍后再试'
+  }
+
   if (sealedCount.value <= 0) {
     return '还没有封存记录'
   }
 
-  if (nearestSealedUnlockAt.value) {
-    const diff = nearestSealedUnlockAt.value.getTime() - Date.now()
-    const remainDays = Math.max(1, Math.ceil(diff / (24 * 60 * 60 * 1000)))
-    if (sealedSummaryApproximate.value) {
-      return `近期预计约 ${remainDays} 天解封（以档案页为准）`
-    }
-    return `距离解封还有 ${remainDays} 天`
-  }
-
-  if (hasReachedSealedUnlock.value) {
-    return '有记忆已到解封时间，去我的档案看看'
-  }
-
-  if (sealedSummaryApproximate.value) {
-    return `已封存 ${sealedCount.value} 条记录，解封时间请以档案页为准`
-  }
-
-  return `已封存 ${sealedCount.value} 条记录`
+  return `已封存 ${sealedCount.value} 条记录，请前往我的档案查看解封时间`
 }
 
 const onSealedSummaryTap = () => {
+  if (summaryLoadFailed.value) {
+    retryHomeSummary()
+    return
+  }
+
   uni.showToast({
     title: buildSealedTipText(),
     icon: 'none',
@@ -146,6 +123,11 @@ const onSealedSummaryTap = () => {
 }
 
 const goLatestUnlocked = () => {
+  if (latestUnlockedLoadFailed.value) {
+    retryHomeSummary()
+    return
+  }
+
   if (!latestUnlocked.value) {
     uni.showToast({ title: '还没有解锁记录', icon: 'none' })
     return
@@ -178,14 +160,16 @@ onShow(() => {
 
       <PaperContainer radius="xl" class="summary-card" @tap="onSealedSummaryTap">
         <view class="card-kicker">封存摘要</view>
-        <view class="stat-value">{{ sealedCount }}</view>
-        <view class="card-meta">已封存记录</view>
+        <view class="stat-value">{{ summaryLoadFailed ? '--' : sealedCount }}</view>
+        <view class="card-meta">{{ summaryLoadFailed ? '摘要加载失败，点按可重试' : '已封存记录' }}</view>
       </PaperContainer>
 
       <PaperContainer radius="xl" warm class="unlock-card" @tap="goLatestUnlocked">
         <view class="card-kicker">最近解锁</view>
-        <view class="card-title">{{ latestUnlocked?.title || '还没有解锁记录' }}</view>
-        <view class="card-meta">{{ latestUnlocked ? formatDateTime(latestUnlocked.createdAt) : '去写下第一条记忆吧' }}</view>
+        <view class="card-title">{{ latestUnlockedLoadFailed ? '解锁记录暂时不可用' : latestUnlocked?.title || '还没有解锁记录' }}</view>
+        <view class="card-meta">
+          {{ latestUnlockedLoadFailed ? '点按卡片可重试' : latestUnlocked ? formatDateTime(latestUnlocked.createdAt) : '去写下第一条记忆吧' }}
+        </view>
       </PaperContainer>
 
       <PaperContainer radius="xl" class="archive-entry" @tap="goArchive">
@@ -197,13 +181,18 @@ onShow(() => {
       </PaperContainer>
     </view>
 
+    <view v-if="homeLoadFailed" class="state-wrap">
+      <EmptyState text="网络有点慢，首页摘要暂时没加载出来" />
+      <view class="retry-link" @tap="retryHomeSummary">点击重试</view>
+    </view>
+
     <view class="scene-decoration">
       <view class="scene-title">Light in the drawer</view>
       <view class="scene-subtitle">慢一点，时间会替你收好答案</view>
     </view>
 
     <FloatingActionButton text="＋" @tap="goEditor" />
-    <view v-if="loading" class="loading">同步中...</view>
+    <view v-if="loading" class="loading">正在同步首页内容...</view>
 
     <BottomNavBar current="home" />
   </view>
@@ -300,6 +289,20 @@ onShow(() => {
 .scene-subtitle {
   margin-top: 8rpx;
   color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.state-wrap {
+  margin-top: 16rpx;
+  border-radius: var(--fb-radius-lg);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--fb-shadow-soft);
+}
+
+.retry-link {
+  padding-bottom: 20rpx;
+  text-align: center;
+  color: var(--fb-color-primary);
   font-size: var(--fb-font-meta);
 }
 

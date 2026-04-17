@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppTopBar from '../../components/common/AppTopBar.vue'
 import BottomNavBar from '../../components/common/BottomNavBar.vue'
+import EmptyState from '../../components/common/EmptyState.vue'
+import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import TimelineNode from '../../components/common/TimelineNode.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
@@ -11,8 +13,14 @@ import { formatDateTime, getToken } from '../../utils'
 const loading = ref(false)
 const timelineGroups = ref<TimelineGroupVO[]>([])
 const yearInput = ref('')
+const timelineLoadFailed = ref(false)
 
 const flatCount = computed(() => timelineGroups.value.reduce((sum, group) => sum + group.items.length, 0))
+const hasYearFilter = computed(() => Boolean(yearInput.value.trim()))
+const showLoadFailureState = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length === 0)
+const showEmptyState = computed(() => !loading.value && !timelineLoadFailed.value && timelineGroups.value.length === 0)
+const showStaleNotice = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length > 0)
+const emptyStateText = computed(() => hasYearFilter.value ? '这一年还没有记录' : '时间轴暂时为空，去写下第一条记忆吧')
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -53,13 +61,16 @@ const loadTimeline = async () => {
   if (!ensureLogin()) {
     return
   }
+
   loading.value = true
+  timelineLoadFailed.value = false
+
   try {
     const year = Number(yearInput.value)
     const result = await recordService.getTimeline(Number.isNaN(year) ? {} : { year })
     timelineGroups.value = result
   } catch {
-    timelineGroups.value = []
+    timelineLoadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -82,8 +93,20 @@ onShow(() => {
       <view class="hero-meta">共 {{ flatCount }} 条记录</view>
     </view>
 
-    <view v-if="loading" class="state">载入中...</view>
-    <view v-else-if="timelineGroups.length === 0" class="state">时间轴暂时为空</view>
+    <view v-if="showStaleNotice" class="inline-error">
+      网络有点慢，正在显示上次加载的时间轴
+      <text class="inline-retry" @tap="loadTimeline">重试</text>
+    </view>
+
+    <view v-if="loading" class="state">正在加载时间轴...</view>
+    <view v-else-if="showLoadFailureState" class="state-wrap">
+      <EmptyState text="网络有点慢，时间轴暂时没加载出来" />
+      <PrimaryButton text="重试加载" ghost @tap="loadTimeline" />
+    </view>
+    <view v-else-if="showEmptyState" class="state-wrap">
+      <EmptyState :text="emptyStateText" />
+      <PrimaryButton text="刷新时间轴" ghost @tap="loadTimeline" />
+    </view>
 
     <view v-else class="group-list">
       <view class="group" v-for="group in timelineGroups" :key="group.yearMonth">
@@ -155,6 +178,21 @@ onShow(() => {
   text-align: center;
   color: var(--fb-color-text-muted);
   font-size: var(--fb-font-meta);
+}
+
+.state-wrap {
+  margin-top: 20rpx;
+}
+
+.inline-error {
+  margin-top: 14rpx;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.inline-retry {
+  margin-left: 10rpx;
+  color: var(--fb-color-primary);
 }
 
 .group-list {

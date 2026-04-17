@@ -3,19 +3,24 @@ import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppTopBar from '../../components/common/AppTopBar.vue'
 import BottomNavBar from '../../components/common/BottomNavBar.vue'
+import EmptyState from '../../components/common/EmptyState.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
+import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import SettingGroupCard, { type SettingItem } from '../../components/common/SettingGroupCard.vue'
 import { recordService } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
-import { getToken, toUserMessage } from '../../utils'
+import { getToken } from '../../utils'
 
 const userStore = useUserStore()
 
 const nickname = ref('访客')
 const signature = ref('把经历写给未来的自己')
 const savedCount = ref(0)
-const archiveDays = ref(0)
+const waitingUnlockCount = ref(0)
+const centerLoading = ref(false)
+const centerLoadFailed = ref(false)
+const profileReady = ref(false)
 
 const groupArchive: SettingItem[] = [
   { key: 'record', title: '档案偏好', subtitle: '记录类型与封存习惯' },
@@ -40,7 +45,21 @@ const ensureLogin = () => {
 }
 
 const handleGroupTap = (key: string) => {
-  uni.showToast({ title: `${key} 配置将于后续版本开放`, icon: 'none' })
+  const routeMap: Record<string, string> = {
+    record: '/pages/user-center/archive-preference/index',
+    tag: '/pages/user-center/tag-manage/index',
+    privacy: '/pages/user-center/notify-settings/index',
+    notify: '/pages/user-center/notify-settings/index',
+    about: '/pages/user-center/about/index',
+  }
+
+  const targetUrl = routeMap[key]
+  if (!targetUrl) {
+    uni.showToast({ title: '页面开发中', icon: 'none' })
+    return
+  }
+
+  uni.navigateTo({ url: targetUrl })
 }
 
 const loadCenterData = async () => {
@@ -48,10 +67,12 @@ const loadCenterData = async () => {
     return
   }
 
+  centerLoading.value = true
+  centerLoadFailed.value = false
+
   try {
-    const [user, draftPage, sealedPage, unlockedPage] = await Promise.all([
+    const [user, sealedPage, unlockedPage] = await Promise.all([
       userStore.fetchUserInfo(),
-      recordService.getRecordList(RecordStatus.DRAFT, { pageNum: 1, pageSize: 1 }),
       recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
       recordService.getUnlockedRecords(1, 1),
     ])
@@ -59,9 +80,13 @@ const loadCenterData = async () => {
     nickname.value = user?.nickname || user?.username || '访客'
     signature.value = user?.email ? `${user.email}` : '把经历写给未来的自己'
     savedCount.value = sealedPage.total + unlockedPage.total
-    archiveDays.value = Math.max(1, Math.ceil((draftPage.total + sealedPage.total + unlockedPage.total) / 2))
-  } catch (error) {
-    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+    waitingUnlockCount.value = sealedPage.total
+    profileReady.value = true
+  } catch {
+    centerLoadFailed.value = true
+    uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
+  } finally {
+    centerLoading.value = false
   }
 }
 
@@ -77,13 +102,27 @@ onShow(() => {
   <view class="page">
     <AppTopBar title="Flashback" right-text="更多" @right-tap="handleGroupTap('more')" />
 
-    <PaperContainer radius="xl" class="profile-card">
-      <view class="avatar">{{ nickname.slice(0, 1) }}</view>
+    <view v-if="centerLoading && !profileReady" class="state-wrap">
+      <EmptyState text="正在加载个人信息..." />
+    </view>
+
+    <view v-else-if="centerLoadFailed && !profileReady" class="state-wrap">
+      <EmptyState text="网络有点慢，个人信息暂时没加载出来" />
+      <PrimaryButton text="重试加载" ghost @tap="loadCenterData" />
+    </view>
+
+    <PaperContainer v-else radius="xl" class="profile-card">
+      <view class="avatar">{{ nickname.slice(0, 1) || '访' }}</view>
       <view>
-        <view class="name">{{ nickname }}</view>
-        <view class="signature">{{ signature }}</view>
+        <view class="name">{{ nickname || '访客' }}</view>
+        <view class="signature">{{ signature || '把经历写给未来的自己' }}</view>
       </view>
     </PaperContainer>
+
+    <view v-if="centerLoadFailed && profileReady" class="inline-error">
+      网络有点慢，当前展示的是上次同步的信息
+      <text class="inline-retry" @tap="loadCenterData">重试</text>
+    </view>
 
     <view class="stats">
       <PaperContainer radius="xl" class="stat-card">
@@ -91,8 +130,8 @@ onShow(() => {
         <view class="stat-label">已存记忆</view>
       </PaperContainer>
       <PaperContainer radius="xl" warm class="stat-card">
-        <view class="stat-num">{{ archiveDays }}</view>
-        <view class="stat-label">存档天数</view>
+        <view class="stat-num">{{ waitingUnlockCount }}</view>
+        <view class="stat-label">待解封</view>
       </PaperContainer>
     </view>
 
@@ -152,6 +191,21 @@ onShow(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14rpx;
+}
+
+.state-wrap {
+  margin-top: 24rpx;
+}
+
+.inline-error {
+  margin-top: 14rpx;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.inline-retry {
+  margin-left: 10rpx;
+  color: var(--fb-color-primary);
 }
 
 .stat-card {

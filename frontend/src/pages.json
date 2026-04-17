@@ -41,6 +41,30 @@
       "style": {
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/user-center/archive-preference/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/user-center/tag-manage/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/user-center/notify-settings/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/user-center/about/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
     }
   ],
   "tabBar": {

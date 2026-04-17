@@ -2,16 +2,19 @@
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import AppTopBar from '../../components/common/AppTopBar.vue'
+import EmptyState from '../../components/common/EmptyState.vue'
 import FilterSegment from '../../components/common/FilterSegment.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
+import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import SearchBar from '../../components/common/SearchBar.vue'
 import { useRecordStore } from '../../stores'
 import { RecordStatus, type RecordListItemVO } from '../../types'
-import { calculateRemainingDays, formatDateTime, getToken, toUserMessage } from '../../utils'
+import { calculateRemainingDays, formatDateTime, getToken } from '../../utils'
 
 const recordStore = useRecordStore()
 const selectedStatus = ref<RecordStatus | 'ALL'>('ALL')
 const keyword = ref('')
+const listLoadFailed = ref(false)
 
 const statusOptions = [
   { label: '全部', value: 'ALL' },
@@ -32,6 +35,22 @@ const filteredList = computed(() => {
   })
 })
 
+const showLoadFailureState = computed(() => !recordStore.loading && listLoadFailed.value && recordStore.list.length === 0)
+const showEmptyState = computed(() => !recordStore.loading && !listLoadFailed.value && filteredList.value.length === 0)
+const showStaleNotice = computed(() => !recordStore.loading && listLoadFailed.value && recordStore.list.length > 0)
+
+const emptyStateText = computed(() => {
+  if (keyword.value.trim()) {
+    return '没有找到匹配的记录'
+  }
+
+  if (selectedStatus.value !== 'ALL') {
+    return '当前筛选条件下还没有记录'
+  }
+
+  return '还没有记录，去首页写下第一条记忆吧'
+})
+
 const ensureLogin = () => {
   if (!getToken()) {
     uni.reLaunch({ url: '/pages/login/index' })
@@ -44,16 +63,24 @@ const loadList = async () => {
   if (!ensureLogin()) {
     return
   }
+
+  listLoadFailed.value = false
+
   try {
     await recordStore.fetchList(selectedStatus.value)
-  } catch (error) {
-    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } catch {
+    listLoadFailed.value = true
+    uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
   }
 }
 
 const onStatusChange = (value: string) => {
   selectedStatus.value = value as RecordStatus | 'ALL'
   loadList()
+}
+
+const clearKeyword = () => {
+  keyword.value = ''
 }
 
 const openRecord = (item: RecordListItemVO) => {
@@ -90,8 +117,21 @@ onShow(loadList)
 
     <view class="summary">当前列表 {{ filteredList.length }} 条</view>
 
-    <view v-if="recordStore.loading" class="state-text">载入中...</view>
-    <view v-else-if="filteredList.length === 0" class="state-text">没有符合条件的记录</view>
+    <view v-if="showStaleNotice" class="inline-error">
+      网络有点慢，正在显示上次加载的列表
+      <text class="inline-retry" @tap="loadList">重试</text>
+    </view>
+
+    <view v-if="recordStore.loading" class="state-text">正在加载档案...</view>
+    <view v-else-if="showLoadFailureState" class="state-wrap">
+      <EmptyState text="网络有点慢，档案暂时没加载出来" />
+      <PrimaryButton text="重试加载" ghost @tap="loadList" />
+    </view>
+    <view v-else-if="showEmptyState" class="state-wrap">
+      <EmptyState :text="emptyStateText" />
+      <PrimaryButton v-if="keyword.trim()" text="清空搜索" ghost @tap="clearKeyword" />
+      <PrimaryButton v-else text="刷新列表" ghost @tap="loadList" />
+    </view>
 
     <view v-else class="list-wrap">
       <PaperContainer
@@ -139,6 +179,21 @@ onShow(loadList)
   color: var(--fb-color-text-muted);
   text-align: center;
   font-size: var(--fb-font-meta);
+}
+
+.state-wrap {
+  margin-top: 20rpx;
+}
+
+.inline-error {
+  margin-top: 12rpx;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.inline-retry {
+  margin-left: 10rpx;
+  color: var(--fb-color-primary);
 }
 
 .list-wrap {
