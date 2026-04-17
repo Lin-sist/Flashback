@@ -362,8 +362,8 @@ onLoad(async (query) => {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 24rpx var(--fb-space-page) 50rpx;
-  background: var(--fb-color-bg);
+  padding: 24rpx 24rpx 50rpx;
+  background: #f8fafb;
 }
 
 .header-copy {
@@ -376,8 +376,8 @@ onLoad(async (query) => {
 
 .state-text {
   text-align: center;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .state-action {
@@ -385,14 +385,14 @@ onLoad(async (query) => {
 }
 
 .captured-at {
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
   letter-spacing: 1rpx;
 }
 
 .main-date {
   margin-top: 8rpx;
-  color: var(--fb-color-text);
+  color: #1a1a1a;
   font-size: 56rpx;
   line-height: 1.3;
   font-weight: 500;
@@ -410,10 +410,10 @@ onLoad(async (query) => {
 }
 
 .record-type {
-  color: var(--fb-color-primary);
-  font-size: var(--fb-font-meta);
+  color: #3b647a;
+  font-size: 24rpx;
   padding: 10rpx 18rpx;
-  border-radius: var(--fb-radius-pill);
+  border-radius: 999rpx;
   background: #eef4f7;
 }
 
@@ -427,24 +427,24 @@ onLoad(async (query) => {
 .title-input {
   margin-top: 24rpx;
   width: 100%;
-  font-size: var(--fb-font-title-sub);
-  color: var(--fb-color-text);
+  font-size: 36rpx;
+  color: #1a1a1a;
 }
 
 .content-area {
   margin-top: 18rpx;
   width: 100%;
   min-height: 460rpx;
-  font-size: var(--fb-font-body);
+  font-size: 32rpx;
   line-height: 1.8;
-  color: var(--fb-color-text);
+  color: #1a1a1a;
 }
 
 .sub-input {
   margin-top: 12rpx;
   width: 100%;
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-color-text-muted);
+  font-size: 28rpx;
+  color: #7f8c93;
 }
 
 .aux-actions {
@@ -455,8 +455,8 @@ onLoad(async (query) => {
 }
 
 .aux-item {
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
   letter-spacing: 1rpx;
 }
 
@@ -467,3 +467,4 @@ onLoad(async (query) => {
   gap: 12rpx;
 }
 </style>
+

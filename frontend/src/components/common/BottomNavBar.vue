@@ -45,19 +45,19 @@ const switchTo = (item: BottomNavItem) => {
 <style scoped>
 .bottom-nav-shell {
   position: fixed;
-  left: var(--fb-space-page);
-  right: var(--fb-space-page);
+  left: 24rpx;
+  right: 24rpx;
   bottom: calc(env(safe-area-inset-bottom) + 20rpx);
   z-index: 80;
 }
 
 .bottom-nav {
-  height: var(--fb-bottom-nav-height);
+  height: 108rpx;
   padding: 10rpx;
-  border-radius: var(--fb-radius-pill);
-  border: 1rpx solid var(--fb-bottom-nav-border-color);
-  background: var(--fb-bottom-nav-bg);
-  box-shadow: var(--fb-shadow-soft);
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(172, 179, 182, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
   display: flex;
   align-items: center;
 }
@@ -65,23 +65,23 @@ const switchTo = (item: BottomNavItem) => {
 .nav-item {
   flex: 1;
   height: 100%;
-  border-radius: var(--fb-radius-pill);
+  border-radius: 999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .nav-item-text {
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-bottom-nav-text-color);
+  font-size: 28rpx;
+  color: #7f8c93;
 }
 
 .nav-item.active {
-  background: var(--fb-bottom-nav-active-bg);
+  background: #eef3f6;
 }
 
 .nav-item.active .nav-item-text {
-  color: var(--fb-bottom-nav-active-text-color);
+  color: #3b647a;
   font-weight: 600;
 }
 </style>

@@ -181,12 +181,12 @@ onShow(loadList)
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx var(--fb-space-page) 60rpx;
-  background: var(--fb-color-bg);
+  padding: 20rpx 24rpx 60rpx;
+  background: #f8fafb;
 }
 
 .panel-row {
-  margin-top: var(--fb-space-section);
+  margin-top: 20rpx;
   display: flex;
   flex-direction: column;
   gap: 14rpx;
@@ -194,15 +194,15 @@ onShow(loadList)
 
 .summary {
   margin-top: 18rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-body-sub);
+  color: #7f8c93;
+  font-size: 28rpx;
 }
 
 .state-text {
   margin-top: 30rpx;
-  color: var(--fb-color-text-muted);
+  color: #7f8c93;
   text-align: center;
-  font-size: var(--fb-font-meta);
+  font-size: 24rpx;
 }
 
 .state-wrap {
@@ -212,30 +212,30 @@ onShow(loadList)
 .state-hint {
   margin: 0 0 12rpx;
   text-align: center;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .inline-error {
   margin-top: 12rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .inline-retry {
   margin-left: 10rpx;
-  color: var(--fb-color-primary);
+  color: #3b647a;
 }
 
 .list-wrap {
   margin-top: 20rpx;
   display: flex;
   flex-direction: column;
-  gap: var(--fb-space-list);
+  gap: 16rpx;
 }
 
 .list-item {
-  box-shadow: var(--fb-shadow-soft);
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
 }
 
 .item-top {
@@ -245,33 +245,34 @@ onShow(loadList)
 }
 
 .item-title {
-  font-size: var(--fb-font-title-sub);
-  color: var(--fb-color-text);
+  font-size: 36rpx;
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .item-status {
-  color: var(--fb-color-primary);
-  font-size: var(--fb-font-meta);
+  color: #3b647a;
+  font-size: 24rpx;
 }
 
 .item-preview {
   margin-top: 12rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-body-sub);
+  color: #7f8c93;
+  font-size: 28rpx;
   line-height: 1.7;
 }
 
 .item-meta {
   margin-top: 14rpx;
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 
 .tail-decoration {
   margin-top: 26rpx;
   text-align: center;
-  font-size: var(--fb-font-meta);
+  font-size: 24rpx;
   color: #a4aeb5;
 }
 </style>
+

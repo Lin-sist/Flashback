@@ -142,8 +142,8 @@ onShow(() => {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx var(--fb-space-page) 40rpx;
-  background: var(--fb-color-bg);
+  padding: 20rpx 24rpx 40rpx;
+  background: #f8fafb;
 }
 
 .section {
@@ -156,31 +156,31 @@ onShow(() => {
 
 .inline-error {
   margin-top: 12rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .inline-retry {
   margin-left: 10rpx;
-  color: var(--fb-color-primary);
+  color: #3b647a;
 }
 
 .section-title {
-  font-size: var(--fb-font-title-sub);
-  color: var(--fb-color-text);
+  font-size: 36rpx;
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .section-subtitle {
   margin-top: 8rpx;
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
   line-height: 1.7;
 }
 
 .group-title {
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-color-text-muted);
+  font-size: 28rpx;
+  color: #7f8c93;
 }
 
 .tag-wrap {
@@ -193,7 +193,7 @@ onShow(() => {
 .tag-chip {
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
-  font-size: var(--fb-font-meta);
+  font-size: 24rpx;
 }
 
 .tag-chip.mood {
@@ -203,13 +203,13 @@ onShow(() => {
 
 .tag-chip.topic {
   background: #edf3f6;
-  color: var(--fb-color-primary);
+  color: #3b647a;
 }
 
 .empty-tip {
   margin-top: 10rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .divider {
@@ -231,18 +231,18 @@ onShow(() => {
 }
 
 .plan-title {
-  font-size: var(--fb-font-body);
-  color: var(--fb-color-text);
+  font-size: 32rpx;
+  color: #1a1a1a;
 }
 
 .plan-subtitle {
   margin-top: 4rpx;
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 
 .arrow {
-  color: var(--fb-color-text-muted);
+  color: #7f8c93;
   font-size: 30rpx;
 }
 
@@ -250,3 +250,4 @@ onShow(() => {
   margin-top: 20rpx;
 }
 </style>
+

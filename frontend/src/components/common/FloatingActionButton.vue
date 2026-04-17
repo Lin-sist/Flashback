@@ -25,12 +25,12 @@ const onTap = () => emit('tap')
 .fab {
   position: fixed;
   right: 32rpx;
-  bottom: calc(env(safe-area-inset-bottom) + var(--fb-bottom-nav-height) + 52rpx);
+  bottom: calc(env(safe-area-inset-bottom) + 108rpx + 52rpx);
   width: 108rpx;
   height: 108rpx;
   border-radius: 54rpx;
-  background: var(--fb-color-primary);
-  box-shadow: var(--fb-shadow-strong);
+  background: #3b647a;
+  box-shadow: 0 16rpx 40rpx rgba(59, 100, 122, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,3 +43,4 @@ const onTap = () => emit('tap')
   line-height: 1;
 }
 </style>
+

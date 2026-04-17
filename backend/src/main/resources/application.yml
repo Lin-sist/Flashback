@@ -1,6 +1,9 @@
 spring:
   application:
     name: flashback-backend
+  profiles:
+    # 本地直接启动时默认使用 dev；线上仍可通过环境变量或启动参数覆盖。
+    default: dev
 
 mybatis:
   mapper-locations: classpath:/mapper/**/*.xml

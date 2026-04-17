@@ -170,8 +170,8 @@ onShow(() => {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx var(--fb-space-page) 180rpx;
-  background: var(--fb-color-bg);
+  padding: 20rpx 24rpx 180rpx;
+  background: #f8fafb;
 }
 
 .profile-card {
@@ -186,7 +186,7 @@ onShow(() => {
   height: 98rpx;
   border-radius: 49rpx;
   background: linear-gradient(145deg, #e8f1f5 0%, #cfdde6 100%);
-  color: var(--fb-color-primary);
+  color: #3b647a;
   font-size: 42rpx;
   display: flex;
   align-items: center;
@@ -196,14 +196,14 @@ onShow(() => {
 
 .name {
   font-size: 40rpx;
-  color: var(--fb-color-text);
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .signature {
   margin-top: 6rpx;
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 
 .stats {
@@ -219,13 +219,13 @@ onShow(() => {
 
 .inline-error {
   margin-top: 14rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .inline-retry {
   margin-left: 10rpx;
-  color: var(--fb-color-primary);
+  color: #3b647a;
 }
 
 .stat-card {
@@ -233,15 +233,15 @@ onShow(() => {
 }
 
 .stat-num {
-  font-size: var(--fb-font-number);
-  color: var(--fb-color-primary);
+  font-size: 64rpx;
+  color: #3b647a;
   font-weight: 600;
 }
 
 .stat-label {
   margin-top: 8rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-body-sub);
+  color: #7f8c93;
+  font-size: 28rpx;
 }
 
 .groups {
@@ -255,6 +255,7 @@ onShow(() => {
   margin-top: 30rpx;
   text-align: center;
   color: #9ba7ae;
-  font-size: var(--fb-font-body-sub);
+  font-size: 28rpx;
 }
 </style>
+

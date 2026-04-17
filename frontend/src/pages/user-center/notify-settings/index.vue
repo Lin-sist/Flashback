@@ -191,8 +191,8 @@ onLoad(async () => {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx var(--fb-space-page) 40rpx;
-  background: var(--fb-color-bg);
+  padding: 20rpx 24rpx 40rpx;
+  background: #f8fafb;
 }
 
 .section {
@@ -200,8 +200,8 @@ onLoad(async () => {
 }
 
 .section-title {
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-color-text-muted);
+  font-size: 28rpx;
+  color: #7f8c93;
   margin-bottom: 8rpx;
 }
 
@@ -218,20 +218,21 @@ onLoad(async () => {
 }
 
 .row-title {
-  font-size: var(--fb-font-body);
-  color: var(--fb-color-text);
+  font-size: 32rpx;
+  color: #1a1a1a;
 }
 
 .row-subtitle {
   margin-top: 6rpx;
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 
 .footer-tip {
   margin: 24rpx 0 18rpx;
   text-align: center;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 </style>
+

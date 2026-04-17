@@ -51,7 +51,7 @@ const props = defineProps<{
   width: 18rpx;
   height: 18rpx;
   border-radius: 9rpx;
-  background: var(--fb-color-primary);
+  background: #3b647a;
   margin-top: 8rpx;
 }
 
@@ -64,19 +64,19 @@ const props = defineProps<{
 
 .node {
   flex: 1;
-  border-radius: var(--fb-radius-xl);
+  border-radius: 32rpx;
   padding: 24rpx;
   background: transparent;
 }
 
 .node.highlight {
-  background: var(--fb-color-surface);
-  box-shadow: var(--fb-shadow-soft);
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
 }
 
 .node.warm {
-  background: var(--fb-color-paper-emphasis);
-  box-shadow: var(--fb-shadow-soft);
+  background: #fdf2d9;
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
 }
 
 .meta-row {
@@ -86,26 +86,26 @@ const props = defineProps<{
 }
 
 .date {
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 
 .status {
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-primary);
+  font-size: 24rpx;
+  color: #3b647a;
 }
 
 .title {
   margin-top: 10rpx;
-  font-size: var(--fb-font-title-sub);
-  color: var(--fb-color-text);
+  font-size: 36rpx;
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .subtitle {
   margin-top: 8rpx;
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-color-text-muted);
+  font-size: 28rpx;
+  color: #7f8c93;
   line-height: 1.6;
 }
 
@@ -117,7 +117,8 @@ const props = defineProps<{
 }
 
 .tag {
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 </style>
+

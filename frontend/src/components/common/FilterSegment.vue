@@ -39,7 +39,7 @@ const select = (value: string) => {
   display: flex;
   align-items: center;
   background: #edf2f5;
-  border-radius: var(--fb-radius-pill);
+  border-radius: 999rpx;
   padding: 6rpx;
   gap: 6rpx;
   overflow-x: auto;
@@ -48,16 +48,17 @@ const select = (value: string) => {
 .item {
   min-width: 120rpx;
   text-align: center;
-  border-radius: var(--fb-radius-pill);
+  border-radius: 999rpx;
   padding: 12rpx 20rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
   white-space: nowrap;
 }
 
 .item.active {
-  color: var(--fb-color-text);
-  background: var(--fb-color-surface);
-  box-shadow: var(--fb-shadow-soft);
+  color: #1a1a1a;
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
 }
 </style>
+

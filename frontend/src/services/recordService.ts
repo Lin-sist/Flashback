@@ -11,6 +11,17 @@ import type {
   UpdateRecordDTO,
 } from '../types'
 
+const buildQueryString = (params: Record<string, string | number | undefined>) => {
+  const entries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
+  if (entries.length === 0) {
+    return ''
+  }
+
+  return `?${entries
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&')}`
+}
+
 const toDraftPayload = (payload: CreateRecordDTO | UpdateRecordDTO) => ({
   title: payload.title ?? null,
   content: payload.content,
@@ -50,14 +61,12 @@ export const recordService = {
     })
   },
   getRecordList(status: RecordStatus | 'ALL', query: PageQuery) {
-    const params = new URLSearchParams({
-      pageNum: String(query.pageNum),
-      pageSize: String(query.pageSize),
-      ...(status === 'ALL' ? {} : { status }),
-    })
-
     return httpRequest<PaginationResponse<RecordListItemVO>>({
-      url: `/api/records?${params.toString()}`,
+      url: `/api/records${buildQueryString({
+        pageNum: query.pageNum,
+        pageSize: query.pageSize,
+        ...(status === 'ALL' ? {} : { status }),
+      })}`,
     })
   },
   getRecordDetail(id: string | number) {
@@ -66,19 +75,16 @@ export const recordService = {
     })
   },
   getUnlockedRecords(pageNum = 1, pageSize = 10) {
-    const params = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) })
     return httpRequest<PaginationResponse<RecordListItemVO>>({
-      url: `/api/records/unlocked?${params.toString()}`,
+      url: `/api/records/unlocked${buildQueryString({ pageNum, pageSize })}`,
     })
   },
   getTimeline(query: TimelineQuery = {}) {
-    const params = new URLSearchParams({
-      ...(query.year ? { year: String(query.year) } : {}),
-      ...(query.tagId ? { tagId: String(query.tagId) } : {}),
-    })
-    const suffix = params.toString() ? `?${params.toString()}` : ''
     return httpRequest<TimelineGroupVO[]>({
-      url: `/api/records/timeline${suffix}`,
+      url: `/api/records/timeline${buildQueryString({
+        year: query.year,
+        tagId: query.tagId,
+      })}`,
     })
   },
 }

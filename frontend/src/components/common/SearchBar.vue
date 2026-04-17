@@ -49,33 +49,34 @@ const clear = () => {
 .search-bar {
   width: 100%;
   min-height: 84rpx;
-  border-radius: var(--fb-radius-pill);
-  background: var(--fb-color-surface);
+  border-radius: 999rpx;
+  background: #ffffff;
   padding: 0 24rpx;
   display: flex;
   align-items: center;
   gap: 14rpx;
-  box-shadow: var(--fb-shadow-soft);
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
 }
 
 .icon {
-  color: var(--fb-color-text-muted);
+  color: #7f8c93;
   font-size: 28rpx;
 }
 
 .input {
   flex: 1;
   height: 84rpx;
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-color-text);
+  font-size: 28rpx;
+  color: #1a1a1a;
 }
 
 .placeholder {
-  color: var(--fb-color-text-muted);
+  color: #7f8c93;
 }
 
 .clear {
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 </style>
+

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useUserStore } from '../../stores'
-import { toUserMessage, validatePassword, validateUsername } from '../../utils'
+import { toUserMessage, validateNickname, validatePassword, validateUsername } from '../../utils'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -9,6 +9,7 @@ const loading = ref(false)
 const form = reactive({
   username: '',
   password: '',
+  nickname: '',
 })
 
 const onLogin = async () => {
@@ -38,6 +39,10 @@ const onRegister = async () => {
     uni.showToast({ title: 'Invalid username or password', icon: 'none' })
     return
   }
+  if (!validateNickname(form.nickname)) {
+    uni.showToast({ title: 'Nickname is required', icon: 'none' })
+    return
+  }
 
   loading.value = true
   try {
@@ -54,10 +59,12 @@ const onRegister = async () => {
 <template>
   <view class="page">
     <view class="title">Flashback</view>
-    <view class="subtitle">MVP login and register</view>
+    <view class="subtitle">Mini Program user login/register</view>
 
     <input v-model="form.username" class="input" placeholder="Username" />
     <input v-model="form.password" class="input" type="password" placeholder="Password" />
+    <input v-model="form.nickname" class="input" placeholder="Nickname (required for register)" />
+    <view class="hint">This page uses `/api/auth/login`. Admin login is not wired here yet.</view>
 
     <button class="btn primary" :loading="loading" @tap="onLogin">Login</button>
     <button class="btn" :loading="loading" @tap="onRegister">Register</button>
@@ -77,7 +84,7 @@ const onRegister = async () => {
 
 .subtitle {
   margin-top: 10rpx;
-  margin-bottom: 36rpx;
+  margin-bottom: 24rpx;
   color: #667085;
 }
 
@@ -87,6 +94,13 @@ const onRegister = async () => {
   padding: 22rpx;
   background: #ffffff;
   border-radius: 12rpx;
+}
+
+.hint {
+  margin: 8rpx 0 16rpx;
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 1.5;
 }
 
 .btn {

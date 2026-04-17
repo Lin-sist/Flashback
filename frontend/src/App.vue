@@ -17,9 +17,9 @@ export default {
 @import './styles/tokens.css';
 
 page {
-  background: var(--fb-color-bg);
-  color: var(--fb-color-text);
-  font-size: var(--fb-font-body-sub);
+  background: #f8fafb;
+  color: #1a1a1a;
+  font-size: 28rpx;
   font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -31,3 +31,4 @@ button {
   box-sizing: border-box;
 }
 </style>
+

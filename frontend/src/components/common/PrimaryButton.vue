@@ -41,10 +41,10 @@ const onTap = () => {
 .primary-btn {
   width: 100%;
   border: none;
-  border-radius: var(--fb-radius-pill);
-  background: var(--fb-color-primary);
+  border-radius: 999rpx;
+  background: #3b647a;
   color: #ffffff;
-  font-size: var(--fb-font-body);
+  font-size: 32rpx;
   font-weight: 500;
   height: 88rpx;
   display: flex;
@@ -58,6 +58,7 @@ const onTap = () => {
 
 .primary-btn.ghost {
   background: transparent;
-  color: var(--fb-color-primary);
+  color: #3b647a;
 }
 </style>
+

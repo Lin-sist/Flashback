@@ -27,13 +27,13 @@ const props = withDefaults(
 
 <style scoped>
 .paper {
-  background: var(--fb-color-surface);
-  box-shadow: var(--fb-shadow-soft);
-  padding: var(--fb-space-inner);
+  background: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
+  padding: 32rpx;
 }
 
 .paper.warm {
-  background: var(--fb-color-paper-warm);
+  background: #fffdf5;
 }
 
 .paper.no-padding {
@@ -41,18 +41,19 @@ const props = withDefaults(
 }
 
 .paper.radius-xl {
-  border-radius: var(--fb-radius-xl);
+  border-radius: 32rpx;
 }
 
 .paper.radius-lg {
-  border-radius: var(--fb-radius-lg);
+  border-radius: 28rpx;
 }
 
 .paper.radius-md {
-  border-radius: var(--fb-radius-md);
+  border-radius: 24rpx;
 }
 
 .paper.radius-sm {
-  border-radius: var(--fb-radius-sm);
+  border-radius: 8rpx;
 }
 </style>
+

@@ -154,8 +154,8 @@ onShow(() => {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx var(--fb-space-page) 180rpx;
-  background: var(--fb-color-bg);
+  padding: 20rpx 24rpx 180rpx;
+  background: #f8fafb;
 }
 
 .hero {
@@ -163,38 +163,38 @@ onShow(() => {
 }
 
 .hero-title {
-  font-size: var(--fb-font-title-main);
-  color: var(--fb-color-text);
+  font-size: 52rpx;
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .hero-desc {
   margin-top: 10rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-body-sub);
+  color: #7f8c93;
+  font-size: 28rpx;
   line-height: 1.8;
 }
 
 .year-filter {
   margin-top: 16rpx;
-  background: var(--fb-color-surface);
-  border-radius: var(--fb-radius-pill);
+  background: #ffffff;
+  border-radius: 999rpx;
   padding: 0 24rpx;
   height: 76rpx;
-  font-size: var(--fb-font-body-sub);
+  font-size: 28rpx;
 }
 
 .hero-meta {
   margin-top: 10rpx;
-  font-size: var(--fb-font-meta);
-  color: var(--fb-color-text-muted);
+  font-size: 24rpx;
+  color: #7f8c93;
 }
 
 .state {
   margin-top: 30rpx;
   text-align: center;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .state-wrap {
@@ -203,13 +203,13 @@ onShow(() => {
 
 .inline-error {
   margin-top: 14rpx;
-  color: var(--fb-color-text-muted);
-  font-size: var(--fb-font-meta);
+  color: #7f8c93;
+  font-size: 24rpx;
 }
 
 .inline-retry {
   margin-left: 10rpx;
-  color: var(--fb-color-primary);
+  color: #3b647a;
 }
 
 .group-list {
@@ -220,8 +220,8 @@ onShow(() => {
 }
 
 .group-title {
-  font-size: var(--fb-font-title-sub);
-  color: var(--fb-color-primary);
+  font-size: 36rpx;
+  color: #3b647a;
   margin-bottom: 16rpx;
 }
 
@@ -239,6 +239,7 @@ onShow(() => {
   margin-top: 34rpx;
   text-align: center;
   color: #a8b2b7;
-  font-size: var(--fb-font-meta);
+  font-size: 24rpx;
 }
 </style>
+

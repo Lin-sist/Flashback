@@ -89,19 +89,20 @@ const handleLeftTap = () => {
 .title {
   flex: 1;
   text-align: center;
-  font-size: var(--fb-font-title-sub);
-  color: var(--fb-color-text);
+  font-size: 36rpx;
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .icon {
   font-size: 40rpx;
-  color: var(--fb-color-text);
+  color: #1a1a1a;
   line-height: 1;
 }
 
 .text {
-  font-size: var(--fb-font-body-sub);
-  color: var(--fb-color-text-muted);
+  font-size: 28rpx;
+  color: #7f8c93;
 }
 </style>
+

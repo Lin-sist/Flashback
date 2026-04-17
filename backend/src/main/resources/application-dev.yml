@@ -2,15 +2,15 @@ spring:
   # 本地开发环境使用固定连接信息，便于快速启动与联调
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/flashback?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: your_dev_password
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/flashback?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
-      database: 0
-      timeout: 3000ms
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:3000ms}
 
 security:
   jwt:

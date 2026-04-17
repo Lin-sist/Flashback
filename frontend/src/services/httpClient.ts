@@ -11,7 +11,7 @@ interface RequestOptions {
   auth?: boolean
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8080'
 
 export const httpRequest = <T>(options: RequestOptions): Promise<T> => {
   const token = getToken()
@@ -49,8 +49,12 @@ export const httpRequest = <T>(options: RequestOptions): Promise<T> => {
 
         resolve(payload.data)
       },
-      fail: () => {
-        reject(new Error('Network error'))
+      fail: (error) => {
+        const errMsg =
+          error && typeof error === 'object' && 'errMsg' in error && typeof error.errMsg === 'string'
+            ? error.errMsg
+            : 'Network error'
+        reject(new Error(errMsg))
       },
     })
   })
