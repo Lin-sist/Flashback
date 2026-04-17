@@ -25,6 +25,12 @@ export const useRecordStore = defineStore('record', {
     loading: false,
   }),
   actions: {
+    clearCache() {
+      this.list = []
+      this.detail = null
+      this.total = 0
+      this.loading = false
+    },
     async fetchList(status: RecordStatus | 'ALL', query: PageQuery = { pageNum: 1, pageSize: 10 }) {
       this.loading = true
       try {

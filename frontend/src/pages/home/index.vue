@@ -15,6 +15,8 @@ const draftCount = ref(0)
 const sealedCount = ref(0)
 const latestDraft = ref<RecordListItemVO | null>(null)
 const latestUnlocked = ref<RecordListItemVO | null>(null)
+const draftLoaded = ref(false)
+const draftLoadFailed = ref(false)
 const homeLoadFailed = ref(false)
 const summaryLoadFailed = ref(false)
 const latestUnlockedLoadFailed = ref(false)
@@ -33,6 +35,7 @@ const loadHomeSummary = async () => {
   }
 
   loading.value = true
+  draftLoadFailed.value = false
   homeLoadFailed.value = false
   summaryLoadFailed.value = false
   latestUnlockedLoadFailed.value = false
@@ -46,8 +49,11 @@ const loadHomeSummary = async () => {
   if (draftResult.status === 'fulfilled') {
     draftCount.value = draftResult.value.total
     latestDraft.value = draftResult.value.list[0] || null
+    draftLoaded.value = true
+    draftLoadFailed.value = false
   } else {
-    draftCount.value = 0
+    draftLoaded.value = false
+    draftLoadFailed.value = true
     latestDraft.value = null
   }
 
@@ -84,6 +90,16 @@ const goEditor = () => uni.navigateTo({ url: '/pages/record-editor/index?source=
 const goArchive = () => uni.navigateTo({ url: '/pages/record-list/index' })
 
 const goDraftEntry = () => {
+  if (loading.value) {
+    uni.showToast({ title: '草稿同步中，请稍后再试', icon: 'none' })
+    return
+  }
+
+  if (draftLoadFailed.value || !draftLoaded.value) {
+    retryHomeSummary()
+    return
+  }
+
   if (!latestDraft.value) {
     goEditor()
     return
@@ -155,7 +171,7 @@ onShow(() => {
       <PaperContainer radius="xl" class="draft-card" @tap="goDraftEntry">
         <view class="card-kicker">草稿入口</view>
         <view class="card-title">继续书写你的这一卷</view>
-        <view class="card-meta">当前草稿 {{ draftCount }} 条</view>
+        <view class="card-meta">{{ draftLoadFailed ? '草稿暂时不可用，点按重试' : `当前草稿 ${draftCount} 条` }}</view>
       </PaperContainer>
 
       <PaperContainer radius="xl" class="summary-card" @tap="onSealedSummaryTap">

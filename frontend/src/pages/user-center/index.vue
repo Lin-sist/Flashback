@@ -21,6 +21,8 @@ const waitingUnlockCount = ref(0)
 const centerLoading = ref(false)
 const centerLoadFailed = ref(false)
 const profileReady = ref(false)
+const statsLoadFailed = ref(false)
+const statsReady = ref(false)
 
 const groupArchive: SettingItem[] = [
   { key: 'record', title: '档案偏好', subtitle: '记录类型与封存习惯' },
@@ -69,25 +71,38 @@ const loadCenterData = async () => {
 
   centerLoading.value = true
   centerLoadFailed.value = false
+  statsLoadFailed.value = false
 
-  try {
-    const [user, sealedPage, unlockedPage] = await Promise.all([
-      userStore.fetchUserInfo(),
-      recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
-      recordService.getUnlockedRecords(1, 1),
-    ])
+  const [userResult, sealedResult, unlockedResult] = await Promise.allSettled([
+    userStore.fetchUserInfo(),
+    recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
+    recordService.getUnlockedRecords(1, 1),
+  ])
 
+  if (userResult.status === 'fulfilled') {
+    const user = userResult.value
     nickname.value = user?.nickname || user?.username || '访客'
     signature.value = user?.email ? `${user.email}` : '把经历写给未来的自己'
-    savedCount.value = sealedPage.total + unlockedPage.total
-    waitingUnlockCount.value = sealedPage.total
     profileReady.value = true
-  } catch {
+    centerLoadFailed.value = false
+  } else {
     centerLoadFailed.value = true
-    uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
-  } finally {
-    centerLoading.value = false
   }
+
+  if (sealedResult.status === 'fulfilled' && unlockedResult.status === 'fulfilled') {
+    savedCount.value = sealedResult.value.total + unlockedResult.value.total
+    waitingUnlockCount.value = sealedResult.value.total
+    statsReady.value = true
+    statsLoadFailed.value = false
+  } else {
+    statsLoadFailed.value = true
+  }
+
+  if (centerLoadFailed.value && !profileReady.value) {
+    uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
+  }
+
+  centerLoading.value = false
 }
 
 const logout = () => userStore.logout()
@@ -126,13 +141,18 @@ onShow(() => {
 
     <view class="stats">
       <PaperContainer radius="xl" class="stat-card">
-        <view class="stat-num">{{ savedCount }}</view>
+        <view class="stat-num">{{ statsLoadFailed && !statsReady ? '--' : savedCount }}</view>
         <view class="stat-label">已存记忆</view>
       </PaperContainer>
       <PaperContainer radius="xl" warm class="stat-card">
-        <view class="stat-num">{{ waitingUnlockCount }}</view>
+        <view class="stat-num">{{ statsLoadFailed && !statsReady ? '--' : waitingUnlockCount }}</view>
         <view class="stat-label">待解封</view>
       </PaperContainer>
+    </view>
+
+    <view v-if="statsLoadFailed" class="inline-error">
+      统计信息暂时不可用
+      <text class="inline-retry" @tap="loadCenterData">重试</text>
     </view>
 
     <view class="groups">

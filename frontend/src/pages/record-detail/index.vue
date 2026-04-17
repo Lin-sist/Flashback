@@ -16,6 +16,7 @@ const replyContent = ref('')
 const submittingReply = ref(false)
 const replyLoading = ref(false)
 const replyResult = ref<ReplyVO | null>(null)
+const replyLoadFailed = ref(false)
 const source = ref<EditorSource>('home')
 const detailLoading = ref(false)
 const currentRecordId = ref<number | null>(null)
@@ -128,15 +129,17 @@ const openEditor = () => {
 const loadReplyResult = async (recordId: number, hasReply: boolean) => {
   if (!hasReply) {
     replyResult.value = null
+    replyLoadFailed.value = false
     return
   }
 
   replyLoading.value = true
+  replyLoadFailed.value = false
   try {
     replyResult.value = await replyService.getReply(recordId)
   } catch {
     replyResult.value = null
-    uni.showToast({ title: '回应暂时加载失败', icon: 'none' })
+    replyLoadFailed.value = true
   } finally {
     replyLoading.value = false
   }
@@ -147,10 +150,19 @@ const refreshUnlockState = async (recordId: number) => {
 
   if (latest.status !== RecordStatus.UNLOCKED) {
     replyResult.value = null
+    replyLoadFailed.value = false
     return
   }
 
   await loadReplyResult(recordId, Boolean(latest.hasReply))
+}
+
+const retryLoadReply = () => {
+  if (!detail.value?.id || !detail.value.hasReply) {
+    return
+  }
+
+  loadReplyResult(detail.value.id, true)
 }
 
 const loadDetail = async (recordId: number) => {
@@ -212,6 +224,7 @@ onLoad(async (query) => {
   recordStore.detail = null
   detailErrorState.value = 'NONE'
   replyResult.value = null
+  replyLoadFailed.value = false
 
   if (!query?.id || typeof query.id !== 'string') {
     detailErrorState.value = 'INVALID_ID'
@@ -300,9 +313,14 @@ onLoad(async (query) => {
           <view class="reply-subtitle">已解锁后可阅读原文并留下一句回应</view>
           <view v-if="detail.hasReply" class="reply-result">
             <view v-if="replyLoading" class="reply-result-loading">正在载入已提交回应...</view>
+            <template v-else-if="replyLoadFailed">
+              <view class="reply-state-marker marker-failed">回应内容暂时加载失败</view>
+              <view class="reply-result-loading">网络有点慢，请稍后重试</view>
+              <view class="reply-retry" @tap="retryLoadReply">重试加载回应内容</view>
+            </template>
             <template v-else>
               <view class="reply-state-marker marker-submitted">回应已提交</view>
-              <view class="reply-result-content">{{ replyResult?.content || '回应已保存' }}</view>
+              <view class="reply-result-content">{{ replyResult?.content }}</view>
               <view v-if="replyResult?.createdAt" class="reply-result-time">
                 提交时间：{{ formatDateTime(replyResult.createdAt) }}
               </view>
@@ -563,6 +581,11 @@ onLoad(async (query) => {
   color: var(--fb-color-primary);
 }
 
+.marker-failed {
+  background: rgba(127, 140, 147, 0.14);
+  color: #5e6b73;
+}
+
 .marker-pending {
   background: rgba(246, 232, 216, 0.8);
   color: #8a6b4a;
@@ -583,6 +606,12 @@ onLoad(async (query) => {
 .reply-result-time {
   margin-top: 12rpx;
   color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.reply-retry {
+  margin-top: 12rpx;
+  color: var(--fb-color-primary);
   font-size: var(--fb-font-meta);
 }
 

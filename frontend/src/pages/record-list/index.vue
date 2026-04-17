@@ -13,6 +13,7 @@ import { calculateRemainingDays, formatDateTime, getToken } from '../../utils'
 
 const recordStore = useRecordStore()
 const selectedStatus = ref<RecordStatus | 'ALL'>('ALL')
+const appliedStatus = ref<RecordStatus | 'ALL'>('ALL')
 const keyword = ref('')
 const listLoadFailed = ref(false)
 
@@ -22,6 +23,13 @@ const statusOptions = [
   { label: '已封存', value: RecordStatus.SEALED },
   { label: '已解锁', value: RecordStatus.UNLOCKED },
 ]
+
+const statusLabelMap: Record<RecordStatus | 'ALL', string> = {
+  ALL: '全部',
+  [RecordStatus.DRAFT]: '草稿',
+  [RecordStatus.SEALED]: '已封存',
+  [RecordStatus.UNLOCKED]: '已解锁',
+}
 
 const filteredList = computed(() => {
   if (!keyword.value.trim()) {
@@ -35,9 +43,22 @@ const filteredList = computed(() => {
   })
 })
 
-const showLoadFailureState = computed(() => !recordStore.loading && listLoadFailed.value && recordStore.list.length === 0)
-const showEmptyState = computed(() => !recordStore.loading && !listLoadFailed.value && filteredList.value.length === 0)
-const showStaleNotice = computed(() => !recordStore.loading && listLoadFailed.value && recordStore.list.length > 0)
+const hasContextMismatch = computed(() => selectedStatus.value !== appliedStatus.value)
+
+const selectedStatusLabel = computed(() => statusLabelMap[selectedStatus.value])
+const appliedStatusLabel = computed(() => statusLabelMap[appliedStatus.value])
+
+const summaryText = computed(() => {
+  if (!recordStore.loading && listLoadFailed.value && hasContextMismatch.value) {
+    return `筛选“${selectedStatusLabel.value}”加载失败`
+  }
+
+  return `当前${appliedStatusLabel.value}列表 ${filteredList.value.length} 条`
+})
+
+const showLoadFailureState = computed(() => !recordStore.loading && listLoadFailed.value && (recordStore.list.length === 0 || hasContextMismatch.value))
+const showEmptyState = computed(() => !recordStore.loading && !listLoadFailed.value && !hasContextMismatch.value && filteredList.value.length === 0)
+const showStaleNotice = computed(() => !recordStore.loading && listLoadFailed.value && recordStore.list.length > 0 && !hasContextMismatch.value)
 
 const emptyStateText = computed(() => {
   if (keyword.value.trim()) {
@@ -59,7 +80,7 @@ const ensureLogin = () => {
   return true
 }
 
-const loadList = async () => {
+const loadList = async (targetStatus: RecordStatus | 'ALL' = selectedStatus.value) => {
   if (!ensureLogin()) {
     return
   }
@@ -67,7 +88,8 @@ const loadList = async () => {
   listLoadFailed.value = false
 
   try {
-    await recordStore.fetchList(selectedStatus.value)
+    await recordStore.fetchList(targetStatus)
+    appliedStatus.value = targetStatus
   } catch {
     listLoadFailed.value = true
     uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
@@ -75,8 +97,9 @@ const loadList = async () => {
 }
 
 const onStatusChange = (value: string) => {
-  selectedStatus.value = value as RecordStatus | 'ALL'
-  loadList()
+  const nextStatus = value as RecordStatus | 'ALL'
+  selectedStatus.value = nextStatus
+  loadList(nextStatus)
 }
 
 const clearKeyword = () => {
@@ -115,7 +138,7 @@ onShow(loadList)
       <FilterSegment :model-value="selectedStatus" :options="statusOptions" @change="onStatusChange" />
     </view>
 
-    <view class="summary">当前列表 {{ filteredList.length }} 条</view>
+    <view class="summary">{{ summaryText }}</view>
 
     <view v-if="showStaleNotice" class="inline-error">
       网络有点慢，正在显示上次加载的列表
@@ -125,6 +148,7 @@ onShow(loadList)
     <view v-if="recordStore.loading" class="state-text">正在加载档案...</view>
     <view v-else-if="showLoadFailureState" class="state-wrap">
       <EmptyState text="网络有点慢，档案暂时没加载出来" />
+      <view v-if="hasContextMismatch" class="state-hint">当前展示仍属于“{{ appliedStatusLabel }}”筛选</view>
       <PrimaryButton text="重试加载" ghost @tap="loadList" />
     </view>
     <view v-else-if="showEmptyState" class="state-wrap">
@@ -183,6 +207,13 @@ onShow(loadList)
 
 .state-wrap {
   margin-top: 20rpx;
+}
+
+.state-hint {
+  margin: 0 0 12rpx;
+  text-align: center;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
 }
 
 .inline-error {

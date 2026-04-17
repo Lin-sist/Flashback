@@ -4,10 +4,12 @@ import { reactive } from 'vue'
 import AppTopBar from '../../../components/common/AppTopBar.vue'
 import PaperContainer from '../../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../../components/common/PrimaryButton.vue'
+import { useUserStore } from '../../../stores'
 import { RecordType } from '../../../types'
 import { getToken } from '../../../utils'
 
-const STORAGE_KEY = 'flashback:user-center:archive-preference'
+const STORAGE_KEY_PREFIX = 'flashback:user-center:archive-preference'
+const userStore = useUserStore()
 
 interface ArchivePreferenceState {
   defaultRecordType: RecordType
@@ -24,6 +26,7 @@ const defaultState: ArchivePreferenceState = {
 }
 
 const form = reactive<ArchivePreferenceState>({ ...defaultState })
+let storageKey = `${STORAGE_KEY_PREFIX}:guest`
 
 const recordTypeOptions = [
   { label: 'Future Letter', value: RecordType.FUTURE_LETTER },
@@ -53,12 +56,35 @@ const goBack = () => {
   })
 }
 
+const resolveStorageKey = async () => {
+  const user = userStore.userInfo || await userStore.fetchUserInfo().catch(() => null)
+
+  if (user?.id) {
+    return `${STORAGE_KEY_PREFIX}:uid:${user.id}`
+  }
+
+  if (user?.username) {
+    return `${STORAGE_KEY_PREFIX}:uname:${user.username}`
+  }
+
+  if (user?.email) {
+    return `${STORAGE_KEY_PREFIX}:email:${user.email}`
+  }
+
+  const token = getToken()
+  if (token) {
+    return `${STORAGE_KEY_PREFIX}:token:${token.slice(0, 16)}`
+  }
+
+  return `${STORAGE_KEY_PREFIX}:guest`
+}
+
 const saveToStorage = () => {
-  uni.setStorageSync(STORAGE_KEY, { ...form })
+  uni.setStorageSync(storageKey, { ...form })
 }
 
 const loadFromStorage = () => {
-  const raw = uni.getStorageSync(STORAGE_KEY) as Partial<ArchivePreferenceState> | undefined
+  const raw = uni.getStorageSync(storageKey) as Partial<ArchivePreferenceState> | undefined
   if (!raw || typeof raw !== 'object') {
     return
   }
@@ -102,10 +128,12 @@ const savePreference = () => {
   uni.showToast({ title: '偏好已保存', icon: 'success' })
 }
 
-onLoad(() => {
+onLoad(async () => {
   if (!ensureLogin()) {
     return
   }
+
+  storageKey = await resolveStorageKey()
   loadFromStorage()
 })
 </script>

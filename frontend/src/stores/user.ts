@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { authService } from '../services'
+import { useRecordStore } from './record'
+import { useTagStore } from './tag'
 import { clearToken, getToken, setToken } from '../utils'
 import type { LoginPayload, RegisterPayload, UserProfileUpdate } from '../types'
 import type { UserInfoVO } from '../types'
@@ -25,6 +27,12 @@ export const useUserStore = defineStore('user', {
       const result = await authService.login(payload)
       this.token = result.token
       setToken(result.token)
+
+      const recordStore = useRecordStore()
+      const tagStore = useTagStore()
+      recordStore.clearCache()
+      tagStore.clearCache()
+
       return result
     },
     async fetchUserInfo() {
@@ -42,6 +50,12 @@ export const useUserStore = defineStore('user', {
       return userInfo
     },
     logout() {
+      const recordStore = useRecordStore()
+      const tagStore = useTagStore()
+
+      recordStore.clearCache()
+      tagStore.clearCache()
+
       this.token = null
       this.userInfo = null
       clearToken()

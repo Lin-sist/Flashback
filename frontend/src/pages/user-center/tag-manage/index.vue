@@ -2,17 +2,26 @@
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import AppTopBar from '../../../components/common/AppTopBar.vue'
+import EmptyState from '../../../components/common/EmptyState.vue'
 import PaperContainer from '../../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../../components/common/PrimaryButton.vue'
 import { useTagStore } from '../../../stores'
-import { getToken, toUserMessage } from '../../../utils'
+import { getToken } from '../../../utils'
 
 const tagStore = useTagStore()
-const loading = ref(false)
+const loading = ref(true)
+const loadFailed = ref(false)
+const tagsReady = ref(false)
 
 const moodTags = computed(() => tagStore.moodTags)
 const topicTags = computed(() => tagStore.topicTags)
 const totalTags = computed(() => tagStore.tags.length)
+const hasTags = computed(() => totalTags.value > 0)
+const showLoadingState = computed(() => loading.value && !tagsReady.value)
+const showFailureState = computed(() => !loading.value && loadFailed.value && !tagsReady.value)
+const showEmptyState = computed(() => !loading.value && !loadFailed.value && tagsReady.value && !hasTags.value)
+const showTagState = computed(() => tagsReady.value && hasTags.value)
+const showStaleNotice = computed(() => !loading.value && loadFailed.value && tagsReady.value)
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -37,10 +46,14 @@ const loadTags = async () => {
   }
 
   loading.value = true
+  loadFailed.value = false
+
   try {
     await tagStore.fetchTags()
-  } catch (error) {
-    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+    tagsReady.value = true
+  } catch {
+    loadFailed.value = true
+    uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -59,48 +72,70 @@ onShow(() => {
   <view class="page">
     <AppTopBar title="标签管理" show-back @back="goBack" />
 
-    <PaperContainer radius="xl" class="section">
-      <view class="section-title">当前标签总数 {{ totalTags }}</view>
-      <view class="section-subtitle">标签数据来自当前账号真实标签接口，分为情绪与主题两类。</view>
-    </PaperContainer>
-
-    <PaperContainer radius="xl" class="section">
-      <view class="group-title">情绪标签</view>
-      <view v-if="moodTags.length" class="tag-wrap">
-        <view class="tag-chip mood" v-for="tag in moodTags" :key="tag.id">{{ tag.name }}</view>
-      </view>
-      <view v-else class="empty-tip">暂无情绪标签</view>
-
-      <view class="divider"></view>
-
-      <view class="group-title">主题标签</view>
-      <view v-if="topicTags.length" class="tag-wrap">
-        <view class="tag-chip topic" v-for="tag in topicTags" :key="tag.id">{{ tag.name }}</view>
-      </view>
-      <view v-else class="empty-tip">暂无主题标签</view>
-    </PaperContainer>
-
-    <PaperContainer radius="xl" class="section">
-      <view class="group-title">后续管理能力（预留）</view>
-      <view class="plan-item" @tap="onReservedAction('新增标签')">
-        <view>
-          <view class="plan-title">新增标签</view>
-          <view class="plan-subtitle">后续支持在端内创建自定义标签</view>
-        </view>
-        <text class="arrow">›</text>
-      </view>
-      <view class="plan-item" @tap="onReservedAction('编辑与停用标签')">
-        <view>
-          <view class="plan-title">编辑与停用标签</view>
-          <view class="plan-subtitle">后续支持重命名、停用、排序</view>
-        </view>
-        <text class="arrow">›</text>
-      </view>
-    </PaperContainer>
-
-    <view class="footer-action">
-      <PrimaryButton text="刷新标签" ghost :loading="loading" @tap="loadTags" />
+    <view v-if="showLoadingState" class="state-wrap">
+      <EmptyState text="正在加载标签数据..." />
     </view>
+
+    <view v-else-if="showFailureState" class="state-wrap">
+      <EmptyState text="标签暂时没加载出来" />
+      <PrimaryButton text="重试加载" ghost @tap="loadTags" />
+    </view>
+
+    <template v-else>
+      <PaperContainer radius="xl" class="section">
+        <view class="section-title">当前标签总数 {{ totalTags }}</view>
+        <view class="section-subtitle">标签数据来自当前账号真实标签接口，分为情绪与主题两类。</view>
+      </PaperContainer>
+
+      <view v-if="showStaleNotice" class="inline-error">
+        网络有点慢，当前展示的是上次同步的标签
+        <text class="inline-retry" @tap="loadTags">重试</text>
+      </view>
+
+      <PaperContainer v-if="showTagState" radius="xl" class="section">
+        <view class="group-title">情绪标签</view>
+        <view v-if="moodTags.length" class="tag-wrap">
+          <view class="tag-chip mood" v-for="tag in moodTags" :key="tag.id">{{ tag.name }}</view>
+        </view>
+        <view v-else class="empty-tip">暂无情绪标签</view>
+
+        <view class="divider"></view>
+
+        <view class="group-title">主题标签</view>
+        <view v-if="topicTags.length" class="tag-wrap">
+          <view class="tag-chip topic" v-for="tag in topicTags" :key="tag.id">{{ tag.name }}</view>
+        </view>
+        <view v-else class="empty-tip">暂无主题标签</view>
+      </PaperContainer>
+
+      <PaperContainer v-else-if="showEmptyState" radius="xl" class="section">
+        <EmptyState text="当前还没有标签" />
+        <PrimaryButton text="刷新标签" ghost @tap="loadTags" />
+      </PaperContainer>
+
+      <PaperContainer radius="xl" class="section">
+        <view class="group-title">后续管理能力（预留）</view>
+        <view class="plan-item" @tap="onReservedAction('新增标签')">
+          <view>
+            <view class="plan-title">新增标签</view>
+            <view class="plan-subtitle">后续支持在端内创建自定义标签</view>
+          </view>
+          <text class="arrow">›</text>
+        </view>
+        <view class="plan-item" @tap="onReservedAction('编辑与停用标签')">
+          <view>
+            <view class="plan-title">编辑与停用标签</view>
+            <view class="plan-subtitle">后续支持重命名、停用、排序</view>
+          </view>
+          <text class="arrow">›</text>
+        </view>
+      </PaperContainer>
+
+      <view class="footer-action">
+        <PrimaryButton text="刷新标签" ghost :loading="loading" @tap="loadTags" />
+      </view>
+    </template>
+
   </view>
 </template>
 
@@ -113,6 +148,21 @@ onShow(() => {
 
 .section {
   margin-top: 18rpx;
+}
+
+.state-wrap {
+  margin-top: 18rpx;
+}
+
+.inline-error {
+  margin-top: 12rpx;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.inline-retry {
+  margin-left: 10rpx;
+  color: var(--fb-color-primary);
 }
 
 .section-title {

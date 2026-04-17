@@ -21,6 +21,9 @@ export const useTagStore = defineStore('tag', {
     ],
   },
   actions: {
+    clearCache() {
+      this.tags = []
+    },
     async fetchTags() {
       const result = await tagService.getTags()
       this.tags = result
