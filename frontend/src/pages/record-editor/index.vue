@@ -17,6 +17,10 @@ const loading = ref(false)
 const recordId = ref<number | null>(null)
 const source = ref<EditorSource>('home')
 const closing = ref(false)
+const initializing = ref(false)
+const initFailed = ref(false)
+const initErrorMessage = ref('')
+const latestQuery = ref<Record<string, unknown>>({})
 
 interface EditorSnapshot {
   title: string
@@ -174,6 +178,47 @@ const fillByDetail = async (id: number) => {
   form.unlockAtInput = detail.unlockAt ? formatDateTime(detail.unlockAt) : ''
 }
 
+const resolveRecordId = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const id = Number(value)
+  if (Number.isNaN(id) || id <= 0) {
+    return null
+  }
+
+  return id
+}
+
+const runInitialization = async (query: Record<string, unknown>) => {
+  initializing.value = true
+  initFailed.value = false
+  initErrorMessage.value = ''
+
+  try {
+    await tagStore.fetchTags()
+
+    const id = resolveRecordId(query.id)
+    if (id) {
+      recordId.value = id
+      form.volNo = `Vol. ${String(id).padStart(2, '0')}`
+      await fillByDetail(id)
+    }
+
+    markSnapshot()
+  } catch (error) {
+    initFailed.value = true
+    initErrorMessage.value = toUserMessage(error)
+  } finally {
+    initializing.value = false
+  }
+}
+
+const retryInitialization = async () => {
+  await runInitialization(latestQuery.value)
+}
+
 const persistDraft = async () => {
   const unlockAt = toLocalDateTime(form.unlockAtInput)
   const payload = {
@@ -252,18 +297,8 @@ onLoad(async (query) => {
 
   source.value = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
 
-  await tagStore.fetchTags()
-
-  if (typeof query?.id === 'string') {
-    const id = Number(query.id)
-    if (!Number.isNaN(id) && id > 0) {
-      recordId.value = id
-      form.volNo = `Vol. ${String(id).padStart(2, '0')}`
-      await fillByDetail(id)
-    }
-  }
-
-  markSnapshot()
+  latestQuery.value = query as Record<string, unknown>
+  await runInitialization(latestQuery.value)
 })
 </script>
 
@@ -271,42 +306,56 @@ onLoad(async (query) => {
   <view class="page">
     <AppTopBar :title="form.volNo" show-close transparent @close="handleCloseWithAutoSave" />
 
-    <view class="header-copy">
-      <view class="captured-at">Captured at</view>
-      <view class="main-date">{{ formatDayText(Date.now()) }}</view>
+    <view v-if="initializing" class="state-wrap">
+      <view class="state-text">正在初始化编辑页...</view>
     </view>
 
-    <PaperContainer radius="xl" class="paper">
-      <view class="paper-top">
-        <picker :range="tagStore.recordTypeOptions" range-key="label" @change="onRecordTypeChange">
-          <view class="record-type">{{ form.recordType }}</view>
-        </picker>
-        <view class="vertical-label">TIME FILE</view>
+    <view v-else-if="initFailed" class="state-wrap">
+      <view class="state-text">{{ initErrorMessage || '初始化失败，请检查网络后重试' }}</view>
+      <view class="state-action">
+        <PrimaryButton text="重试初始化" ghost @tap="retryInitialization" />
+      </view>
+    </view>
+
+    <template v-else>
+
+      <view class="header-copy">
+        <view class="captured-at">Captured at</view>
+        <view class="main-date">{{ formatDayText(Date.now()) }}</view>
       </view>
 
-      <input v-model="form.title" class="title-input" placeholder="给这一刻写个标题（可选）" />
+      <PaperContainer radius="xl" class="paper">
+        <view class="paper-top">
+          <picker :range="tagStore.recordTypeOptions" range-key="label" @change="onRecordTypeChange">
+            <view class="record-type">{{ form.recordType }}</view>
+          </picker>
+          <view class="vertical-label">TIME FILE</view>
+        </view>
 
-      <textarea
-        v-model="form.content"
-        class="content-area"
-        maxlength="5000"
-        placeholder="写下此刻想被未来自己看到的内容..."
-      />
+        <input v-model="form.title" class="title-input" placeholder="给这一刻写个标题（可选）" />
 
-      <input v-model="form.coreQuestion" class="sub-input" placeholder="这刻最想追问的问题（可选）" />
-      <input v-model="form.unlockAtInput" class="sub-input" placeholder="解锁时间，如 2026-12-31 20:00" />
-    </PaperContainer>
+        <textarea
+          v-model="form.content"
+          class="content-area"
+          maxlength="5000"
+          placeholder="写下此刻想被未来自己看到的内容..."
+        />
 
-    <view class="aux-actions">
-      <text class="aux-item" @tap="onAuxTap('MAP')">MAP</text>
-      <text class="aux-item" @tap="onAuxTap('IMAGE')">IMAGE</text>
-      <text class="aux-item" @tap="onAuxTap('VOICE')">VOICE</text>
-    </view>
+        <input v-model="form.coreQuestion" class="sub-input" placeholder="这刻最想追问的问题（可选）" />
+        <input v-model="form.unlockAtInput" class="sub-input" placeholder="解锁时间，如 2026-12-31 20:00" />
+      </PaperContainer>
 
-    <view class="actions">
-      <PrimaryButton text="保存草稿" :loading="loading" ghost @tap="saveDraft" />
-      <PrimaryButton text="封存这一刻" :loading="loading" @tap="sealRecord" />
-    </view>
+      <view class="aux-actions">
+        <text class="aux-item" @tap="onAuxTap('MAP')">MAP</text>
+        <text class="aux-item" @tap="onAuxTap('IMAGE')">IMAGE</text>
+        <text class="aux-item" @tap="onAuxTap('VOICE')">VOICE</text>
+      </view>
+
+      <view class="actions">
+        <PrimaryButton text="保存草稿" :loading="loading" ghost @tap="saveDraft" />
+        <PrimaryButton text="封存这一刻" :loading="loading" @tap="sealRecord" />
+      </view>
+    </template>
   </view>
 </template>
 
@@ -319,6 +368,20 @@ onLoad(async (query) => {
 
 .header-copy {
   margin-top: 20rpx;
+}
+
+.state-wrap {
+  margin-top: 30rpx;
+}
+
+.state-text {
+  text-align: center;
+  color: var(--fb-color-text-muted);
+  font-size: var(--fb-font-meta);
+}
+
+.state-action {
+  margin-top: 16rpx;
 }
 
 .captured-at {

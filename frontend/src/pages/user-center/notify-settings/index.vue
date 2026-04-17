@@ -96,6 +96,31 @@ const onSwitchChange = (key: keyof NotifySettingsState, event: { detail: { value
   form[key] = Boolean(event.detail.value)
 }
 
+const readSwitchValue = (event: Event): boolean => {
+  const payload = event as unknown as { detail?: { value?: boolean } }
+  return Boolean(payload.detail?.value)
+}
+
+const onUnlockReminderChange = (event: Event) => {
+  onSwitchChange('unlockReminder', { detail: { value: readSwitchValue(event) } })
+}
+
+const onDailyReviewReminderChange = (event: Event) => {
+  onSwitchChange('dailyReviewReminder', { detail: { value: readSwitchValue(event) } })
+}
+
+const onEmailReminderChange = (event: Event) => {
+  onSwitchChange('emailReminder', { detail: { value: readSwitchValue(event) } })
+}
+
+const onPrivacyMaskEmailChange = (event: Event) => {
+  onSwitchChange('privacyMaskEmail', { detail: { value: readSwitchValue(event) } })
+}
+
+const onProfileSearchableChange = (event: Event) => {
+  onSwitchChange('profileSearchable', { detail: { value: readSwitchValue(event) } })
+}
+
 const saveSettings = () => {
   saveToStorage()
   uni.showToast({ title: '设置已保存', icon: 'success' })
@@ -122,21 +147,21 @@ onLoad(async () => {
           <view class="row-title">解封当日提醒</view>
           <view class="row-subtitle">记录到达解封时间时提醒你回看</view>
         </view>
-        <switch :checked="form.unlockReminder" color="#3b647a" @change="(event) => onSwitchChange('unlockReminder', event as { detail: { value: boolean } })" />
+        <switch :checked="form.unlockReminder" color="#3b647a" @change="onUnlockReminderChange" />
       </view>
       <view class="row">
         <view>
           <view class="row-title">每日回顾提醒</view>
           <view class="row-subtitle">每天固定时段提醒回顾已解锁内容</view>
         </view>
-        <switch :checked="form.dailyReviewReminder" color="#3b647a" @change="(event) => onSwitchChange('dailyReviewReminder', event as { detail: { value: boolean } })" />
+        <switch :checked="form.dailyReviewReminder" color="#3b647a" @change="onDailyReviewReminderChange" />
       </view>
       <view class="row">
         <view>
           <view class="row-title">邮件提醒（占位）</view>
           <view class="row-subtitle">后续将支持邮箱通知通道</view>
         </view>
-        <switch :checked="form.emailReminder" color="#3b647a" @change="(event) => onSwitchChange('emailReminder', event as { detail: { value: boolean } })" />
+        <switch :checked="form.emailReminder" color="#3b647a" @change="onEmailReminderChange" />
       </view>
     </PaperContainer>
 
@@ -147,14 +172,14 @@ onLoad(async () => {
           <view class="row-title">个人页隐藏邮箱</view>
           <view class="row-subtitle">在展示资料中默认不暴露邮箱信息</view>
         </view>
-        <switch :checked="form.privacyMaskEmail" color="#3b647a" @change="(event) => onSwitchChange('privacyMaskEmail', event as { detail: { value: boolean } })" />
+        <switch :checked="form.privacyMaskEmail" color="#3b647a" @change="onPrivacyMaskEmailChange" />
       </view>
       <view class="row">
         <view>
           <view class="row-title">允许被搜索（占位）</view>
           <view class="row-subtitle">后续账号体系完善后生效</view>
         </view>
-        <switch :checked="form.profileSearchable" color="#3b647a" @change="(event) => onSwitchChange('profileSearchable', event as { detail: { value: boolean } })" />
+        <switch :checked="form.profileSearchable" color="#3b647a" @change="onProfileSearchableChange" />
       </view>
     </PaperContainer>
 

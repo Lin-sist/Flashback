@@ -13,14 +13,30 @@ import { formatDateTime, getToken } from '../../utils'
 const loading = ref(false)
 const timelineGroups = ref<TimelineGroupVO[]>([])
 const yearInput = ref('')
+const appliedYear = ref('')
 const timelineLoadFailed = ref(false)
 
 const flatCount = computed(() => timelineGroups.value.reduce((sum, group) => sum + group.items.length, 0))
-const hasYearFilter = computed(() => Boolean(yearInput.value.trim()))
+const hasAppliedYearFilter = computed(() => Boolean(appliedYear.value))
 const showLoadFailureState = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showEmptyState = computed(() => !loading.value && !timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showStaleNotice = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length > 0)
-const emptyStateText = computed(() => hasYearFilter.value ? '这一年还没有记录' : '时间轴暂时为空，去写下第一条记忆吧')
+const appliedFilterText = computed(() => hasAppliedYearFilter.value ? `${appliedYear.value} 年` : '全部年份')
+const emptyStateText = computed(() => hasAppliedYearFilter.value ? '这一年还没有记录' : '时间轴暂时为空，去写下第一条记忆吧')
+
+const resolveRequestedYear = () => {
+  const text = yearInput.value.trim()
+  if (!text) {
+    return { payload: {}, yearText: '' }
+  }
+
+  const year = Number(text)
+  if (Number.isNaN(year)) {
+    return { payload: {}, yearText: '' }
+  }
+
+  return { payload: { year }, yearText: String(year) }
+}
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -64,11 +80,12 @@ const loadTimeline = async () => {
 
   loading.value = true
   timelineLoadFailed.value = false
+  const requested = resolveRequestedYear()
 
   try {
-    const year = Number(yearInput.value)
-    const result = await recordService.getTimeline(Number.isNaN(year) ? {} : { year })
+    const result = await recordService.getTimeline(requested.payload)
     timelineGroups.value = result
+    appliedYear.value = requested.yearText
   } catch {
     timelineLoadFailed.value = true
   } finally {
@@ -90,11 +107,11 @@ onShow(() => {
       <view class="hero-title">时间长廊</view>
       <view class="hero-desc">把每一段记录按时间纵向铺开，看到自己如何一步步走到今天。</view>
       <input v-model="yearInput" class="year-filter" type="number" placeholder="按年份筛选，如 2026" @confirm="loadTimeline" />
-      <view class="hero-meta">共 {{ flatCount }} 条记录</view>
+      <view class="hero-meta">当前展示：{{ appliedFilterText }} · 共 {{ flatCount }} 条记录</view>
     </view>
 
     <view v-if="showStaleNotice" class="inline-error">
-      网络有点慢，正在显示上次加载的时间轴
+      筛选加载失败，当前展示的是 {{ appliedFilterText }} 的时间轴
       <text class="inline-retry" @tap="loadTimeline">重试</text>
     </view>
 

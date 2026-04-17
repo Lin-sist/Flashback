@@ -123,6 +123,19 @@ const onSwitchChange = (key: 'autoSaveDraft' | 'openArchiveAfterSeal', event: { 
   form[key] = Boolean(event.detail.value)
 }
 
+const readSwitchValue = (event: Event): boolean => {
+  const payload = event as unknown as { detail?: { value?: boolean } }
+  return Boolean(payload.detail?.value)
+}
+
+const onAutoSaveDraftChange = (event: Event) => {
+  onSwitchChange('autoSaveDraft', { detail: { value: readSwitchValue(event) } })
+}
+
+const onOpenArchiveAfterSealChange = (event: Event) => {
+  onSwitchChange('openArchiveAfterSeal', { detail: { value: readSwitchValue(event) } })
+}
+
 const savePreference = () => {
   saveToStorage()
   uni.showToast({ title: '偏好已保存', icon: 'success' })
@@ -158,7 +171,7 @@ onLoad(async () => {
           <view class="row-title">草稿自动保存提示</view>
           <view class="row-subtitle">离开编辑页前自动尝试保存草稿</view>
         </view>
-        <switch :checked="form.autoSaveDraft" color="#3b647a" @change="(event) => onSwitchChange('autoSaveDraft', event as { detail: { value: boolean } })" />
+        <switch :checked="form.autoSaveDraft" color="#3b647a" @change="onAutoSaveDraftChange" />
       </view>
     </PaperContainer>
 
@@ -169,7 +182,7 @@ onLoad(async () => {
           <view class="row-title">封存后快捷跳转</view>
           <view class="row-subtitle">完成封存后优先回到我的档案</view>
         </view>
-        <switch :checked="form.openArchiveAfterSeal" color="#3b647a" @change="(event) => onSwitchChange('openArchiveAfterSeal', event as { detail: { value: boolean } })" />
+        <switch :checked="form.openArchiveAfterSeal" color="#3b647a" @change="onOpenArchiveAfterSealChange" />
       </view>
       <view class="row">
         <view>
