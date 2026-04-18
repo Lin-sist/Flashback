@@ -1,245 +1,553 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import AppTopBar from '../../components/common/AppTopBar.vue'
-import BottomNavBar from '../../components/common/BottomNavBar.vue'
-import EmptyState from '../../components/common/EmptyState.vue'
-import PrimaryButton from '../../components/common/PrimaryButton.vue'
-import TimelineNode from '../../components/common/TimelineNode.vue'
-import { recordService } from '../../services'
-import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
-import { formatDateTime, getToken } from '../../utils'
 
-const loading = ref(false)
-const timelineGroups = ref<TimelineGroupVO[]>([])
-const yearInput = ref('')
-const appliedYear = ref('')
-const timelineLoadFailed = ref(false)
+/**
+ * 纯静态视觉母版：不处理接口、不处理数据请求、不处理筛选/路由逻辑。
+ * 仅用于还原《时光回序 · 时间长廊》页面的高保真视觉走查。
+ */
 
-const flatCount = computed(() => timelineGroups.value.reduce((sum, group) => sum + group.items.length, 0))
-const hasAppliedYearFilter = computed(() => Boolean(appliedYear.value))
-const showLoadFailureState = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length === 0)
-const showEmptyState = computed(() => !loading.value && !timelineLoadFailed.value && timelineGroups.value.length === 0)
-const showStaleNotice = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length > 0)
-const appliedFilterText = computed(() => hasAppliedYearFilter.value ? `${appliedYear.value} 年` : '全部年份')
-const emptyStateText = computed(() => hasAppliedYearFilter.value ? '这一年还没有记录' : '时间轴暂时为空，去写下第一条记忆吧')
+type NodeType = 'sealed-text' | 'anchor' | 'memory-card' | 'reading-card'
 
-const resolveRequestedYear = () => {
-  const text = yearInput.value.trim()
-  if (!text) {
-    return { payload: {}, yearText: '' }
-  }
-
-  const year = Number(text)
-  if (Number.isNaN(year)) {
-    return { payload: {}, yearText: '' }
-  }
-
-  return { payload: { year }, yearText: String(year) }
+interface TimelineNodeVO {
+  type: NodeType
+  date?: string
+  title?: string
+  body?: string
+  tags?: string[]
+  image?: string
+  locked?: boolean
+  anchorLabel?: string
 }
 
-const ensureLogin = () => {
-  if (!getToken()) {
-    uni.reLaunch({ url: '/pages/login/index' })
-    return false
-  }
-  return true
-}
+const nodes: TimelineNodeVO[] = [
+  {
+    type: 'sealed-text',
+    date: '2025.12.24',
+    title: '致未来的信件',
+    locked: true,
+  },
+  {
+    type: 'anchor',
+    anchorLabel: '此时此刻',
+  },
+  {
+    type: 'memory-card',
+    date: '2023.08.15',
+    title: '夏末的萤火之旅',
+    body: '溪水边的微光，在掌心停留了三秒。那是那个夏天留给我最后的温存。',
+    image: '/static/memory-mountain.jpg',
+  },
+  {
+    type: 'reading-card',
+    date: '2023.05.02',
+    title: '旧书店里的午后',
+    body: '"时间不是流逝的，而是堆积的。" 在那本发黄的诗集扉页，我读到了这一句。',
+    tags: ['READING', 'MEMORY'],
+  },
+  {
+    type: 'sealed-text',
+    date: '2022.12.31',
+    title: '那一年的终章',
+    locked: true,
+  },
+]
 
-const resolveVariant = (item: TimelineItemVO) => {
-  if (item.status === RecordStatus.UNLOCKED) {
-    return 'warm'
-  }
-  if (item.status === RecordStatus.SEALED) {
-    return 'highlight'
-  }
-  return 'text'
-}
+const tabs = [
+  { key: 'home', label: '首页', path: '/pages/home/index' },
+  { key: 'timeline', label: '时间轴', path: '/pages/timeline/index' },
+  { key: 'user-center', label: '个人', path: '/pages/user-center/index' },
+] as const
 
-const openTimelineNode = (item: TimelineItemVO) => {
-  if (item.status === RecordStatus.DRAFT) {
-    uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=timeline` })
-    return
-  }
+type TabKey = (typeof tabs)[number]['key']
+const currentTab: TabKey = 'timeline'
 
-  if (item.status === RecordStatus.SEALED) {
-    uni.showToast({
-      title: '该记录已封存，暂不可查看',
-      icon: 'none',
-    })
-    return
-  }
-
-  uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}&source=timeline` })
-}
-
-const loadTimeline = async () => {
-  if (!ensureLogin()) {
-    return
-  }
-
-  loading.value = true
-  timelineLoadFailed.value = false
-  const requested = resolveRequestedYear()
-
-  try {
-    const result = await recordService.getTimeline(requested.payload)
-    timelineGroups.value = result
-    appliedYear.value = requested.yearText
-  } catch {
-    timelineLoadFailed.value = true
-  } finally {
-    loading.value = false
-  }
+const switchTab = (key: TabKey, path: string) => {
+  if (key === currentTab) return
+  uni.switchTab({ url: path })
 }
 
 onShow(() => {
   uni.hideTabBar({ animation: false })
-  loadTimeline()
 })
 </script>
 
 <template>
   <view class="page">
-    <AppTopBar title="Flashback" right-text="筛选" @right-tap="loadTimeline" />
+    <!-- Top Bar: search / brand / empty -->
+    <view class="top-bar">
+      <view class="top-bar-slot left">
+        <view class="icon icon-search" />
+      </view>
+      <view class="brand">时光回序</view>
+      <view class="top-bar-slot right" />
+    </view>
 
+    <!-- Hero -->
     <view class="hero">
       <view class="hero-title">时间长廊</view>
-      <view class="hero-desc">把每一段记录按时间纵向铺开，看到自己如何一步步走到今天。</view>
-      <input v-model="yearInput" class="year-filter" type="number" placeholder="按年份筛选，如 2026" @confirm="loadTimeline" />
-      <view class="hero-meta">当前展示：{{ appliedFilterText }} · 共 {{ flatCount }} 条记录</view>
+      <view class="hero-subtitle">在此处，凝视那些被封存的往昔与尚未开启的明日。</view>
     </view>
 
-    <view v-if="showStaleNotice" class="inline-error">
-      筛选加载失败，当前展示的是 {{ appliedFilterText }} 的时间轴
-      <text class="inline-retry" @tap="loadTimeline">重试</text>
-    </view>
+    <!-- Timeline rail -->
+    <view class="rail">
+      <view class="rail-line" />
 
-    <view v-if="loading" class="state">正在加载时间轴...</view>
-    <view v-else-if="showLoadFailureState" class="state-wrap">
-      <EmptyState text="网络有点慢，时间轴暂时没加载出来" />
-      <PrimaryButton text="重试加载" ghost @tap="loadTimeline" />
-    </view>
-    <view v-else-if="showEmptyState" class="state-wrap">
-      <EmptyState :text="emptyStateText" />
-      <PrimaryButton text="刷新时间轴" ghost @tap="loadTimeline" />
-    </view>
+      <view
+        v-for="(node, idx) in nodes"
+        :key="idx"
+        class="rail-row"
+        :class="[
+          node.type === 'anchor' ? 'rail-row-anchor' : '',
+          node.type === 'sealed-text' ? 'rail-row-sealed' : '',
+        ]"
+      >
+        <!-- Dot -->
+        <view
+          class="dot"
+          :class="{
+            'dot-active': node.type === 'anchor' || node.type === 'memory-card' || node.type === 'reading-card',
+            'dot-dim': node.type === 'sealed-text',
+          }"
+        />
 
-    <view v-else class="group-list">
-      <view class="group" v-for="group in timelineGroups" :key="group.yearMonth">
-        <view class="group-title">{{ group.yearMonth }}</view>
-        <view class="node-list">
-          <view v-for="(item, index) in group.items" :key="item.id" class="node-item" @tap="openTimelineNode(item)">
-            <TimelineNode
-              :title="item.title"
-              :subtitle="item.recordType"
-              :date-text="formatDateTime(item.createdAt)"
-              :tags="item.tagNames"
-              :status="item.status"
-              :record-type="item.recordType"
-              :variant="resolveVariant(item)"
-              :show-line="index < group.items.length - 1"
-            />
-          </view>
+        <!-- Content -->
+        <view class="row-content">
+          <!-- Sealed plain text node -->
+          <template v-if="node.type === 'sealed-text'">
+            <view class="sealed-date">{{ node.date }}</view>
+            <view class="sealed-line">
+              <text class="sealed-title">{{ node.title }}</text>
+              <view class="icon icon-lock" />
+            </view>
+          </template>
+
+          <!-- "Now" anchor chip -->
+          <template v-else-if="node.type === 'anchor'">
+            <view class="anchor-chip">{{ node.anchorLabel }}</view>
+          </template>
+
+          <!-- White memory card: image + title + body -->
+          <template v-else-if="node.type === 'memory-card'">
+            <view class="card-date">{{ node.date }}</view>
+            <view class="memory-card">
+              <image class="memory-image" :src="node.image" mode="aspectFill" />
+              <view class="memory-body">
+                <view class="memory-title">{{ node.title }}</view>
+                <view class="memory-text">{{ node.body }}</view>
+              </view>
+            </view>
+          </template>
+
+          <!-- Warm paper reading card -->
+          <template v-else-if="node.type === 'reading-card'">
+            <view class="card-date">{{ node.date }}</view>
+            <view class="reading-card">
+              <view class="reading-title">{{ node.title }}</view>
+              <view class="reading-text">{{ node.body }}</view>
+              <view class="reading-tags">
+                <view class="reading-tag" v-for="t in node.tags" :key="t">{{ t }}</view>
+              </view>
+            </view>
+          </template>
         </view>
       </view>
     </view>
 
-    <view class="tail">You can only understand time by walking through it.</view>
+    <!-- Tail: dots + coda line -->
+    <view class="coda">
+      <view class="coda-dots">
+        <view class="coda-dot" />
+        <view class="coda-dot" />
+        <view class="coda-dot" />
+      </view>
+      <view class="coda-line">回溯的终点，亦是感知的起点。</view>
+    </view>
 
-    <BottomNavBar current="timeline" />
+    <!-- Floating pill tab bar -->
+    <view class="tabbar-shell">
+      <view class="tabbar">
+        <view
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="tab"
+          :class="{ 'tab-active': tab.key === currentTab }"
+          @tap="switchTab(tab.key, tab.path)"
+        >
+          <view
+            class="tab-icon"
+            :class="[
+              tab.key === 'home' ? 'tab-icon-home' : '',
+              tab.key === 'timeline' ? 'tab-icon-clock' : '',
+              tab.key === 'user-center' ? 'tab-icon-user' : '',
+              tab.key === currentTab ? 'tab-icon-active' : '',
+            ]"
+          />
+          <text class="tab-label">{{ tab.label }}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx 24rpx 180rpx;
-  background: #f8fafb;
+  padding: 16rpx 40rpx 260rpx;
+  background: #f6f8fa;
 }
 
+/* ---------- Top Bar ---------- */
+.top-bar {
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.top-bar-slot {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+}
+
+.top-bar-slot.right {
+  justify-content: flex-end;
+}
+
+.brand {
+  flex: 1;
+  text-align: center;
+  font-size: 34rpx;
+  letter-spacing: 4rpx;
+  color: #1a1a1a;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-weight: 500;
+}
+
+/* ---------- Hero ---------- */
 .hero {
-  margin-top: 22rpx;
+  margin-top: 24rpx;
+  padding: 0 8rpx 16rpx;
 }
 
 .hero-title {
-  font-size: 52rpx;
-  color: #1a1a1a;
+  font-size: 88rpx;
+  line-height: 1.1;
   font-weight: 600;
+  color: #2a4c5e;
+  letter-spacing: 6rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
-.hero-desc {
-  margin-top: 10rpx;
-  color: #7f8c93;
-  font-size: 28rpx;
-  line-height: 1.8;
-}
-
-.year-filter {
-  margin-top: 16rpx;
-  background: #ffffff;
-  border-radius: 999rpx;
-  padding: 0 24rpx;
-  height: 76rpx;
-  font-size: 28rpx;
-}
-
-.hero-meta {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #7f8c93;
-}
-
-.state {
-  margin-top: 30rpx;
-  text-align: center;
-  color: #7f8c93;
-  font-size: 24rpx;
-}
-
-.state-wrap {
-  margin-top: 20rpx;
-}
-
-.inline-error {
-  margin-top: 14rpx;
-  color: #7f8c93;
-  font-size: 24rpx;
-}
-
-.inline-retry {
-  margin-left: 10rpx;
-  color: #3b647a;
-}
-
-.group-list {
+.hero-subtitle {
   margin-top: 26rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 42rpx;
+  font-size: 26rpx;
+  line-height: 1.9;
+  color: #8a959b;
+  max-width: 560rpx;
 }
 
-.group-title {
-  font-size: 36rpx;
-  color: #3b647a;
-  margin-bottom: 16rpx;
+/* ---------- Rail ---------- */
+.rail {
+  position: relative;
+  margin-top: 72rpx;
+  padding-left: 60rpx;
 }
 
-.node-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
+.rail-line {
+  position: absolute;
+  left: 17rpx;
+  top: 8rpx;
+  bottom: 20rpx;
+  width: 2rpx;
+  background: #d5dde2;
 }
 
-.node-item {
-  width: 100%;
+.rail-row {
+  position: relative;
+  margin-bottom: 72rpx;
 }
 
-.tail {
-  margin-top: 34rpx;
-  text-align: center;
-  color: #a8b2b7;
+.rail-row-sealed {
+  margin-bottom: 88rpx;
+}
+
+.rail-row-anchor {
+  margin-bottom: 88rpx;
+  margin-top: 8rpx;
+}
+
+/* Dots */
+.dot {
+  position: absolute;
+  left: -50rpx;
+  top: 18rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #d5dde2;
+}
+
+.dot-active {
+  background: #3b647a;
+  width: 18rpx;
+  height: 18rpx;
+  left: -51rpx;
+  box-shadow: 0 0 0 6rpx rgba(59, 100, 122, 0.08);
+}
+
+.dot-dim {
+  background: #c9d1d6;
+}
+
+.row-content {
+  position: relative;
+}
+
+/* ---------- Sealed plain text node ---------- */
+.sealed-date {
   font-size: 24rpx;
+  color: #b4bcc1;
+  letter-spacing: 2rpx;
+  font-family: 'Songti SC', 'STSong', serif;
+}
+
+.sealed-line {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.sealed-title {
+  font-size: 38rpx;
+  color: #a6afb5;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  letter-spacing: 2rpx;
+}
+
+/* ---------- Anchor chip ---------- */
+.anchor-chip {
+  display: inline-block;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  background: #e3ebf0;
+  color: #3b647a;
+  font-size: 24rpx;
+  letter-spacing: 4rpx;
+  font-family: 'Songti SC', 'STSong', serif;
+}
+
+/* ---------- Card date tag ---------- */
+.card-date {
+  font-size: 24rpx;
+  color: #8a959b;
+  letter-spacing: 2rpx;
+  margin-bottom: 18rpx;
+  font-family: 'Songti SC', 'STSong', serif;
+}
+
+/* ---------- Memory card (white w/ image) ---------- */
+.memory-card {
+  background: #ffffff;
+  border-radius: 36rpx;
+  padding: 20rpx 20rpx 30rpx;
+  box-shadow: 0 12rpx 28rpx rgba(26, 40, 50, 0.05);
+}
+
+.memory-image {
+  width: 100%;
+  height: 260rpx;
+  border-radius: 28rpx;
+  display: block;
+  background: #eef2f4;
+}
+
+.memory-body {
+  padding: 24rpx 14rpx 6rpx;
+}
+
+.memory-title {
+  font-size: 38rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 2rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.memory-text {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.8;
+  color: #6a757c;
+}
+
+/* ---------- Reading card (warm paper) ---------- */
+.reading-card {
+  background: #f5ead2;
+  border-radius: 36rpx;
+  padding: 34rpx 30rpx;
+}
+
+.reading-title {
+  font-size: 38rpx;
+  font-weight: 600;
+  color: #3b3123;
+  letter-spacing: 2rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.reading-text {
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  line-height: 1.9;
+  color: #6b5a42;
+}
+
+.reading-tags {
+  margin-top: 22rpx;
+  display: flex;
+  gap: 14rpx;
+}
+
+.reading-tag {
+  padding: 8rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.55);
+  color: #8a7a5b;
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+}
+
+/* ---------- Coda ---------- */
+.coda {
+  margin-top: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36rpx;
+}
+
+.coda-dots {
+  display: flex;
+  gap: 14rpx;
+}
+
+.coda-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #cfd6da;
+}
+
+.coda-line {
+  font-size: 24rpx;
+  color: #a8b2b7;
+  letter-spacing: 2rpx;
+  font-family: 'Songti SC', 'STSong', serif;
+}
+
+/* ---------- Floating tab bar ---------- */
+.tabbar-shell {
+  position: fixed;
+  left: 40rpx;
+  right: 40rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 28rpx);
+  z-index: 80;
+}
+
+.tabbar {
+  height: 120rpx;
+  padding: 0 30rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(172, 179, 182, 0.18);
+  box-shadow: 0 12rpx 28rpx rgba(26, 40, 50, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  height: 100%;
+  position: relative;
+}
+
+.tab-icon {
+  width: 44rpx;
+  height: 44rpx;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 36rpx 36rpx;
+}
+
+.tab-label {
+  font-size: 22rpx;
+  color: #a0a9ae;
+  letter-spacing: 2rpx;
+}
+
+.tab-active .tab-label {
+  color: #8a959b;
+}
+
+/* active timeline tab: dark blue filled circle */
+.tab-active .tab-icon {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 50%;
+  background-color: #2f5566;
+  background-size: 40rpx 40rpx;
+  box-shadow: 0 8rpx 18rpx rgba(47, 85, 102, 0.3);
+  transform: translateY(-22rpx);
+}
+
+.tab-active .tab-label {
+  margin-top: -10rpx;
+}
+
+/* ---------- Icons (SVG data URI, mp-weixin safe) ---------- */
+.icon {
+  width: 36rpx;
+  height: 36rpx;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.icon-search {
+  width: 40rpx;
+  height: 40rpx;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.5' y2='16.5'/></svg>");
+}
+
+.icon-lock {
+  width: 26rpx;
+  height: 26rpx;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a6afb5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='11' width='14' height='10' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>");
+}
+
+.tab-icon-home {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0a9ae' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M3 10.5 12 3l9 7.5'/><path d='M5 10v10h14V10'/></svg>");
+}
+
+.tab-icon-clock {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0a9ae' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><polyline points='12 7 12 12 15.5 14'/></svg>");
+}
+
+.tab-icon-user {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0a9ae' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='4'/><path d='M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8'/></svg>");
+}
+
+/* active clock icon: white stroke on dark circle */
+.tab-active.tab .tab-icon-clock {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><polyline points='12 7 12 12 15.5 14'/></svg>");
 }
 </style>
-
