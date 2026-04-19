@@ -53,11 +53,11 @@ const allSectionsFailed = computed(
 
 const draftTitle = computed(() => {
   if (draftState.value === 'loading' && !latestDraft.value) {
-    return '正在整理你的草稿'
+    return '正在整理草稿'
   }
 
   if (draftState.value === 'error' && !latestDraft.value) {
-    return '草稿入口暂时不可用'
+    return '草稿暂时不可用'
   }
 
   return latestDraft.value?.title?.trim() || '从这里写下新的篇章'
@@ -65,23 +65,23 @@ const draftTitle = computed(() => {
 
 const draftChipText = computed(() => {
   if (draftState.value === 'error') {
-    return '轻触重新同步草稿入口'
+    return '轻触重试'
   }
 
   if (draftState.value === 'loading' && !latestDraft.value) {
-    return '正在同步草稿入口'
+    return '整理中'
   }
 
   if (draftCount.value > 0) {
-    return `当前草稿 ${draftCount.value} 条`
+    return `${draftCount.value} 条草稿`
   }
 
-  return '还没有草稿，点这里开始'
+  return '开始书写'
 })
 
 const draftMeta = computed(() => {
   if (!latestDraft.value) {
-    return draftState.value === 'error' ? '保留现有入口，重试后可继续编辑最近草稿' : '继续完成此篇章'
+    return draftState.value === 'error' ? '稍后再试' : '新的一页'
   }
 
   return `最近更新 ${formatDateTime(latestDraft.value.createdAt)}`
@@ -101,31 +101,31 @@ const sealedValue = computed(() => {
 
 const sealedLabel = computed(() => {
   if (sealedState.value === 'error') {
-    return '封存摘要同步失败'
+    return '封存'
   }
 
-  return '封存记录总数'
+  return '封存'
 })
 
 const sealedMeta = computed(() => {
   if (sealedState.value === 'error') {
-    return '轻触卡片重新加载'
+    return '轻触重试'
   }
 
   if (sealedState.value === 'loading' && sealedCount.value === 0) {
-    return '正在对齐封存摘要'
+    return '整理中'
   }
 
   if (sealedCount.value <= 0) {
-    return '完成封存后，会在这里累计'
+    return '尚无记录'
   }
 
-  return '进入我的档案查看等待解锁的记忆'
+  return '静候开启'
 })
 
 const unlockValue = computed(() => {
   if (unlockedState.value === 'loading' && !latestUnlocked.value) {
-    return '同步中'
+    return '整理中'
   }
 
   if (unlockedState.value === 'error' && !latestUnlocked.value) {
@@ -133,7 +133,7 @@ const unlockValue = computed(() => {
   }
 
   if (!latestUnlocked.value) {
-    return '尚未解封'
+    return '未解封'
   }
 
   return formatMonthDay(latestUnlocked.value.unlockAt || latestUnlocked.value.createdAt)
@@ -149,34 +149,26 @@ const unlockTitle = computed(() => {
 
 const unlockMeta = computed(() => {
   if (unlockedState.value === 'error') {
-    return '轻触卡片重新加载'
+    return '轻触重试'
   }
 
-  if (unlockedState.value === 'loading' && !latestUnlocked.value) {
-    return '正在同步最近解锁'
-  }
-
-  if (!latestUnlocked.value) {
-    return '写下新的记忆，等待它抵达未来'
-  }
-
-  return `进入详情页查看原文 · ${formatDateTime(latestUnlocked.value.createdAt)}`
+  return ''
 })
 
 const archiveMeta = computed(() => {
   if (allSectionsFailed.value) {
-    return '摘要同步失败后，仍可从这里进入真实档案页'
+    return '仍可进入档案'
   }
 
   if (loading.value && totalArchiveCount.value === 0) {
-    return '正在同步属于你的时光印记'
+    return '整理中'
   }
 
   if (totalArchiveCount.value > 0) {
-    return `当前共 ${totalArchiveCount.value} 条记录，进入列表检索与管理`
+    return `共 ${totalArchiveCount.value} 条记录`
   }
 
-  return '管理所有属于你的时光印记'
+  return '查看全部记录'
 })
 
 const loadHomeSummary = async () => {
@@ -310,18 +302,17 @@ onShow(() => {
 
     <view class="hero">
       <view class="hero-title">那些被封存的<br />碎片</view>
-      <view class="hero-subtitle">在时间的灰烬里，寻回那些不曾褪色的真实片段。</view>
+      <view class="hero-subtitle">写给未来，也留给此刻。</view>
     </view>
 
     <view class="draft-card" :class="{ 'is-error': draftState === 'error' }" @tap="goDraftEntry">
       <view class="draft-head">
-        <text class="kicker">DRAFT ENTRY</text>
+        <text class="kicker">草稿</text>
         <view class="icon icon-edit" />
       </view>
       <view class="draft-title">{{ draftTitle }}</view>
       <view class="draft-meta">{{ draftMeta }}</view>
       <view class="draft-chip" :class="{ 'draft-chip-error': draftState === 'error' }">
-        <view class="icon icon-info" />
         <text class="draft-chip-text">{{ draftChipText }}</text>
       </view>
     </view>
@@ -350,7 +341,7 @@ onShow(() => {
       </view>
     </view>
 
-    <view class="summary-inline-tip" :class="{ 'is-muted': unlockedState !== 'error' }">
+    <view v-if="unlockMeta" class="summary-inline-tip">
       {{ unlockMeta }}
     </view>
 
@@ -366,9 +357,9 @@ onShow(() => {
     </view>
 
     <view v-if="allSectionsFailed" class="state-panel">
-      <view class="state-kicker">HOME STATUS</view>
+      <view class="state-kicker">首页</view>
       <view class="state-title">首页摘要暂时没有同步成功</view>
-      <view class="state-desc">登录校验与真实页面入口仍然保留，你可以重试同步，或先进入我的档案继续操作。</view>
+      <view class="state-desc">你仍然可以进入档案，或重新同步。</view>
       <view class="state-action" @tap="retryHomeSummary">重新同步</view>
     </view>
 
@@ -391,8 +382,9 @@ onShow(() => {
   min-height: 100vh;
   padding: 20rpx 40rpx 260rpx;
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 36%),
-    linear-gradient(180deg, #f7f9fb 0%, #f3f6f8 100%);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(circle at 88% 14%, rgba(238, 228, 210, 0.34) 0%, rgba(238, 228, 210, 0) 28%),
+    linear-gradient(180deg, #f8f9fa 0%, #f2f4f6 100%);
 }
 
 .top-bar {
@@ -428,27 +420,30 @@ onShow(() => {
 .hero-title {
   font-size: 76rpx;
   line-height: 1.15;
-  font-weight: 700;
-  color: #111418;
-  letter-spacing: 2rpx;
+  font-weight: 600;
+  color: #171a1d;
+  letter-spacing: 1rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .hero-subtitle {
-  margin-top: 28rpx;
+  margin-top: 24rpx;
   font-size: 28rpx;
-  line-height: 1.75;
-  color: #9aa3a9;
-  max-width: 540rpx;
+  line-height: 1.8;
+  color: #8a9398;
+  max-width: 420rpx;
+  letter-spacing: 1rpx;
 }
 
 .draft-card {
   margin-top: 64rpx;
   padding: 36rpx 36rpx 32rpx;
   border-radius: 36rpx;
-  background: #eef2f5;
+  border: 1rpx solid rgba(215, 221, 226, 0.9);
+  background: linear-gradient(180deg, #f5f7f8 0%, #edf1f3 100%);
   box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
-    0 18rpx 40rpx rgba(72, 95, 111, 0.08);
+    0 2rpx 0 rgba(255, 255, 255, 0.72) inset,
+    0 18rpx 36rpx rgba(92, 103, 112, 0.07);
 }
 
 .draft-card.is-error,
@@ -468,7 +463,7 @@ onShow(() => {
 .kicker {
   font-size: 22rpx;
   letter-spacing: 4rpx;
-  color: #9aa3a9;
+  color: #8f989e;
   font-weight: 500;
 }
 
@@ -476,15 +471,16 @@ onShow(() => {
   margin-top: 14rpx;
   font-size: 42rpx;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #1c2024;
   letter-spacing: 1rpx;
   line-height: 1.35;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .draft-meta {
   margin-top: 12rpx;
   font-size: 24rpx;
-  color: #7f8c93;
+  color: #7c868d;
   line-height: 1.7;
 }
 
@@ -492,10 +488,10 @@ onShow(() => {
   margin-top: 28rpx;
   display: inline-flex;
   align-items: center;
-  gap: 12rpx;
-  padding: 12rpx 18rpx;
+  padding: 12rpx 20rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1rpx solid rgba(214, 219, 224, 0.9);
 }
 
 .draft-chip-error {
@@ -504,7 +500,7 @@ onShow(() => {
 
 .draft-chip-text {
   font-size: 26rpx;
-  color: #6f7a80;
+  color: #68737a;
 }
 
 .summary-row {
@@ -525,48 +521,51 @@ onShow(() => {
 }
 
 .summary-card-cool {
-  background: #eef2f5;
+  background: linear-gradient(180deg, #dce4ea 0%, #cfd9e0 100%);
+  box-shadow: 0 18rpx 36rpx rgba(86, 102, 115, 0.12);
 }
 
 .summary-card-warm {
-  background: linear-gradient(180deg, #f6dca9 0%, #f1ca87 100%);
+  background: linear-gradient(180deg, #efe4d1 0%, #e6d5be 100%);
+  box-shadow: 0 18rpx 36rpx rgba(138, 115, 79, 0.11);
 }
 
 .summary-value {
   margin-top: 18rpx;
   font-size: 80rpx;
   line-height: 1;
-  font-weight: 300;
-  color: #1a1a1a;
+  font-weight: 500;
+  color: #1f2529;
   font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .summary-value-date {
   font-size: 44rpx;
   font-weight: 500;
-  letter-spacing: 2rpx;
+  letter-spacing: 1rpx;
   line-height: 1.25;
 }
 
 .summary-label {
   margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #6f7a80;
+  font-size: 28rpx;
+  color: #4b5861;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .summary-card-warm .summary-label {
-  color: #765f2c;
+  color: #695734;
 }
 
 .summary-meta {
   margin-top: 10rpx;
   font-size: 22rpx;
   line-height: 1.6;
-  color: #8a959c;
+  color: #61707a;
 }
 
 .summary-meta-warm {
-  color: #6e5928;
+  color: #746446;
 }
 
 .summary-inline-tip {
@@ -574,22 +573,18 @@ onShow(() => {
   padding: 0 8rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #896f38;
-}
-
-.summary-inline-tip.is-muted {
-  color: #8f989e;
+  color: #8c7460;
 }
 
 .archive-entry {
   margin-top: 24rpx;
   padding: 24rpx 28rpx;
   border-radius: 32rpx;
-  background: #eef2f5;
+  background: rgba(245, 247, 248, 0.94);
   display: flex;
   align-items: center;
   gap: 24rpx;
-  box-shadow: 0 18rpx 40rpx rgba(72, 95, 111, 0.08);
+  box-shadow: 0 16rpx 34rpx rgba(92, 103, 112, 0.08);
 }
 
 .archive-icon-wrap {
@@ -612,13 +607,14 @@ onShow(() => {
   font-size: 32rpx;
   font-weight: 600;
   color: #1a1a1a;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .archive-meta {
   margin-top: 6rpx;
   font-size: 24rpx;
   line-height: 1.7;
-  color: #9aa3a9;
+  color: #8b9499;
 }
 
 .archive-arrow {
@@ -648,6 +644,7 @@ onShow(() => {
   font-size: 34rpx;
   font-weight: 600;
   color: #1a1a1a;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .state-desc {
@@ -739,25 +736,19 @@ onShow(() => {
 .icon-edit {
   width: 40rpx;
   height: 40rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4l10-10-4-4L4 16v4z'/><path d='M14 6l4 4'/><line x1='4' y1='20' x2='12' y2='20'/></svg>");
-}
-
-.icon-info {
-  width: 32rpx;
-  height: 32rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235a6870'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='8' r='1.3' fill='white'/><rect x='11' y='11' width='2' height='7' rx='1' fill='white'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23626d74' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4l10-10-4-4L4 16v4z'/><path d='M14 6l4 4'/><line x1='4' y1='20' x2='12' y2='20'/></svg>");
 }
 
 .icon-archive {
   width: 44rpx;
   height: 44rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b647a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='4' rx='1'/><path d='M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8'/><line x1='10' y1='13' x2='14' y2='13'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f6170' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='4' rx='1'/><path d='M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8'/><line x1='10' y1='13' x2='14' y2='13'/></svg>");
 }
 
 .icon-lock {
   width: 44rpx;
   height: 44rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a5a20' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='11' width='14' height='10' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23756342' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='11' width='14' height='10' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>");
 }
 
 .icon-folder {
