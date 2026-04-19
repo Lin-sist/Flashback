@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import BottomNavBar from '../../components/common/BottomNavBar.vue'
 import { recordService } from '../../services'
-import { RecordStatus, RecordType, type TimelineGroupVO, type TimelineItemVO } from '../../types'
+import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
 import { formatDateTime, getToken } from '../../utils'
 
 type CorridorNodeKind = 'sealed' | 'unlocked' | 'draft'
@@ -14,10 +14,7 @@ interface DecoratedTimelineItem {
   title: string
   kind: CorridorNodeKind
   statusText: string
-  typeLabel: string
-  typeHint: string
   dateText: string
-  primaryTags: string[]
 }
 
 const loading = ref(false)
@@ -26,52 +23,34 @@ const yearInput = ref('')
 const appliedYear = ref('')
 const timelineLoadFailed = ref(false)
 const yearInputFocused = ref(false)
+const filterPanelVisible = ref(false)
 
 const flatCount = computed(() => timelineGroups.value.reduce((sum, group) => sum + group.items.length, 0))
 const hasAppliedYearFilter = computed(() => Boolean(appliedYear.value))
 const showLoadFailureState = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showEmptyState = computed(() => !loading.value && !timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showStaleNotice = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length > 0)
-const appliedFilterText = computed(() => hasAppliedYearFilter.value ? `${appliedYear.value} 年` : '全部年份')
+const appliedFilterText = computed(() => hasAppliedYearFilter.value ? `${appliedYear.value} 年` : '全部')
 const emptyStateText = computed(() => hasAppliedYearFilter.value ? '这一年还没有留下新的片段' : '时间长廊还没有展开第一段记忆')
 const corridorSummaryText = computed(() => {
   if (loading.value) {
-    return '旧日片段正在沿着时间重新归位。'
+    return '整理中'
   }
 
   if (showLoadFailureState.value) {
-    return '这一次整理没有完成，稍后再试，时间会把它们重新带回来。'
+    return '暂时未展开'
   }
 
   if (showEmptyState.value) {
-    return hasAppliedYearFilter.value
-      ? `正在寻找 ${appliedYear.value} 年的回响，目前还没有新的记录停驻在这里。`
-      : '沿着纵线向下看去，第一段被写下的时刻还在等待出现。'
+    return hasAppliedYearFilter.value ? `${appliedYear.value} 年暂无记录` : '还没有记录'
   }
 
   if (hasAppliedYearFilter.value) {
-    return `此刻陈列的是 ${appliedYear.value} 年留下的 ${flatCount.value} 段时间纹理。`
+    return `${appliedYear.value} 年 · ${flatCount.value} 则`
   }
 
-  return flatCount.value > 0
-    ? `共整理出 ${flatCount.value} 段被认真写下的时刻，沿着时间向下缓缓展开。`
-    : '把每一段经过都交还给时间，长廊会从这里继续生长。'
+  return flatCount.value > 0 ? `共 ${flatCount.value} 则` : '暂无记录'
 })
-
-const recordTypeMetaMap: Record<RecordType, { label: string, hint: string }> = {
-  [RecordType.FUTURE_LETTER]: {
-    label: '写给未来',
-    hint: '留给未来的轻声问候',
-  },
-  [RecordType.NODE_RECORD]: {
-    label: '阶段印记',
-    hint: '某个阶段被认真按下保存',
-  },
-  [RecordType.EMOTION_NOTE]: {
-    label: '心绪小记',
-    hint: '当时的情绪被轻轻放进这里',
-  },
-}
 
 const resolveRequestedYear = () => {
   const text = yearInput.value.trim()
@@ -95,7 +74,9 @@ const ensureLogin = () => {
   return true
 }
 
-const focusYearInput = () => {
+const openFilterPanel = async () => {
+  filterPanelVisible.value = true
+  await nextTick()
   yearInputFocused.value = true
 }
 
@@ -103,9 +84,22 @@ const blurYearInput = () => {
   yearInputFocused.value = false
 }
 
-const submitYearFilter = () => {
+const closeFilterPanel = () => {
+  filterPanelVisible.value = false
   yearInputFocused.value = false
-  loadTimeline()
+}
+
+const submitYearFilter = async () => {
+  yearInputFocused.value = false
+  closeFilterPanel()
+  await loadTimeline()
+}
+
+const resetYearFilter = async () => {
+  yearInput.value = ''
+  appliedYear.value = ''
+  closeFilterPanel()
+  await loadTimeline()
 }
 
 const resolveNodeKind = (status: RecordStatus): CorridorNodeKind => {
@@ -122,36 +116,28 @@ const resolveNodeKind = (status: RecordStatus): CorridorNodeKind => {
 
 const resolveStatusText = (status: RecordStatus) => {
   if (status === RecordStatus.UNLOCKED) {
-    return '已抵达此刻'
+    return '已解锁'
   }
 
   if (status === RecordStatus.SEALED) {
-    return '暂未开启'
+    return '未启封'
   }
 
-  return '此时此刻'
+  return '草稿'
 }
 
 const decoratedTimelineGroups = computed(() =>
   timelineGroups.value.map((group) => ({
     yearMonth: group.yearMonth,
-    itemCountText: `${group.items.length} 段记忆停驻于此`,
+    itemCountText: `${group.items.length} 则`,
     items: group.items.map<DecoratedTimelineItem>((item) => {
-      const typeMeta = recordTypeMetaMap[item.recordType] ?? {
-        label: '未命名片段',
-        hint: '被写下的一段时间',
-      }
-
       return {
         id: item.id,
         raw: item,
         title: item.title?.trim() || '未命名片段',
         kind: resolveNodeKind(item.status),
         statusText: resolveStatusText(item.status),
-        typeLabel: typeMeta.label,
-        typeHint: typeMeta.hint,
         dateText: formatDateTime(item.createdAt),
-        primaryTags: item.tagNames?.length ? item.tagNames.slice(0, 3) : [typeMeta.label],
       }
     }),
   }))
@@ -206,7 +192,7 @@ onShow(() => {
     <view class="page-glow page-glow-bottom" />
 
     <view class="top-bar">
-      <view class="top-icon-btn" @tap="focusYearInput">
+      <view class="top-icon-btn" @tap="openFilterPanel">
         <view class="icon icon-search" />
       </view>
       <view class="brand">时光回序</view>
@@ -214,40 +200,46 @@ onShow(() => {
     </view>
 
     <view class="hero">
-      <view class="hero-kicker">TIMELINE MEMORY WALK</view>
       <view class="hero-title">时间长廊</view>
-      <view class="hero-desc">沿着时间留下的纹理，翻看那些被写下、被封存，也被重新照亮的时刻。</view>
-
-      <view class="filter-card">
-        <view class="filter-card-head">
-          <text class="filter-label">年份检索</text>
-          <text class="filter-meta">{{ appliedFilterText }} · {{ flatCount }} 条片段</text>
+      <view class="hero-meta-row">
+        <view class="hero-filter-pill" @tap="openFilterPanel">
+          <view class="icon icon-search icon-search-soft" />
+          <text class="hero-filter-text">{{ appliedFilterText }}</text>
         </view>
-
-        <view class="filter-row">
-          <view class="filter-input-wrap" :class="{ focused: yearInputFocused }">
-            <view class="icon icon-search icon-search-soft" />
-            <input
-              v-model="yearInput"
-              class="year-filter"
-              type="number"
-              confirm-type="search"
-              placeholder="按年份筛选，如 2026"
-              :focus="yearInputFocused"
-              @confirm="submitYearFilter"
-              @blur="blurYearInput"
-            />
-          </view>
-          <view class="filter-action" @tap="submitYearFilter">整理</view>
-        </view>
-
-        <view class="filter-tip">{{ corridorSummaryText }}</view>
+        <view class="hero-count">{{ corridorSummaryText }}</view>
       </view>
 
       <view v-if="showStaleNotice" class="notice-panel">
-        <view class="notice-title">时间回声未完全同步</view>
-        <view class="notice-desc">筛选刷新没有成功，当前仍展示 {{ appliedFilterText }} 的时间长廊。</view>
-        <text class="notice-action" @tap="loadTimeline">重新整理</text>
+        <view class="notice-title">同步稍慢</view>
+        <view class="notice-desc">当前仍显示 {{ appliedFilterText }}</view>
+        <text class="notice-action" @tap="loadTimeline">重试</text>
+      </view>
+    </view>
+
+    <view v-if="filterPanelVisible" class="filter-layer" @tap="closeFilterPanel">
+      <view class="filter-sheet" @tap.stop>
+        <view class="filter-sheet-head">
+          <view class="filter-sheet-title">筛选年份</view>
+          <view class="filter-sheet-close" @tap="closeFilterPanel">收起</view>
+        </view>
+        <view class="filter-input-wrap" :class="{ focused: yearInputFocused }">
+          <view class="icon icon-search icon-search-soft" />
+          <input
+            v-model="yearInput"
+            class="year-filter"
+            type="number"
+            confirm-type="search"
+            placeholder="如 2026"
+            :focus="yearInputFocused"
+            @confirm="submitYearFilter"
+            @blur="blurYearInput"
+          />
+        </view>
+        <view class="filter-sheet-meta">当前：{{ appliedFilterText }} · {{ flatCount }} 则</view>
+        <view class="filter-actions">
+          <view class="filter-action filter-action-ghost" @tap="resetYearFilter">全部年份</view>
+          <view class="filter-action" @tap="submitYearFilter">确定</view>
+        </view>
       </view>
     </view>
 
@@ -256,9 +248,8 @@ onShow(() => {
 
       <view v-if="loading" class="corridor-content">
         <view class="state-card state-card-loading">
-          <view class="state-kicker">ARRANGING MEMORIES</view>
-          <view class="state-title">时间正在把片段归位</view>
-          <view class="state-desc">长廊的轮廓已经亮起，正在把真实记录依次铺开。</view>
+          <view class="state-title">正在归位</view>
+          <view class="state-desc">时间片段整理中</view>
         </view>
 
         <view v-for="groupIndex in 2" :key="`loading-${groupIndex}`" class="loading-group">
@@ -280,19 +271,17 @@ onShow(() => {
 
       <view v-else-if="showLoadFailureState" class="corridor-content">
         <view class="state-card">
-          <view class="state-kicker">TIMELINE RETRY</view>
-          <view class="state-title">这一段长廊暂时没有展开</view>
-          <view class="state-desc">网络有些慢，但登录校验、筛选入口和真实跳转规则都还在，重新整理即可继续查看。</view>
-          <view class="state-action" @tap="loadTimeline">重新整理时间长廊</view>
+          <view class="state-title">暂时没有展开</view>
+          <view class="state-desc">网络稍慢，请再试一次</view>
+          <view class="state-action" @tap="loadTimeline">重新整理</view>
         </view>
       </view>
 
       <view v-else-if="showEmptyState" class="corridor-content">
         <view class="state-card state-card-empty">
-          <view class="state-kicker">FIRST MEMORY</view>
-          <view class="state-title">这一段走廊此刻还很安静</view>
+          <view class="state-title">这一段还很安静</view>
           <view class="state-desc">{{ emptyStateText }}</view>
-          <view class="state-action state-action-soft" @tap="loadTimeline">刷新时间长廊</view>
+          <view class="state-action state-action-soft" @tap="loadTimeline">刷新</view>
         </view>
       </view>
 
@@ -318,37 +307,26 @@ onShow(() => {
 
               <view v-if="item.kind === 'sealed'" class="node-body node-body-sealed">
                 <view class="sealed-row">
-                  <view class="icon icon-lock-muted" />
-                  <view class="sealed-copy">
-                    <view class="sealed-topline">
-                      <text class="sealed-status">{{ item.statusText }}</text>
-                      <text class="sealed-date">{{ item.dateText }}</text>
-                    </view>
-                    <view class="sealed-title">{{ item.title }}</view>
-                    <view class="sealed-meta">{{ item.typeHint }}</view>
-                  </view>
+                  <text class="sealed-date">{{ item.dateText }}</text>
+                  <text class="sealed-status">{{ item.statusText }}</text>
                 </view>
+                <view class="sealed-title">{{ item.title }}</view>
               </view>
 
               <view v-else-if="item.kind === 'draft'" class="node-body node-body-draft">
-                <view class="draft-capsule">
-                  <text class="draft-capsule-text">{{ item.statusText }}</text>
-                  <text class="draft-capsule-date">{{ item.dateText }}</text>
+                <view class="draft-row">
+                  <text class="draft-date">{{ item.dateText }}</text>
+                  <text class="draft-status">{{ item.statusText }}</text>
                 </view>
                 <view class="draft-title">{{ item.title }}</view>
-                <view class="draft-meta">{{ item.typeHint }}</view>
               </view>
 
               <view v-else class="node-body node-body-unlocked">
                 <view class="unlocked-head">
-                  <text class="unlocked-kicker">{{ item.statusText }}</text>
                   <text class="unlocked-date">{{ item.dateText }}</text>
+                  <text class="unlocked-kicker">{{ item.statusText }}</text>
                 </view>
                 <view class="unlocked-title">{{ item.title }}</view>
-                <view class="unlocked-type">{{ item.typeLabel }}</view>
-                <view class="tag-row">
-                  <text v-for="tag in item.primaryTags" :key="tag" class="tag-chip">{{ tag }}</text>
-                </view>
               </view>
             </view>
           </view>
@@ -358,7 +336,7 @@ onShow(() => {
 
     <view class="tail">
       <view class="tail-line" />
-      <view class="tail-text">时间不会停下，但被认真写下的片刻，会一直在这里发出微弱而清晰的光。</view>
+      <view class="tail-text">写下的片刻，会留在这里。</view>
     </view>
 
     <BottomNavBar current="timeline" />
@@ -439,84 +417,106 @@ onShow(() => {
 .hero {
   position: relative;
   z-index: 1;
-  margin-top: 40rpx;
-}
-
-.hero-kicker {
-  font-size: 20rpx;
-  letter-spacing: 6rpx;
-  color: #a5afb5;
+  margin-top: 54rpx;
 }
 
 .hero-title {
-  margin-top: 18rpx;
-  font-size: 76rpx;
-  line-height: 1.12;
+  font-size: 80rpx;
+  line-height: 1.08;
   font-weight: 700;
   color: #111418;
   letter-spacing: 2rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
-.hero-desc {
-  margin-top: 24rpx;
-  max-width: 620rpx;
-  font-size: 28rpx;
-  line-height: 1.8;
-  color: #8f989e;
+.hero-meta-row {
+  margin-top: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
 }
 
-.filter-card {
-  margin-top: 36rpx;
-  padding: 28rpx 28rpx 26rpx;
-  border-radius: 32rpx;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.72) inset,
-    0 18rpx 40rpx rgba(72, 95, 111, 0.08);
-  backdrop-filter: blur(12rpx);
+.hero-filter-pill {
+  min-height: 68rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1rpx solid rgba(163, 175, 183, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 10rpx 22rpx rgba(72, 95, 111, 0.05);
 }
 
-.filter-card-head {
+.hero-filter-text {
+  font-size: 24rpx;
+  color: #556169;
+  letter-spacing: 1rpx;
+}
+
+.hero-count {
+  font-size: 24rpx;
+  color: #97a1a7;
+}
+
+.filter-layer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 12;
+  background: rgba(18, 22, 26, 0.18);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 124rpx 32rpx 0;
+}
+
+.filter-sheet {
+  width: 100%;
+  padding: 30rpx;
+  border-radius: 34rpx;
+  background: rgba(252, 252, 250, 0.96);
+  box-shadow: 0 24rpx 60rpx rgba(34, 40, 45, 0.16);
+  backdrop-filter: blur(14rpx);
+}
+
+.filter-sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
 }
 
-.filter-label {
-  font-size: 22rpx;
-  letter-spacing: 4rpx;
-  color: #9aa3a9;
+.filter-sheet-title {
+  font-size: 34rpx;
+  color: #191d21;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
-.filter-meta {
-  font-size: 22rpx;
-  color: #8b959b;
-}
-
-.filter-row {
-  margin-top: 18rpx;
-  display: flex;
-  gap: 16rpx;
-}
-
-.filter-input-wrap {
-  flex: 1;
-  height: 84rpx;
-  padding: 0 24rpx;
-  border-radius: 999rpx;
-  background: rgba(241, 244, 246, 0.88);
-  border: 1rpx solid rgba(165, 176, 183, 0.18);
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  transition: all 0.2s ease;
+.filter-sheet-close {
+  font-size: 24rpx;
+  color: #8a949a;
 }
 
 .filter-input-wrap.focused {
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(84, 113, 131, 0.26);
+}
+
+.filter-input-wrap {
+  margin-top: 24rpx;
+  height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: rgba(241, 244, 246, 0.92);
+  border: 1rpx solid rgba(165, 176, 183, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  transition: all 0.2s ease;
 }
 
 .year-filter {
@@ -526,9 +526,21 @@ onShow(() => {
   color: #1a1a1a;
 }
 
+.filter-sheet-meta {
+  margin-top: 18rpx;
+  font-size: 23rpx;
+  color: #94a0a6;
+}
+
+.filter-actions {
+  margin-top: 24rpx;
+  display: flex;
+  gap: 16rpx;
+}
+
 .filter-action {
-  min-width: 132rpx;
-  height: 84rpx;
+  flex: 1;
+  min-height: 84rpx;
   padding: 0 28rpx;
   border-radius: 999rpx;
   background: #3a4a55;
@@ -540,36 +552,33 @@ onShow(() => {
   box-shadow: 0 10rpx 22rpx rgba(58, 74, 85, 0.18);
 }
 
-.filter-tip {
-  margin-top: 18rpx;
-  font-size: 24rpx;
-  line-height: 1.8;
-  color: #8f989e;
+.filter-action-ghost {
+  background: rgba(239, 243, 246, 0.96);
+  color: #62717a;
+  box-shadow: none;
 }
 
 .notice-panel {
-  margin-top: 20rpx;
-  padding: 24rpx 28rpx;
-  border-radius: 28rpx;
-  background: rgba(244, 236, 220, 0.78);
-  box-shadow: 0 16rpx 36rpx rgba(118, 101, 65, 0.08);
+  margin-top: 24rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  background: rgba(244, 236, 220, 0.66);
 }
 
 .notice-title {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #4f4633;
-  font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
 .notice-desc {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.75;
+  margin-top: 6rpx;
+  font-size: 23rpx;
   color: #7a705e;
 }
 
 .notice-action {
-  margin-top: 16rpx;
+  margin-top: 12rpx;
   display: inline-flex;
   color: #5a6f7e;
   font-size: 24rpx;
@@ -627,24 +636,17 @@ onShow(() => {
   background: rgba(250, 246, 239, 0.8);
 }
 
-.state-kicker {
-  font-size: 22rpx;
-  letter-spacing: 4rpx;
-  color: #9aa3a9;
-}
-
 .state-title {
-  margin-top: 10rpx;
   font-size: 40rpx;
   line-height: 1.3;
   color: #1a1a1a;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
 .state-desc {
   margin-top: 16rpx;
   font-size: 26rpx;
-  line-height: 1.85;
+  line-height: 1.7;
   color: #7f8c93;
 }
 
@@ -704,13 +706,13 @@ onShow(() => {
   font-size: 42rpx;
   line-height: 1.2;
   color: #1a1a1a;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
 .group-meta {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #99a2a8;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #a8b0b5;
 }
 
 .node-list {
@@ -736,14 +738,15 @@ onShow(() => {
 
 .node-pin-unlocked {
   background: #e4b55c;
+  box-shadow: 0 0 0 10rpx rgba(255, 250, 243, 0.92), 0 0 20rpx rgba(228, 181, 92, 0.28);
 }
 
 .node-pin-sealed {
-  background: #b6c0c5;
+  background: rgba(182, 192, 197, 0.72);
 }
 
 .node-pin-draft {
-  background: #6c7c86;
+  background: rgba(108, 124, 134, 0.62);
 }
 
 .node-pin-loading {
@@ -755,21 +758,11 @@ onShow(() => {
 }
 
 .node-body-sealed {
-  padding: 18rpx 4rpx 18rpx 0;
+  padding: 16rpx 6rpx 14rpx 0;
+  opacity: 0.74;
 }
 
 .sealed-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 18rpx;
-}
-
-.sealed-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.sealed-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -779,70 +772,55 @@ onShow(() => {
 .sealed-status,
 .sealed-date {
   font-size: 22rpx;
-  color: #9ca5ab;
+  color: #a3adb2;
 }
 
 .sealed-title {
   margin-top: 10rpx;
   font-size: 30rpx;
-  line-height: 1.5;
-  color: #576268;
-}
-
-.sealed-meta {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: #a0a8ae;
+  line-height: 1.45;
+  color: #5f696f;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
 .node-body-draft {
-  padding: 24rpx 28rpx 26rpx;
+  padding: 22rpx 24rpx 24rpx;
   border-radius: 30rpx;
-  background: rgba(239, 243, 246, 0.92);
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.68) inset,
-    0 14rpx 32rpx rgba(72, 95, 111, 0.06);
+  background: rgba(241, 244, 246, 0.76);
+  box-shadow: 0 10rpx 24rpx rgba(72, 95, 111, 0.04);
 }
 
-.draft-capsule {
-  display: inline-flex;
+.draft-row {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16rpx;
-  min-height: 54rpx;
-  padding: 0 18rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.8);
 }
 
-.draft-capsule-text,
-.draft-capsule-date {
+.draft-status,
+.draft-date {
   font-size: 22rpx;
-  color: #6f7a80;
+  color: #758188;
 }
 
 .draft-title {
   margin-top: 16rpx;
-  font-size: 34rpx;
-  line-height: 1.4;
-  color: #1f2529;
-  font-weight: 600;
-}
-
-.draft-meta {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.75;
-  color: #8b959b;
+  font-size: 32rpx;
+  line-height: 1.42;
+  color: #293136;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
 .node-body-unlocked {
-  padding: 28rpx 28rpx 30rpx;
-  border-radius: 34rpx;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(251, 245, 235, 0.94) 100%);
+  padding: 30rpx 30rpx 34rpx;
+  border-radius: 36rpx;
+  background:
+    radial-gradient(circle at right top, rgba(239, 205, 145, 0.2) 0%, rgba(239, 205, 145, 0) 36%),
+    linear-gradient(180deg, rgba(255, 253, 249, 0.98) 0%, rgba(248, 240, 225, 0.98) 100%);
+  border: 1rpx solid rgba(214, 183, 127, 0.22);
   box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.78) inset,
-    0 20rpx 44rpx rgba(116, 100, 67, 0.08);
+    0 2rpx 0 rgba(255, 255, 255, 0.82) inset,
+    0 24rpx 52rpx rgba(116, 100, 67, 0.12);
 }
 
 .node-body-unlocked::after {
@@ -865,9 +843,15 @@ onShow(() => {
 }
 
 .unlocked-kicker {
-  font-size: 22rpx;
+  min-height: 42rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 21rpx;
   letter-spacing: 2rpx;
   color: #8c6a28;
+  display: inline-flex;
+  align-items: center;
 }
 
 .unlocked-date {
@@ -878,40 +862,12 @@ onShow(() => {
 .unlocked-title {
   position: relative;
   margin-top: 14rpx;
-  font-size: 38rpx;
-  line-height: 1.38;
-  color: #1f2529;
+  font-size: 42rpx;
+  line-height: 1.32;
+  color: #1c2125;
   font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
   z-index: 1;
-}
-
-.unlocked-type {
-  position: relative;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.7;
-  color: #8d7750;
-  z-index: 1;
-}
-
-.tag-row {
-  position: relative;
-  margin-top: 18rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  z-index: 1;
-}
-
-.tag-chip {
-  min-height: 48rpx;
-  padding: 0 18rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.82);
-  color: #6f7a80;
-  font-size: 22rpx;
-  display: inline-flex;
-  align-items: center;
 }
 
 .group-head-loading {
@@ -977,8 +933,9 @@ onShow(() => {
 .tail-text {
   max-width: 560rpx;
   font-size: 24rpx;
-  line-height: 1.9;
+  line-height: 1.8;
   color: #a0a8ae;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
 }
 
 .icon {
@@ -1002,10 +959,4 @@ onShow(() => {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389979f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
 }
 
-.icon-lock-muted {
-  width: 28rpx;
-  height: 28rpx;
-  margin-top: 2rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8b1b6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='11' width='14' height='10' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>");
-}
 </style>
