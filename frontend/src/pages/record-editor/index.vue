@@ -84,7 +84,11 @@ const closePage = () => {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 24rpx 40rpx 80rpx;
+  /* 顶部安全区: 系统状态栏 + 微信胶囊高度(约 88rpx) + 呼吸留白 */
+  padding:
+    calc(env(safe-area-inset-top, 44rpx) + 120rpx)
+    40rpx
+    80rpx;
   background: #eef2f4;
   position: relative;
 }
@@ -100,13 +104,14 @@ const closePage = () => {
   pointer-events: none;
 }
 
-/* 顶栏 */
+/* 顶栏: 左 Vol. 右 X, X 必须留在微信胶囊按钮左侧并保持安全距离 */
 .topbar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 12rpx 36rpx;
+  /* 右侧多预留 200rpx, 避开微信右上角胶囊按钮 (...圆) */
+  padding: 0 200rpx 56rpx 12rpx;
 }
 
 .vol-tag {
