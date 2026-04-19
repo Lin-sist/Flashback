@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
-import BottomNavBar from '../../components/common/BottomNavBar.vue'
+import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type DateTimeValue, type RecordListItemVO } from '../../types'
 import { formatDateTime, getToken } from '../../utils'
@@ -291,15 +291,7 @@ onShow(() => {
 </script>
 
 <template>
-  <view class="page">
-    <view class="top-bar">
-      <view class="top-bar-side" />
-      <view class="brand">时光回序</view>
-      <view class="top-bar-side right" @tap="goArchive">
-        <view class="icon icon-history" />
-      </view>
-    </view>
-
+  <AppPageShell class="page" title="时光回序" current="home">
     <view class="hero">
       <view class="hero-title">那些被封存的<br />碎片</view>
       <view class="hero-subtitle">写给未来，也留给此刻。</view>
@@ -367,50 +359,23 @@ onShow(() => {
       <image class="scene-image" src="/static/home-scene.jpg" mode="aspectFill" />
     </view>
 
-    <view class="fab" @tap="goEditor">
-      <text class="fab-plus">+</text>
-    </view>
+    <template #floating>
+      <view class="fab" @tap="goEditor">
+        <text class="fab-plus">+</text>
+      </view>
 
-    <view v-if="loading && !allSectionsFailed" class="sync-pill">正在同步首页内容</view>
-
-    <BottomNavBar current="home" />
-  </view>
+      <view v-if="loading && !allSectionsFailed" class="sync-pill">正在同步首页内容</view>
+    </template>
+  </AppPageShell>
 </template>
 
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 20rpx 40rpx 260rpx;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 34%),
     radial-gradient(circle at 88% 14%, rgba(238, 228, 210, 0.34) 0%, rgba(238, 228, 210, 0) 28%),
     linear-gradient(180deg, #f8f9fa 0%, #f2f4f6 100%);
-}
-
-.top-bar {
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 8rpx;
-}
-
-.top-bar-side {
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.brand {
-  flex: 1;
-  text-align: center;
-  font-size: 34rpx;
-  font-weight: 500;
-  letter-spacing: 4rpx;
-  color: var(--fb-color-primary);
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .hero {
@@ -725,12 +690,6 @@ onShow(() => {
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-}
-
-.icon-history {
-  width: 40rpx;
-  height: 40rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b647a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12a9 9 0 1 0 3-6.7'/><polyline points='3 4 3 9 8 9'/><polyline points='12 7 12 12 15 14'/></svg>");
 }
 
 .icon-edit {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import BottomNavBar from '../../components/common/BottomNavBar.vue'
+import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
 import { formatDateTime, getToken } from '../../utils'
@@ -187,17 +187,17 @@ onShow(() => {
 </script>
 
 <template>
-  <view class="page">
-    <view class="page-glow page-glow-top" />
-    <view class="page-glow page-glow-bottom" />
+  <AppPageShell class="page" title="时光回序" current="timeline">
+    <template #background>
+      <view class="page-glow page-glow-top" />
+      <view class="page-glow page-glow-bottom" />
+    </template>
 
-    <view class="top-bar">
+    <template #top-left>
       <view class="top-icon-btn" @tap="openFilterPanel">
         <view class="icon icon-search" />
       </view>
-      <view class="brand">时光回序</view>
-      <view class="top-bar-side" />
-    </view>
+    </template>
 
     <view class="hero">
       <view class="hero-title">时间长廊</view>
@@ -338,16 +338,13 @@ onShow(() => {
       <view class="tail-line" />
       <view class="tail-text">写下的片刻，会留在这里。</view>
     </view>
-
-    <BottomNavBar current="timeline" />
-  </view>
+  </AppPageShell>
 </template>
 
 <style scoped>
 .page {
   position: relative;
   min-height: 100vh;
-  padding: 20rpx 40rpx 260rpx;
   overflow: hidden;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 34%),
@@ -377,16 +374,6 @@ onShow(() => {
   background: rgba(134, 156, 170, 0.12);
 }
 
-.top-bar {
-  position: relative;
-  z-index: 1;
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 8rpx;
-}
-
 .top-icon-btn,
 .top-bar-side {
   width: 80rpx;
@@ -402,16 +389,6 @@ onShow(() => {
   box-shadow:
     0 2rpx 0 rgba(255, 255, 255, 0.65) inset,
     0 10rpx 24rpx rgba(80, 98, 110, 0.08);
-}
-
-.brand {
-  flex: 1;
-  text-align: center;
-  font-size: 34rpx;
-  font-weight: 500;
-  letter-spacing: 4rpx;
-  color: var(--fb-color-primary);
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .hero {
@@ -466,12 +443,12 @@ onShow(() => {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 12;
+  z-index: 40;
   background: rgba(18, 22, 26, 0.18);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 124rpx 32rpx 0;
+  padding: calc(var(--app-shell-nav-total-height) + 24rpx) 32rpx 0;
 }
 
 .filter-sheet {

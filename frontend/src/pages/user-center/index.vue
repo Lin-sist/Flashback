@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
-import BottomNavBar from '../../components/common/BottomNavBar.vue'
+import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
@@ -141,17 +141,11 @@ onShow(() => {
 </script>
 
 <template>
-  <view class="page">
-    <view class="page-glow page-glow-left" />
-    <view class="page-glow page-glow-right" />
-
-    <view class="top-bar">
-      <view class="top-bar-side" />
-      <view class="brand">时光回序</view>
-      <view class="top-bar-side right">
-        <view class="icon icon-more" />
-      </view>
-    </view>
+  <AppPageShell class="page" title="时光回序" current="user-center">
+    <template #background>
+      <view class="page-glow page-glow-left" />
+      <view class="page-glow page-glow-right" />
+    </template>
 
     <view v-if="showInitialLoading" class="state-card">
       <view class="state-kicker">PERSONAL CONTROL</view>
@@ -230,16 +224,13 @@ onShow(() => {
         <view class="logout-button" @tap="logout">退出登录</view>
       </view>
     </template>
-
-    <BottomNavBar current="user-center" />
-  </view>
+  </AppPageShell>
 </template>
 
 <style scoped>
 .page {
   position: relative;
   min-height: 100vh;
-  padding: 20rpx 40rpx 260rpx;
   background:
     radial-gradient(circle at top left, rgba(214, 224, 230, 0.48) 0, rgba(214, 224, 230, 0) 36%),
     radial-gradient(circle at top right, rgba(244, 232, 210, 0.72) 0, rgba(244, 232, 210, 0) 34%),
@@ -267,38 +258,6 @@ onShow(() => {
   top: 420rpx;
   right: -120rpx;
   background: rgba(243, 223, 187, 0.46);
-}
-
-.top-bar {
-  position: relative;
-  z-index: 1;
-  height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 8rpx;
-}
-
-.top-bar-side {
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.top-bar-side.right {
-  justify-content: flex-end;
-}
-
-.brand {
-  flex: 1;
-  text-align: center;
-  font-size: 34rpx;
-  font-weight: 500;
-  letter-spacing: 4rpx;
-  color: #1a1a1a;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .state-card {
@@ -660,12 +619,6 @@ onShow(() => {
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-}
-
-.icon-more {
-  width: 36rpx;
-  height: 36rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239aa3a9'><circle cx='12' cy='5.5' r='1.6'/><circle cx='12' cy='12' r='1.6'/><circle cx='12' cy='18.5' r='1.6'/></svg>");
 }
 
 .icon-book {
