@@ -4,6 +4,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import EmptyState from '../../components/common/EmptyState.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../components/common/PrimaryButton.vue'
+import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import { replyService } from '../../services'
 import { useRecordStore } from '../../stores'
 import { RecordStatus, ReplyType, type ReplyVO } from '../../types'
@@ -21,6 +22,16 @@ const source = ref<EditorSource>('home')
 const detailLoading = ref(false)
 const currentRecordId = ref<number | null>(null)
 const detailErrorState = ref<'NONE' | 'INVALID_ID' | 'NOT_FOUND' | 'LOAD_FAILED'>('NONE')
+
+const { cssVars, statusBarHeight, navBarHeight, rightSafeWidth } = useWechatNavMetrics()
+
+// 顶部安全区：状态栏 + 胶囊按钮高度之下再留一点缓冲
+const safeTopStyle = computed(() => ({
+  ...cssVars.value,
+  paddingTop: `calc(${statusBarHeight.value}px + ${navBarHeight.value}px + 8rpx)`,
+  // 右侧避让微信胶囊按钮（≈96px 宽 + 10px margin），X 按钮放在下一行/更下方，保险起见加右安全宽
+  '--fb-right-safe': `${rightSafeWidth.value}px`,
+}))
 
 const detail = computed(() => {
   if (!currentRecordId.value || !recordStore.detail) {
@@ -53,6 +64,32 @@ const isSealed = computed(() => detail.value?.status === RecordStatus.SEALED)
 const isUnlocked = computed(() => detail.value?.status === RecordStatus.UNLOCKED)
 const canSubmitReply = computed(() => Boolean(detail.value?.canReply && !detail.value?.hasReply))
 const hasSubmittedReply = computed(() => Boolean(detail.value?.hasReply))
+
+// 根据 createdAt 推导「季节，年份」档案副标题
+const archiveNo = computed(() => {
+  if (!detail.value?.id) return '—'
+  return String(detail.value.id).padStart(3, '0')
+})
+
+const archiveSeason = computed(() => {
+  const raw = detail.value?.createdAt
+  if (!raw) return ''
+  const date = new Date(typeof raw === 'string' && !raw.includes('T') ? raw.replace(' ', 'T') : raw)
+  if (Number.isNaN(date.getTime())) return ''
+  const m = date.getMonth() + 1
+  const year = date.getFullYear()
+  let season = ''
+  if (m >= 3 && m <= 5) season = 'Spring'
+  else if (m >= 6 && m <= 8) season = 'Summer'
+  else if (m >= 9 && m <= 11) season = 'Autumn'
+  else season = 'Winter'
+  return `${season}, ${year}`
+})
+
+const archiveDateText = computed(() => {
+  if (!detail.value?.createdAt) return ''
+  return formatDateTime(detail.value.createdAt)
+})
 
 const ensureLogin = () => {
   if (!getToken()) {
@@ -243,7 +280,10 @@ onLoad(async (query) => {
 </script>
 
 <template>
-  <view class="page">
+  <view class="archive-page" :style="safeTopStyle">
+    <!-- 纸雾 / 点阵档案底纹 -->
+    <view class="archive-backdrop" />
+
     <view v-if="detailLoading" class="state-wrap">
       <EmptyState text="正在加载记录详情..." />
       <PrimaryButton text="返回上一页" ghost @tap="closePage" />
@@ -254,36 +294,34 @@ onLoad(async (query) => {
       <PrimaryButton :text="detailErrorState === 'INVALID_ID' ? '返回上一页' : '重试加载'" ghost @tap="detailErrorState === 'INVALID_ID' ? closePage : retryLoadDetail" />
     </view>
 
-    <view v-else-if="detail">
-      <view class="meta-head">
-        <view>
-          <view class="archive-no">ARCHIVE NO. {{ detail.id }}</view>
-          <view class="archive-meta">{{ formatDateTime(detail.createdAt) }}</view>
+    <view v-else-if="detail" class="archive-stage">
+      <!-- 顶部档案标识：左侧档案编号 + 季节年份；右侧关闭 X -->
+      <view class="archive-header">
+        <view class="archive-ident">
+          <view class="archive-ident__no">ARCHIVE NO. {{ archiveNo }}</view>
+          <view v-if="archiveSeason" class="archive-ident__season">{{ archiveSeason }}</view>
+          <view v-if="archiveDateText" class="archive-ident__date">{{ archiveDateText }}</view>
         </view>
-        <view class="close-btn" @tap="closePage">✕</view>
+        <view class="archive-close" @tap="closePage">
+          <text class="archive-close__icon">✕</text>
+        </view>
       </view>
 
-      <view v-if="isDraft" class="status-panel">
+      <!-- DRAFT：最小改动保留 -->
+      <view v-if="isDraft" class="fallback-panel">
         <PaperContainer radius="xl" class="status-card">
-          <view class="state-head">
-            <view class="state-badge badge-draft">DRAFT 草稿</view>
-            <view class="state-kicker">可继续编辑</view>
-          </view>
           <view class="panel-title">继续完善后再封存</view>
-          <view class="panel-content">这封信仍处于草稿阶段，当前不会进入解锁阅读态。</view>
+          <view class="panel-content">这封信仍处于草稿阶段，尚未进入解锁阅读态。</view>
           <view class="panel-time">计划解锁：{{ formatDateTime(detail.unlockAt) }}</view>
         </PaperContainer>
         <PrimaryButton text="继续编辑草稿" @tap="openEditor" />
       </view>
 
-      <view v-else-if="isSealed" class="status-panel status-panel-sealed">
-        <PaperContainer radius="lg" warm class="status-card">
-          <view class="state-head">
-            <view class="state-badge badge-sealed">SEALED 已封存</view>
-            <view class="state-kicker">等待解锁中</view>
-          </view>
-          <view class="panel-title">信件已封存，暂不可编辑</view>
-          <view class="panel-content">到达解锁时间之前，内容保持封存状态，仅展示时间信息。</view>
+      <!-- SEALED：最小改动保留 -->
+      <view v-else-if="isSealed" class="fallback-panel">
+        <PaperContainer radius="xl" warm class="status-card">
+          <view class="panel-title">信件已封存，暂不可阅读</view>
+          <view class="panel-content">到达解锁时间之前，内容保持封存状态。</view>
           <view class="time-grid">
             <view class="time-item">
               <view class="time-label">封存时间</view>
@@ -297,55 +335,93 @@ onLoad(async (query) => {
         </PaperContainer>
       </view>
 
-      <view v-else-if="isUnlocked" class="letter-layout">
-        <view class="unlock-head">
-          <view class="state-badge badge-unlocked">UNLOCKED 已解锁</view>
-          <view class="unlock-time">解锁时间：{{ formatDateTime(detail.unlockedAt || detail.unlockAt) }}</view>
+      <!-- UNLOCKED：档案信件阅读页 -->
+      <view v-else-if="isUnlocked" class="letter-stage">
+        <!-- 纸页：引句 + 正文 + 轻装饰 -->
+        <view class="letter-paper">
+          <view class="letter-quote">
+            <text class="letter-quote__mark letter-quote__mark--open">&ldquo;</text>
+            <text class="letter-quote__text">{{ detail.title || '未命名来信' }}</text>
+            <text class="letter-quote__mark letter-quote__mark--close">&rdquo;</text>
+          </view>
+
+          <view class="letter-body">{{ detail.content }}</view>
+
+          <view class="letter-decor">
+            <text class="letter-decor__glyph">✦</text>
+            <text class="letter-decor__glyph letter-decor__glyph--sm">✧</text>
+          </view>
         </view>
 
-        <PaperContainer radius="sm" warm class="letter-paper">
-          <view class="letter-title">{{ detail.title || '未命名来信' }}</view>
-          <view class="letter-text">{{ detail.content }}</view>
-        </PaperContainer>
-
-        <PaperContainer radius="md" class="reply-shell">
-          <view class="reply-title">给当时的自己留一句回应</view>
-          <view class="reply-subtitle">已解锁后可阅读原文并留下一句回应</view>
-          <view v-if="detail.hasReply" class="reply-result">
-            <view v-if="replyLoading" class="reply-result-loading">正在载入已提交回应...</view>
+        <!-- 此刻回应区：未回应为轻灰蓝输入带；已回应转为纸条样式 -->
+        <view class="present-area">
+          <!-- 已提交回应 -->
+          <template v-if="detail.hasReply">
+            <view v-if="replyLoading" class="present-slot present-slot--loading">
+              <text class="present-placeholder">正在载入你留下的那句话…</text>
+            </view>
             <template v-else-if="replyLoadFailed">
-              <view class="reply-state-marker marker-failed">回应内容暂时加载失败</view>
-              <view class="reply-result-loading">网络有点慢，请稍后重试</view>
-              <view class="reply-retry" @tap="retryLoadReply">重试加载回应内容</view>
-            </template>
-            <template v-else>
-              <view class="reply-state-marker marker-submitted">回应已提交</view>
-              <view class="reply-result-content">{{ replyResult?.content }}</view>
-              <view v-if="replyResult?.createdAt" class="reply-result-time">
-                提交时间：{{ formatDateTime(replyResult.createdAt) }}
+              <view class="present-slot present-slot--failed">
+                <text class="present-placeholder">回应内容暂时加载失败，稍后再试</text>
+              </view>
+              <view class="present-action">
+                <view class="present-label">THE PRESENT MOMENT</view>
+                <view class="present-retry" @tap="retryLoadReply">
+                  <text>重新加载</text>
+                </view>
               </view>
             </template>
-          </view>
-          <template v-else-if="detail.canReply">
-            <view class="reply-state-marker marker-pending">可写一条回信</view>
-            <textarea
-              v-model="replyContent"
-              class="reply-area"
-              :disabled="submittingReply"
-              placeholder="写下这一刻的回应..."
-            />
-            <PrimaryButton
-              text="留下回应"
-              :disabled="submittingReply"
-              :loading="submittingReply"
-              @tap="submitReply"
-            />
+            <template v-else>
+              <view class="present-slot present-slot--submitted">
+                <view class="present-slot__header">
+                  <text class="present-slot__label">你曾回应</text>
+                  <text v-if="replyResult?.createdAt" class="present-slot__time">
+                    {{ formatDateTime(replyResult.createdAt) }}
+                  </text>
+                </view>
+                <view class="present-slot__content">{{ replyResult?.content }}</view>
+              </view>
+              <view class="present-action">
+                <view class="present-label">THE PRESENT MOMENT</view>
+                <view class="present-note">已留下回应</view>
+              </view>
+            </template>
           </template>
-          <view v-else class="reply-disabled-tip">
-            <view class="reply-state-marker marker-locked">暂不可回应</view>
-            <view class="reply-disabled-text">当前状态不可继续回应</view>
-          </view>
-        </PaperContainer>
+
+          <!-- 未回应且可回应 -->
+          <template v-else-if="detail.canReply">
+            <view class="present-slot present-slot--input">
+              <textarea
+                v-model="replyContent"
+                class="present-textarea"
+                :disabled="submittingReply"
+                placeholder="此刻，想对当时的自己说句什么…"
+                placeholder-class="present-textarea__placeholder"
+                auto-height
+              />
+            </view>
+            <view class="present-action">
+              <view class="present-label">THE PRESENT MOMENT</view>
+              <view
+                class="present-btn"
+                :class="{ 'present-btn--disabled': submittingReply }"
+                @tap="submitReply"
+              >
+                <text>{{ submittingReply ? '发送中…' : '留下回应' }}</text>
+              </view>
+            </view>
+          </template>
+
+          <!-- 不可回应 -->
+          <template v-else>
+            <view class="present-slot present-slot--locked">
+              <text class="present-placeholder">此刻暂不可留下回应</text>
+            </view>
+            <view class="present-action">
+              <view class="present-label">THE PRESENT MOMENT</view>
+            </view>
+          </template>
+        </view>
       </view>
     </view>
 
@@ -357,116 +433,136 @@ onLoad(async (query) => {
 </template>
 
 <style scoped>
-.page {
+/* ========== 页面底 ========== */
+.archive-page {
+  position: relative;
   min-height: 100vh;
-  padding: 18rpx 24rpx 40rpx;
-  background: radial-gradient(circle at 20% 10%, #f3f7fa 0%, #f8fafb 35%, #f8fafb 100%);
+  /* 顶部由 inline style 提供 paddingTop（安全区 + 胶囊高度） */
+  padding-left: 48rpx;
+  padding-right: 48rpx;
+  padding-bottom: 80rpx;
+  background: #f4f6f8;
+  overflow: hidden;
+}
+
+/* 极轻档案底纹：冷灰白 + 点阵 */
+.archive-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #f4f6f8;
+  background-image:
+    radial-gradient(circle at 18% 8%, rgba(231, 235, 239, 0.9) 0%, rgba(244, 246, 248, 0) 55%),
+    radial-gradient(rgba(120, 136, 150, 0.12) 1rpx, transparent 1rpx);
+  background-size: 100% 100%, 20rpx 20rpx;
+  background-position: 0 0, 0 0;
+  pointer-events: none;
+}
+
+.archive-stage,
+.state-wrap {
+  position: relative;
+  z-index: 1;
 }
 
 .state-wrap {
-  margin-top: 120rpx;
+  margin-top: 160rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  align-items: center;
 }
 
-.meta-head {
+/* ========== 顶部档案标识 ========== */
+.archive-header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding-top: 6rpx;
+  padding-top: 8rpx;
+  /* 右侧避让微信胶囊按钮宽度 */
+  padding-right: calc(var(--fb-right-safe, 96px) - 48rpx + 16rpx);
+  min-height: 120rpx;
 }
 
-.close-btn {
-  color: #7f8c93;
-  font-size: 40rpx;
-  line-height: 1;
-  padding: 8rpx;
+.archive-ident__no {
+  color: #8a95a0;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  font-family: 'Georgia', 'Songti SC', 'STSong', serif;
 }
 
-.archive-no {
-  color: #7f8c93;
-  font-size: 24rpx;
-  letter-spacing: 2rpx;
-}
-
-.archive-meta {
-  margin-top: 8rpx;
-  color: #7f8c93;
-  font-size: 24rpx;
-}
-
-.status-panel {
-  margin-top: 20rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.status-card {
-  box-shadow: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
-}
-
-.status-panel-sealed .status-card {
-  border: 1rpx solid rgba(127, 140, 147, 0.26);
-  background: linear-gradient(160deg, rgba(255, 253, 245, 0.95) 0%, rgba(248, 250, 251, 0.9) 100%);
-}
-
-.state-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-}
-
-.state-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4rpx 14rpx;
-  border-radius: 999rpx;
-  font-size: 24rpx;
+.archive-ident__season {
+  margin-top: 14rpx;
+  color: #8a95a0;
+  font-size: 28rpx;
+  font-style: italic;
+  font-family: 'Georgia', 'Songti SC', 'STSong', serif;
   letter-spacing: 1rpx;
 }
 
-.badge-draft {
-  background: #f6e8d8;
-  color: #8a6b4a;
+.archive-ident__date {
+  margin-top: 8rpx;
+  color: #a6afb7;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
 }
 
-.badge-sealed {
-  background: #eef2f5;
-  color: #5e6b73;
+.archive-close {
+  /* X 放在胶囊按钮下方，即顶部 padding 之后的内容行内 */
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 绝对定位到右上安全位置，避让胶囊 */
+  position: absolute;
+  top: 8rpx;
+  right: 0;
 }
 
-.badge-unlocked {
-  background: #eaf1f4;
-  color: #3b647a;
+.archive-close__icon {
+  color: #a6afb7;
+  font-size: 40rpx;
+  line-height: 1;
+  font-weight: 300;
 }
 
-.state-kicker {
-  color: #7f8c93;
-  font-size: 24rpx;
+/* ========== Fallback: DRAFT / SEALED ========== */
+.fallback-panel {
+  margin-top: 48rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.status-card {
+  box-shadow: 0 12rpx 32rpx rgba(26, 26, 26, 0.05);
 }
 
 .panel-title {
-  margin-top: 12rpx;
-  color: #1a1a1a;
+  color: #2c3a45;
   font-size: 36rpx;
-  font-weight: 600;
+  font-weight: 500;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .panel-content {
-  margin-top: 12rpx;
+  margin-top: 16rpx;
   line-height: 1.8;
-  color: #7f8c93;
+  color: #8a95a0;
   font-size: 28rpx;
 }
 
 .panel-time {
-  margin-top: 10rpx;
+  margin-top: 20rpx;
   color: #3b647a;
   font-size: 24rpx;
+  letter-spacing: 1rpx;
 }
 
 .time-grid {
-  margin-top: 12rpx;
+  margin-top: 20rpx;
   display: flex;
   flex-direction: column;
   gap: 10rpx;
@@ -476,13 +572,13 @@ onLoad(async (query) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10rpx 14rpx;
-  border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.7);
+  padding: 14rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .time-label {
-  color: #7f8c93;
+  color: #8a95a0;
   font-size: 24rpx;
 }
 
@@ -491,139 +587,224 @@ onLoad(async (query) => {
   font-size: 24rpx;
 }
 
-.letter-layout {
-  margin-top: 20rpx;
+/* ========== UNLOCKED: 信件舞台 ========== */
+.letter-stage {
+  margin-top: 56rpx;
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 56rpx;
 }
 
-.unlock-head {
+/* 纸页 */
+.letter-paper {
+  position: relative;
+  background: #fbf6e9;
+  border-radius: 36rpx;
+  padding: 64rpx 56rpx 72rpx;
+  box-shadow:
+    0 1rpx 0 rgba(255, 255, 255, 0.6) inset,
+    0 20rpx 48rpx rgba(67, 82, 96, 0.08);
+}
+
+/* 引句 */
+.letter-quote {
+  color: #2f3a44;
+  font-size: 44rpx;
+  line-height: 1.55;
+  font-weight: 500;
+  font-style: italic;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Georgia', serif;
+  letter-spacing: 2rpx;
+  word-break: break-word;
+}
+
+.letter-quote__mark {
+  color: #2f3a44;
+  font-size: 44rpx;
+  font-style: normal;
+  display: inline;
+}
+
+.letter-quote__mark--open {
+  margin-right: 2rpx;
+}
+
+.letter-quote__mark--close {
+  margin-left: 2rpx;
+}
+
+.letter-quote__text {
+  display: inline;
+}
+
+/* 正文 */
+.letter-body {
+  margin-top: 48rpx;
+  color: #4a4336;
+  font-size: 30rpx;
+  line-height: 2.05;
+  letter-spacing: 1rpx;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+}
+
+/* 纸页右下轻装饰 */
+.letter-decor {
+  margin-top: 56rpx;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 6rpx;
+}
+
+.letter-decor__glyph {
+  color: #d9c28a;
+  font-size: 32rpx;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.letter-decor__glyph--sm {
+  font-size: 22rpx;
+  opacity: 0.55;
+  transform: translateY(-10rpx);
+}
+
+/* ========== 此刻回应区 ========== */
+.present-area {
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx;
+}
+
+.present-slot {
+  min-height: 120rpx;
+  padding: 32rpx 32rpx;
+  border-radius: 32rpx;
+  background: rgba(218, 226, 233, 0.55);
+  display: flex;
+  align-items: center;
+}
+
+.present-placeholder {
+  color: #9aa5b0;
+  font-size: 28rpx;
+  font-style: italic;
+  letter-spacing: 1rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Georgia', serif;
+}
+
+.present-slot--input {
+  align-items: stretch;
+  padding: 28rpx 32rpx;
+}
+
+.present-textarea {
+  width: 100%;
+  min-height: 80rpx;
+  background: transparent;
+  color: #2c3a45;
+  font-size: 28rpx;
+  line-height: 1.7;
+  letter-spacing: 1rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+}
+
+.present-textarea__placeholder {
+  color: #9aa5b0;
+  font-style: italic;
+}
+
+.present-slot--submitted {
+  flex-direction: column;
+  align-items: stretch;
+  background: rgba(251, 246, 233, 0.7);
+  padding: 28rpx 32rpx;
+  gap: 14rpx;
+}
+
+.present-slot__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
 }
 
-.unlock-time {
-  color: #7f8c93;
-  font-size: 24rpx;
-}
-
-.letter-paper {
-  min-height: 520rpx;
-}
-
-.letter-title {
-  font-size: 40rpx;
-  color: #3f3a31;
-  font-weight: 500;
-}
-
-.letter-text {
-  margin-top: 16rpx;
-  line-height: 1.9;
-  color: #463f35;
-  font-size: 32rpx;
-  white-space: pre-wrap;
-}
-
-.reply-shell {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(8rpx);
-}
-
-.reply-title {
-  font-size: 28rpx;
-  color: #1a1a1a;
-}
-
-.reply-subtitle {
-  margin-top: 6rpx;
-  margin-bottom: 12rpx;
-  color: #7f8c93;
-  font-size: 24rpx;
-}
-
-.reply-area {
-  width: 100%;
-  min-height: 170rpx;
-  border-radius: 24rpx;
-  background: rgba(248, 250, 251, 0.85);
-  padding: 18rpx;
-  margin-bottom: 14rpx;
-  font-size: 28rpx;
-  line-height: 1.7;
-}
-
-.reply-result {
-  border-radius: 24rpx;
-  background: rgba(248, 250, 251, 0.85);
-  padding: 18rpx;
-}
-
-.reply-result-loading {
-  font-size: 28rpx;
-  color: #7f8c93;
-}
-
-.reply-state-marker {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 10rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 999rpx;
-  font-size: 24rpx;
-}
-
-.marker-submitted {
-  background: rgba(59, 100, 122, 0.12);
+.present-slot__label {
   color: #3b647a;
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
+  font-family: 'Georgia', 'Songti SC', serif;
+  text-transform: uppercase;
 }
 
-.marker-failed {
-  background: rgba(127, 140, 147, 0.14);
-  color: #5e6b73;
+.present-slot__time {
+  color: #a6afb7;
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
 }
 
-.marker-pending {
-  background: rgba(246, 232, 216, 0.8);
-  color: #8a6b4a;
-}
-
-.marker-locked {
-  background: rgba(127, 140, 147, 0.14);
-  color: #5e6b73;
-}
-
-.reply-result-content {
-  color: #1a1a1a;
+.present-slot__content {
+  color: #2c3a45;
   font-size: 28rpx;
   line-height: 1.8;
   white-space: pre-wrap;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
 }
 
-.reply-result-time {
-  margin-top: 12rpx;
-  color: #7f8c93;
-  font-size: 24rpx;
+.present-slot--failed,
+.present-slot--loading,
+.present-slot--locked {
+  background: rgba(218, 226, 233, 0.4);
 }
 
-.reply-retry {
-  margin-top: 12rpx;
+/* 底部动作行 */
+.present-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8rpx;
+  gap: 16rpx;
+}
+
+.present-label {
+  color: #a6afb7;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  font-family: 'Georgia', 'Songti SC', serif;
+  text-transform: uppercase;
+}
+
+.present-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  min-width: 180rpx;
+  padding: 0 36rpx;
+  border-radius: 999rpx;
+  background: #3b647a;
+  color: #fbf6e9;
+  font-size: 26rpx;
+  letter-spacing: 4rpx;
+  box-shadow: 0 10rpx 24rpx rgba(59, 100, 122, 0.2);
+}
+
+.present-btn--disabled {
+  background: #8ea4b1;
+  box-shadow: none;
+}
+
+.present-retry {
   color: #3b647a;
   font-size: 24rpx;
+  letter-spacing: 1rpx;
+  padding: 8rpx 4rpx;
 }
 
-.reply-disabled-tip {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.reply-disabled-text {
-  color: #7f8c93;
-  font-size: 28rpx;
+.present-note {
+  color: #8a95a0;
+  font-size: 24rpx;
+  letter-spacing: 1rpx;
 }
 </style>
-
