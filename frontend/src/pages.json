@@ -3,7 +3,9 @@
     {
       "path": "pages/login/index",
       "style": {
-        "navigationBarTitleText": "Login"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "时光回序",
+        "backgroundColor": "#f4f6f7"
       }
     },
     {
