@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
-import { reactive, ref } from 'vue'
-import AppTopBar from '../../components/common/AppTopBar.vue'
-import PaperContainer from '../../components/common/PaperContainer.vue'
-import PrimaryButton from '../../components/common/PrimaryButton.vue'
+import { computed, reactive, ref } from 'vue'
+import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import { useRecordStore, useTagStore } from '../../stores'
 import { RecordType } from '../../types'
-import { formatDayText, formatDateTime, getToken, toLocalDateTime, toUserMessage, validateRecordContent } from '../../utils'
+import {
+  formatDateTime,
+  formatDayText,
+  getToken,
+  toLocalDateTime,
+  toUserMessage,
+  validateRecordContent,
+} from '../../utils'
 
 const recordStore = useRecordStore()
 const tagStore = useTagStore()
@@ -45,6 +50,15 @@ const form = reactive({
   aiSummary: '',
   aiPromptResults: [] as string[],
   tagIds: [] as number[],
+})
+
+const writingDateText = computed(() => formatDayText(Date.now()))
+const writingMomentText = computed(() => formatDateTime(Date.now()))
+
+const recordTypeLabel = computed(() => {
+  return (
+    tagStore.recordTypeOptions.find((item) => item.value === form.recordType)?.label || 'Future Letter'
+  )
 })
 
 const ensureLogin = () => {
@@ -156,8 +170,8 @@ const handleCloseWithAutoSave = async () => {
   }
 }
 
-const onRecordTypeChange = (event: { detail: { value: number } }) => {
-  const next = tagStore.recordTypeOptions[event.detail.value]
+const onRecordTypeChange = (event: { detail: { value: string | number } }) => {
+  const next = tagStore.recordTypeOptions[Number(event.detail.value)]
   if (next) {
     form.recordType = next.value
   }
@@ -168,6 +182,7 @@ const fillByDetail = async (id: number) => {
   if (!detail) {
     return
   }
+
   form.title = detail.title || ''
   form.content = detail.content || ''
   form.recordType = detail.recordType
@@ -233,8 +248,7 @@ const persistDraft = async () => {
   }
 
   if (recordId.value) {
-    const updated = await recordStore.updateDraft(recordId.value, payload)
-    return updated
+    return recordStore.updateDraft(recordId.value, payload)
   }
 
   const created = await recordStore.createDraft(payload)
@@ -244,6 +258,10 @@ const persistDraft = async () => {
 }
 
 const saveDraft = async () => {
+  if (loading.value) {
+    return
+  }
+
   if (!validateRecordContent(form.content)) {
     uni.showToast({ title: '请先写下正文内容', icon: 'none' })
     return
@@ -262,6 +280,10 @@ const saveDraft = async () => {
 }
 
 const sealRecord = async () => {
+  if (loading.value) {
+    return
+  }
+
   if (!validateRecordContent(form.content)) {
     uni.showToast({ title: '请先写下正文内容', icon: 'none' })
     return
@@ -296,7 +318,6 @@ onLoad(async (query) => {
   }
 
   source.value = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
-
   latestQuery.value = query as Record<string, unknown>
   await runInitialization(latestQuery.value)
 })
@@ -304,167 +325,507 @@ onLoad(async (query) => {
 
 <template>
   <view class="page">
-    <AppTopBar :title="form.volNo" show-close transparent @close="handleCloseWithAutoSave" />
+    <view class="page-bg" aria-hidden="true" />
 
-    <view v-if="initializing" class="state-wrap">
-      <view class="state-text">正在初始化编辑页...</view>
-    </view>
+    <ImmersiveEditorTopBar :vol-no="form.volNo" @close="handleCloseWithAutoSave" />
 
-    <view v-else-if="initFailed" class="state-wrap">
-      <view class="state-text">{{ initErrorMessage || '初始化失败，请检查网络后重试' }}</view>
-      <view class="state-action">
-        <PrimaryButton text="重试初始化" ghost @tap="retryInitialization" />
-      </view>
-    </view>
-
-    <template v-else>
-
-      <view class="header-copy">
-        <view class="captured-at">Captured at</view>
-        <view class="main-date">{{ formatDayText(Date.now()) }}</view>
+    <view class="page-body">
+      <view v-if="initializing" class="state-paper">
+        <text class="state-kicker">Preparing the archive page</text>
+        <text class="state-title">正在初始化写作页...</text>
+        <text class="state-desc">我们正在取回当前草稿与类型信息，稍候就能继续落笔。</text>
       </view>
 
-      <PaperContainer radius="xl" class="paper">
-        <view class="paper-top">
-          <picker :range="tagStore.recordTypeOptions" range-key="label" @change="onRecordTypeChange">
-            <view class="record-type">{{ form.recordType }}</view>
-          </picker>
-          <view class="vertical-label">TIME FILE</view>
+      <view v-else-if="initFailed" class="state-paper">
+        <text class="state-kicker">Initialization interrupted</text>
+        <text class="state-title">写作页暂时没有打开</text>
+        <text class="state-desc">{{ initErrorMessage || '初始化失败，请检查网络后重试' }}</text>
+        <view class="retry-btn" @tap="retryInitialization">重试初始化</view>
+      </view>
+
+      <template v-else>
+        <view class="paper">
+          <view class="paper-inner">
+            <view class="paper-head">
+              <view class="head-left">
+                <text class="captured-at">Captured at</text>
+                <text class="date-title">{{ writingDateText }}</text>
+                <text class="date-sub">{{ writingMomentText }}</text>
+              </view>
+
+              <view class="head-right">
+                <picker :range="tagStore.recordTypeOptions" range-key="label" @change="onRecordTypeChange">
+                  <view class="record-type-chip">
+                    <text class="record-type-chip__text">{{ recordTypeLabel }}</text>
+                    <text class="record-type-chip__arrow">⌄</text>
+                  </view>
+                </picker>
+
+                <view class="seal">
+                  <text class="seal-text">私有档案·严禁翻阅</text>
+                </view>
+              </view>
+            </view>
+
+            <view class="title-wrap">
+              <input
+                v-model="form.title"
+                class="title-input"
+                placeholder="给这一页轻轻落一个题目"
+                placeholder-class="title-placeholder"
+              />
+            </view>
+
+            <view class="content-wrap">
+              <textarea
+                v-model="form.content"
+                class="content-area"
+                auto-height
+                maxlength="5000"
+                placeholder="写下此刻想被未来自己看到的内容..."
+                placeholder-class="content-placeholder"
+              />
+            </view>
+
+            <view class="margin-notes">
+              <view class="note-card">
+                <text class="note-kicker">Question kept for the future</text>
+                <input
+                  v-model="form.coreQuestion"
+                  class="note-input"
+                  placeholder="这一刻最想追问的问题（可选）"
+                  placeholder-class="note-placeholder"
+                />
+              </view>
+
+              <view class="note-card">
+                <text class="note-kicker">Unlock after</text>
+                <input
+                  v-model="form.unlockAtInput"
+                  class="note-input"
+                  placeholder="解锁时间，如 2026-12-31 20:00"
+                  placeholder-class="note-placeholder"
+                />
+              </view>
+            </view>
+
+            <view class="aux-divider" aria-hidden="true" />
+            <view class="aux-row">
+              <view class="aux-item" @tap="onAuxTap('MAP')">
+                <view class="aux-circle">
+                  <view class="ic ic-map" />
+                </view>
+                <text class="aux-label">MAP</text>
+              </view>
+
+              <view class="aux-item" @tap="onAuxTap('IMAGE')">
+                <view class="aux-circle">
+                  <view class="ic ic-image" />
+                </view>
+                <text class="aux-label">IMAGE</text>
+              </view>
+
+              <view class="aux-item" @tap="onAuxTap('VOICE')">
+                <view class="aux-circle">
+                  <view class="ic ic-voice" />
+                </view>
+                <text class="aux-label">VOICE</text>
+              </view>
+            </view>
+          </view>
         </view>
 
-        <input v-model="form.title" class="title-input" placeholder="给这一刻写个标题（可选）" />
+        <view class="action-area">
+          <view class="seal-btn" :class="{ disabled: loading }" @tap="sealRecord">
+            <text class="seal-btn-text">{{ loading ? '封存中...' : '封存这一刻' }}</text>
+            <view class="seal-btn-rule" />
+            <text class="seal-btn-arrow">›</text>
+          </view>
 
-        <textarea
-          v-model="form.content"
-          class="content-area"
-          maxlength="5000"
-          placeholder="写下此刻想被未来自己看到的内容..."
-        />
-
-        <input v-model="form.coreQuestion" class="sub-input" placeholder="这刻最想追问的问题（可选）" />
-        <input v-model="form.unlockAtInput" class="sub-input" placeholder="解锁时间，如 2026-12-31 20:00" />
-      </PaperContainer>
-
-      <view class="aux-actions">
-        <text class="aux-item" @tap="onAuxTap('MAP')">MAP</text>
-        <text class="aux-item" @tap="onAuxTap('IMAGE')">IMAGE</text>
-        <text class="aux-item" @tap="onAuxTap('VOICE')">VOICE</text>
-      </view>
-
-      <view class="actions">
-        <PrimaryButton text="保存草稿" :loading="loading" ghost @tap="saveDraft" />
-        <PrimaryButton text="封存这一刻" :loading="loading" @tap="sealRecord" />
-      </view>
-    </template>
+          <view class="draft-btn" :class="{ disabled: loading }" @tap="saveDraft">
+            {{ closing ? '自动保存中...' : loading ? '保存中...' : '保存草稿' }}
+          </view>
+        </view>
+      </template>
+    </view>
   </view>
 </template>
 
 <style scoped>
 .page {
+  position: relative;
   min-height: 100vh;
-  padding: 24rpx 24rpx 50rpx;
-  background: #f8fafb;
+  background: #eef1f3;
+  overflow: hidden;
 }
 
-.header-copy {
-  margin-top: 20rpx;
+.page-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 50%),
+    radial-gradient(88% 48% at 50% 100%, rgba(209, 217, 222, 0.55) 0%, rgba(209, 217, 222, 0) 56%),
+    linear-gradient(180deg, #eef1f3 0%, #edf0f2 100%);
 }
 
-.state-wrap {
-  margin-top: 30rpx;
+.page-body {
+  position: relative;
+  z-index: 1;
+  padding: 16rpx 40rpx calc(env(safe-area-inset-bottom) + 40rpx);
 }
 
-.state-text {
-  text-align: center;
-  color: #7f8c93;
-  font-size: 24rpx;
+.paper,
+.state-paper {
+  position: relative;
+  border-radius: 40rpx;
+  background: #fcfdfd;
+  box-shadow:
+    0 2rpx 0 rgba(255, 255, 255, 0.9) inset,
+    0 26rpx 56rpx rgba(60, 78, 92, 0.08),
+    0 8rpx 18rpx rgba(60, 78, 92, 0.04);
+  overflow: hidden;
 }
 
-.state-action {
-  margin-top: 16rpx;
+.paper::before,
+.state-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 18%),
+    radial-gradient(100% 52% at 100% 0%, rgba(232, 236, 238, 0.26) 0%, rgba(232, 236, 238, 0) 56%);
 }
 
-.captured-at {
-  color: #7f8c93;
-  font-size: 24rpx;
-  letter-spacing: 1rpx;
+.paper-inner {
+  position: relative;
+  z-index: 1;
+  padding: 58rpx 48rpx 46rpx;
 }
 
-.main-date {
-  margin-top: 8rpx;
-  color: #1a1a1a;
-  font-size: 56rpx;
-  line-height: 1.3;
-  font-weight: 500;
-}
-
-.paper {
-  margin-top: 22rpx;
-  min-height: 760rpx;
-}
-
-.paper-top {
+.paper-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 24rpx;
 }
 
-.record-type {
-  color: #3b647a;
+.head-left {
+  flex: 1;
+  min-width: 0;
+  padding-top: 6rpx;
+}
+
+.captured-at,
+.state-kicker,
+.note-kicker,
+.aux-label {
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Times New Roman', serif;
+}
+
+.captured-at {
+  display: block;
   font-size: 24rpx;
-  padding: 10rpx 18rpx;
-  border-radius: 999rpx;
-  background: #eef4f7;
-}
-
-.vertical-label {
-  writing-mode: vertical-rl;
+  line-height: 1;
   letter-spacing: 2rpx;
-  color: #b0b8bc;
-  font-size: 20rpx;
+  color: #89949a;
+  font-style: italic;
 }
 
-.title-input {
-  margin-top: 24rpx;
-  width: 100%;
-  font-size: 36rpx;
-  color: #1a1a1a;
+.date-title {
+  display: block;
+  margin-top: 20rpx;
+  color: #1d2327;
+  font-size: 54rpx;
+  line-height: 1.2;
+  letter-spacing: 2rpx;
+  font-weight: 500;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
-.content-area {
-  margin-top: 18rpx;
-  width: 100%;
-  min-height: 460rpx;
-  font-size: 32rpx;
-  line-height: 1.8;
-  color: #1a1a1a;
+.date-sub {
+  display: block;
+  margin-top: 16rpx;
+  color: #97a0a6;
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
-.sub-input {
-  margin-top: 12rpx;
-  width: 100%;
-  font-size: 28rpx;
-  color: #7f8c93;
-}
-
-.aux-actions {
-  margin-top: 22rpx;
+.head-right {
   display: flex;
-  justify-content: center;
-  gap: 36rpx;
+  align-items: flex-start;
+  gap: 18rpx;
+  flex-shrink: 0;
 }
 
-.aux-item {
-  color: #7f8c93;
-  font-size: 24rpx;
+.record-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  min-height: 56rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid rgba(132, 149, 161, 0.24);
+  border-radius: 999rpx;
+  background: rgba(244, 247, 248, 0.92);
+}
+
+.record-type-chip__text {
+  color: #53636d;
+  font-size: 22rpx;
   letter-spacing: 1rpx;
 }
 
-.actions {
-  margin-top: 30rpx;
+.record-type-chip__arrow {
+  color: #7e8a91;
+  font-size: 18rpx;
+  line-height: 1;
+}
+
+.seal {
+  min-height: 188rpx;
+  padding: 18rpx 14rpx;
+  border: 1rpx solid #d9c79a;
+  border-radius: 6rpx;
+  background: linear-gradient(180deg, #fbf4df 0%, #f4e8cd 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seal-text {
+  writing-mode: vertical-rl;
+  -webkit-writing-mode: vertical-rl;
+  color: #9f8a4c;
+  font-size: 22rpx;
+  letter-spacing: 6rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.title-wrap {
+  margin-top: 58rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 1rpx solid rgba(211, 218, 222, 0.75);
+}
+
+.title-input {
+  width: 100%;
+  min-height: 60rpx;
+  color: #1d2327;
+  font-size: 42rpx;
+  line-height: 1.35;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.content-wrap {
+  margin-top: 34rpx;
+  min-height: 540rpx;
+}
+
+.content-area {
+  width: 100%;
+  min-height: 540rpx;
+  color: #263038;
+  font-size: 32rpx;
+  line-height: 1.95;
+  letter-spacing: 1rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+}
+
+.title-placeholder {
+  color: #abb4b9;
+}
+
+.content-placeholder,
+.note-placeholder {
+  color: #96a1a8;
+}
+
+.margin-notes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18rpx;
+  margin-top: 32rpx;
+}
+
+.note-card {
+  padding: 24rpx 26rpx;
+  border-radius: 24rpx;
+  background: rgba(244, 247, 248, 0.78);
+  border: 1rpx solid rgba(210, 218, 223, 0.62);
+}
+
+.note-kicker {
+  display: block;
+  color: #8c979d;
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+}
+
+.note-input {
+  width: 100%;
+  margin-top: 14rpx;
+  min-height: 44rpx;
+  color: #3c4a52;
+  font-size: 28rpx;
+  line-height: 1.55;
+}
+
+.aux-divider {
+  height: 1rpx;
+  margin: 38rpx 8rpx 32rpx;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 208, 213, 0) 0%,
+    rgba(200, 208, 213, 0.62) 20%,
+    rgba(200, 208, 213, 0.62) 80%,
+    rgba(200, 208, 213, 0) 100%
+  );
+}
+
+.aux-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding: 0 16rpx;
+}
+
+.aux-item {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.aux-circle {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #cfd6da;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aux-label {
+  color: #8a949a;
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+}
+
+.ic {
+  width: 32rpx;
+  height: 32rpx;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.ic-map {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z'/><circle cx='12' cy='9' r='2.4'/></svg>");
+}
+
+.ic-image {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M4 8.5h3.2l1.6-2.2h6.4l1.6 2.2H20a1 1 0 0 1 1 1v8.3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z'/><circle cx='12' cy='13.6' r='3.4'/></svg>");
+}
+
+.ic-voice {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='3.5' width='6' height='11' rx='3'/><path d='M6 12a6 6 0 0 0 12 0'/><line x1='12' y1='18' x2='12' y2='21'/><line x1='9' y1='21' x2='15' y2='21'/></svg>");
+}
+
+.action-area {
+  margin-top: 42rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.seal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 460rpx;
+  width: 100%;
+  max-width: 670rpx;
+  height: 100rpx;
+  padding: 0 56rpx;
+  border-radius: 999rpx;
+  background: #2e5062;
+  box-shadow:
+    0 16rpx 32rpx rgba(46, 80, 98, 0.28),
+    0 2rpx 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+.seal-btn-text {
+  color: #ffffff;
+  font-size: 30rpx;
+  letter-spacing: 8rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.seal-btn-rule {
+  width: 1rpx;
+  height: 28rpx;
+  margin: 0 28rpx;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.seal-btn-arrow {
+  color: #ffffff;
+  font-size: 32rpx;
+  line-height: 1;
+  margin-top: -4rpx;
+  font-family: 'Songti SC', 'STSong', 'Times New Roman', serif;
+}
+
+.draft-btn {
+  margin-top: 22rpx;
+  color: #6f7d86;
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+  padding: 10rpx 18rpx;
+}
+
+.disabled {
+  opacity: 0.66;
+}
+
+.state-paper {
+  position: relative;
+  z-index: 1;
+  margin-top: 18rpx;
+  padding: 72rpx 48rpx 64rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.state-title {
+  margin-top: 18rpx;
+  color: #1d2327;
+  font-size: 40rpx;
+  line-height: 1.35;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.state-desc {
+  margin-top: 18rpx;
+  color: #78858d;
+  font-size: 26rpx;
+  line-height: 1.8;
+}
+
+.retry-btn {
+  margin-top: 34rpx;
+  min-width: 240rpx;
+  padding: 18rpx 30rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 80, 98, 0.08);
+  color: #2e5062;
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
 }
 </style>
-
