@@ -55,12 +55,6 @@ const form = reactive({
 const writingDateText = computed(() => formatDayText(Date.now()))
 const writingMomentText = computed(() => formatDateTime(Date.now()))
 
-const recordTypeLabel = computed(() => {
-  return (
-    tagStore.recordTypeOptions.find((item) => item.value === form.recordType)?.label || 'Future Letter'
-  )
-})
-
 const ensureLogin = () => {
   if (!getToken()) {
     uni.reLaunch({ url: '/pages/login/index' })
@@ -167,13 +161,6 @@ const handleCloseWithAutoSave = async () => {
   } finally {
     loading.value = false
     closing.value = false
-  }
-}
-
-const onRecordTypeChange = (event: { detail: { value: string | number } }) => {
-  const next = tagStore.recordTypeOptions[Number(event.detail.value)]
-  if (next) {
-    form.recordType = next.value
   }
 }
 
@@ -354,13 +341,6 @@ onLoad(async (query) => {
               </view>
 
               <view class="head-right">
-                <picker :range="tagStore.recordTypeOptions" range-key="label" @change="onRecordTypeChange">
-                  <view class="record-type-chip">
-                    <text class="record-type-chip__text">{{ recordTypeLabel }}</text>
-                    <text class="record-type-chip__arrow">⌄</text>
-                  </view>
-                </picker>
-
                 <view class="seal">
                   <text class="seal-text">私有档案·严禁翻阅</text>
                 </view>
@@ -387,26 +367,14 @@ onLoad(async (query) => {
               />
             </view>
 
-            <view class="margin-notes">
-              <view class="note-card">
-                <text class="note-kicker">Question kept for the future</text>
-                <input
-                  v-model="form.coreQuestion"
-                  class="note-input"
-                  placeholder="这一刻最想追问的问题（可选）"
-                  placeholder-class="note-placeholder"
-                />
-              </view>
-
-              <view class="note-card">
-                <text class="note-kicker">Unlock after</text>
-                <input
-                  v-model="form.unlockAtInput"
-                  class="note-input"
-                  placeholder="解锁时间，如 2026-12-31 20:00"
-                  placeholder-class="note-placeholder"
-                />
-              </view>
+            <view class="unlock-row">
+              <text class="unlock-label">Unlock after</text>
+              <input
+                v-model="form.unlockAtInput"
+                class="unlock-input"
+                placeholder="解锁时间，如 2026-12-31 20:00"
+                placeholder-class="unlock-placeholder"
+              />
             </view>
 
             <view class="aux-divider" aria-hidden="true" />
@@ -556,36 +524,12 @@ onLoad(async (query) => {
 .head-right {
   display: flex;
   align-items: flex-start;
-  gap: 18rpx;
   flex-shrink: 0;
 }
 
-.record-type-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 10rpx;
-  min-height: 56rpx;
-  padding: 0 20rpx;
-  border: 1rpx solid rgba(132, 149, 161, 0.24);
-  border-radius: 999rpx;
-  background: rgba(244, 247, 248, 0.92);
-}
-
-.record-type-chip__text {
-  color: #53636d;
-  font-size: 22rpx;
-  letter-spacing: 1rpx;
-}
-
-.record-type-chip__arrow {
-  color: #7e8a91;
-  font-size: 18rpx;
-  line-height: 1;
-}
-
 .seal {
-  min-height: 188rpx;
-  padding: 18rpx 14rpx;
+  min-height: 176rpx;
+  padding: 16rpx 12rpx;
   border: 1rpx solid #d9c79a;
   border-radius: 6rpx;
   background: linear-gradient(180deg, #fbf4df 0%, #f4e8cd 100%);
@@ -638,43 +582,39 @@ onLoad(async (query) => {
 }
 
 .content-placeholder,
-.note-placeholder {
+.unlock-placeholder {
   color: #96a1a8;
 }
 
-.margin-notes {
-  display: grid;
-  grid-template-columns: 1fr;
+.unlock-row {
+  display: flex;
+  align-items: center;
   gap: 18rpx;
-  margin-top: 32rpx;
+  margin-top: 36rpx;
+  padding: 16rpx 0 12rpx;
+  border-top: 1rpx solid rgba(215, 221, 225, 0.55);
 }
 
-.note-card {
-  padding: 24rpx 26rpx;
-  border-radius: 24rpx;
-  background: rgba(244, 247, 248, 0.78);
-  border: 1rpx solid rgba(210, 218, 223, 0.62);
-}
-
-.note-kicker {
-  display: block;
-  color: #8c979d;
+.unlock-label {
+  flex-shrink: 0;
+  color: #8d989e;
   font-size: 20rpx;
   letter-spacing: 1rpx;
+  font-style: italic;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
-.note-input {
-  width: 100%;
-  margin-top: 14rpx;
-  min-height: 44rpx;
-  color: #3c4a52;
-  font-size: 28rpx;
-  line-height: 1.55;
+.unlock-input {
+  flex: 1;
+  min-height: 40rpx;
+  color: #5d6971;
+  font-size: 24rpx;
+  line-height: 1.4;
 }
 
 .aux-divider {
   height: 1rpx;
-  margin: 38rpx 8rpx 32rpx;
+  margin: 26rpx 8rpx 30rpx;
   background: linear-gradient(
     90deg,
     rgba(200, 208, 213, 0) 0%,
@@ -736,7 +676,7 @@ onLoad(async (query) => {
 }
 
 .action-area {
-  margin-top: 42rpx;
+  margin-top: 34rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -746,44 +686,44 @@ onLoad(async (query) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 460rpx;
-  width: 100%;
-  max-width: 670rpx;
-  height: 100rpx;
-  padding: 0 56rpx;
+  min-width: 360rpx;
+  width: auto;
+  max-width: 520rpx;
+  height: 84rpx;
+  padding: 0 42rpx;
   border-radius: 999rpx;
   background: #2e5062;
   box-shadow:
-    0 16rpx 32rpx rgba(46, 80, 98, 0.28),
+    0 12rpx 24rpx rgba(46, 80, 98, 0.22),
     0 2rpx 0 rgba(255, 255, 255, 0.1) inset;
 }
 
 .seal-btn-text {
   color: #ffffff;
-  font-size: 30rpx;
-  letter-spacing: 8rpx;
+  font-size: 28rpx;
+  letter-spacing: 6rpx;
   font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 
 .seal-btn-rule {
   width: 1rpx;
-  height: 28rpx;
-  margin: 0 28rpx;
+  height: 24rpx;
+  margin: 0 22rpx;
   background: rgba(255, 255, 255, 0.35);
 }
 
 .seal-btn-arrow {
   color: #ffffff;
-  font-size: 32rpx;
+  font-size: 28rpx;
   line-height: 1;
-  margin-top: -4rpx;
+  margin-top: -2rpx;
   font-family: 'Songti SC', 'STSong', 'Times New Roman', serif;
 }
 
 .draft-btn {
-  margin-top: 22rpx;
-  color: #6f7d86;
-  font-size: 24rpx;
+  margin-top: 18rpx;
+  color: #79858d;
+  font-size: 22rpx;
   letter-spacing: 2rpx;
   padding: 10rpx 18rpx;
 }
