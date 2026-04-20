@@ -75,34 +75,10 @@ const isUnlocked = computed(() => detail.value?.status === RecordStatus.UNLOCKED
 const canSubmitReply = computed(() => Boolean(detail.value?.canReply && !detail.value?.hasReply))
 const hasSubmittedReply = computed(() => Boolean(detail.value?.hasReply))
 
-// 根据 createdAt 推导「季节，年份」档案副标题
-const archiveNo = computed(() => {
-  if (!detail.value?.id) return '—'
-  return String(detail.value.id).padStart(3, '0')
-})
-
-const archiveSeason = computed(() => {
-  const raw = detail.value?.createdAt
-  if (!raw) return ''
-  const date = new Date(typeof raw === 'string' && !raw.includes('T') ? raw.replace(' ', 'T') : raw)
-  if (Number.isNaN(date.getTime())) return ''
-  const m = date.getMonth() + 1
-  const year = date.getFullYear()
-  let season = ''
-  if (m >= 3 && m <= 5) season = 'Spring'
-  else if (m >= 6 && m <= 8) season = 'Summer'
-  else if (m >= 9 && m <= 11) season = 'Autumn'
-  else season = 'Winter'
-  return `${season}, ${year}`
-})
-
+// 顶部仅保留轻量时间信息
 const archiveDateText = computed(() => {
   if (!detail.value?.createdAt) return ''
   return formatDateTime(detail.value.createdAt)
-})
-
-const archiveMetaLine = computed(() => {
-  return [archiveSeason.value, archiveDateText.value].filter(Boolean).join(' · ')
 })
 
 const unlockMomentText = computed(() => {
@@ -308,12 +284,11 @@ onLoad(async (query) => {
       <view class="archive-top-safe__mist" />
 
       <view class="archive-top-safe__nav" :style="topNavStyle">
-        <view v-if="detail" class="archive-top-safe__meta">
-          <view class="archive-top-safe__eyebrow">ARCHIVE NO. {{ archiveNo }}</view>
-          <view v-if="archiveMetaLine" class="archive-top-safe__subline">{{ archiveMetaLine }}</view>
+        <view v-if="detail && !isUnlocked && archiveDateText" class="archive-top-safe__meta">
+          <view class="archive-top-safe__subline">{{ archiveDateText }}</view>
         </view>
 
-        <view class="archive-close" :style="closeRailStyle" @tap="closePage">
+        <view v-if="!isUnlocked" class="archive-close" :style="closeRailStyle" @tap="closePage">
           <view class="archive-close__icon">
             <view class="archive-close__line archive-close__line--a" />
             <view class="archive-close__line archive-close__line--b" />
@@ -335,8 +310,14 @@ onLoad(async (query) => {
 
       <view v-else-if="detail" class="archive-stage">
         <view class="archive-intro">
+          <view v-if="isUnlocked" class="archive-close archive-close--content" @tap="closePage">
+            <view class="archive-close__icon">
+              <view class="archive-close__line archive-close__line--a" />
+              <view class="archive-close__line archive-close__line--b" />
+            </view>
+          </view>
           <view v-if="isUnlocked" class="archive-intro__copy">
-            旧信已经启封，此刻只保留阅读与回应。
+            {{ unlockMomentText || archiveDateText }}
           </view>
           <view v-else-if="isSealed" class="archive-intro__copy">
             档案仍在封存中，等到约定的时间再翻开。
@@ -380,7 +361,6 @@ onLoad(async (query) => {
             <view class="letter-paper__glow" />
 
             <view class="letter-paper__header">
-              <view class="letter-paper__eyebrow">A LETTER REOPENED</view>
               <view class="letter-quote">
                 <text class="letter-quote__mark letter-quote__mark--open">&ldquo;</text>
                 <text class="letter-quote__text">{{ detail.title || '未命名来信' }}</text>
@@ -394,21 +374,12 @@ onLoad(async (query) => {
               <view v-if="unlockMomentText" class="letter-paper__footnote">
                 启封于 {{ unlockMomentText }}
               </view>
-              <view class="letter-decor">
-                <text class="letter-decor__glyph">✦</text>
-                <text class="letter-decor__glyph letter-decor__glyph--sm">✧</text>
-              </view>
             </view>
           </view>
 
           <view class="present-panel">
-            <view class="present-panel__mist" />
             <view class="present-panel__head">
-              <view class="present-panel__eyebrow">AT THIS MOMENT</view>
               <view class="present-panel__title">给当时的自己，留下一句现在的话。</view>
-              <view class="present-panel__desc">
-                回应会和这封旧信一起收进同一份档案里，不做公开评论，也不打断阅读。
-              </view>
             </view>
 
             <view class="present-area">
@@ -495,6 +466,9 @@ onLoad(async (query) => {
 .archive-page {
   position: relative;
   min-height: 100vh;
+  --font-reading: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  --font-secondary:
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   padding-left: 48rpx;
   padding-right: 48rpx;
   padding-bottom: 80rpx;
@@ -553,25 +527,15 @@ onLoad(async (query) => {
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 10rpx;
   max-width: calc(100% - (var(--wechat-right-safe-width, 96px) + 172rpx));
   padding-right: 12rpx;
 }
 
-.archive-top-safe__eyebrow {
-  color: #8c969f;
-  font-size: 20rpx;
-  letter-spacing: 5rpx;
-  font-family: 'Georgia', 'Songti SC', 'STSong', serif;
-}
-
 .archive-top-safe__subline {
-  color: #a0a8af;
-  font-size: 22rpx;
+  color: #adb4ba;
+  font-size: 20rpx;
   letter-spacing: 1rpx;
-  font-style: italic;
-  font-family: 'Georgia', 'Songti SC', 'STSong', serif;
+  font-family: var(--font-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -596,16 +560,17 @@ onLoad(async (query) => {
 }
 
 .archive-intro {
-  min-height: 54rpx;
+  position: relative;
+  min-height: 76rpx;
+  padding-right: 108rpx;
 }
 
 .archive-intro__copy {
-  color: #96a0a8;
-  font-size: 24rpx;
-  font-style: italic;
+  color: #a8afb5;
+  font-size: 22rpx;
   line-height: 1.7;
   letter-spacing: 1rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: var(--font-secondary);
 }
 
 .archive-close {
@@ -621,6 +586,17 @@ onLoad(async (query) => {
   background: rgba(255, 255, 255, 0.34);
   border: 1rpx solid rgba(138, 149, 160, 0.12);
   backdrop-filter: blur(12rpx);
+}
+
+.archive-close--content {
+  top: 0;
+  right: 0;
+  transform: none;
+  width: 72rpx;
+  height: 72rpx;
+  background: rgba(255, 252, 247, 0.72);
+  border-color: rgba(183, 173, 153, 0.2);
+  box-shadow: 0 8rpx 24rpx rgba(97, 90, 79, 0.06);
 }
 
 .archive-close__icon {
@@ -662,7 +638,7 @@ onLoad(async (query) => {
   color: #2c3a45;
   font-size: 36rpx;
   font-weight: 500;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: var(--font-reading);
 }
 
 .panel-content {
@@ -670,6 +646,7 @@ onLoad(async (query) => {
   line-height: 1.8;
   color: #8a95a0;
   font-size: 28rpx;
+  font-family: var(--font-secondary);
 }
 
 .panel-time {
@@ -677,6 +654,7 @@ onLoad(async (query) => {
   color: #3b647a;
   font-size: 24rpx;
   letter-spacing: 1rpx;
+  font-family: var(--font-secondary);
 }
 
 .time-grid {
@@ -698,11 +676,13 @@ onLoad(async (query) => {
 .time-label {
   color: #8a95a0;
   font-size: 24rpx;
+  font-family: var(--font-secondary);
 }
 
 .time-value {
   color: #3b647a;
   font-size: 24rpx;
+  font-family: var(--font-secondary);
 }
 
 /* ========== UNLOCKED: 信件舞台 ========== */
@@ -750,16 +730,7 @@ onLoad(async (query) => {
 }
 
 .letter-paper__header {
-  padding-bottom: 30rpx;
-  border-bottom: 1rpx solid rgba(188, 171, 138, 0.2);
-}
-
-.letter-paper__eyebrow {
-  margin-bottom: 22rpx;
-  color: #b29f77;
-  font-size: 20rpx;
-  letter-spacing: 6rpx;
-  font-family: 'Georgia', 'Songti SC', serif;
+  padding-bottom: 12rpx;
 }
 
 /* 引句 */
@@ -769,7 +740,7 @@ onLoad(async (query) => {
   line-height: 1.55;
   font-weight: 500;
   font-style: italic;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Georgia', serif;
+  font-family: var(--font-reading);
   letter-spacing: 2rpx;
   word-break: break-word;
 }
@@ -802,63 +773,33 @@ onLoad(async (query) => {
   letter-spacing: 1rpx;
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+  font-family: var(--font-reading);
 }
 
 .letter-paper__footer {
-  margin-top: 56rpx;
+  margin-top: 48rpx;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 20rpx;
 }
 
 .letter-paper__footnote {
-  color: #a08f71;
+  color: #a7a096;
   font-size: 22rpx;
-  letter-spacing: 2rpx;
-  font-family: 'Georgia', 'Songti SC', serif;
-}
-
-/* 纸页右下轻装饰 */
-.letter-decor {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  gap: 6rpx;
-}
-
-.letter-decor__glyph {
-  color: #d9c28a;
-  font-size: 32rpx;
-  line-height: 1;
-  opacity: 0.75;
-}
-
-.letter-decor__glyph--sm {
-  font-size: 22rpx;
-  opacity: 0.55;
-  transform: translateY(-10rpx);
+  letter-spacing: 1rpx;
+  font-family: var(--font-secondary);
 }
 
 .present-panel {
   position: relative;
   overflow: hidden;
   border-radius: 36rpx;
-  padding: 40rpx 36rpx 36rpx;
+  padding: 36rpx;
   background:
-    linear-gradient(180deg, rgba(246, 243, 237, 0.78) 0%, rgba(237, 241, 244, 0.72) 100%);
+    linear-gradient(180deg, rgba(246, 243, 237, 0.68) 0%, rgba(237, 241, 244, 0.58) 100%);
   border: 1rpx solid rgba(183, 193, 201, 0.28);
-  box-shadow: 0 16rpx 42rpx rgba(77, 91, 104, 0.06);
-}
-
-.present-panel__mist {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0) 46%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 100%);
+  box-shadow: 0 12rpx 34rpx rgba(77, 91, 104, 0.05);
 }
 
 .present-panel__head,
@@ -870,58 +811,44 @@ onLoad(async (query) => {
 .present-panel__head {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
-}
-
-.present-panel__eyebrow {
-  color: #a0a8af;
-  font-size: 20rpx;
-  letter-spacing: 5rpx;
-  font-family: 'Georgia', 'Songti SC', serif;
+  gap: 10rpx;
 }
 
 .present-panel__title {
-  color: #2f3a44;
-  font-size: 34rpx;
+  color: #4b453d;
+  font-size: 30rpx;
   line-height: 1.5;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
-}
-
-.present-panel__desc {
-  color: #8f98a1;
-  font-size: 24rpx;
-  line-height: 1.8;
+  font-family: var(--font-reading);
 }
 
 .present-area {
-  margin-top: 32rpx;
+  margin-top: 24rpx;
   display: flex;
   flex-direction: column;
-  gap: 28rpx;
+  gap: 24rpx;
 }
 
 .present-slot {
   min-height: 120rpx;
-  padding: 32rpx 32rpx;
+  padding: 30rpx 32rpx;
   border-radius: 32rpx;
-  background: rgba(218, 226, 233, 0.55);
+  background: rgba(233, 237, 240, 0.52);
   display: flex;
   align-items: center;
 }
 
 .present-placeholder {
   color: #9aa5b0;
-  font-size: 28rpx;
-  font-style: italic;
+  font-size: 26rpx;
   letter-spacing: 1rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Georgia', serif;
+  font-family: var(--font-secondary);
 }
 
 .present-slot--input {
   align-items: stretch;
   padding: 28rpx 32rpx;
-  background: rgba(247, 243, 234, 0.7);
-  border: 1rpx solid rgba(190, 176, 147, 0.22);
+  background: rgba(248, 244, 237, 0.74);
+  border: 1rpx solid rgba(190, 176, 147, 0.18);
 }
 
 .present-textarea {
@@ -932,21 +859,20 @@ onLoad(async (query) => {
   font-size: 28rpx;
   line-height: 1.7;
   letter-spacing: 1rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+  font-family: var(--font-reading);
 }
 
 .present-textarea__placeholder {
   color: #9aa5b0;
-  font-style: italic;
 }
 
 .present-slot--submitted {
   flex-direction: column;
   align-items: stretch;
-  background: rgba(251, 247, 239, 0.86);
+  background: rgba(251, 247, 239, 0.8);
   padding: 28rpx 32rpx;
   gap: 14rpx;
-  border: 1rpx solid rgba(190, 176, 147, 0.2);
+  border: 1rpx solid rgba(190, 176, 147, 0.16);
 }
 
 .present-slot__header {
@@ -956,31 +882,31 @@ onLoad(async (query) => {
 }
 
 .present-slot__label {
-  color: #3b647a;
+  color: #8f97a0;
   font-size: 22rpx;
-  letter-spacing: 3rpx;
-  font-family: 'Georgia', 'Songti SC', serif;
-  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  font-family: var(--font-secondary);
 }
 
 .present-slot__time {
-  color: #a6afb7;
+  color: #afb6bc;
   font-size: 22rpx;
   letter-spacing: 1rpx;
+  font-family: var(--font-secondary);
 }
 
 .present-slot__content {
-  color: #2c3a45;
+  color: #4b453d;
   font-size: 28rpx;
   line-height: 1.8;
   white-space: pre-wrap;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+  font-family: var(--font-reading);
 }
 
 .present-slot--failed,
 .present-slot--loading,
 .present-slot--locked {
-  background: rgba(229, 235, 239, 0.6);
+  background: rgba(232, 236, 239, 0.52);
 }
 
 /* 底部动作行 */
@@ -996,15 +922,16 @@ onLoad(async (query) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 68rpx;
-  min-width: 172rpx;
-  padding: 0 34rpx;
+  height: 64rpx;
+  min-width: 160rpx;
+  padding: 0 30rpx;
   border-radius: 999rpx;
-  border: 1rpx solid rgba(129, 143, 152, 0.3);
-  background: rgba(255, 255, 255, 0.36);
-  color: #5d6871;
+  border: 1rpx solid rgba(168, 160, 148, 0.24);
+  background: rgba(255, 252, 247, 0.62);
+  color: #746d64;
   font-size: 24rpx;
-  letter-spacing: 3rpx;
+  letter-spacing: 2rpx;
+  font-family: var(--font-secondary);
 }
 
 .present-btn--disabled {
@@ -1016,6 +943,7 @@ onLoad(async (query) => {
   font-size: 24rpx;
   letter-spacing: 1rpx;
   padding: 8rpx 0;
+  font-family: var(--font-secondary);
 }
 
 .present-note {
@@ -1023,5 +951,6 @@ onLoad(async (query) => {
   color: #8a95a0;
   font-size: 24rpx;
   line-height: 1.7;
+  font-family: var(--font-secondary);
 }
 </style>
