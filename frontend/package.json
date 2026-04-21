@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev:mp-weixin": "uni -p mp-weixin",
+    "dev:mp-weixin:preview": "uni -p mp-weixin --mode preview",
     "build:mp-weixin": "uni build -p mp-weixin",
+    "build:mp-weixin:preview": "uni build -p mp-weixin --mode preview",
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
