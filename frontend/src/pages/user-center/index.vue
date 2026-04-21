@@ -5,7 +5,7 @@ import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
-import { getToken } from '../../utils'
+import { hasAuthenticatedSession } from '../../utils'
 
 type SettingKey = 'record' | 'tag' | 'privacy' | 'notify' | 'about'
 type SettingTone = 'archive' | 'privacy' | 'about'
@@ -84,7 +84,7 @@ function formatCount(value: number) {
 }
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types'
-import { clearToken, getToken } from '../utils'
+import { clearToken, getToken, hasAuthenticatedSession } from '../utils'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 type RequestData = UniApp.RequestOptions['data']
@@ -30,7 +30,9 @@ export const httpRequest = <T>(options: RequestOptions): Promise<T> => {
       success: (res) => {
         if (res.statusCode === 401) {
           clearToken()
-          uni.reLaunch({ url: '/pages/login/index' })
+          if (!hasAuthenticatedSession()) {
+            uni.reLaunch({ url: '/pages/login/index' })
+          }
           reject(new Error('Login expired'))
           return
         }

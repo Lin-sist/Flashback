@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
+import { clearPreviewSession } from '../features/preview/preview-session'
 import { authService } from '../services'
 import { useRecordStore } from './record'
 import { useTagStore } from './tag'
-import { clearToken, getToken, setToken } from '../utils'
+import { clearAuthenticatedSession, getToken, hasAuthenticatedSession, setToken } from '../utils'
 import type { LoginPayload, RegisterPayload, UserProfileUpdate } from '../types'
 import type { UserInfoVO } from '../types'
 
@@ -17,7 +18,7 @@ export const useUserStore = defineStore('user', {
     userInfo: null,
   }),
   getters: {
-    isAuthenticated: (state) => Boolean(state.token),
+    isAuthenticated: () => hasAuthenticatedSession(),
   },
   actions: {
     async register(payload: RegisterPayload) {
@@ -27,6 +28,7 @@ export const useUserStore = defineStore('user', {
       const result = await authService.login(payload)
       this.token = result.token
       setToken(result.token)
+      clearPreviewSession()
 
       const recordStore = useRecordStore()
       const tagStore = useTagStore()
@@ -36,7 +38,7 @@ export const useUserStore = defineStore('user', {
       return result
     },
     async fetchUserInfo() {
-      if (!this.token) {
+      if (!hasAuthenticatedSession()) {
         this.userInfo = null
         return null
       }
@@ -58,7 +60,7 @@ export const useUserStore = defineStore('user', {
 
       this.token = null
       this.userInfo = null
-      clearToken()
+      clearAuthenticatedSession()
       uni.reLaunch({ url: '/pages/login/index' })
     },
   },

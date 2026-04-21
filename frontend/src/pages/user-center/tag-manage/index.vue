@@ -6,7 +6,7 @@ import EmptyState from '../../../components/common/EmptyState.vue'
 import PaperContainer from '../../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../../components/common/PrimaryButton.vue'
 import { useTagStore } from '../../../stores'
-import { getToken } from '../../../utils'
+import { hasAuthenticatedSession } from '../../../utils'
 
 const tagStore = useTagStore()
 const loading = ref(true)
@@ -24,7 +24,7 @@ const showTagState = computed(() => tagsReady.value && hasTags.value)
 const showStaleNotice = computed(() => !loading.value && loadFailed.value && tagsReady.value)
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

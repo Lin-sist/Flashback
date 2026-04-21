@@ -5,10 +5,11 @@ import EmptyState from '../../components/common/EmptyState.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
+import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { replyService } from '../../services'
 import { useRecordStore } from '../../stores'
 import { RecordStatus, ReplyType, type ReplyVO } from '../../types'
-import { formatDateTime, getToken, toUserMessage } from '../../utils'
+import { formatDateTime, getToken, hasAuthenticatedSession, toUserMessage } from '../../utils'
 
 type EditorSource = 'home' | 'archive' | 'timeline'
 
@@ -88,7 +89,7 @@ const unlockMomentText = computed(() => {
 })
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }
@@ -228,6 +229,11 @@ const submitReply = async () => {
 
   if (!replyContent.value.trim()) {
     uni.showToast({ title: '请输入回应内容', icon: 'none' })
+    return
+  }
+
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
     return
   }
 

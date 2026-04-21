@@ -13,7 +13,7 @@ import {
 import {
   calculateRemainingDays,
   formatDayText,
-  getToken,
+  hasAuthenticatedSession,
 } from '../../utils'
 
 const recordStore = useRecordStore()
@@ -144,7 +144,7 @@ const emptyStateText = computed(() => {
 })
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

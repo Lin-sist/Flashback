@@ -2,10 +2,10 @@
 import { onLoad } from '@dcloudio/uni-app'
 import AppTopBar from '../../../components/common/AppTopBar.vue'
 import PaperContainer from '../../../components/common/PaperContainer.vue'
-import { getToken } from '../../../utils'
+import { hasAuthenticatedSession } from '../../../utils'
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

@@ -1,3 +1,5 @@
+import { clearPreviewSession, hasPreviewSession } from '../features/preview/preview-session'
+
 const TOKEN_KEY = 'flashback:token'
 
 export const setToken = (token: string) => {
@@ -11,4 +13,11 @@ export const getToken = (): string | null => {
 
 export const clearToken = () => {
   uni.removeStorageSync(TOKEN_KEY)
+}
+
+export const hasAuthenticatedSession = () => Boolean(getToken() || hasPreviewSession())
+
+export const clearAuthenticatedSession = () => {
+  clearToken()
+  clearPreviewSession()
 }

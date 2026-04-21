@@ -1,4 +1,7 @@
 import { httpRequest } from './httpClient'
+import {
+  RecordType,
+} from '../types'
 import type {
   CreateRecordDTO,
   PageQuery,
@@ -10,6 +13,15 @@ import type {
   TimelineQuery,
   UpdateRecordDTO,
 } from '../types'
+import {
+  getPreviewRecordDetail,
+  getPreviewRecordList,
+  getPreviewTimeline,
+  getPreviewUnlockedRecords,
+  getPreviewWriteDraftResult,
+} from '../features/preview/data/preview-data'
+import { hasPreviewSession } from '../features/preview/preview-session'
+import { getToken } from '../utils'
 
 const buildQueryString = (params: Record<string, string | number | undefined>) => {
   const entries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
@@ -33,8 +45,14 @@ const toDraftPayload = (payload: CreateRecordDTO | UpdateRecordDTO) => ({
   tagIds: payload.tagIds ?? [],
 })
 
+const shouldUsePreviewData = () => !getToken() && hasPreviewSession()
+
 export const recordService = {
   createDraft(payload: CreateRecordDTO) {
+    if (shouldUsePreviewData()) {
+      return Promise.resolve(getPreviewWriteDraftResult(payload))
+    }
+
     return httpRequest<RecordDetailVO>({
       url: '/api/records',
       method: 'POST',
@@ -42,6 +60,10 @@ export const recordService = {
     })
   },
   updateDraft(id: string | number, payload: UpdateRecordDTO) {
+    if (shouldUsePreviewData()) {
+      return Promise.resolve(getPreviewWriteDraftResult(payload, Number(id) || 9901))
+    }
+
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}`,
       method: 'PUT',
@@ -49,18 +71,31 @@ export const recordService = {
     })
   },
   deleteDraft(id: string | number) {
+    if (shouldUsePreviewData()) {
+      return Promise.resolve()
+    }
+
     return httpRequest<void>({
       url: `/api/records/${id}`,
       method: 'DELETE',
     })
   },
   sealRecord(id: string | number) {
+    if (shouldUsePreviewData()) {
+      const detail = getPreviewRecordDetail(id)
+      return Promise.resolve(detail || getPreviewWriteDraftResult({ content: '', recordType: RecordType.FUTURE_LETTER }, Number(id) || 9901))
+    }
+
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}/seal`,
       method: 'POST',
     })
   },
   getRecordList(status: RecordStatus | 'ALL', query: PageQuery) {
+    if (shouldUsePreviewData()) {
+      return Promise.resolve(getPreviewRecordList(status, query))
+    }
+
     return httpRequest<PaginationResponse<RecordListItemVO>>({
       url: `/api/records${buildQueryString({
         pageNum: query.pageNum,
@@ -70,16 +105,33 @@ export const recordService = {
     })
   },
   getRecordDetail(id: string | number) {
+    if (shouldUsePreviewData()) {
+      const detail = getPreviewRecordDetail(id)
+      if (!detail) {
+        return Promise.reject(new Error('Record not found'))
+      }
+
+      return Promise.resolve(detail)
+    }
+
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}`,
     })
   },
   getUnlockedRecords(pageNum = 1, pageSize = 10) {
+    if (shouldUsePreviewData()) {
+      return Promise.resolve(getPreviewUnlockedRecords(pageNum, pageSize))
+    }
+
     return httpRequest<PaginationResponse<RecordListItemVO>>({
       url: `/api/records/unlocked${buildQueryString({ pageNum, pageSize })}`,
     })
   },
   getTimeline(query: TimelineQuery = {}) {
+    if (shouldUsePreviewData()) {
+      return Promise.resolve(getPreviewTimeline(query))
+    }
+
     return httpRequest<TimelineGroupVO[]>({
       url: `/api/records/timeline${buildQueryString({
         year: query.year,

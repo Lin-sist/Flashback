@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type DateTimeValue, type RecordListItemVO } from '../../types'
-import { formatDateTime, getToken } from '../../utils'
+import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
 type SectionState = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -22,7 +22,7 @@ const sealedState = ref<SectionState>('idle')
 const unlockedState = ref<SectionState>('idle')
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

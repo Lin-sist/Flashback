@@ -4,7 +4,7 @@ import { onShow } from '@dcloudio/uni-app'
 import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
-import { formatDateTime, getToken } from '../../utils'
+import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
 type CorridorNodeKind = 'sealed' | 'unlocked' | 'draft'
 
@@ -67,7 +67,7 @@ const resolveRequestedYear = () => {
 }
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

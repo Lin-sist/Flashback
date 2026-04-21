@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
+import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import { useRecordStore, useTagStore } from '../../stores'
 import { RecordType } from '../../types'
@@ -8,6 +9,7 @@ import {
   formatDateTime,
   formatDayText,
   getToken,
+  hasAuthenticatedSession,
   toLocalDateTime,
   toUserMessage,
   validateRecordContent,
@@ -56,7 +58,7 @@ const writingDateText = computed(() => formatDayText(Date.now()))
 const writingMomentText = computed(() => formatDateTime(Date.now()))
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }
@@ -147,6 +149,12 @@ const handleCloseWithAutoSave = async () => {
     if (shouldDiscard) {
       returnToSource()
     }
+    return
+  }
+
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    returnToSource()
     return
   }
 
@@ -254,6 +262,11 @@ const saveDraft = async () => {
     return
   }
 
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+
   loading.value = true
   try {
     await persistDraft()
@@ -279,6 +292,11 @@ const sealRecord = async () => {
   const unlockAt = toLocalDateTime(form.unlockAtInput)
   if (!unlockAt || new Date(unlockAt).getTime() <= Date.now()) {
     uni.showToast({ title: '请设置未来的解锁时间', icon: 'none' })
+    return
+  }
+
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
     return
   }
 

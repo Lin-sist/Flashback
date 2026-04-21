@@ -2,6 +2,8 @@
 import { onShow } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import AppTopSafeBar from '../../components/common/AppTopSafeBar.vue'
+import { isPreviewModeEnabled } from '../../config/app-env'
+import { createPreviewSession } from '../../features/preview/preview-session'
 import { useUserStore } from '../../stores'
 import { toUserMessage, validateNickname, validatePassword, validateUsername } from '../../utils'
 
@@ -25,6 +27,7 @@ const welcomeCopy = computed(() =>
     : '从这一刻起，为未来留下第一条可以回望的线索。'
 )
 const primaryLabel = computed(() => (mode.value === 'login' ? '进入档案馆' : '完成注册'))
+const showPreviewEntry = isPreviewModeEnabled
 const modeSummary = computed(() =>
   mode.value === 'login'
     ? '昵称会一并显示，但登录时仅校验用户名 / 邮箱与密码。'
@@ -110,6 +113,15 @@ const onSubmit = async () => {
   }
 
   await onRegister()
+}
+
+const enterPreview = () => {
+  if (loading.value) {
+    return
+  }
+
+  createPreviewSession()
+  uni.switchTab({ url: '/pages/home/index' })
 }
 
 onShow(() => {
@@ -199,6 +211,12 @@ onShow(() => {
       <view class="action">
         <button class="pill-button" :loading="loading" @tap="onSubmit">
           {{ primaryLabel }}
+        </button>
+      </view>
+
+      <view v-if="showPreviewEntry" class="preview-action">
+        <button class="preview-button" @tap="enterPreview">
+          预览进入
         </button>
       </view>
 
@@ -438,5 +456,29 @@ onShow(() => {
   font-size: 22rpx;
   line-height: 1.8;
   color: #a5aeb4;
+}
+
+.preview-action {
+  margin-top: 24rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.preview-button {
+  width: 300rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  padding: 0;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(166, 176, 183, 0.42);
+  background: rgba(255, 255, 255, 0.52);
+  color: #7e8a92;
+  font-size: 24rpx;
+  letter-spacing: 6rpx;
+  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+}
+
+.preview-button::after {
+  border: none;
 }
 </style>

@@ -6,7 +6,7 @@ import PaperContainer from '../../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../../components/common/PrimaryButton.vue'
 import { useUserStore } from '../../../stores'
 import { RecordType } from '../../../types'
-import { getToken } from '../../../utils'
+import { getToken, hasAuthenticatedSession } from '../../../utils'
 
 const STORAGE_KEY_PREFIX = 'flashback:user-center:archive-preference'
 const userStore = useUserStore()
@@ -40,7 +40,7 @@ const sortOptions = [
 ]
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }

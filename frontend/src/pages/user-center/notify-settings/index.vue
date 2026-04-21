@@ -5,7 +5,7 @@ import AppTopBar from '../../../components/common/AppTopBar.vue'
 import PaperContainer from '../../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../../components/common/PrimaryButton.vue'
 import { useUserStore } from '../../../stores'
-import { getToken } from '../../../utils'
+import { getToken, hasAuthenticatedSession } from '../../../utils'
 
 const STORAGE_KEY_PREFIX = 'flashback:user-center:notify-settings'
 const userStore = useUserStore()
@@ -30,7 +30,7 @@ const form = reactive<NotifySettingsState>({ ...defaultState })
 let storageKey = `${STORAGE_KEY_PREFIX}:guest`
 
 const ensureLogin = () => {
-  if (!getToken()) {
+  if (!hasAuthenticatedSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }
