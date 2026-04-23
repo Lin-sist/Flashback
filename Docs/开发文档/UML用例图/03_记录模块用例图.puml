@@ -1,0 +1,32 @@
+```plantuml
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+
+actor "普通用户" as User
+
+rectangle "记录模块" {
+  usecase "创建草稿" as UC1
+  usecase "编辑草稿" as UC2
+  usecase "删除草稿" as UC3
+  usecase "封存记录" as UC4
+  usecase "设置解锁时间" as UC5
+  usecase "我的记录列表" as UC6
+  usecase "记录详情" as UC7
+  usecase "记录绑定标签" as UC8
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC6
+User --> UC7
+
+UC4 ..> UC5 : <<include>>
+UC1 ..> UC8 : <<include>>
+UC2 ..> UC8 : <<include>>
+@enduml
+```

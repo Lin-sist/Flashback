@@ -1,0 +1,48 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam handwritten false
+skinparam actorStyle stickman
+skinparam defaultFontName Microsoft YaHei
+skinparam usecase {
+  BackgroundColor white
+  BorderColor #5B6B7A
+}
+
+title 时光回序——项目总体用例图
+
+actor "普通用户" as User
+actor "AI服务" as AI
+actor "定时任务" as Scheduler
+actor "管理员" as Admin
+
+rectangle "时光回序系统" {
+
+  usecase "管理个人空间" as UC_Profile
+  usecase "节点记录与私密封存" as UC_Record
+  usecase "AI辅助整理与引导" as UC_AI
+  usecase "延迟解锁与提醒" as UC_Unlock
+  usecase "回看记录与成长对照" as UC_Review
+  usecase "记录现在感受 / 可选回信" as UC_Respond
+  usecase "个人时间轴与阶段回望" as UC_Timeline
+  usecase "后台运营管理" as UC_Admin
+}
+
+User --> UC_Profile
+User --> UC_Record
+User --> UC_Review
+User --> UC_Respond
+User --> UC_Timeline
+
+AI --> UC_AI
+Scheduler --> UC_Unlock
+Admin --> UC_Admin
+
+UC_Record ..> UC_AI : <<extend>>
+UC_Review ..> UC_AI : <<extend>>
+UC_Review ..> UC_Respond : <<extend>>
+UC_Timeline ..> UC_Review : <<include>>
+
+@enduml

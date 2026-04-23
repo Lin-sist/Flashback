@@ -1,0 +1,22 @@
+```plantuml
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+
+actor "普通用户" as User
+
+rectangle "回看模块" {
+  usecase "查看已解锁记录详情" as UC1
+  usecase "查看当时元信息" as UC2
+  usecase "进行当时与现在对照" as UC3
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+UC1 ..> UC2 : <<include>>
+UC1 ..> UC3 : <<include>>
+@enduml
+```

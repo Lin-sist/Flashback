@@ -1,0 +1,21 @@
+```plantuml
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+
+actor "普通用户" as User
+actor "AI服务" as AI
+
+rectangle "AI辅助模块" {
+  usecase "获取写作提示" as UC1
+  usecase "整理记录内容" as UC2
+}
+
+User --> UC1
+User --> UC2
+AI --> UC1
+AI --> UC2
+@enduml
+```
