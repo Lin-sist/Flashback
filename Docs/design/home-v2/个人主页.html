@@ -1,0 +1,563 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:       #302e29;
+  --ink-mid:   #6b6560;
+  --ink-light: #9e9890;
+  --ink-faint: #c8c2b8;
+  --paper:     #faf7f2;
+  --paper-2:   #f5f0e8;
+  --vermilion: #b5352a;
+  --verm-dim:  #8a271f;
+  --serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --sans:  'Noto Sans SC', 'PingFang SC', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #ede8df;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
+
+.device-shell {
+  width: 390px;
+  min-height: 844px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
+  border-radius: 48px;
+  box-shadow: 0 24px 80px rgba(60,50,30,0.18);
+}
+
+.device-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.15'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23f)' opacity='0.055'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+.device-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200,185,158,0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185,168,140,0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 55% at 70% 78%, rgba(178,162,135,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 65% 40% at 30% 85%, rgba(170,155,128,0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250,245,238,0.18) 0%, transparent 75%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.page {
+  width: 390px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 0 28px;
+  position: relative;
+  z-index: 2;
+  padding-bottom: 0;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 顶部品牌栏 ── */
+.top-bar {
+  padding-top: 52px;
+  text-align: center;
+  position: relative;
+  animation: fadeUp 1s ease 0.2s both;
+}
+.logo {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 300;
+  letter-spacing: 0.55em;
+  color: var(--ink-light);
+}
+.more-btn {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  width: 28px;
+  height: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.more-btn span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ink-light);
+  margin: 0 auto;
+}
+
+/* ── 头像区 ── */
+.profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 36px;
+  animation: fadeUp 1s ease 0.5s both;
+}
+
+.avatar-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 14px;
+}
+
+.avatar-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 0.5px solid var(--ink-faint);
+}
+
+.avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #3a5a5c 0%, #1e3535 60%, #2a4a3a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.avatar svg {
+  width: 46px;
+  height: 46px;
+  opacity: 0.85;
+}
+
+.profile-name {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+
+.profile-bio {
+  font-family: var(--serif);
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--ink-light);
+  letter-spacing: 0.06em;
+}
+
+/* ── 装饰细线 ── */
+.deco-line {
+  width: 32px;
+  height: 0.5px;
+  background: var(--ink-faint);
+  margin: 28px auto 0;
+}
+
+/* ── 统计卡片 ── */
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  animation: fadeUp 1s ease 0.8s both;
+}
+
+.stat-card {
+  flex: 1;
+  position: relative;
+  background: rgba(252, 249, 244, 0.72);
+  border: 0.5px solid rgba(188, 174, 152, 0.28);
+  border-radius: 1px;
+  padding: 18px 20px 16px;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 2px 12px rgba(140,120,90,0.06),
+    0 1px 3px rgba(140,120,90,0.04);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 16px; bottom: 16px;
+  width: 1.5px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(181,53,42,0.35) 25%,
+    rgba(181,53,42,0.35) 75%,
+    transparent
+  );
+  border-radius: 1px;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 10px; height: 10px;
+  background: linear-gradient(225deg, rgba(230,218,200,0.9) 0%, rgba(230,218,200,0.9) 48%, rgba(252,249,244,0) 50%);
+  border-left: 0.5px solid rgba(188,174,152,0.22);
+  border-bottom: 0.5px solid rgba(188,174,152,0.22);
+}
+
+.stat-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--ink-light);
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.stat-num {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--ink-mid);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.stat-card.highlight .stat-num {
+  color: #8a6a3a;
+}
+
+/* ── 设置分组 ── */
+.settings-section {
+  margin-top: 32px;
+  animation: fadeUp 1s ease 1.1s both;
+}
+
+.section-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--ink-light);
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
+.settings-group {
+  position: relative;
+  background: rgba(252, 249, 244, 0.72);
+  border: 0.5px solid rgba(188, 174, 152, 0.28);
+  border-radius: 1px;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 2px 12px rgba(140,120,90,0.06);
+  overflow: hidden;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.setting-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 46px;
+  right: 18px;
+  height: 0.5px;
+  background: rgba(188,174,152,0.22);
+}
+
+.setting-item:active {
+  background: rgba(44,42,38,0.03);
+}
+
+.setting-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-mid);
+  flex-shrink: 0;
+}
+
+.setting-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.setting-text {
+  flex: 1;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--ink-mid);
+  letter-spacing: 0.03em;
+}
+
+.setting-arrow {
+  color: var(--ink-faint);
+}
+
+.setting-arrow svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.setting-badge {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 300;
+  color: var(--ink-light);
+  letter-spacing: 0.06em;
+}
+
+/* ── 退出账户 ── */
+.logout-wrap {
+  text-align: center;
+  margin: 28px 0 4px;
+  animation: fadeUp 1s ease 1.4s both;
+}
+
+.logout-btn {
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--vermilion);
+  opacity: 0.75;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.logout-btn:active { opacity: 1; }
+
+/* ── 底部导航 ── */
+.nav {
+  padding: 20px 0 36px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 12px;
+  animation: fadeUp 0.8s ease 1.8s both;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 16px;
+  cursor: pointer;
+  position: relative;
+}
+
+.nav-label {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: var(--ink-light);
+  transition: color 0.2s;
+}
+
+.nav-item.active .nav-label { color: var(--ink); }
+
+.nav-item.active::after {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--vermilion);
+  margin-top: 2px;
+}
+
+/* seal 印章装饰 */
+.profile-seal {
+  position: absolute;
+  right: 0;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0.8px solid var(--vermilion);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+}
+.profile-seal span {
+  font-family: var(--serif);
+  font-size: 9px;
+  color: var(--vermilion);
+}
+</style>
+</head>
+<body>
+<div class="device-shell">
+  <div class="page">
+
+    <!-- 品牌名 -->
+    <div class="top-bar">
+      <div class="logo">时 光 回 序</div>
+      <div class="more-btn" aria-label="更多">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <!-- 头像与简介 -->
+    <div class="profile-hero">
+      <div class="avatar-wrap">
+        <div class="avatar-ring"></div>
+        <div class="avatar">
+          <!-- 山海风格抽象图 -->
+          <svg viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="23" cy="28" rx="16" ry="5" fill="rgba(100,160,150,0.3)"/>
+            <polygon points="23,8 13,28 33,28" fill="rgba(255,255,255,0.18)"/>
+            <polygon points="23,12 17,28 29,28" fill="rgba(255,255,255,0.28)"/>
+            <circle cx="27" cy="20" r="2" fill="rgba(181,53,42,0.7)"/>
+            <line x1="10" y1="30" x2="36" y2="30" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+            <line x1="8" y1="32" x2="38" y2="32" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="profile-name">林 清 川</div>
+      <div class="profile-bio">在静默中整理岁月的碎片</div>
+      <div class="deco-line"></div>
+    </div>
+
+    <!-- 统计 -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">已存记忆</div>
+        <div class="stat-num">1,284</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-label">存档天数</div>
+        <div class="stat-num">412</div>
+      </div>
+    </div>
+
+    <!-- 档案设置 -->
+    <div class="settings-section">
+      <div class="section-label">档 案 设 置</div>
+      <div class="settings-group">
+        <div class="setting-item">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 19V6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5V19l-8-2-8 2Z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>
+          </div>
+          <div class="setting-text">整理偏好</div>
+          <div class="setting-arrow"><svg viewBox="0 0 13 13"><polyline points="4,2 9,6.5 4,11"/></svg></div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </div>
+          <div class="setting-text">视觉外观</div>
+          <div class="setting-arrow"><svg viewBox="0 0 13 13"><polyline points="4,2 9,6.5 4,11"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 隐私与安全 -->
+    <div class="settings-section">
+      <div class="section-label">隐 私 与 安 全</div>
+      <div class="settings-group">
+        <div class="setting-item">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="setting-text">访问控制</div>
+          <div class="setting-arrow"><svg viewBox="0 0 13 13"><polyline points="4,2 9,6.5 4,11"/></svg></div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          </div>
+          <div class="setting-text">数据备份</div>
+          <div class="setting-arrow"><svg viewBox="0 0 13 13"><polyline points="4,2 9,6.5 4,11"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 关于 -->
+    <div class="settings-section">
+      <div class="section-label">关 于</div>
+      <div class="settings-group">
+        <div class="setting-item">
+          <div class="setting-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="setting-text">版本信息</div>
+          <div class="setting-badge">v2.4.0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 退出 -->
+    <div class="logout-wrap">
+      <button class="logout-btn">退出当前账户</button>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="nav">
+      <div class="nav-item" aria-label="首页">
+        <div class="nav-label">首 页</div>
+      </div>
+      <div class="nav-item" aria-label="时光轴">
+        <div class="nav-label">时 光 轴</div>
+      </div>
+      <div class="nav-item active" aria-label="我的">
+        <div class="nav-label">我 的</div>
+      </div>
+    </nav>
+
+  </div>
+</div>
+</body>
+</html>
