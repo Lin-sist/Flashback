@@ -297,22 +297,28 @@ onShow(() => {
 }
 
 .line1 {
-  font-family: var(--fb-font-serif);
+  font-family: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", var(--fb-font-serif), serif;
   font-size: 64rpx;
   font-weight: 300;
   color: var(--fb-ink);
   letter-spacing: 0.06em;
   display: block;
   margin-bottom: 12rpx;
+  text-align: center;
+  width: 100%;
+  transform: translateX(0.12em); /* 微调补偿：抵消末尾逗号及letter-spacing带来的视觉偏左 */
 }
 
 .line2 {
-  font-family: var(--fb-font-serif);
+  font-family: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", var(--fb-font-serif), serif;
   font-size: 56rpx;
   font-weight: 300;
   color: var(--fb-ink-mid);
   letter-spacing: 0.04em;
   display: block;
+  text-align: center;
+  width: 100%;
+  transform: translateX(0.08em); /* 微调补偿：抵消末尾问号及letter-spacing带来的视觉偏左 */
 }
 
 /* subline */

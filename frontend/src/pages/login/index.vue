@@ -5,7 +5,7 @@ import AppTopSafeBar from '../../components/common/AppTopSafeBar.vue'
 import { isPreviewModeEnabled } from '../../config/app-env'
 import { createPreviewSession } from '../../features/preview/preview-session'
 import { useUserStore } from '../../stores'
-import { toUserMessage, validateNickname, validatePassword, validateUsername } from '../../utils'
+import { toUserMessage, validatePassword, validateUsername } from '../../utils'
 
 type Mode = 'login' | 'register'
 
@@ -15,7 +15,6 @@ const loading = ref(false)
 const passwordVisible = ref(false)
 
 const form = reactive({
-  nickname: '',
   username: '',
   password: '',
 })
@@ -69,17 +68,12 @@ const onRegister = async () => {
     return
   }
 
-  if (!validateNickname(form.nickname)) {
-    uni.showToast({ title: '请先留下你的昵称', icon: 'none' })
-    return
-  }
-
   loading.value = true
   try {
     await userStore.register({
       username: form.username,
       password: form.password,
-      nickname: form.nickname,
+      nickname: form.username, // Fallback nickname to username to satisfy backend without frontend input
     })
     form.password = ''
     passwordVisible.value = false
@@ -154,16 +148,6 @@ onShow(() => {
 
         <!-- 表单 -->
         <view class="field-group">
-          <view v-if="mode === 'register'" class="field">
-            <input
-              v-model="form.nickname"
-              class="field-input"
-              placeholder="昵 称"
-              placeholder-class="field-placeholder"
-              maxlength="50"
-            />
-          </view>
-
           <view class="field">
             <input
               v-model="form.username"
@@ -376,6 +360,7 @@ onShow(() => {
 
 .field-input {
   width: 100%;
+  box-sizing: border-box;
   background: transparent;
   border: none;
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
@@ -395,13 +380,14 @@ onShow(() => {
 }
 
 .field--password .field-input {
-  padding-right: 64rpx;
+  padding-left: 72rpx;
+  padding-right: 72rpx;
 }
 
 /* 眼睛图标 */
 .eye-toggle {
   position: absolute;
-  right: 0;
+  right: 24rpx;
   top: 50%;
   transform: translateY(-50%);
   width: 44rpx;

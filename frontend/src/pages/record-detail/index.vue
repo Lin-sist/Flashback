@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import EmptyState from '../../components/common/EmptyState.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../components/common/PrimaryButton.vue'
+import EmptyState from '../../components/common/EmptyState.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { replyService } from '../../services'
@@ -23,17 +23,18 @@ const source = ref<EditorSource>('home')
 const detailLoading = ref(false)
 const currentRecordId = ref<number | null>(null)
 const detailErrorState = ref<'NONE' | 'INVALID_ID' | 'NOT_FOUND' | 'LOAD_FAILED'>('NONE')
+const showReplySheet = ref(false)
 
-// 倒计时
+// ── 倒计时 ──
 const countdownH = ref('--')
 const countdownM = ref('--')
 const countdownS = ref('--')
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-const startCountdown = (unlockAt: string | null | undefined) => {
+const startCountdown = (unlockAt: string | number | null | undefined) => {
   if (countdownTimer) clearInterval(countdownTimer)
   if (!unlockAt) return
-  const target = new Date(unlockAt).getTime()
+  const target = new Date(unlockAt as string | number).getTime()
   const tick = () => {
     const diff = Math.max(0, target - Date.now())
     const h = Math.floor(diff / 3600000)
@@ -50,27 +51,66 @@ const startCountdown = (unlockAt: string | null | undefined) => {
 
 onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer) })
 
-// Archive meta（封存页顶部 Archive No. / 季节）
+// ── Archive meta ──
 const archiveNo = computed(() => {
   if (!detail.value?.id) return ''
   return `Archive No. ${String(detail.value.id).padStart(3, '0')}`
 })
 
+// 封存页用英文格式；解锁页用中文格式
+const archiveNoCN = computed(() => {
+  if (!detail.value?.id) return ''
+  const cn = '〇一二三四五六七八九'
+  const cnId = String(detail.value.id).split('').map(n => cn[Number(n)]).join('')
+  return `存档第 ${cnId} 号`
+})
+
 const archiveSeason = computed(() => {
   if (!detail.value?.createdAt) return ''
-  const d = new Date(detail.value.createdAt)
+  const d = new Date(detail.value.createdAt as string)
   const seasons = ['Winter','Winter','Spring','Spring','Spring','Summer','Summer','Summer','Autumn','Autumn','Autumn','Winter']
-  const years = ['2018','2019','2020','2021','2022','2023','2024','2025','2026']
-  const year = years.find(y => String(d.getFullYear()) === y) || String(d.getFullYear())
-  return `${seasons[d.getMonth()]}, ${year}`
+  return `${seasons[d.getMonth()]}, ${d.getFullYear()}`
+})
+
+// 中文季节格式（回看.html 用）
+const archiveSeasonCN = computed(() => {
+  if (!detail.value?.createdAt) return ''
+  const d = new Date(detail.value.createdAt as string | number)
+  const cn = '〇一二三四五六七八九'
+  const year = String(d.getFullYear()).split('').map(n => cn[Number(n)]).join('')
+  const seasons = ['冬','冬','春','春','春','夏','夏','夏','秋','秋','秋','冬']
+  return `${year}年 · ${seasons[d.getMonth()]}季`
+})
+
+// 位置（若记录有 location 字段则展示）
+const archiveLocation = computed(() => {
+  if (!detail.value) return ''
+  const d = detail.value as Record<string, unknown>
+  return typeof d.location === 'string' ? d.location : ''
+})
+
+// "过去的你，写于X年前"
+const archiveWrittenText = computed(() => {
+  if (!detail.value?.createdAt) return '过去的你写下'
+  const d = new Date(detail.value.createdAt as string | number)
+  const yearsAgo = new Date().getFullYear() - d.getFullYear()
+  if (yearsAgo <= 0) return '过去的你，刚刚写下'
+  return `过去的你，写于${yearsAgo}年前`
+})
+
+// 解锁大引句：优先使用标题，否则取正文首句
+const unlockQuote = computed(() => {
+  if (!detail.value) return ''
+  if (detail.value.title) return `"${detail.value.title}"`
+  const content = String(detail.value.content || '').trim()
+  const first = content.split(/[。！？\n]/)[0]
+  return first ? `"${first.slice(0, 40)}"` : ''
 })
 
 const { cssVars, navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } =
   useWechatNavMetrics()
 
-const pageStyle = computed(() => ({
-  ...cssVars.value,
-}))
+const pageStyle = computed(() => ({ ...cssVars.value }))
 
 const topSafeStyle = computed(() => ({
   minHeight: `calc(${navBarTotalHeight.value}px + 24rpx)`,
@@ -82,42 +122,29 @@ const topNavStyle = computed(() => ({
 }))
 
 const closeRailStyle = computed(() => ({
-  right: `calc(${rightSafeWidth.value}px + 12px)`,
+  left: '56rpx',
 }))
 
 const detail = computed(() => {
-  if (!currentRecordId.value || !recordStore.detail) {
-    return null
-  }
-
+  if (!currentRecordId.value || !recordStore.detail) return null
   return Number(recordStore.detail.id) === currentRecordId.value ? recordStore.detail : null
 })
 
 const hasDetailError = computed(() => detailErrorState.value !== 'NONE')
 
 const detailErrorText = computed(() => {
-  if (detailErrorState.value === 'INVALID_ID') {
-    return '记录地址不完整，请返回后重试'
-  }
-
-  if (detailErrorState.value === 'NOT_FOUND') {
-    return '这条记录可能已不存在或暂时不可见'
-  }
-
-  if (detailErrorState.value === 'LOAD_FAILED') {
-    return '网络有点慢，记录详情暂时没加载出来'
-  }
-
+  if (detailErrorState.value === 'INVALID_ID') return '记录地址不完整，请返回后重试'
+  if (detailErrorState.value === 'NOT_FOUND') return '这条记录可能已不存在或暂时不可见'
+  if (detailErrorState.value === 'LOAD_FAILED') return '网络有点慢，记录详情暂时没加载出来'
   return '记录暂时不可用'
 })
 
-const isDraft = computed(() => detail.value?.status === RecordStatus.DRAFT)
-const isSealed = computed(() => detail.value?.status === RecordStatus.SEALED)
+const isDraft    = computed(() => detail.value?.status === RecordStatus.DRAFT)
+const isSealed   = computed(() => detail.value?.status === RecordStatus.SEALED)
 const isUnlocked = computed(() => detail.value?.status === RecordStatus.UNLOCKED)
-const canSubmitReply = computed(() => Boolean(detail.value?.canReply && !detail.value?.hasReply))
+const canSubmitReply   = computed(() => Boolean(detail.value?.canReply && !detail.value?.hasReply))
 const hasSubmittedReply = computed(() => Boolean(detail.value?.hasReply))
 
-// 顶部仅保留轻量时间信息
 const archiveDateText = computed(() => {
   if (!detail.value?.createdAt) return ''
   return formatDateTime(detail.value.createdAt)
@@ -138,76 +165,45 @@ const ensureLogin = () => {
 }
 
 const fallbackBySource = () => {
-  if (source.value === 'timeline') {
-    uni.switchTab({ url: '/pages/timeline/index' })
-    return
-  }
-
-  if (source.value === 'archive') {
-    uni.navigateTo({ url: '/pages/record-list/index' })
-    return
-  }
-
+  if (source.value === 'timeline') { uni.switchTab({ url: '/pages/timeline/index' }); return }
+  if (source.value === 'archive')  { uni.navigateTo({ url: '/pages/record-list/index' }); return }
   uni.switchTab({ url: '/pages/home/index' })
 }
 
 const closePage = () => {
   uni.navigateBack({
     delta: 1,
-    fail: () => {
-      fallbackBySource()
-    },
+    fail: () => { fallbackBySource() },
   })
 }
 
 const resolveSource = (value: unknown): EditorSource | null => {
-  if (value === 'archive' || value === 'timeline' || value === 'home') {
-    return value
-  }
-
+  if (value === 'archive' || value === 'timeline' || value === 'home') return value
   return null
 }
 
 const inferSourceFromPrevPage = (): EditorSource => {
   const pages = getCurrentPages()
-  if (pages.length < 2) {
-    return 'home'
-  }
-
+  if (pages.length < 2) return 'home'
   const prevRoute = pages[pages.length - 2]?.route
-  if (prevRoute === 'pages/record-list/index') {
-    return 'archive'
-  }
-  if (prevRoute === 'pages/timeline/index') {
-    return 'timeline'
-  }
-
+  if (prevRoute === 'pages/record-list/index') return 'archive'
+  if (prevRoute === 'pages/timeline/index') return 'timeline'
   return 'home'
 }
 
 const resolveDetailErrorState = (error: unknown): 'NOT_FOUND' | 'LOAD_FAILED' => {
   const message = toUserMessage(error).toLowerCase()
-  if (message.includes('not found') || message.includes('不存在')) {
-    return 'NOT_FOUND'
-  }
-
+  if (message.includes('not found') || message.includes('不存在')) return 'NOT_FOUND'
   return 'LOAD_FAILED'
 }
 
 const openEditor = () => {
-  if (!detail.value) {
-    return
-  }
+  if (!detail.value) return
   uni.navigateTo({ url: `/pages/record-editor/index?id=${detail.value.id}&source=${source.value}` })
 }
 
 const loadReplyResult = async (recordId: number, hasReply: boolean) => {
-  if (!hasReply) {
-    replyResult.value = null
-    replyLoadFailed.value = false
-    return
-  }
-
+  if (!hasReply) { replyResult.value = null; replyLoadFailed.value = false; return }
   replyLoading.value = true
   replyLoadFailed.value = false
   try {
@@ -222,28 +218,22 @@ const loadReplyResult = async (recordId: number, hasReply: boolean) => {
 
 const refreshUnlockState = async (recordId: number) => {
   const latest = await recordStore.fetchDetail(recordId)
-
   if (latest.status !== RecordStatus.UNLOCKED) {
     replyResult.value = null
     replyLoadFailed.value = false
     return
   }
-
   await loadReplyResult(recordId, Boolean(latest.hasReply))
 }
 
 const retryLoadReply = () => {
-  if (!detail.value?.id || !detail.value.hasReply) {
-    return
-  }
-
+  if (!detail.value?.id || !detail.value.hasReply) return
   loadReplyResult(detail.value.id, true)
 }
 
 const loadDetail = async (recordId: number) => {
   detailLoading.value = true
   detailErrorState.value = 'NONE'
-
   try {
     await refreshUnlockState(recordId)
     if (detail.value?.status === RecordStatus.SEALED) {
@@ -257,11 +247,7 @@ const loadDetail = async (recordId: number) => {
 }
 
 const retryLoadDetail = () => {
-  if (!currentRecordId.value) {
-    closePage()
-    return
-  }
-
+  if (!currentRecordId.value) { closePage(); return }
   loadDetail(currentRecordId.value)
 }
 
@@ -270,17 +256,14 @@ const submitReply = async () => {
     uni.showToast({ title: hasSubmittedReply.value ? '已提交过回应' : '当前状态不可继续回应', icon: 'none' })
     return
   }
-
   if (!replyContent.value.trim()) {
     uni.showToast({ title: '请输入回应内容', icon: 'none' })
     return
   }
-
   if (!getToken() && hasPreviewSession()) {
     showPreviewReadonlyToast()
     return
   }
-
   submittingReply.value = true
   try {
     await replyService.submitReply(detail.value.id, {
@@ -289,6 +272,7 @@ const submitReply = async () => {
     })
     uni.showToast({ title: '回应已保存', icon: 'success' })
     replyContent.value = ''
+    showReplySheet.value = false
     await refreshUnlockState(detail.value.id)
   } catch (error) {
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
@@ -297,11 +281,28 @@ const submitReply = async () => {
   }
 }
 
-onLoad(async (query) => {
-  if (!ensureLogin()) {
+const openReplySheet = () => {
+  if (!canSubmitReply.value) {
+    uni.showToast({ title: '当前无法留下回应', icon: 'none' })
     return
   }
+  showReplySheet.value = true
+}
 
+const closeReplySheet = () => {
+  showReplySheet.value = false
+}
+
+const addToTimeline = () => {
+  uni.showToast({ title: '已记录到时光轴', icon: 'none' })
+}
+
+const onSealedCtaTap = () => {
+  uni.showToast({ title: '解封后方可留下回应', icon: 'none' })
+}
+
+onLoad(async (query) => {
+  if (!ensureLogin()) return
   const querySource = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
   source.value = querySource || inferSourceFromPrevPage()
   recordStore.detail = null
@@ -313,46 +314,28 @@ onLoad(async (query) => {
     detailErrorState.value = 'INVALID_ID'
     return
   }
-
   const id = Number(query.id)
-  if (Number.isNaN(id)) {
-    detailErrorState.value = 'INVALID_ID'
-    return
-  }
-
+  if (Number.isNaN(id)) { detailErrorState.value = 'INVALID_ID'; return }
   currentRecordId.value = id
   await loadDetail(id)
 })
 </script>
 
 <template>
-  <view class="archive-page" :class="{ 'archive-page--unlocked': isUnlocked }" :style="pageStyle">
+  <view class="archive-page" :style="pageStyle">
     <!-- 宣纸底纹 -->
     <view class="archive-backdrop" />
 
-    <!-- 顶部安全区：SEALED 态显示品牌名 + 关闭 -->
+    <!-- 顶部安全区：品牌名 + 关闭按钮 -->
     <view class="archive-top-safe" :style="topSafeStyle">
       <view class="archive-top-safe__mist" />
-
       <view class="archive-top-safe__nav" :style="topNavStyle">
-        <!-- SEALED / DRAFT：品牌名居中 -->
-        <view v-if="!isUnlocked" class="archive-top-safe__logo">
+        <!-- 品牌名居中（所有状态统一显示） -->
+        <view class="archive-top-safe__logo">
           <text class="archive-top-safe__logo-text">时 光 回 序</text>
         </view>
-
-        <!-- UNLOCKED：日期 meta -->
-        <view v-if="isUnlocked && detail && archiveDateText" class="archive-top-safe__meta">
-          <view class="archive-top-safe__subline">{{ archiveDateText }}</view>
-        </view>
-
         <!-- 关闭按钮 -->
-        <view v-if="!isUnlocked" class="archive-close" :style="closeRailStyle" @tap="closePage">
-          <view class="archive-close__icon">
-            <view class="archive-close__line archive-close__line--a" />
-            <view class="archive-close__line archive-close__line--b" />
-          </view>
-        </view>
-        <view v-if="isUnlocked" class="archive-close archive-close--content" @tap="closePage">
+        <view class="archive-close" :style="closeRailStyle" @tap="closePage">
           <view class="archive-close__icon">
             <view class="archive-close__line archive-close__line--a" />
             <view class="archive-close__line archive-close__line--b" />
@@ -361,7 +344,10 @@ onLoad(async (query) => {
       </view>
     </view>
 
+    <!-- 主内容区 -->
     <view class="archive-main">
+
+      <!-- Loading / Error -->
       <view v-if="detailLoading" class="state-wrap">
         <EmptyState text="正在加载记录详情..." />
         <PrimaryButton text="返回上一页" ghost @tap="closePage" />
@@ -369,12 +355,17 @@ onLoad(async (query) => {
 
       <view v-else-if="hasDetailError" class="state-wrap">
         <EmptyState :text="detailErrorText" />
-        <PrimaryButton :text="detailErrorState === 'INVALID_ID' ? '返回上一页' : '重试加载'" ghost @tap="detailErrorState === 'INVALID_ID' ? closePage : retryLoadDetail" />
+        <PrimaryButton
+          :text="detailErrorState === 'INVALID_ID' ? '返回上一页' : '重试加载'"
+          ghost
+          @tap="detailErrorState === 'INVALID_ID' ? closePage() : retryLoadDetail()"
+        />
       </view>
 
+      <!-- 有详情内容 -->
       <view v-else-if="detail" class="archive-stage">
 
-        <!-- DRAFT -->
+        <!-- ══════ DRAFT ══════ -->
         <view v-if="isDraft" class="archive-intro">
           <view class="archive-intro__copy">这封信还在写作途中，可以继续补完后再封存。</view>
         </view>
@@ -387,23 +378,22 @@ onLoad(async (query) => {
           <PrimaryButton text="继续编辑草稿" @tap="openEditor" />
         </view>
 
-        <!-- SEALED：定稿视觉 -->
-        <view v-else-if="isSealed" class="sealed-stage">
-          <!-- Archive meta -->
+        <!-- ══════ SEALED：封存回看（解锁.html 结构） ══════ -->
+        <view v-else-if="isSealed" class="sealed-hero">
+
+          <!-- Archive meta（居中） -->
           <view class="sealed-meta">
             <text class="sealed-meta__no">{{ archiveNo }}</text>
             <text class="sealed-meta__season">{{ archiveSeason }}</text>
           </view>
 
-          <!-- 短横线 -->
-          <view class="sealed-deco-line" aria-hidden="true" />
+          <!-- 装饰横线 -->
+          <view class="sealed-deco-line" />
 
           <!-- 信件卡片 -->
           <view class="sealed-card">
-            <!-- 左侧朱砂竖线 -->
-            <view class="sealed-card__vline" aria-hidden="true" />
-            <!-- 右上折角 -->
-            <view class="sealed-card__corner" aria-hidden="true" />
+            <view class="sealed-card__vline" />
+            <view class="sealed-card__corner" />
 
             <!-- 卡片 meta 行 -->
             <view class="sealed-card__meta">
@@ -414,33 +404,32 @@ onLoad(async (query) => {
                 <text class="sealed-card__tag">过去的你</text>
               </view>
               <view class="sealed-card__location">
-                <view class="sealed-card__loc-dot" aria-hidden="true" />
-                <text class="sealed-card__loc-text">{{ detail.title || '未命名档案' }}</text>
+                <view class="sealed-card__loc-dot" />
+                <text class="sealed-card__loc-text">{{ archiveLocation || detail.title || '未命名档案' }}</text>
               </view>
             </view>
 
-            <!-- 引句 -->
+            <!-- 引句（使用标题或正文首句） -->
             <view class="sealed-quote">
-              <text class="sealed-quote__text">"那时的风，似乎比现在要慢一些。"</text>
+              <text class="sealed-quote__text">{{ unlockQuote || '"时间，是最温柔的旅人。"' }}</text>
             </view>
 
             <!-- 模糊正文 -->
             <view class="sealed-body-wrap">
               <text class="sealed-body">{{ detail.content || '内容已封存，等待解锁后方可阅读。' }}</text>
-              <view class="sealed-body__veil" aria-hidden="true" />
+              <view class="sealed-body__veil" />
             </view>
 
             <!-- 星形装饰 -->
-            <view class="sealed-sparkle" aria-hidden="true">✦</view>
+            <view class="sealed-sparkle">✦</view>
           </view>
 
           <!-- 倒计时区 -->
           <view class="sealed-lock">
             <view class="sealed-lock__live">
-              <view class="sealed-lock__pulse" aria-hidden="true" />
+              <view class="sealed-lock__pulse" />
               <text class="sealed-lock__live-text">即将抵达，封印未解</text>
             </view>
-
             <view class="sealed-countdown">
               <text class="sealed-countdown__label">还 有</text>
               <view class="sealed-countdown__digits">
@@ -460,138 +449,164 @@ onLoad(async (query) => {
                 </view>
               </view>
             </view>
-
-            <view class="sealed-deco-line-sm" aria-hidden="true" />
+            <view class="sealed-deco-line-sm" />
           </view>
 
-          <!-- 留下回应 CTA -->
+          <!-- 留下回应 CTA（封存中禁用） -->
           <view class="sealed-cta-wrap">
-            <view class="sealed-cta" @tap="() => uni.showToast({ title: '解封后方可留下回应', icon: 'none' })">
-              <view class="sealed-cta__corner sealed-cta__corner--tl" aria-hidden="true" />
-              <view class="sealed-cta__corner sealed-cta__corner--br" aria-hidden="true" />
-              <view class="sealed-cta__dot" aria-hidden="true" />
+            <view class="sealed-cta" @tap="onSealedCtaTap">
+              <view class="sealed-cta__corner sealed-cta__corner--tl" />
+              <view class="sealed-cta__corner sealed-cta__corner--br" />
+              <view class="sealed-cta__dot" />
               <text class="sealed-cta__text">留 下 回 应</text>
             </view>
           </view>
 
-          <!-- 底部说明 -->
           <text class="sealed-sub-hint">解封后，过去的你将读到这封信</text>
         </view>
 
-        <!-- UNLOCKED：档案信件阅读页（保持原有结构） -->
-        <view v-else-if="isUnlocked" class="archive-intro">
-          <view class="archive-intro__copy">{{ unlockMomentText || archiveDateText }}</view>
-        </view>
-        <view v-if="isUnlocked" class="letter-stage">
-          <view class="letter-paper">
-            <view class="letter-paper__glow" />
+        <!-- ══════ UNLOCKED：时间回看（回看.html 结构） ══════ -->
+        <view v-else-if="isUnlocked" class="unlock-hero">
 
-            <view class="letter-paper__header">
-              <view class="letter-quote">
-                <text class="letter-quote__mark letter-quote__mark--open">&ldquo;</text>
-                <text class="letter-quote__text">{{ detail.title || '未命名来信' }}</text>
-                <text class="letter-quote__mark letter-quote__mark--close">&rdquo;</text>
-              </view>
-            </view>
-
-            <view class="letter-body">{{ detail.content }}</view>
-
-            <view class="letter-paper__footer">
-              <view v-if="unlockMomentText" class="letter-paper__footnote">
-                启封于 {{ unlockMomentText }}
-              </view>
+          <!-- 存档元信息行 -->
+          <view class="unlock-archive">
+            <text class="unlock-archive-no">{{ archiveNoCN }}</text>
+            <view v-if="archiveLocation" class="unlock-archive-loc">
+              <view class="unlock-loc-dot" />
+              <text class="unlock-loc-text">{{ archiveLocation }}</text>
             </view>
           </view>
 
-          <view class="present-panel">
-            <view class="present-panel__head">
-              <view class="present-panel__title">给当时的自己，留下一句现在的话。</view>
+          <!-- 季节 -->
+          <text class="unlock-season">{{ archiveSeasonCN }}</text>
+
+          <!-- 装饰横线 -->
+          <view class="unlock-deco" />
+
+          <!-- 大引句 -->
+          <text class="unlock-quote">{{ unlockQuote }}</text>
+
+          <!-- 印章行 -->
+          <view class="unlock-seal-row">
+            <view class="unlock-seal">
+              <text class="unlock-seal-char">阅</text>
+            </view>
+            <text class="unlock-seal-label">{{ archiveWrittenText }}</text>
+          </view>
+
+          <!-- 信件卡片（可读） -->
+          <view class="unlock-card">
+            <view class="unlock-card-vline" />
+            <view class="unlock-card-corner" />
+            <view class="unlock-card-body">
+              <text class="unlock-card-text">{{ detail.content }}</text>
+            </view>
+            <text class="unlock-sparkle">✦</text>
+          </view>
+
+          <!-- 操作区 -->
+          <view class="unlock-actions">
+            <text class="unlock-reply-hint">此刻，想对当时的自己说句什么…</text>
+
+            <!-- 已提交回应 -->
+            <template v-if="hasSubmittedReply">
+              <view class="unlock-replied-slot">
+                <view v-if="replyLoading" class="unlock-replied-loading">
+                  <text class="unlock-replied-placeholder">正在载入你留下的那句话…</text>
+                </view>
+                <view v-else-if="replyLoadFailed" class="unlock-replied-fail">
+                  <text class="unlock-replied-placeholder">回应内容暂时加载失败</text>
+                  <text class="unlock-replied-retry" @tap="retryLoadReply">重新加载</text>
+                </view>
+                <view v-else class="unlock-replied-content">
+                  <text class="unlock-replied-label">你曾回应</text>
+                  <text class="unlock-replied-text">{{ replyResult?.content }}</text>
+                </view>
+              </view>
+            </template>
+
+            <!-- 可留回应 -->
+            <view v-else-if="canSubmitReply" class="unlock-cta" @tap="openReplySheet">
+              <view class="unlock-cta-corner unlock-cta-corner--tl" />
+              <view class="unlock-cta-corner unlock-cta-corner--br" />
+              <view class="unlock-cta-dot" />
+              <text class="unlock-cta-text">留 下 回 应</text>
             </view>
 
-            <view class="present-area">
-              <template v-if="detail.hasReply">
-                <view v-if="replyLoading" class="present-slot present-slot--loading">
-                  <text class="present-placeholder">正在载入你留下的那句话…</text>
-                </view>
-                <template v-else-if="replyLoadFailed">
-                  <view class="present-slot present-slot--failed">
-                    <text class="present-placeholder">回应内容暂时加载失败，稍后再试</text>
-                  </view>
-                  <view class="present-action">
-                    <view class="present-note">这句回应还在档案里，只是暂时没取出来。</view>
-                    <view class="present-retry" @tap="retryLoadReply"><text>重新加载</text></view>
-                  </view>
-                </template>
-                <template v-else>
-                  <view class="present-slot present-slot--submitted">
-                    <view class="present-slot__header">
-                      <text class="present-slot__label">你曾回应</text>
-                      <text v-if="replyResult?.createdAt" class="present-slot__time">{{ formatDateTime(replyResult.createdAt) }}</text>
-                    </view>
-                    <view class="present-slot__content">{{ replyResult?.content }}</view>
-                  </view>
-                  <view class="present-action">
-                    <view class="present-note">这句回应已经和旧信一起存档。</view>
-                  </view>
-                </template>
-              </template>
-
-              <template v-else-if="detail.canReply">
-                <view class="present-slot present-slot--input">
-                  <textarea
-                    v-model="replyContent"
-                    class="present-textarea"
-                    :disabled="submittingReply"
-                    placeholder="此刻，想对当时的自己说句什么…"
-                    placeholder-class="present-textarea__placeholder"
-                    auto-height
-                  />
-                </view>
-                <view class="present-action">
-                  <view class="present-note">只写一句也可以，像把今天轻轻放回过去。</view>
-                  <view class="present-btn" :class="{ 'present-btn--disabled': submittingReply }" @tap="submitReply">
-                    <text>{{ submittingReply ? '发送中…' : '留下回应' }}</text>
-                  </view>
-                </view>
-              </template>
-
-              <template v-else>
-                <view class="present-slot present-slot--locked">
-                  <text class="present-placeholder">此刻暂不可留下回应</text>
-                </view>
-                <view class="present-action">
-                  <view class="present-note">当前状态下，回应入口保持关闭。</view>
-                </view>
-              </template>
+            <!-- 收入时光轴 -->
+            <view class="unlock-sec-link" @tap="addToTimeline">
+              <text class="unlock-sec-link-text">收入时光轴</text>
             </view>
           </view>
         </view>
+
       </view>
 
+      <!-- 无 detail 兜底 -->
       <view v-else class="state-wrap">
         <EmptyState text="记录暂时不可用" />
         <PrimaryButton text="重试加载" ghost @tap="retryLoadDetail" />
       </view>
+
     </view>
+
+    <!-- 回应浮层（UNLOCKED 可回应状态） -->
+    <view
+      v-if="isUnlocked && canSubmitReply"
+      class="reply-overlay"
+      :class="{ 'reply-overlay--open': showReplySheet }"
+      @tap.stop="closeReplySheet"
+    >
+      <view class="reply-sheet" @tap.stop>
+        <text class="reply-sheet-label">回 应</text>
+        <textarea
+          class="reply-textarea"
+          v-model="replyContent"
+          placeholder="此刻的你，想说…"
+          placeholder-class="reply-placeholder"
+          :disabled="submittingReply"
+          auto-height
+        />
+        <view class="reply-actions-row">
+          <view class="reply-cancel" @tap="closeReplySheet">
+            <text>取 消</text>
+          </view>
+          <view
+            class="reply-send"
+            :class="{ 'reply-send--disabled': submittingReply }"
+            @tap="submitReply"
+          >
+            <view class="reply-send-corner reply-send-corner--tl" />
+            <view class="reply-send-corner reply-send-corner--br" />
+            <view class="unlock-cta-dot" />
+            <text>{{ submittingReply ? '寄出中…' : '寄 出' }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
   </view>
 </template>
 
 <style scoped>
-/* ========== 页面底 ========== */
+/* ═══════════════════════════════════════
+   设计令牌 & 页面底层
+═══════════════════════════════════════ */
 .archive-page {
   position: relative;
   min-height: 100vh;
-  --font-reading: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  --font-secondary: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  --font-reading:    'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --font-secondary:  'Noto Sans SC', 'PingFang SC', sans-serif;
+  --ink:             #302e29;
+  --ink-mid:         #6b6560;
+  --ink-light:       #9e9890;
+  --ink-faint:       #c8c2b8;
+  --vermilion:       #b5352a;
   padding-left: 56rpx;
   padding-right: 56rpx;
   padding-bottom: 80rpx;
   background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
   overflow: hidden;
-}
-
-.archive-page--unlocked {
-  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
 }
 
 /* 宣纸底纹 */
@@ -600,9 +615,10 @@ onLoad(async (query) => {
   inset: 0;
   z-index: 0;
   background-image:
-    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200, 185, 158, 0.09) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185, 168, 140, 0.06) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250, 245, 238, 0.18) 0%, transparent 75%);
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.15'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23f)' opacity='0.055'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200,185,158,0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185,168,140,0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250,245,238,0.18) 0%, transparent 75%);
   pointer-events: none;
 }
 
@@ -614,24 +630,23 @@ onLoad(async (query) => {
   z-index: 1;
 }
 
-.archive-top-safe {
-  z-index: 3;
-}
+.archive-top-safe { z-index: 3; }
 
+/* ═══════════════════════════════════════
+   顶部安全区
+═══════════════════════════════════════ */
 .archive-top-safe__mist {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 130% at 50% 0%, rgba(250, 247, 242, 0.82) 0%, rgba(250, 247, 242, 0) 60%),
-    linear-gradient(180deg, rgba(245, 240, 232, 0.92) 0%, rgba(245, 240, 232, 0) 100%);
+    radial-gradient(120% 130% at 50% 0%, rgba(250,247,242,0.82) 0%, rgba(250,247,242,0) 60%),
+    linear-gradient(180deg, rgba(245,240,232,0.92) 0%, rgba(245,240,232,0) 100%);
 }
 
-.archive-top-safe__nav {
-  position: relative;
-}
+.archive-top-safe__nav { position: relative; }
 
-/* 品牌名（SEALED / DRAFT 态居中） */
+/* 品牌名居中 */
 .archive-top-safe__logo {
   position: absolute;
   left: 50%;
@@ -640,36 +655,51 @@ onLoad(async (query) => {
 }
 
 .archive-top-safe__logo-text {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 24rpx;
   font-weight: 300;
   letter-spacing: 0.55em;
-  color: #9e9890;
+  color: var(--ink-light);
 }
 
-.archive-top-safe__meta {
+/* 关闭按钮 */
+.archive-close {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1rpx solid rgba(138, 149, 160, 0.12);
+}
+
+.archive-close__icon {
+  position: relative;
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.archive-close__line {
   position: absolute;
   left: 0;
   top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  max-width: calc(100% - (var(--wechat-right-safe-width, 96px) + 172rpx));
-  padding-right: 12rpx;
+  width: 100%;
+  height: 1rpx;
+  border-radius: 999rpx;
+  background: var(--ink-faint);
 }
 
-.archive-top-safe__subline {
-  color: #adb4ba;
-  font-size: 20rpx;
-  letter-spacing: 1rpx;
-  font-family: var(--font-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.archive-close__line--a { transform: translateY(-50%) rotate(45deg); }
+.archive-close__line--b { transform: translateY(-50%) rotate(-45deg); }
 
-.archive-main {
-  margin-top: 16rpx;
-}
+/* ═══════════════════════════════════════
+   主内容
+═══════════════════════════════════════ */
+.archive-main { margin-top: 16rpx; }
 
 .state-wrap {
   margin-top: 128rpx;
@@ -685,6 +715,9 @@ onLoad(async (query) => {
   gap: 36rpx;
 }
 
+/* ═══════════════════════════════════════
+   DRAFT 兜底面板
+═══════════════════════════════════════ */
 .archive-intro {
   position: relative;
   min-height: 76rpx;
@@ -699,66 +732,13 @@ onLoad(async (query) => {
   font-family: var(--font-secondary);
 }
 
-.archive-close {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 76rpx;
-  height: 76rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.34);
-  border: 1rpx solid rgba(138, 149, 160, 0.12);
-  backdrop-filter: blur(12rpx);
-}
-
-.archive-close--content {
-  top: 0;
-  right: 0;
-  transform: none;
-  width: 72rpx;
-  height: 72rpx;
-  background: rgba(255, 252, 247, 0.72);
-  border-color: rgba(183, 173, 153, 0.2);
-  box-shadow: 0 8rpx 24rpx rgba(97, 90, 79, 0.06);
-}
-
-.archive-close__icon {
-  position: relative;
-  width: 30rpx;
-  height: 30rpx;
-}
-
-.archive-close__line {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 100%;
-  height: 2rpx;
-  border-radius: 999rpx;
-  background: #6d777f;
-}
-
-.archive-close__line--a {
-  transform: translateY(-50%) rotate(45deg);
-}
-
-.archive-close__line--b {
-  transform: translateY(-50%) rotate(-45deg);
-}
-
-/* ========== Fallback: DRAFT / SEALED ========== */
 .fallback-panel {
   display: flex;
   flex-direction: column;
   gap: 24rpx;
 }
 
-.status-card {
-  box-shadow: 0 12rpx 32rpx rgba(26, 26, 26, 0.05);
-}
+.status-card { box-shadow: 0 12rpx 32rpx rgba(26, 26, 26, 0.05); }
 
 .panel-title {
   color: #2c3a45;
@@ -783,308 +763,17 @@ onLoad(async (query) => {
   font-family: var(--font-secondary);
 }
 
-.time-grid {
-  margin-top: 20rpx;
+/* ═══════════════════════════════════════
+   SEALED：封存回看（解锁.html）
+═══════════════════════════════════════ */
+.sealed-hero {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-}
-
-.time-item {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14rpx 20rpx;
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.65);
-}
-
-.time-label {
-  color: #8a95a0;
-  font-size: 24rpx;
-  font-family: var(--font-secondary);
-}
-
-.time-value {
-  color: #3b647a;
-  font-size: 24rpx;
-  font-family: var(--font-secondary);
-}
-
-/* ========== UNLOCKED: 信件舞台 ========== */
-.letter-stage {
-  display: flex;
-  flex-direction: column;
-  gap: 40rpx;
-}
-
-/* 纸页 */
-.letter-paper {
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 251, 244, 0.98) 0%, rgba(249, 243, 232, 0.98) 100%);
-  border-radius: 42rpx;
-  padding: 64rpx 56rpx 56rpx;
-  border: 1rpx solid rgba(213, 199, 172, 0.4);
-  box-shadow:
-    0 1rpx 0 rgba(255, 255, 255, 0.6) inset,
-    0 24rpx 60rpx rgba(90, 88, 80, 0.08);
-}
-
-.letter-paper__glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 36%),
-    repeating-linear-gradient(
-      180deg,
-      rgba(150, 133, 101, 0.04) 0,
-      rgba(150, 133, 101, 0.04) 2rpx,
-      transparent 2rpx,
-      transparent 22rpx
-    );
-  opacity: 0.7;
-}
-
-.letter-paper__header,
-.letter-body,
-.letter-paper__footer {
-  position: relative;
-  z-index: 1;
-}
-
-.letter-paper__header {
-  padding-bottom: 12rpx;
-}
-
-/* 引句 */
-.letter-quote {
-  color: #2f3a44;
-  font-size: 44rpx;
-  line-height: 1.55;
-  font-weight: 500;
-  font-style: italic;
-  font-family: var(--font-reading);
-  letter-spacing: 2rpx;
-  word-break: break-word;
-}
-
-.letter-quote__mark {
-  color: #2f3a44;
-  font-size: 44rpx;
-  font-style: normal;
-  display: inline;
-}
-
-.letter-quote__mark--open {
-  margin-right: 2rpx;
-}
-
-.letter-quote__mark--close {
-  margin-left: 2rpx;
-}
-
-.letter-quote__text {
-  display: inline;
-}
-
-/* 正文 */
-.letter-body {
-  margin-top: 48rpx;
-  color: #4a4336;
-  font-size: 30rpx;
-  line-height: 2.05;
-  letter-spacing: 1rpx;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: var(--font-reading);
-}
-
-.letter-paper__footer {
-  margin-top: 48rpx;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  gap: 20rpx;
-}
-
-.letter-paper__footnote {
-  color: #a7a096;
-  font-size: 22rpx;
-  letter-spacing: 1rpx;
-  font-family: var(--font-secondary);
-}
-
-.present-panel {
-  position: relative;
-  overflow: hidden;
-  border-radius: 36rpx;
-  padding: 36rpx;
-  background:
-    linear-gradient(180deg, rgba(246, 243, 237, 0.68) 0%, rgba(237, 241, 244, 0.58) 100%);
-  border: 1rpx solid rgba(183, 193, 201, 0.28);
-  box-shadow: 0 12rpx 34rpx rgba(77, 91, 104, 0.05);
-}
-
-.present-panel__head,
-.present-area {
-  position: relative;
-  z-index: 1;
-}
-
-.present-panel__head {
-  display: flex;
-  flex-direction: column;
-  gap: 10rpx;
-}
-
-.present-panel__title {
-  color: #4b453d;
-  font-size: 30rpx;
-  line-height: 1.5;
-  font-family: var(--font-reading);
-}
-
-.present-area {
-  margin-top: 24rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.present-slot {
-  min-height: 120rpx;
-  padding: 30rpx 32rpx;
-  border-radius: 32rpx;
-  background: rgba(233, 237, 240, 0.52);
-  display: flex;
-  align-items: center;
-}
-
-.present-placeholder {
-  color: #9aa5b0;
-  font-size: 26rpx;
-  letter-spacing: 1rpx;
-  font-family: var(--font-secondary);
-}
-
-.present-slot--input {
-  align-items: stretch;
-  padding: 28rpx 32rpx;
-  background: rgba(248, 244, 237, 0.74);
-  border: 1rpx solid rgba(190, 176, 147, 0.18);
-}
-
-.present-textarea {
-  width: 100%;
-  min-height: 80rpx;
-  background: transparent;
-  color: #2c3a45;
-  font-size: 28rpx;
-  line-height: 1.7;
-  letter-spacing: 1rpx;
-  font-family: var(--font-reading);
-}
-
-.present-textarea__placeholder {
-  color: #9aa5b0;
-}
-
-.present-slot--submitted {
-  flex-direction: column;
-  align-items: stretch;
-  background: rgba(251, 247, 239, 0.8);
-  padding: 28rpx 32rpx;
-  gap: 14rpx;
-  border: 1rpx solid rgba(190, 176, 147, 0.16);
-}
-
-.present-slot__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.present-slot__label {
-  color: #8f97a0;
-  font-size: 22rpx;
-  letter-spacing: 1rpx;
-  font-family: var(--font-secondary);
-}
-
-.present-slot__time {
-  color: #afb6bc;
-  font-size: 22rpx;
-  letter-spacing: 1rpx;
-  font-family: var(--font-secondary);
-}
-
-.present-slot__content {
-  color: #4b453d;
-  font-size: 28rpx;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  font-family: var(--font-reading);
-}
-
-.present-slot--failed,
-.present-slot--loading,
-.present-slot--locked {
-  background: rgba(232, 236, 239, 0.52);
-}
-
-/* 底部动作行 */
-.present-action {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8rpx;
-  gap: 16rpx;
-}
-
-.present-btn {
-  display: flex;
-  align-items: center;
+  /* 尽量撑满剩余视口，内容整体居中 */
+  min-height: calc(100vh - 260rpx);
   justify-content: center;
-  height: 64rpx;
-  min-width: 160rpx;
-  padding: 0 30rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(168, 160, 148, 0.24);
-  background: rgba(255, 252, 247, 0.62);
-  color: #746d64;
-  font-size: 24rpx;
-  letter-spacing: 2rpx;
-  font-family: var(--font-secondary);
-}
-
-.present-btn--disabled {
-  opacity: 0.6;
-}
-
-.present-retry {
-  color: #3b647a;
-  font-size: 24rpx;
-  letter-spacing: 1rpx;
-  padding: 8rpx 0;
-  font-family: var(--font-secondary);
-}
-
-.present-note {
-  flex: 1;
-  color: #8a95a0;
-  font-size: 24rpx;
-  line-height: 1.7;
-  font-family: var(--font-secondary);
-}
-
-/* ========== SEALED 定稿视觉 ========== */
-.sealed-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 48rpx 0 32rpx;
   gap: 0;
 }
 
@@ -1096,38 +785,31 @@ onLoad(async (query) => {
 
 .sealed-meta__no {
   display: block;
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 20rpx;
   font-weight: 300;
   letter-spacing: 0.25em;
-  color: #c8c2b8;
+  color: var(--ink-faint);
   text-transform: uppercase;
   margin-bottom: 8rpx;
 }
 
 .sealed-meta__season {
   display: block;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 26rpx;
   font-weight: 300;
   letter-spacing: 0.08em;
-  color: #9e9890;
+  color: var(--ink-light);
   font-style: italic;
 }
 
-/* 短横线 */
+/* 装饰横线 */
 .sealed-deco-line {
   width: 64rpx;
   height: 1rpx;
-  background: #c8c2b8;
+  background: var(--ink-faint);
   margin: 0 auto 64rpx;
-}
-
-.sealed-deco-line-sm {
-  width: 48rpx;
-  height: 1rpx;
-  background: #c8c2b8;
-  margin: 0 auto;
 }
 
 /* 信件卡片 */
@@ -1145,41 +827,27 @@ onLoad(async (query) => {
   margin-bottom: 56rpx;
 }
 
-/* 左侧朱砂竖线 */
 .sealed-card__vline {
   position: absolute;
   left: 0;
   top: 40rpx;
   bottom: 40rpx;
   width: 3rpx;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(181, 53, 42, 0.35) 25%,
-    rgba(181, 53, 42, 0.35) 75%,
-    transparent
-  );
+  background: linear-gradient(to bottom, transparent, rgba(181,53,42,0.35) 25%, rgba(181,53,42,0.35) 75%, transparent);
   border-radius: 2rpx;
 }
 
-/* 右上折角 */
 .sealed-card__corner {
   position: absolute;
   top: 0;
   right: 0;
   width: 28rpx;
   height: 28rpx;
-  background: linear-gradient(
-    225deg,
-    rgba(230, 218, 200, 0.9) 0%,
-    rgba(230, 218, 200, 0.9) 48%,
-    rgba(252, 249, 244, 0) 50%
-  );
-  border-left: 1rpx solid rgba(188, 174, 152, 0.22);
-  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
+  background: linear-gradient(225deg, rgba(230,218,200,0.9) 0%, rgba(230,218,200,0.9) 48%, rgba(252,249,244,0) 50%);
+  border-left: 1rpx solid rgba(188,174,152,0.22);
+  border-bottom: 1rpx solid rgba(188,174,152,0.22);
 }
 
-/* 卡片 meta 行 */
 .sealed-card__meta {
   display: flex;
   align-items: center;
@@ -1193,12 +861,11 @@ onLoad(async (query) => {
   gap: 16rpx;
 }
 
-/* 封印章 */
 .sealed-seal {
   width: 52rpx;
   height: 52rpx;
   border-radius: 50%;
-  border: 2rpx solid #b5352a;
+  border: 2rpx solid var(--vermilion);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1207,16 +874,16 @@ onLoad(async (query) => {
 }
 
 .sealed-seal__char {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 20rpx;
-  color: #b5352a;
+  color: var(--vermilion);
 }
 
 .sealed-card__tag {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 20rpx;
   font-weight: 300;
-  color: #9e9890;
+  color: var(--ink-light);
   letter-spacing: 0.1em;
 }
 
@@ -1230,14 +897,14 @@ onLoad(async (query) => {
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: #c8c2b8;
+  background: var(--ink-faint);
 }
 
 .sealed-card__loc-text {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 20rpx;
   font-weight: 300;
-  color: #c8c2b8;
+  color: var(--ink-faint);
   letter-spacing: 0.06em;
   max-width: 200rpx;
   overflow: hidden;
@@ -1245,31 +912,27 @@ onLoad(async (query) => {
   white-space: nowrap;
 }
 
-/* 引句 */
-.sealed-quote {
-  margin-bottom: 36rpx;
-}
+.sealed-quote { margin-bottom: 36rpx; }
 
 .sealed-quote__text {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 40rpx;
   font-weight: 300;
-  color: #302e29;
+  color: var(--ink);
   line-height: 1.6;
   letter-spacing: 0.04em;
 }
 
-/* 模糊正文 */
 .sealed-body-wrap {
   position: relative;
   margin-bottom: 20rpx;
 }
 
 .sealed-body {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 28rpx;
   font-weight: 300;
-  color: #6b6560;
+  color: var(--ink-mid);
   line-height: 1.85;
   letter-spacing: 0.03em;
   filter: blur(3px);
@@ -1278,16 +941,15 @@ onLoad(async (query) => {
 .sealed-body__veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 0%, rgba(252, 249, 244, 0.82) 80%);
+  background: linear-gradient(to bottom, transparent 0%, rgba(252,249,244,0.82) 80%);
   pointer-events: none;
 }
 
-/* 星形装饰 */
 .sealed-sparkle {
   text-align: right;
   opacity: 0.35;
   font-size: 32rpx;
-  color: #c8c2b8;
+  color: var(--ink-faint);
 }
 
 /* 倒计时区 */
@@ -1309,28 +971,32 @@ onLoad(async (query) => {
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: #b5352a;
+  background: var(--vermilion);
   opacity: 0.6;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
 }
 
 .sealed-lock__live-text {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 20rpx;
   font-weight: 300;
-  color: #9e9890;
+  color: var(--ink-light);
   letter-spacing: 0.1em;
 }
 
-.sealed-countdown {
-  text-align: center;
-}
+.sealed-countdown { text-align: center; }
 
 .sealed-countdown__label {
   display: block;
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 20rpx;
   font-weight: 300;
-  color: #9e9890;
+  color: var(--ink-light);
   letter-spacing: 0.12em;
   margin-bottom: 16rpx;
 }
@@ -1350,38 +1016,44 @@ onLoad(async (query) => {
 }
 
 .digit-num {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 56rpx;
   font-weight: 300;
-  color: #302e29;
+  color: var(--ink);
   letter-spacing: 0.02em;
   line-height: 1;
 }
 
 .digit-unit {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 18rpx;
   font-weight: 300;
-  color: #c8c2b8;
+  color: var(--ink-faint);
   letter-spacing: 0.1em;
   margin-top: 6rpx;
 }
 
 .digit-sep {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 44rpx;
   font-weight: 300;
-  color: #c8c2b8;
+  color: var(--ink-faint);
   padding-bottom: 16rpx;
   margin: 0 4rpx;
 }
 
-/* 留下回应 CTA */
+.sealed-deco-line-sm {
+  width: 48rpx;
+  height: 1rpx;
+  background: var(--ink-faint);
+  margin: 0 auto;
+}
+
+/* CTA */
 .sealed-cta-wrap {
   display: flex;
   justify-content: center;
-  margin-top: 44rpx;
-  margin-bottom: 0;
+  margin-bottom: 32rpx;
 }
 
 .sealed-cta {
@@ -1390,13 +1062,8 @@ onLoad(async (query) => {
   align-items: center;
   gap: 20rpx;
   padding: 26rpx 72rpx;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 28rpx;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  color: #302e29;
   background: transparent;
-  border: 1rpx solid #c8c2b8;
+  border: 1rpx solid var(--ink-faint);
   border-radius: 4rpx;
 }
 
@@ -1404,48 +1071,416 @@ onLoad(async (query) => {
   position: absolute;
   width: 12rpx;
   height: 12rpx;
-  border-color: #9e9890;
+  border-color: var(--ink-light);
   border-style: solid;
 }
 
-.sealed-cta__corner--tl {
-  top: -2rpx;
-  left: -2rpx;
-  border-width: 2rpx 0 0 2rpx;
-}
-
-.sealed-cta__corner--br {
-  bottom: -2rpx;
-  right: -2rpx;
-  border-width: 0 2rpx 2rpx 0;
-}
+.sealed-cta__corner--tl { top: -2rpx; left: -2rpx; border-width: 2rpx 0 0 2rpx; }
+.sealed-cta__corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
 
 .sealed-cta__dot {
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: #b5352a;
+  background: var(--vermilion);
   opacity: 0.7;
   flex-shrink: 0;
 }
 
 .sealed-cta__text {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-family: var(--font-reading);
   font-size: 28rpx;
   font-weight: 400;
   letter-spacing: 0.18em;
-  color: #302e29;
+  color: var(--ink);
 }
 
-/* 底部说明 */
 .sealed-sub-hint {
   display: block;
   text-align: center;
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 20rpx;
   font-weight: 300;
-  color: #c8c2b8;
+  color: var(--ink-faint);
   letter-spacing: 0.08em;
-  margin-top: 32rpx;
 }
+
+/* ═══════════════════════════════════════
+   UNLOCKED：时间回看（回看.html）
+═══════════════════════════════════════ */
+.unlock-hero {
+  display: flex;
+  flex-direction: column;
+  padding-top: 56rpx;
+}
+
+/* 存档元信息行 */
+.unlock-archive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 48rpx;
+}
+
+.unlock-archive-no {
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+}
+
+.unlock-archive-loc {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.unlock-loc-dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: var(--vermilion);
+  opacity: 0.55;
+}
+
+.unlock-loc-text {
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+/* 季节 */
+.unlock-season {
+  font-family: var(--font-reading);
+  font-size: 24rpx;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  color: var(--ink-light);
+  font-style: italic;
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+
+/* 装饰横线 */
+.unlock-deco {
+  width: 64rpx;
+  height: 1rpx;
+  background: var(--ink-faint);
+  margin: 0 auto 56rpx;
+}
+
+/* 大引句 */
+.unlock-quote {
+  font-family: var(--font-reading);
+  font-size: 44rpx;
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1.65;
+  letter-spacing: 0.05em;
+  text-align: center;
+  margin-bottom: 56rpx;
+}
+
+/* 印章行 */
+.unlock-seal-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 36rpx;
+}
+
+.unlock-seal {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--vermilion);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.unlock-seal-char {
+  font-family: var(--font-reading);
+  font-size: 20rpx;
+  color: var(--vermilion);
+}
+
+.unlock-seal-label {
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--ink-light);
+  letter-spacing: 0.1em;
+}
+
+/* 信件卡片（可读） */
+.unlock-card {
+  position: relative;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  border-radius: 2rpx;
+  padding: 44rpx 44rpx 40rpx 56rpx;
+  box-shadow:
+    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
+    0 4rpx 24rpx rgba(140, 120, 90, 0.06),
+    0 2rpx 6rpx rgba(140, 120, 90, 0.04);
+}
+
+.unlock-card-vline {
+  position: absolute;
+  left: 0;
+  top: 40rpx;
+  bottom: 40rpx;
+  width: 3rpx;
+  background: linear-gradient(to bottom, transparent, rgba(181,53,42,0.35) 25%, rgba(181,53,42,0.35) 75%, transparent);
+  border-radius: 2rpx;
+}
+
+.unlock-card-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28rpx;
+  height: 28rpx;
+  background: linear-gradient(225deg, rgba(230,218,200,0.9) 0%, rgba(230,218,200,0.9) 48%, rgba(252,249,244,0) 50%);
+  border-left: 1rpx solid rgba(188,174,152,0.22);
+  border-bottom: 1rpx solid rgba(188,174,152,0.22);
+}
+
+.unlock-card-body { margin-bottom: 28rpx; }
+
+.unlock-card-text {
+  font-family: var(--font-reading);
+  font-size: 27rpx;
+  font-weight: 300;
+  color: var(--ink-mid);
+  line-height: 1.95;
+  letter-spacing: 0.03em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.unlock-sparkle {
+  display: block;
+  text-align: right;
+  opacity: 0.35;
+  font-size: 36rpx;
+  color: var(--ink-faint);
+}
+
+/* 操作区 */
+.unlock-actions {
+  margin-top: 64rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32rpx;
+  padding-bottom: 40rpx;
+}
+
+.unlock-reply-hint {
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--ink-faint);
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+/* 已提交回应 */
+.unlock-replied-slot {
+  width: 100%;
+  padding: 28rpx 36rpx;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  border-radius: 2rpx;
+}
+
+.unlock-replied-placeholder {
+  font-family: var(--font-secondary);
+  font-size: 24rpx;
+  color: var(--ink-faint);
+}
+
+.unlock-replied-retry {
+  font-family: var(--font-secondary);
+  font-size: 24rpx;
+  color: var(--vermilion);
+  opacity: 0.8;
+  margin-top: 16rpx;
+  display: block;
+}
+
+.unlock-replied-fail,
+.unlock-replied-loading {
+  display: flex;
+  flex-direction: column;
+}
+
+.unlock-replied-label {
+  display: block;
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  color: var(--ink-faint);
+  letter-spacing: 0.1em;
+  margin-bottom: 16rpx;
+}
+
+.unlock-replied-text {
+  font-family: var(--font-reading);
+  font-size: 28rpx;
+  color: var(--ink-mid);
+  line-height: 1.8;
+}
+
+/* 留下回应 CTA */
+.unlock-cta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 26rpx 80rpx;
+  background: transparent;
+  border: 1rpx solid var(--ink-faint);
+  border-radius: 4rpx;
+}
+
+.unlock-cta-corner {
+  position: absolute;
+  width: 12rpx;
+  height: 12rpx;
+  border-color: var(--ink-light);
+  border-style: solid;
+}
+
+.unlock-cta-corner--tl { top: -2rpx; left: -2rpx; border-width: 2rpx 0 0 2rpx; }
+.unlock-cta-corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
+
+.unlock-cta-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--vermilion);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.unlock-cta-text {
+  font-family: var(--font-reading);
+  font-size: 28rpx;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+}
+
+/* 收入时光轴 */
+.unlock-sec-link-text {
+  font-family: var(--font-reading);
+  font-size: 24rpx;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+}
+
+/* ═══════════════════════════════════════
+   回应浮层（bottom sheet）
+═══════════════════════════════════════ */
+.reply-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(240, 235, 226, 0.88);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.reply-overlay--open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.reply-sheet {
+  background: rgba(252, 249, 244, 0.96);
+  border-top: 1rpx solid rgba(188, 174, 152, 0.35);
+  padding: 48rpx 56rpx 96rpx;
+}
+
+.reply-sheet-label {
+  display: block;
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--ink-light);
+  letter-spacing: 0.15em;
+  margin-bottom: 28rpx;
+}
+
+.reply-textarea {
+  width: 100%;
+  min-height: 240rpx;
+  background: transparent;
+  border-bottom: 1rpx solid var(--ink-faint);
+  font-family: var(--font-reading);
+  font-size: 28rpx;
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1.85;
+  letter-spacing: 0.03em;
+  padding-bottom: 24rpx;
+}
+
+.reply-placeholder {
+  color: var(--ink-faint);
+  font-family: var(--font-reading);
+  font-size: 28rpx;
+}
+
+.reply-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 36rpx;
+}
+
+.reply-cancel {
+  font-family: var(--font-reading);
+  font-size: 24rpx;
+  font-weight: 300;
+  color: var(--ink-faint);
+  letter-spacing: 0.1em;
+  padding: 8rpx 0;
+}
+
+.reply-send {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 56rpx;
+  background: transparent;
+  border: 1rpx solid var(--ink-faint);
+  border-radius: 4rpx;
+}
+
+.reply-send-corner {
+  position: absolute;
+  width: 10rpx;
+  height: 10rpx;
+  border-color: var(--ink-light);
+  border-style: solid;
+}
+
+.reply-send-corner--tl { top: -2rpx; left: -2rpx; border-width: 2rpx 0 0 2rpx; }
+.reply-send-corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
+
+.reply-send--disabled { opacity: 0.6; }
 </style>

@@ -385,6 +385,12 @@ onLoad(async (query) => {
             <view class="letter-content">
               <view class="side-rule" aria-hidden="true" />
               <view class="editor-zone">
+                <input
+                  v-model="form.title"
+                  class="title-input"
+                  placeholder="拟定一个标题..."
+                  placeholder-class="title-placeholder"
+                />
                 <!-- 解锁时间行（嵌入信纸内） -->
                 <view class="unlock-row">
                   <text class="unlock-label">Unlock after</text>
@@ -622,6 +628,26 @@ onLoad(async (query) => {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+}
+
+/* 标题输入框 */
+.title-input {
+  width: 100%;
+  min-height: 48rpx;
+  background: transparent;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #302e29;
+  letter-spacing: 0.04em;
+  margin-bottom: 8rpx;
+}
+
+:deep(.title-placeholder) {
+  color: rgba(180, 170, 155, 0.7);
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 32rpx;
+  font-weight: 500;
 }
 
 /* 解锁时间行 */

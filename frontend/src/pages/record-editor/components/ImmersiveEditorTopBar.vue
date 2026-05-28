@@ -29,7 +29,7 @@ const navStyle = computed(() => ({
 }))
 
 const closeRailStyle = computed(() => ({
-  right: `calc(${rightSafeWidth.value}px + 12px)`,
+  left: '56rpx',
 }))
 
 const onClose = () => {
@@ -42,11 +42,6 @@ const onClose = () => {
     <view class="immersive-editor-top-bar__mist" aria-hidden="true" />
 
     <view class="immersive-editor-top-bar__nav" :style="navStyle">
-      <view class="immersive-editor-top-bar__vol">
-        <text class="immersive-editor-top-bar__vol-text">{{ props.volNo }}</text>
-        <view class="immersive-editor-top-bar__vol-rule" />
-      </view>
-
       <view class="immersive-editor-top-bar__close-hit" :style="closeRailStyle" @tap="onClose">
         <view class="immersive-editor-top-bar__close-icon">
           <view class="immersive-editor-top-bar__close-line immersive-editor-top-bar__close-line-a" />
@@ -108,17 +103,20 @@ const onClose = () => {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 72rpx;
-  height: 72rpx;
+  width: 56rpx;
+  height: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1rpx solid rgba(138, 149, 160, 0.12);
 }
 
 .immersive-editor-top-bar__close-icon {
   position: relative;
-  width: 34rpx;
-  height: 34rpx;
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .immersive-editor-top-bar__close-line {
@@ -128,7 +126,7 @@ const onClose = () => {
   width: 100%;
   height: 1rpx;
   border-radius: 999rpx;
-  background: #9e9890;
+  background: #c8c2b8;
 }
 
 .immersive-editor-top-bar__close-line-a {
