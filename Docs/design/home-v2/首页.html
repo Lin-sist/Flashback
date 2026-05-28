@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>时光回序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink:       #302e29;         /* 主墨：保留，略暖 */
+    --ink-mid:   #6b6560;         /* 中墨：提亮一档 */
+    --ink-light: #9e9890;         /* 淡墨：提亮，更柔 */
+    --ink-faint: #c8c2b8;         /* 极淡：提亮，按钮边线用 */
+    --paper:     #faf7f2;         /* 纸：近白象牙 */
+    --paper-2:   #f5f0e8;
+    --vermilion: #b5352a;         /* 朱砂：保持，是唯一的色彩锚点 */
+    --verm-dim:  #8a271f;
+    --serif:     'Noto Serif SC', 'Songti SC', Georgia, serif;
+    --sans:      'Noto Sans SC', 'PingFang SC', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: #ede8df;
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* 微信小程序标准比例容器 390×844 */
+  .device-shell {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--paper);
+  }
+
+  /* ── 宣纸底色：近白象牙，轻而有温度 ── */
+  .device-shell {
+    background:
+      linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
+  }
+
+  /* 宣纸纤维：只保留极轻的随机颗粒感，不做方向性横纹 */
+  .device-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.15'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23f)' opacity='0.055'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* 光透薄纸的晕染：极淡、大范围、无边界感 */
+  .device-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200,185,158,0.09) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185,168,140,0.06) 0%, transparent 65%),
+      radial-gradient(ellipse 45% 55% at 70% 78%, rgba(178,162,135,0.07) 0%, transparent 65%),
+      radial-gradient(ellipse 65% 40% at 30% 85%, rgba(170,155,128,0.05) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250,245,238,0.18) 0%, transparent 75%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .page {
+    position: relative;
+    z-index: 2;
+    width: 390px;
+    height: 844px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 28px;
+  }
+
+  /* ── 顶部标题 ── */
+  .logo {
+    padding-top: 52px;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.55em;
+    color: var(--ink-light);
+    opacity: 0;
+    animation: fadeUp 1s 0.2s ease forwards;
+  }
+
+  /* ── 主内容区 ── */
+  .hero {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 32px;
+    padding-bottom: 24px;
+  }
+
+  /* 装饰细线 */
+  .deco-line {
+    width: 32px;
+    height: 0.5px;
+    background: var(--ink-faint);
+    margin: 0 auto 36px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.5s ease forwards;
+  }
+
+  /* 主标题 */
+  .headline {
+    font-family: var(--serif);
+    font-weight: 300;
+    text-align: center;
+    line-height: 1.5;
+    color: var(--ink);
+    opacity: 0;
+    animation: fadeUp 1s 0.7s ease forwards;
+  }
+  .headline .line1 {
+    font-size: 32px;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .headline .line2 {
+    font-size: 28px;
+    letter-spacing: 0.04em;
+    display: block;
+    color: var(--ink-mid);
+  }
+
+  /* 副标题 */
+  .subline {
+    margin-top: 28px;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--ink-light);
+    line-height: 2;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    animation: fadeUp 1s 1s ease forwards;
+  }
+
+  /* ── CTA 按钮 ── */
+  .cta-wrap {
+    margin-top: 48px;
+    display: flex;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeUp 0.9s 1.2s ease forwards;
+  }
+
+  .cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 36px;
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+    background: transparent;
+    border: 0.5px solid var(--ink-faint);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 按钮四角装饰 */
+  .cta::before, .cta::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-color: var(--ink-light);
+    border-style: solid;
+    transition: all 0.35s ease;
+  }
+  .cta::before {
+    top: -1px; left: -1px;
+    border-width: 1px 0 0 1px;
+  }
+  .cta::after {
+    bottom: -1px; right: -1px;
+    border-width: 0 1px 1px 0;
+  }
+
+  .cta:active {
+    background: rgba(44,42,38,0.04);
+    letter-spacing: 0.22em;
+  }
+
+  /* 朱砂点 */
+  .cta-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--vermilion);
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  /* ── 到达预告卡：信笺感 ── */
+  .arrival-wrap {
+    margin-top: 52px;
+    opacity: 0;
+    animation: fadeUp 1s 1.5s ease forwards;
+  }
+
+  .arrival-card {
+    position: relative;
+    /* 比背景略暖、略白，像一张叠在宣纸上的薄信笺 */
+    background: rgba(252, 249, 244, 0.72);
+    border: 0.5px solid rgba(188, 174, 152, 0.28);
+    border-radius: 1px;
+    padding: 22px 24px 20px 28px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    /* 极轻的投影，像薄纸微微浮起 */
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.6) inset,
+      0 2px 12px rgba(140,120,90,0.06),
+      0 1px 3px rgba(140,120,90,0.04);
+  }
+
+  /* 右上角折角——信封感 */
+  .arrival-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 14px;
+    height: 14px;
+    background: linear-gradient(
+      225deg,
+      rgba(230,218,200,0.9) 0%,
+      rgba(230,218,200,0.9) 48%,
+      rgba(252,249,244,0) 50%
+    );
+    border-left: 0.5px solid rgba(188,174,152,0.22);
+    border-bottom: 0.5px solid rgba(188,174,152,0.22);
+  }
+
+  /* 左侧朱砂竖线：更细更淡，像信笺印刷的淡红格线 */
+  .arrival-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 20px; bottom: 20px;
+    width: 1.5px;
+    background: linear-gradient(to bottom, transparent, rgba(181,53,42,0.35) 25%, rgba(181,53,42,0.35) 75%, transparent);
+    border-radius: 1px;
+  }
+
+  .arrival-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  /* 描边圆形印章 */
+  .seal {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--vermilion);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+  .seal span {
+    font-family: var(--serif);
+    font-size: 10px;
+    color: var(--vermilion);
+    letter-spacing: 0;
+  }
+
+  .arrival-tag {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--ink-light);
+    letter-spacing: 0.1em;
+  }
+
+  .arrival-text {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--ink-mid);
+    line-height: 1.85;
+    letter-spacing: 0.03em;
+  }
+
+  .arrival-text em {
+    font-style: normal;
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  /* 倒计时脉冲 */
+  .countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .pulse-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--vermilion);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .countdown-text {
+    font-size: 11px;
+    font-family: var(--sans);
+    font-weight: 300;
+    color: var(--ink-light);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── 底部导航 ── */
+  .nav {
+    padding: 20px 0 36px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    opacity: 0;
+    animation: fadeUp 0.8s 1.8s ease forwards;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    padding: 4px 16px;
+  }
+
+  .nav-label {
+    font-family: var(--serif);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    color: var(--ink-light);
+    transition: color 0.2s;
+  }
+
+  .nav-item.active .nav-label {
+    color: var(--ink);
+  }
+
+  /* 首页导航下的朱砂点 */
+  .nav-item.active::after {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--vermilion);
+    margin-top: 2px;
+  }
+
+  /* ── 动画 ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50%       { opacity: 1;   transform: scale(1.2); }
+  }
+
+  /* 触摸反馈 */
+  .nav-item:active .nav-label { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="device-shell">
+<div class="page">
+
+  <!-- 顶部品牌 -->
+  <header class="logo">时 光 回 序</header>
+
+  <!-- 主内容 -->
+  <main class="hero">
+    <div class="deco-line"></div>
+
+    <h1 class="headline">
+      <span class="line1">今天的你，</span>
+      <span class="line2">想留下些什么？</span>
+    </h1>
+
+    <p class="subline">
+      你写下的此一刻<br>
+      正等待被未来的你重新读懂
+    </p>
+
+    <div class="cta-wrap">
+      <button class="cta">
+        <span class="cta-dot"></span>
+        提 笔 书 写
+      </button>
+    </div>
+
+    <!-- 到达预告卡 -->
+    <div class="arrival-wrap">
+      <div class="arrival-card">
+        <div class="arrival-meta">
+          <div class="seal"><span>待</span></div>
+          <span class="arrival-tag">即将抵达</span>
+        </div>
+        <p class="arrival-text">
+          一封封存于 <em>2025 年</em> 的信<br>
+          正跨越最后 <em>3 天</em>，向你奔来
+        </p>
+        <div class="countdown">
+          <span class="pulse-dot"></span>
+          <span class="countdown-text">72 小时后解封</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部导航 -->
+  <nav class="nav">
+    <div class="nav-item active">
+      <span class="nav-label">首 页</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-label">时 光 轴</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-label">我 的</span>
+    </div>
+  </nav>
+
+</div>
+</div>
+</body>
+</html>

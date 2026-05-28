@@ -68,8 +68,8 @@ const onClose = () => {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(110% 140% at 50% 0%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 58%),
-    linear-gradient(180deg, rgba(238, 241, 243, 0.96) 0%, rgba(238, 241, 243, 0) 100%);
+    radial-gradient(110% 140% at 50% 0%, rgba(245, 240, 232, 0.72) 0%, rgba(245, 240, 232, 0) 58%),
+    linear-gradient(180deg, rgba(237, 232, 220, 0.96) 0%, rgba(237, 232, 220, 0) 100%);
 }
 
 .immersive-editor-top-bar__nav {
@@ -92,16 +92,16 @@ const onClose = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 24rpx;
-  letter-spacing: 2rpx;
-  color: #879197;
+  letter-spacing: 0.05em;
+  color: #9e9890;
   font-style: italic;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Times New Roman', serif;
+  font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
 }
 
 .immersive-editor-top-bar__vol-rule {
-  width: 56rpx;
+  width: 48rpx;
   height: 1rpx;
-  background: rgba(135, 145, 151, 0.35);
+  background: rgba(200, 194, 184, 0.6);
 }
 
 .immersive-editor-top-bar__close-hit {
@@ -126,9 +126,9 @@ const onClose = () => {
   left: 0;
   top: 50%;
   width: 100%;
-  height: 2rpx;
+  height: 1rpx;
   border-radius: 999rpx;
-  background: #5a646a;
+  background: #9e9890;
 }
 
 .immersive-editor-top-bar__close-line-a {

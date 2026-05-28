@@ -1,39 +1,68 @@
 page,
 :root {
-  --fb-color-bg: #f8fafb;
-  --fb-color-surface: #ffffff;
-  --fb-color-primary: #3b647a;
-  --fb-color-text: #1a1a1a;
-  --fb-color-text-muted: #7f8c93;
-  --fb-color-paper-warm: #fffdf5;
-  --fb-color-paper-emphasis: #fdf2d9;
+  /* ── 颜色：墨·纸·朱砂 ── */
+  --fb-ink:          #302e29;
+  --fb-ink-mid:      #6b6560;
+  --fb-ink-light:    #9e9890;
+  --fb-ink-faint:    #c8c2b8;
+  --fb-paper:        #faf7f2;
+  --fb-paper-2:      #f5f0e8;
+  --fb-vermilion:    #b5352a;
+  --fb-verm-dim:     #8a271f;
 
-  --fb-radius-xl: 32rpx;
-  --fb-radius-lg: 28rpx;
-  --fb-radius-md: 24rpx;
-  --fb-radius-sm: 8rpx;
+  /* 旧变量名保留，值更新为新色系（二级页面无需同步修改） */
+  --fb-color-bg:           var(--fb-paper);
+  --fb-color-surface:      #ffffff;
+  --fb-color-primary:      var(--fb-vermilion);
+  --fb-color-text:         var(--fb-ink);
+  --fb-color-text-muted:   var(--fb-ink-mid);
+  --fb-color-paper-warm:   var(--fb-paper);
+  --fb-color-paper-emphasis: var(--fb-paper-2);
+
+  /* ── 字体 ── */
+  --fb-font-serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --fb-font-sans:  'Noto Sans SC', 'PingFang SC', sans-serif;
+
+  /* ── 字号 ── */
+  --fb-font-title-main: 52rpx;
+  --fb-font-number:     64rpx;
+  --fb-font-title-sub:  36rpx;
+  --fb-font-body:       32rpx;
+  --fb-font-body-sub:   28rpx;
+  --fb-font-meta:       24rpx;
+
+  /* ── 圆角 ── */
+  --fb-radius-xl:   32rpx;
+  --fb-radius-lg:   28rpx;
+  --fb-radius-md:   24rpx;
+  --fb-radius-sm:   8rpx;
   --fb-radius-pill: 999rpx;
 
-  --fb-space-page: 24rpx;
-  --fb-space-hero: 32rpx;
+  /* ── 间距 ── */
+  --fb-space-page:    24rpx;
+  --fb-space-hero:    32rpx;
   --fb-space-section: 20rpx;
-  --fb-space-list: 16rpx;
-  --fb-space-inner: 32rpx;
+  --fb-space-list:    16rpx;
+  --fb-space-inner:   32rpx;
 
-  --fb-font-title-main: 52rpx;
-  --fb-font-number: 64rpx;
-  --fb-font-title-sub: 36rpx;
-  --fb-font-body: 32rpx;
-  --fb-font-body-sub: 28rpx;
-  --fb-font-meta: 24rpx;
+  /* ── 阴影 ── */
+  --fb-shadow-card:   0 20rpx 42rpx rgba(74, 88, 98, 0.065), 0 44rpx 88rpx rgba(86, 98, 108, 0.055);
+  --fb-shadow-strong: 0 16rpx 40rpx rgba(48, 46, 41, 0.12);
+  --fb-shadow-soft:   0 8rpx 24rpx rgba(48, 46, 41, 0.06);
 
-  --fb-shadow-strong: 0 16rpx 40rpx rgba(59, 100, 122, 0.14);
-  --fb-shadow-soft: 0 8rpx 24rpx rgba(26, 26, 26, 0.06);
+  /* ── 记录状态语义色 ── */
+  --fb-status-draft-bg:    rgba(200, 194, 184, 0.18);
+  --fb-status-draft-text:  var(--fb-ink-mid);
+  --fb-status-sealed-bg:   rgba(200, 194, 184, 0.10);
+  --fb-status-sealed-text: var(--fb-ink-light);
+  --fb-status-unlocked-bg: linear-gradient(180deg, rgba(255, 253, 249, 0.98) 0%, rgba(248, 240, 225, 0.98) 100%);
+  --fb-status-unlocked-text: var(--fb-vermilion);
 
-  --fb-bottom-nav-height: 108rpx;
-  --fb-bottom-nav-bg: rgba(255, 255, 255, 0.96);
-  --fb-bottom-nav-border-color: rgba(172, 179, 182, 0.2);
-  --fb-bottom-nav-text-color: #7f8c93;
-  --fb-bottom-nav-active-text-color: #3b647a;
-  --fb-bottom-nav-active-bg: #eef3f6;
+  /* ── 底部导航 ── */
+  --fb-bottom-nav-height:           108rpx;
+  --fb-bottom-nav-bg:               rgba(250, 247, 242, 0.96);
+  --fb-bottom-nav-border-color:     rgba(200, 194, 184, 0.3);
+  --fb-bottom-nav-text-color:       var(--fb-ink-light);
+  --fb-bottom-nav-active-text-color: var(--fb-vermilion);
+  --fb-bottom-nav-active-bg:        rgba(181, 53, 42, 0.08);
 }

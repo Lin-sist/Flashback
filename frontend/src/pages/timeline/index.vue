@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
 import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
-type CorridorNodeKind = 'sealed' | 'unlocked' | 'draft'
+type NodeKind = 'sealed' | 'unlocked' | 'draft' | 'locked'
 
-interface DecoratedTimelineItem {
+interface DecoratedItem {
   id: number
   raw: TimelineItemVO
   title: string
-  kind: CorridorNodeKind
+  kind: NodeKind
   statusText: string
+  tagText: string
   dateText: string
+  hasImage: boolean
+  excerpt: string
 }
 
 const loading = ref(false)
@@ -25,44 +27,19 @@ const timelineLoadFailed = ref(false)
 const yearInputFocused = ref(false)
 const filterPanelVisible = ref(false)
 
-const flatCount = computed(() => timelineGroups.value.reduce((sum, group) => sum + group.items.length, 0))
+const flatCount = computed(() => timelineGroups.value.reduce((sum, g) => sum + g.items.length, 0))
 const hasAppliedYearFilter = computed(() => Boolean(appliedYear.value))
 const showLoadFailureState = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showEmptyState = computed(() => !loading.value && !timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showStaleNotice = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length > 0)
 const appliedFilterText = computed(() => hasAppliedYearFilter.value ? `${appliedYear.value} 年` : '全部')
 const emptyStateText = computed(() => hasAppliedYearFilter.value ? '这一年还没有留下新的片段' : '时间长廊还没有展开第一段记忆')
-const corridorSummaryText = computed(() => {
-  if (loading.value) {
-    return '整理中'
-  }
-
-  if (showLoadFailureState.value) {
-    return '暂时未展开'
-  }
-
-  if (showEmptyState.value) {
-    return hasAppliedYearFilter.value ? `${appliedYear.value} 年暂无记录` : '还没有记录'
-  }
-
-  if (hasAppliedYearFilter.value) {
-    return `${appliedYear.value} 年 · ${flatCount.value} 则`
-  }
-
-  return flatCount.value > 0 ? `共 ${flatCount.value} 则` : '暂无记录'
-})
 
 const resolveRequestedYear = () => {
   const text = yearInput.value.trim()
-  if (!text) {
-    return { payload: {}, yearText: '' }
-  }
-
+  if (!text) return { payload: {}, yearText: '' }
   const year = Number(text)
-  if (Number.isNaN(year)) {
-    return { payload: {}, yearText: '' }
-  }
-
+  if (Number.isNaN(year)) return { payload: {}, yearText: '' }
   return { payload: { year }, yearText: String(year) }
 }
 
@@ -80,14 +57,8 @@ const openFilterPanel = async () => {
   yearInputFocused.value = true
 }
 
-const blurYearInput = () => {
-  yearInputFocused.value = false
-}
-
-const closeFilterPanel = () => {
-  filterPanelVisible.value = false
-  yearInputFocused.value = false
-}
+const blurYearInput = () => { yearInputFocused.value = false }
+const closeFilterPanel = () => { filterPanelVisible.value = false; yearInputFocused.value = false }
 
 const submitYearFilter = async () => {
   yearInputFocused.value = false
@@ -102,73 +73,64 @@ const resetYearFilter = async () => {
   await loadTimeline()
 }
 
-const resolveNodeKind = (status: RecordStatus): CorridorNodeKind => {
-  if (status === RecordStatus.UNLOCKED) {
-    return 'unlocked'
-  }
-
-  if (status === RecordStatus.SEALED) {
-    return 'sealed'
-  }
-
+const resolveNodeKind = (status: RecordStatus): NodeKind => {
+  if (status === RecordStatus.UNLOCKED) return 'unlocked'
+  if (status === RecordStatus.SEALED) return 'sealed'
   return 'draft'
 }
 
 const resolveStatusText = (status: RecordStatus) => {
-  if (status === RecordStatus.UNLOCKED) {
-    return '已解锁'
-  }
-
-  if (status === RecordStatus.SEALED) {
-    return '未启封'
-  }
-
+  if (status === RecordStatus.UNLOCKED) return '已解封'
+  if (status === RecordStatus.SEALED) return '即将抵达'
   return '草稿'
 }
 
-const decoratedTimelineGroups = computed(() =>
+const resolveTagText = (status: RecordStatus) => {
+  if (status === RecordStatus.UNLOCKED) return '已解封 · 图文记忆'
+  if (status === RecordStatus.SEALED) return '即将抵达'
+  return '草稿'
+}
+
+const resolveSealChar = (status: RecordStatus) => {
+  if (status === RecordStatus.UNLOCKED) return '封'
+  if (status === RecordStatus.SEALED) return '待'
+  return '稿'
+}
+
+const decoratedGroups = computed(() =>
   timelineGroups.value.map((group) => ({
     yearMonth: group.yearMonth,
-    itemCountText: `${group.items.length} 则`,
-    items: group.items.map<DecoratedTimelineItem>((item) => {
-      return {
-        id: item.id,
-        raw: item,
-        title: item.title?.trim() || '未命名片段',
-        kind: resolveNodeKind(item.status),
-        statusText: resolveStatusText(item.status),
-        dateText: formatDateTime(item.createdAt),
-      }
-    }),
+    items: group.items.map<DecoratedItem>((item) => ({
+      id: item.id,
+      raw: item,
+      title: item.title?.trim() || '未命名片段',
+      kind: resolveNodeKind(item.status),
+      statusText: resolveStatusText(item.status),
+      tagText: resolveTagText(item.status),
+      dateText: formatDateTime(item.createdAt),
+      hasImage: false,
+      excerpt: '',
+    })),
   }))
 )
 
-const openTimelineNode = (item: TimelineItemVO) => {
+const openNode = (item: TimelineItemVO) => {
   if (item.status === RecordStatus.DRAFT) {
     uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=timeline` })
     return
   }
-
   if (item.status === RecordStatus.SEALED) {
-    uni.showToast({
-      title: '该记录已封存，暂不可查看',
-      icon: 'none',
-    })
+    uni.showToast({ title: '该记录已封存，暂不可查看', icon: 'none' })
     return
   }
-
   uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}&source=timeline` })
 }
 
 const loadTimeline = async () => {
-  if (!ensureLogin()) {
-    return
-  }
-
+  if (!ensureLogin()) return
   loading.value = true
   timelineLoadFailed.value = false
   const requested = resolveRequestedYear()
-
   try {
     const result = await recordService.getTimeline(requested.payload)
     timelineGroups.value = result
@@ -187,43 +149,18 @@ onShow(() => {
 </script>
 
 <template>
-  <AppPageShell class="page" title="时光回序" current="timeline">
-    <template #background>
-      <view class="page-glow page-glow-top" />
-      <view class="page-glow page-glow-bottom" />
-    </template>
+  <view class="page">
+    <view class="paper-texture" />
+    <view class="paper-glow" />
 
-    <template #top-left>
-      <view class="top-icon-btn" @tap="openFilterPanel">
-        <view class="icon icon-search" />
-      </view>
-    </template>
-
-    <view class="hero">
-      <view class="hero-title">时间长廊</view>
-      <view class="hero-meta-row">
-        <view class="hero-filter-pill" @tap="openFilterPanel">
-          <view class="icon icon-search icon-search-soft" />
-          <text class="hero-filter-text">{{ appliedFilterText }}</text>
-        </view>
-        <view class="hero-count">{{ corridorSummaryText }}</view>
-      </view>
-
-      <view v-if="showStaleNotice" class="notice-panel">
-        <view class="notice-title">同步稍慢</view>
-        <view class="notice-desc">当前仍显示 {{ appliedFilterText }}</view>
-        <text class="notice-action" @tap="loadTimeline">重试</text>
-      </view>
-    </view>
-
+    <!-- filter overlay -->
     <view v-if="filterPanelVisible" class="filter-layer" @tap="closeFilterPanel">
       <view class="filter-sheet" @tap.stop>
         <view class="filter-sheet-head">
-          <view class="filter-sheet-title">筛选年份</view>
-          <view class="filter-sheet-close" @tap="closeFilterPanel">收起</view>
+          <text class="filter-sheet-title">筛选年份</text>
+          <text class="filter-sheet-close" @tap="closeFilterPanel">收起</text>
         </view>
         <view class="filter-input-wrap" :class="{ focused: yearInputFocused }">
-          <view class="icon icon-search icon-search-soft" />
           <input
             v-model="yearInput"
             class="year-filter"
@@ -235,7 +172,7 @@ onShow(() => {
             @blur="blurYearInput"
           />
         </view>
-        <view class="filter-sheet-meta">当前：{{ appliedFilterText }} · {{ flatCount }} 则</view>
+        <text class="filter-sheet-meta">当前：{{ appliedFilterText }} · {{ flatCount }} 则</text>
         <view class="filter-actions">
           <view class="filter-action filter-action-ghost" @tap="resetYearFilter">全部年份</view>
           <view class="filter-action" @tap="submitYearFilter">确定</view>
@@ -243,270 +180,259 @@ onShow(() => {
       </view>
     </view>
 
-    <view class="corridor-shell">
-      <view class="corridor-line" />
+    <scroll-view class="scroll-body" scroll-y enhanced :show-scrollbar="false">
 
-      <view v-if="loading" class="corridor-content">
-        <view class="state-card state-card-loading">
-          <view class="state-title">正在归位</view>
-          <view class="state-desc">时间片段整理中</view>
+      <!-- topbar -->
+      <view class="topbar">
+        <text class="logo">时 光 回 序</text>
+        <view class="search-btn" @tap="openFilterPanel">
+          <view class="search-icon" />
+        </view>
+      </view>
+
+      <!-- page header -->
+      <view class="page-header">
+        <text class="page-title">时 间 长 廊</text>
+        <text class="page-subtitle">在此处，凝视那些被封存的往昔<text>\n</text>与尚未开启的明日。</text>
+        <view class="deco-line" />
+        <view v-if="showStaleNotice" class="stale-notice">
+          <text>同步稍慢，当前仍显示 {{ appliedFilterText }}</text>
+          <text class="stale-action" @tap="loadTimeline">重试</text>
+        </view>
+      </view>
+
+      <!-- timeline body -->
+      <view class="timeline-wrap">
+        <view class="timeline-track" />
+
+        <!-- loading skeleton -->
+        <view v-if="loading" class="tl-content">
+          <view v-for="n in 3" :key="`sk-${n}`" class="tl-item">
+            <view class="tl-dot"><view class="tl-dot-inner" /></view>
+            <view class="skeleton-date" />
+            <view class="skeleton-title" />
+          </view>
         </view>
 
-        <view v-for="groupIndex in 2" :key="`loading-${groupIndex}`" class="loading-group">
-          <view class="group-head group-head-loading">
-            <view class="group-knot" />
-            <view class="skeleton skeleton-group-label" />
+        <!-- load failure -->
+        <view v-else-if="showLoadFailureState" class="tl-content">
+          <view class="state-block">
+            <text class="state-title">暂时没有展开</text>
+            <text class="state-desc">网络稍慢，请再试一次</text>
+            <view class="state-action" @tap="loadTimeline">重新整理</view>
+          </view>
+        </view>
+
+        <!-- empty -->
+        <view v-else-if="showEmptyState" class="tl-content">
+          <view class="state-block">
+            <text class="state-title">这一段还很安静</text>
+            <text class="state-desc">{{ emptyStateText }}</text>
+          </view>
+        </view>
+
+        <!-- timeline groups -->
+        <view v-else class="tl-content">
+          <!-- "此时此刻" node at top -->
+          <view class="tl-item">
+            <view class="tl-dot tl-dot-now">
+              <view class="tl-dot-inner tl-dot-inner-now" />
+            </view>
+            <text class="now-tag">此时此刻</text>
           </view>
 
-          <view v-for="nodeIndex in 2" :key="`loading-${groupIndex}-${nodeIndex}`" class="loading-node">
-            <view class="node-pin node-pin-loading" />
-            <view class="loading-card">
-              <view class="skeleton skeleton-kicker" />
-              <view class="skeleton skeleton-title" />
-              <view class="skeleton skeleton-meta" />
+          <view v-for="group in decoratedGroups" :key="group.yearMonth">
+            <view v-for="item in group.items" :key="item.id" class="tl-item" @tap="openNode(item.raw)">
+
+              <!-- sealed / arriving card -->
+              <template v-if="item.kind === 'sealed'">
+                <view class="tl-dot tl-dot-sealed">
+                  <view class="tl-dot-inner tl-dot-inner-sealed" />
+                </view>
+                <text class="tl-date">{{ item.dateText }}</text>
+                <view class="card-locked card-arriving">
+                  <view class="card-meta">
+                    <view class="seal"><text class="seal-char">待</text></view>
+                    <text class="card-tag">即将抵达</text>
+                  </view>
+                  <text class="card-title card-title-dim">{{ item.title }}</text>
+                  <view class="countdown-badge">
+                    <view class="countdown-dot" />
+                    <text class="countdown-text">封存中</text>
+                  </view>
+                </view>
+              </template>
+
+              <!-- unlocked card with image placeholder -->
+              <template v-else-if="item.kind === 'unlocked'">
+                <view class="tl-dot tl-dot-open">
+                  <view class="tl-dot-inner tl-dot-inner-open" />
+                </view>
+                <text class="tl-date">{{ item.dateText }}</text>
+                <view class="card">
+                  <view class="card-img-placeholder">
+                    <view class="card-img-icon" />
+                  </view>
+                  <view class="card-meta">
+                    <view class="seal seal-open"><text class="seal-char seal-char-open">封</text></view>
+                    <text class="card-tag">已解封 · 图文记忆</text>
+                  </view>
+                  <text class="card-title">{{ item.title }}</text>
+                  <view class="card-footer">
+                    <text class="card-footer-tag">MEMORY</text>
+                  </view>
+                </view>
+              </template>
+
+              <!-- draft / locked card -->
+              <template v-else>
+                <view class="tl-dot tl-dot-locked">
+                  <view class="tl-dot-inner tl-dot-inner-locked" />
+                </view>
+                <text class="tl-date">{{ item.dateText }}</text>
+                <view class="card-locked">
+                  <view class="card-locked-title">
+                    <view class="lock-icon" />
+                    <text>{{ item.title }}</text>
+                  </view>
+                  <view class="countdown-badge countdown-badge-dim">
+                    <view class="countdown-dot countdown-dot-dim" />
+                    <text class="countdown-text">草稿</text>
+                  </view>
+                </view>
+              </template>
+
             </view>
           </view>
         </view>
       </view>
 
-      <view v-else-if="showLoadFailureState" class="corridor-content">
-        <view class="state-card">
-          <view class="state-title">暂时没有展开</view>
-          <view class="state-desc">网络稍慢，请再试一次</view>
-          <view class="state-action" @tap="loadTimeline">重新整理</view>
-        </view>
+      <!-- tail -->
+      <view class="tail">
+        <text class="tail-text">回溯的终点，亦是感知的起点</text>
       </view>
 
-      <view v-else-if="showEmptyState" class="corridor-content">
-        <view class="state-card state-card-empty">
-          <view class="state-title">这一段还很安静</view>
-          <view class="state-desc">{{ emptyStateText }}</view>
-          <view class="state-action state-action-soft" @tap="loadTimeline">刷新</view>
+      <view class="nav-safe-area" />
+    </scroll-view>
+
+    <!-- bottom navigation -->
+    <view class="bottom-nav-shell">
+      <view class="bottom-nav">
+        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/home/index' })">
+          <text class="nav-label">首 页</text>
         </view>
-      </view>
-
-      <view v-else class="corridor-content">
-        <view v-for="group in decoratedTimelineGroups" :key="group.yearMonth" class="group-section">
-          <view class="group-head">
-            <view class="group-knot" />
-            <view class="group-copy">
-              <view class="group-label">{{ group.yearMonth }}</view>
-              <view class="group-meta">{{ group.itemCountText }}</view>
-            </view>
-          </view>
-
-          <view class="node-list">
-            <view
-              v-for="item in group.items"
-              :key="item.id"
-              class="hall-node"
-              :class="[`hall-node-${item.kind}`]"
-              @tap="openTimelineNode(item.raw)"
-            >
-              <view class="node-pin" :class="[`node-pin-${item.kind}`]" />
-
-              <view v-if="item.kind === 'sealed'" class="node-body node-body-sealed">
-                <view class="sealed-row">
-                  <text class="sealed-date">{{ item.dateText }}</text>
-                  <text class="sealed-status">{{ item.statusText }}</text>
-                </view>
-                <view class="sealed-title">{{ item.title }}</view>
-              </view>
-
-              <view v-else-if="item.kind === 'draft'" class="node-body node-body-draft">
-                <view class="draft-row">
-                  <text class="draft-date">{{ item.dateText }}</text>
-                  <text class="draft-status">{{ item.statusText }}</text>
-                </view>
-                <view class="draft-title">{{ item.title }}</view>
-              </view>
-
-              <view v-else class="node-body node-body-unlocked">
-                <view class="unlocked-head">
-                  <text class="unlocked-date">{{ item.dateText }}</text>
-                  <text class="unlocked-kicker">{{ item.statusText }}</text>
-                </view>
-                <view class="unlocked-title">{{ item.title }}</view>
-              </view>
-            </view>
-          </view>
+        <view class="nav-item active" @tap="() => {}">
+          <text class="nav-label">时光轴</text>
+          <view class="nav-dot" />
+        </view>
+        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/user-center/index' })">
+          <text class="nav-label">我 的</text>
         </view>
       </view>
     </view>
-
-    <view class="tail">
-      <view class="tail-line" />
-      <view class="tail-text">写下的片刻，会留在这里。</view>
-    </view>
-  </AppPageShell>
+  </view>
 </template>
 
 <style scoped>
 .page {
   position: relative;
   min-height: 100vh;
+  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 34%),
-    linear-gradient(180deg, #f7f9fb 0%, #f2f5f7 52%, #eef2f4 100%);
 }
 
-.page-glow {
-  position: absolute;
-  border-radius: 999rpx;
+.paper-texture {
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.15'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23f)' opacity='0.055'/%3E%3C/svg%3E");
   pointer-events: none;
-  filter: blur(14rpx);
+  z-index: 0;
 }
 
-.page-glow-top {
-  top: 64rpx;
-  right: -80rpx;
-  width: 260rpx;
-  height: 260rpx;
-  background: rgba(243, 208, 148, 0.16);
+.paper-glow {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200, 185, 158, 0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185, 168, 140, 0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 55% at 70% 78%, rgba(178, 162, 135, 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 65% 40% at 30% 85%, rgba(170, 155, 128, 0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250, 245, 238, 0.18) 0%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.page-glow-bottom {
-  left: -60rpx;
-  bottom: 280rpx;
-  width: 220rpx;
-  height: 220rpx;
-  background: rgba(134, 156, 170, 0.12);
-}
-
-.top-icon-btn,
-.top-bar-side {
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999rpx;
-}
-
-.top-icon-btn {
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.65) inset,
-    0 10rpx 24rpx rgba(80, 98, 110, 0.08);
-}
-
-.hero {
+.scroll-body {
   position: relative;
   z-index: 1;
-  margin-top: 54rpx;
+  height: 100vh;
 }
 
-.hero-title {
-  font-size: 80rpx;
-  line-height: 1.08;
-  font-weight: 700;
-  color: #111418;
-  letter-spacing: 2rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-}
-
-.hero-meta-row {
-  margin-top: 28rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
-}
-
-.hero-filter-pill {
-  min-height: 68rpx;
-  padding: 0 22rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1rpx solid rgba(163, 175, 183, 0.18);
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  box-shadow: 0 10rpx 22rpx rgba(72, 95, 111, 0.05);
-}
-
-.hero-filter-text {
-  font-size: 24rpx;
-  color: #556169;
-  letter-spacing: 1rpx;
-}
-
-.hero-count {
-  font-size: 24rpx;
-  color: #97a1a7;
-}
-
+/* ── filter overlay ── */
 .filter-layer {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   z-index: 40;
-  background: rgba(18, 22, 26, 0.18);
+  background: rgba(48, 46, 41, 0.18);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: calc(var(--app-shell-nav-total-height) + 24rpx) 32rpx 0;
+  padding: calc(env(safe-area-inset-top) + 120px) 32rpx 0;
 }
 
 .filter-sheet {
   width: 100%;
   padding: 30rpx;
-  border-radius: 34rpx;
-  background: rgba(252, 252, 250, 0.96);
-  box-shadow: 0 24rpx 60rpx rgba(34, 40, 45, 0.16);
-  backdrop-filter: blur(14rpx);
+  border-radius: 4rpx;
+  background: rgba(250, 247, 242, 0.96);
+  box-shadow: 0 24rpx 60rpx rgba(48, 46, 41, 0.14);
 }
 
 .filter-sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18rpx;
 }
 
 .filter-sheet-title {
+  font-family: var(--fb-font-serif);
   font-size: 34rpx;
-  color: #191d21;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  color: var(--fb-ink);
 }
 
 .filter-sheet-close {
   font-size: 24rpx;
-  color: #8a949a;
-}
-
-.filter-input-wrap.focused {
-  background: rgba(255, 255, 255, 0.96);
-  border-color: rgba(84, 113, 131, 0.26);
+  color: var(--fb-ink-light);
 }
 
 .filter-input-wrap {
   margin-top: 24rpx;
   height: 88rpx;
   padding: 0 24rpx;
-  border-radius: 999rpx;
-  background: rgba(241, 244, 246, 0.92);
-  border: 1rpx solid rgba(165, 176, 183, 0.18);
+  border-radius: 4rpx;
+  background: rgba(245, 240, 232, 0.92);
+  border: 1rpx solid rgba(200, 194, 184, 0.28);
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  transition: all 0.2s ease;
+}
+
+.filter-input-wrap.focused {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(181, 53, 42, 0.26);
 }
 
 .year-filter {
   flex: 1;
   height: 100%;
   font-size: 28rpx;
-  color: #1a1a1a;
+  color: var(--fb-ink);
 }
 
 .filter-sheet-meta {
+  display: block;
   margin-top: 18rpx;
   font-size: 23rpx;
-  color: #94a0a6;
+  color: var(--fb-ink-light);
 }
 
 .filter-actions {
@@ -518,113 +444,531 @@ onShow(() => {
 .filter-action {
   flex: 1;
   min-height: 84rpx;
-  padding: 0 28rpx;
-  border-radius: 999rpx;
-  background: #3a4a55;
+  border-radius: 4rpx;
+  background: var(--fb-vermilion);
   color: #ffffff;
   font-size: 26rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10rpx 22rpx rgba(58, 74, 85, 0.18);
 }
 
 .filter-action-ghost {
-  background: rgba(239, 243, 246, 0.96);
-  color: #62717a;
-  box-shadow: none;
+  background: rgba(245, 240, 232, 0.96);
+  color: var(--fb-ink-mid);
 }
 
-.notice-panel {
-  margin-top: 24rpx;
-  padding: 20rpx 24rpx;
-  border-radius: 24rpx;
-  background: rgba(244, 236, 220, 0.66);
+/* ── topbar ── */
+.topbar {
+  padding-top: calc(env(safe-area-inset-top) + 52px);
+  padding-left: 56rpx;
+  padding-right: 56rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
 }
 
-.notice-title {
-  font-size: 26rpx;
-  color: #4f4633;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-}
-
-.notice-desc {
-  margin-top: 6rpx;
-  font-size: 23rpx;
-  color: #7a705e;
-}
-
-.notice-action {
-  margin-top: 12rpx;
-  display: inline-flex;
-  color: #5a6f7e;
+.logo {
+  font-family: var(--fb-font-serif);
   font-size: 24rpx;
+  font-weight: 300;
+  letter-spacing: 0.55em;
+  color: var(--fb-ink-light);
 }
 
-.corridor-shell {
+.search-btn {
+  width: 36rpx;
+  height: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.search-icon {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--fb-ink-mid);
   position: relative;
-  margin-top: 44rpx;
-  padding-left: 80rpx;
 }
 
-.corridor-line {
+.search-icon::after {
+  content: '';
   position: absolute;
-  left: 34rpx;
-  top: 12rpx;
-  bottom: 34rpx;
-  width: 2rpx;
-  background: linear-gradient(180deg, rgba(169, 179, 186, 0.15) 0%, rgba(130, 146, 156, 0.46) 40%, rgba(169, 179, 186, 0.12) 100%);
+  width: 10rpx;
+  height: 2rpx;
+  background: var(--fb-ink-mid);
+  transform: rotate(45deg);
+  bottom: -4rpx;
+  right: -4rpx;
 }
 
-.corridor-content {
+/* ── page header ── */
+.page-header {
+  padding: 56rpx 56rpx 0;
+}
+
+.page-title {
+  display: block;
+  font-family: var(--fb-font-serif);
+  font-size: 56rpx;
+  font-weight: 300;
+  color: var(--fb-ink);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+
+.page-subtitle {
+  display: block;
+  margin-top: 16rpx;
+  font-family: var(--fb-font-serif);
+  font-size: 24rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.06em;
+  line-height: 1.8;
+}
+
+.deco-line {
+  width: 64rpx;
+  height: 1rpx;
+  background: var(--fb-ink-faint);
+  margin-top: 36rpx;
+}
+
+.stale-notice {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  color: var(--fb-ink-mid);
+  display: flex;
+  gap: 16rpx;
+}
+
+.stale-action {
+  color: var(--fb-vermilion);
+}
+
+/* ── timeline ── */
+.timeline-wrap {
+  position: relative;
+  margin-top: 48rpx;
+  padding: 0 56rpx 0 80rpx;
+}
+
+.timeline-track {
+  position: absolute;
+  left: 68rpx;
+  top: 0;
+  bottom: 0;
+  width: 1rpx;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(181, 53, 42, 0.12) 6%,
+    rgba(181, 53, 42, 0.12) 94%,
+    transparent
+  );
+}
+
+.tl-content {
   position: relative;
   z-index: 1;
 }
 
-.state-card {
+/* ── timeline item ── */
+.tl-item {
   position: relative;
-  margin-left: 6rpx;
-  padding: 34rpx 34rpx 32rpx;
-  border-radius: 34rpx;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.76) inset,
-    0 18rpx 40rpx rgba(72, 95, 111, 0.08);
-  backdrop-filter: blur(10rpx);
+  padding-left: 0;
+  margin-bottom: 72rpx;
 }
 
-.state-card::before {
+/* ── dots ── */
+.tl-dot {
+  position: absolute;
+  left: -26rpx;
+  top: 8rpx;
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--fb-ink-faint);
+  background: #faf7f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+}
+
+.tl-dot-now {
+  border-color: rgba(181, 53, 42, 0.65);
+  background: rgba(181, 53, 42, 0.09);
+  animation: breathe-now 3s ease-in-out infinite;
+}
+
+.tl-dot-sealed {
+  border-color: rgba(181, 53, 42, 0.5);
+  background: rgba(181, 53, 42, 0.07);
+  animation: breathe-sealed 3.6s ease-in-out infinite 0.4s;
+}
+
+.tl-dot-open {
+  border-color: var(--fb-ink-faint);
+}
+
+.tl-dot-locked {
+  border-color: var(--fb-ink-faint);
+  opacity: 0.5;
+}
+
+.tl-dot-inner {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--fb-ink-faint);
+}
+
+.tl-dot-inner-now {
+  background: var(--fb-vermilion);
+  opacity: 1;
+  animation: pulse-inner 2.4s ease-in-out infinite;
+}
+
+.tl-dot-inner-sealed {
+  background: var(--fb-vermilion);
+  opacity: 0.8;
+  animation: pulse-inner 3s ease-in-out infinite 0.6s;
+}
+
+.tl-dot-inner-open {
+  background: var(--fb-ink-mid);
+  opacity: 0.8;
+  animation: breathe-open 4s ease-in-out infinite 1s;
+}
+
+.tl-dot-inner-locked {
+  background: var(--fb-ink-faint);
+  opacity: 0.6;
+}
+
+/* "此时此刻" tag */
+.now-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-vermilion);
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+  padding-left: 8rpx;
+  gap: 10rpx;
+}
+
+.now-tag::before {
+  content: '';
+  display: block;
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: var(--fb-vermilion);
+  flex-shrink: 0;
+  animation: pulse-inner 2.4s ease-in-out infinite;
+}
+
+/* date label */
+.tl-date {
+  display: block;
+  font-family: var(--fb-font-sans);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.08em;
+  margin-bottom: 16rpx;
+}
+
+/* ── regular card (unlocked) ── */
+.card {
+  position: relative;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  border-radius: 2rpx;
+  overflow: hidden;
+  box-shadow:
+    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
+    0 4rpx 24rpx rgba(140, 120, 90, 0.06),
+    0 2rpx 6rpx rgba(140, 120, 90, 0.04);
+}
+
+.card::before {
   content: '';
   position: absolute;
-  left: -58rpx;
-  top: 42rpx;
-  width: 20rpx;
-  height: 20rpx;
+  left: 0;
+  top: 32rpx;
+  bottom: 32rpx;
+  width: 3rpx;
+  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.55) 25%, rgba(181, 53, 42, 0.55) 75%, transparent);
+  border-radius: 2rpx;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24rpx;
+  height: 24rpx;
+  background: linear-gradient(225deg, rgba(230, 218, 200, 0.9) 0%, rgba(230, 218, 200, 0.9) 48%, rgba(252, 249, 244, 0) 50%);
+  border-left: 1rpx solid rgba(188, 174, 152, 0.22);
+  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
+}
+
+/* image placeholder */
+.card-img-placeholder {
+  width: 100%;
+  height: 240rpx;
+  background: linear-gradient(135deg, #e8e0d5 0%, #d0c7ba 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-img-icon {
+  width: 96rpx;
+  height: 72rpx;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 36' fill='none'><path d='M0 28L12 14L20 22L30 8L48 28' stroke='%239e9890' stroke-width='1' fill='none'/><ellipse cx='38' cy='8' rx='5' ry='5' stroke='%239e9890' stroke-width='1'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.25;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+  padding: 36rpx 40rpx 0 44rpx;
+}
+
+.seal {
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 50%;
-  background: #8fa0aa;
-  box-shadow: 0 0 0 10rpx rgba(255, 255, 255, 0.92);
+  border: 2rpx solid var(--fb-vermilion);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.8;
+  box-shadow: 0 0 0 1rpx rgba(181, 53, 42, 0.1);
 }
 
-.state-card-loading {
-  margin-bottom: 38rpx;
+.seal-open {
+  border-color: var(--fb-ink-mid);
+  opacity: 0.6;
 }
 
-.state-card-empty {
-  background: rgba(250, 246, 239, 0.8);
+.seal-char {
+  font-family: var(--fb-font-serif);
+  font-size: 18rpx;
+  color: var(--fb-vermilion);
+}
+
+.seal-char-open {
+  color: var(--fb-ink-mid);
+}
+
+.card-tag {
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.08em;
+}
+
+.card-title {
+  display: block;
+  font-family: var(--fb-font-serif);
+  font-size: 30rpx;
+  font-weight: 300;
+  color: var(--fb-ink);
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  margin-bottom: 12rpx;
+  padding: 0 40rpx 0 44rpx;
+}
+
+.card-title-dim {
+  color: var(--fb-ink-mid);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 40rpx 36rpx 44rpx;
+  margin-top: 20rpx;
+}
+
+.card-footer-tag {
+  font-family: var(--fb-font-sans);
+  font-size: 18rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.12em;
+  border: 1rpx solid var(--fb-ink-faint);
+  padding: 4rpx 16rpx;
+  border-radius: 2rpx;
+}
+
+/* ── locked / sealed card ── */
+.card-locked {
+  position: relative;
+  background: rgba(250, 247, 242, 0.45);
+  border: 1rpx solid rgba(188, 174, 152, 0.18);
+  border-radius: 2rpx;
+  padding: 28rpx 40rpx 28rpx 44rpx;
+  overflow: hidden;
+}
+
+.card-locked::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 24rpx;
+  bottom: 24rpx;
+  width: 3rpx;
+  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.3) 25%, rgba(181, 53, 42, 0.3) 75%, transparent);
+}
+
+.card-arriving {
+  opacity: 0.8;
+  background: rgba(252, 249, 244, 0.6);
+  border-color: rgba(181, 53, 42, 0.18);
+}
+
+.card-arriving::before {
+  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.5) 25%, rgba(181, 53, 42, 0.5) 75%, transparent);
+}
+
+.card-arriving .card-meta {
+  padding: 0;
+  margin-bottom: 12rpx;
+}
+
+.card-arriving .card-title {
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.card-locked-title {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-family: var(--fb-font-serif);
+  font-size: 28rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.03em;
+}
+
+.lock-icon {
+  width: 22rpx;
+  height: 26rpx;
+  position: relative;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.lock-icon::before {
+  content: '';
+  position: absolute;
+  width: 18rpx;
+  height: 12rpx;
+  border-radius: 2rpx;
+  background: var(--fb-ink-light);
+  bottom: 0;
+  left: 2rpx;
+}
+
+.lock-icon::after {
+  content: '';
+  position: absolute;
+  width: 14rpx;
+  height: 12rpx;
+  border: 3rpx solid var(--fb-ink-light);
+  border-bottom: none;
+  border-radius: 8rpx 8rpx 0 0;
+  top: 0;
+  left: 4rpx;
+}
+
+.countdown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.countdown-badge-dim {
+  opacity: 0.45;
+}
+
+.countdown-dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: var(--fb-vermilion);
+  opacity: 0.8;
+}
+
+.countdown-dot-dim {
+  background: var(--fb-ink-faint);
+  opacity: 0.7;
+}
+
+.countdown-text {
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.06em;
+}
+
+/* ── skeleton ── */
+.skeleton-date {
+  width: 160rpx;
+  height: 20rpx;
+  border-radius: 999rpx;
+  background: rgba(200, 194, 184, 0.3);
+  margin-bottom: 16rpx;
+}
+
+.skeleton-title {
+  width: 80%;
+  height: 28rpx;
+  border-radius: 999rpx;
+  background: rgba(200, 194, 184, 0.2);
+}
+
+/* ── state block ── */
+.state-block {
+  padding: 40rpx 0;
 }
 
 .state-title {
-  font-size: 40rpx;
-  line-height: 1.3;
-  color: #1a1a1a;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  display: block;
+  font-family: var(--fb-font-serif);
+  font-size: 36rpx;
+  color: var(--fb-ink);
 }
 
 .state-desc {
+  display: block;
   margin-top: 16rpx;
   font-size: 26rpx;
+  color: var(--fb-ink-mid);
   line-height: 1.7;
-  color: #7f8c93;
 }
 
 .state-action {
@@ -634,306 +978,99 @@ onShow(() => {
   justify-content: center;
   min-height: 74rpx;
   padding: 0 30rpx;
-  border-radius: 999rpx;
-  background: #3a4a55;
+  border-radius: 4rpx;
+  background: var(--fb-vermilion);
   color: #ffffff;
   font-size: 26rpx;
 }
 
-.state-action-soft {
-  background: #efe4cb;
-  color: #6d5a32;
-}
-
-.loading-group {
-  margin-top: 34rpx;
-}
-
-.group-section + .group-section {
-  margin-top: 52rpx;
-}
-
-.group-head,
-.loading-node,
-.hall-node {
-  position: relative;
-}
-
-.group-head {
-  margin-left: 6rpx;
-  min-height: 56rpx;
-}
-
-.group-copy {
-  padding-left: 26rpx;
-}
-
-.group-knot {
-  position: absolute;
-  left: -58rpx;
-  top: 10rpx;
-  width: 20rpx;
-  height: 20rpx;
-  border-radius: 50%;
-  background: #d9c18c;
-  box-shadow: 0 0 0 10rpx rgba(255, 255, 255, 0.92);
-}
-
-.group-label {
-  font-size: 42rpx;
-  line-height: 1.2;
-  color: #1a1a1a;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-}
-
-.group-meta {
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #a8b0b5;
-}
-
-.node-list {
-  margin-top: 18rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 22rpx;
-}
-
-.hall-node {
-  padding-left: 6rpx;
-}
-
-.node-pin {
-  position: absolute;
-  left: -52rpx;
-  top: 30rpx;
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  box-shadow: 0 0 0 10rpx rgba(255, 255, 255, 0.9);
-}
-
-.node-pin-unlocked {
-  background: #e4b55c;
-  box-shadow: 0 0 0 10rpx rgba(255, 250, 243, 0.92), 0 0 20rpx rgba(228, 181, 92, 0.28);
-}
-
-.node-pin-sealed {
-  background: rgba(182, 192, 197, 0.72);
-}
-
-.node-pin-draft {
-  background: rgba(108, 124, 134, 0.62);
-}
-
-.node-pin-loading {
-  background: #d4dde1;
-}
-
-.node-body {
-  position: relative;
-}
-
-.node-body-sealed {
-  padding: 16rpx 6rpx 14rpx 0;
-  opacity: 0.74;
-}
-
-.sealed-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.sealed-status,
-.sealed-date {
-  font-size: 22rpx;
-  color: #a3adb2;
-}
-
-.sealed-title {
-  margin-top: 10rpx;
-  font-size: 30rpx;
-  line-height: 1.45;
-  color: #5f696f;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-}
-
-.node-body-draft {
-  padding: 22rpx 24rpx 24rpx;
-  border-radius: 30rpx;
-  background: rgba(241, 244, 246, 0.76);
-  box-shadow: 0 10rpx 24rpx rgba(72, 95, 111, 0.04);
-}
-
-.draft-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.draft-status,
-.draft-date {
-  font-size: 22rpx;
-  color: #758188;
-}
-
-.draft-title {
-  margin-top: 16rpx;
-  font-size: 32rpx;
-  line-height: 1.42;
-  color: #293136;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-}
-
-.node-body-unlocked {
-  padding: 30rpx 30rpx 34rpx;
-  border-radius: 36rpx;
-  background:
-    radial-gradient(circle at right top, rgba(239, 205, 145, 0.2) 0%, rgba(239, 205, 145, 0) 36%),
-    linear-gradient(180deg, rgba(255, 253, 249, 0.98) 0%, rgba(248, 240, 225, 0.98) 100%);
-  border: 1rpx solid rgba(214, 183, 127, 0.22);
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.82) inset,
-    0 24rpx 52rpx rgba(116, 100, 67, 0.12);
-}
-
-.node-body-unlocked::after {
-  content: '';
-  position: absolute;
-  right: 26rpx;
-  top: 22rpx;
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(240, 204, 140, 0.22) 0%, rgba(240, 204, 140, 0) 72%);
-  pointer-events: none;
-}
-
-.unlocked-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-}
-
-.unlocked-kicker {
-  min-height: 42rpx;
-  padding: 0 16rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.72);
-  font-size: 21rpx;
-  letter-spacing: 2rpx;
-  color: #8c6a28;
-  display: inline-flex;
-  align-items: center;
-}
-
-.unlocked-date {
-  font-size: 22rpx;
-  color: #947844;
-}
-
-.unlocked-title {
-  position: relative;
-  margin-top: 14rpx;
-  font-size: 42rpx;
-  line-height: 1.32;
-  color: #1c2125;
-  font-weight: 600;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-  z-index: 1;
-}
-
-.group-head-loading {
-  min-height: 44rpx;
-}
-
-.loading-node + .loading-node {
-  margin-top: 20rpx;
-}
-
-.loading-card {
-  margin-left: 6rpx;
-  padding: 28rpx;
-  border-radius: 30rpx;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 14rpx 32rpx rgba(72, 95, 111, 0.05);
-}
-
-.skeleton {
-  border-radius: 999rpx;
-  background: linear-gradient(90deg, rgba(231, 236, 239, 0.82) 0%, rgba(243, 246, 248, 0.98) 50%, rgba(231, 236, 239, 0.82) 100%);
-}
-
-.skeleton-group-label {
-  width: 180rpx;
-  height: 36rpx;
-  margin-left: 26rpx;
-}
-
-.skeleton-kicker {
-  width: 200rpx;
-  height: 24rpx;
-}
-
-.skeleton-title {
-  width: 100%;
-  max-width: 420rpx;
-  height: 36rpx;
-  margin-top: 18rpx;
-}
-
-.skeleton-meta {
-  width: 280rpx;
-  height: 24rpx;
-  margin-top: 18rpx;
-}
-
+/* ── tail ── */
 .tail {
-  position: relative;
-  margin-top: 48rpx;
-  padding-left: 84rpx;
-}
-
-.tail-line {
-  position: absolute;
-  left: 34rpx;
-  top: 0;
-  width: 2rpx;
-  height: 88rpx;
-  background: linear-gradient(180deg, rgba(169, 179, 186, 0.32) 0%, rgba(169, 179, 186, 0) 100%);
+  padding: 48rpx 56rpx 0;
+  text-align: center;
 }
 
 .tail-text {
-  max-width: 560rpx;
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-faint);
+  letter-spacing: 0.12em;
+}
+
+/* ── nav safe area ── */
+.nav-safe-area {
+  height: calc(128rpx + env(safe-area-inset-bottom));
+}
+
+/* ── bottom navigation ── */
+.bottom-nav-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  padding: 0 0 env(safe-area-inset-bottom);
+  border-top: 1rpx solid rgba(200, 194, 184, 0.3);
+  background: rgba(250, 247, 242, 0.96);
+  box-shadow: 0 -8rpx 24rpx rgba(48, 46, 41, 0.04);
+}
+
+.bottom-nav {
+  height: 104rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.nav-item {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.nav-label {
+  font-family: var(--fb-font-serif);
   font-size: 24rpx;
-  line-height: 1.8;
-  color: #a0a8ae;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: var(--fb-ink-light);
 }
 
-.icon {
-  width: 36rpx;
-  height: 36rpx;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  flex-shrink: 0;
+.nav-item.active .nav-label {
+  color: var(--fb-ink);
+  font-weight: 400;
 }
 
-.icon-search {
-  width: 34rpx;
-  height: 34rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b647a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+.nav-dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: var(--fb-vermilion);
+  opacity: 0.9;
 }
 
-.icon-search-soft {
-  width: 30rpx;
-  height: 30rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389979f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+@keyframes pulse-inner {
+  0%, 100% { opacity: 0.3; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1.2); }
 }
 
+@keyframes breathe-now {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(181, 53, 42, 0); }
+  50% { box-shadow: 0 0 0 3rpx rgba(181, 53, 42, 0.1); }
+}
+
+@keyframes breathe-sealed {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+@keyframes breathe-open {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.45; }
+}
 </style>

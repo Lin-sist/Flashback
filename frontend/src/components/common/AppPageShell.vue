@@ -82,6 +82,7 @@ const bodyStyle = computed(() => ({
 .app-page-shell {
   position: relative;
   min-height: 100vh;
+  background-color: var(--fb-paper);
 }
 
 .app-page-shell__body {
@@ -98,7 +99,7 @@ const bodyStyle = computed(() => ({
   font-size: 34rpx;
   font-weight: 500;
   letter-spacing: 4rpx;
-  color: var(--fb-color-primary);
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  color: var(--fb-vermilion);
+  font-family: var(--fb-font-serif);
 }
 </style>

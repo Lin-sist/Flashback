@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1.0">
+<title>时光回序 · 新建</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:        #302e29;
+    --ink-mid:    #6b6560;
+    --ink-light:  #9e9890;
+    --ink-faint:  #c8c2b8;
+    --paper:      #faf7f2;
+    --paper-2:    #f5f0e8;
+    --vermilion:  #b5352a;
+    --verm-dim:   #8a271f;
+    --serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+    --sans:  'Noto Sans SC', 'PingFang SC', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #ede8df;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: var(--serif);
+  }
+
+  /* ── 设备容器：整体是宣纸底 ── */
+  .device-shell {
+    width: 390px;
+    height: 844px;
+    overflow: hidden;
+    position: relative;
+    /* 背景：比首页更深一档，营造「进入书写状态」的沉浸感 */
+    background: linear-gradient(160deg, #f5f0e8 0%, #ede8dc 45%, #e8e0d2 100%);
+  }
+
+  /* 噪声颗粒 */
+  .device-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.1'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23f)' opacity='0.07'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* 光晕 */
+  .device-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 20% 8%,   rgba(255,248,235,0.22) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 40% at 80% 20%,  rgba(220,208,185,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 55%,  rgba(255,250,240,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 45% 35% at 75% 80%,  rgba(200,188,165,0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── 页面内容层 ── */
+  .page {
+    width: 390px;
+    height: 844px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 28px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── 顶部栏 ── */
+  .topbar {
+    padding-top: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: fadeUp 0.8s ease 0.15s both;
+  }
+
+  .vol-tag {
+    font-family: 'Georgia', serif;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--ink-light);
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .vol-tag::after {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 0.5px;
+    background: var(--ink-faint);
+  }
+
+  .close-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--ink-light);
+    position: relative;
+    transition: color 0.2s;
+  }
+  .close-btn::before, .close-btn::after {
+    content: '';
+    position: absolute;
+    width: 13px; height: 0.8px;
+    background: currentColor;
+  }
+  .close-btn::before { transform: rotate(45deg); }
+  .close-btn::after  { transform: rotate(-45deg); }
+  .close-btn:hover { color: var(--ink); }
+
+  /* ══════════════════════════════════
+     信笺：浮于宣纸之上，像一张真实的
+     信纸被平铺在桌面——白净、独立、有重量
+  ══════════════════════════════════ */
+  .letter-wrap {
+    flex: 1;
+    margin-top: 20px;
+    margin-bottom: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    animation: fadeUp 1s ease 0.35s both;
+  }
+
+  /* 信纸主体 */
+  .letter-body {
+    flex: 1;
+    position: relative;
+    /* 信纸用纯净的暖白，与宣纸底色形成清晰对比 */
+    background: #fdfbf7;
+    border-radius: 0;
+    /* 四边用极细墨线，非半透明模糊——像真实信纸的边缘 */
+    border: 0.5px solid rgba(180,168,148,0.45);
+    /* 阴影：左右收敛，模拟信纸平铺、边缘轻微翘起的质感 */
+    box-shadow:
+      0 0 0 0.5px rgba(255,253,248,0.8) inset,
+      2px 6px 24px rgba(120,100,70,0.12),
+      -1px 2px 8px rgba(120,100,70,0.06),
+      0 1px 2px rgba(120,100,70,0.08);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* 信纸顶部红线（像信纸的天头横线，一条朱砂线） */
+  .letter-topline {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(181,53,42,0.22) 8%,
+      rgba(181,53,42,0.28) 50%,
+      rgba(181,53,42,0.22) 92%,
+      transparent 100%
+    );
+    flex-shrink: 0;
+  }
+
+  /* 信纸头部信息区 */
+  .letter-head {
+    padding: 18px 20px 14px 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-shrink: 0;
+    /* 头部与正文之间用淡墨线分隔 */
+    border-bottom: 0.5px solid rgba(192,182,165,0.3);
+  }
+
+  .head-left {}
+
+  .captured-label {
+    display: block;
+    font-family: 'Georgia', serif;
+    font-size: 10px;
+    font-style: italic;
+    color: var(--ink-light);
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+    opacity: 0.8;
+  }
+
+  .letter-date {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--ink);
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+
+  /* 竖排档案标签 */
+  .archive-tag {
+    margin-top: 2px;
+    padding: 5px 4px;
+    border: 0.5px solid rgba(192,182,165,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .archive-tag span {
+    font-family: var(--serif);
+    font-size: 8.5px;
+    font-weight: 300;
+    color: var(--ink-light);
+    writing-mode: vertical-rl;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    opacity: 0.85;
+  }
+
+  /* ── 左侧朱砂竖格线（信纸的天干栏） ── */
+  .letter-content {
+    flex: 1;
+    position: relative;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* 左侧朱砂线：不贴边，留出 36px 的「天干」空白区 */
+  .side-rule {
+    width: 36px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .side-rule::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(181,53,42,0.2) 15%,
+      rgba(181,53,42,0.25) 50%,
+      rgba(181,53,42,0.2) 85%,
+      transparent
+    );
+  }
+
+  /* 编辑区域 */
+  .editor-zone {
+    flex: 1;
+    position: relative;
+    padding: 16px 18px 16px 14px;
+    overflow: hidden;
+  }
+
+  /* 信纸横格线：行高对齐，约 28px 一行 */
+  .ruled-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .ruled-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 0.5px;
+    background: rgba(192,180,160,0.14);
+  }
+
+  .editor-field {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--ink-mid);
+    /* line-height 与格线间距对齐 */
+    line-height: 2.0;
+    letter-spacing: 0.04em;
+    resize: none;
+    caret-color: var(--vermilion);
+  }
+  .editor-field::placeholder {
+    color: rgba(180,170,155,0.7);
+  }
+
+  /* 右上折角 */
+  .letter-body::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 16px; height: 16px;
+    background: linear-gradient(
+      225deg,
+      #ede8dc 0%,
+      #ede8dc 48%,
+      #fdfbf7 50%
+    );
+    border-left: 0.5px solid rgba(180,168,148,0.35);
+    border-bottom: 0.5px solid rgba(180,168,148,0.35);
+    z-index: 4;
+  }
+
+  /* 附件工具栏 */
+  .attach-bar {
+    flex-shrink: 0;
+    border-top: 0.5px solid rgba(192,182,165,0.28);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+  }
+  .attach-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 3px 0;
+  }
+  .attach-item:hover { opacity: 0.5; }
+  .attach-icon {
+    width: 20px; height: 20px;
+    color: var(--ink-light);
+  }
+  .attach-label {
+    font-family: var(--sans);
+    font-size: 8.5px;
+    font-weight: 300;
+    color: var(--ink-light);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .attach-sep {
+    width: 0.5px;
+    height: 24px;
+    background: rgba(192,182,165,0.4);
+  }
+
+  /* ── 底部操作区 ── */
+  .bottom-area {
+    padding: 18px 0 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    animation: fadeUp 0.9s ease 0.6s both;
+  }
+
+  .word-count {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+  }
+
+  /* 按钮：不撑满，居中，有收敛感 */
+  .seal-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    /* 宽度收窄，不顶格 */
+    width: 240px;
+    height: 48px;
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+    background: transparent;
+    border: 0.5px solid var(--ink-faint);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    justify-content: center;
+  }
+  /* 四角装饰 */
+  .seal-btn::before, .seal-btn::after {
+    content: '';
+    position: absolute;
+    width: 7px; height: 7px;
+    border-color: var(--ink-light);
+    border-style: solid;
+    transition: border-color 0.3s;
+  }
+  .seal-btn::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+  .seal-btn::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+  .seal-btn:active {
+    background: rgba(44,42,38,0.04);
+    letter-spacing: 0.22em;
+  }
+
+  .btn-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--vermilion);
+    opacity: 0.72;
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
+
+  /* 提示文字 */
+  .seal-hint {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hint-line {
+    width: 18px; height: 0.5px;
+    background: var(--ink-faint);
+  }
+  .hint-text {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--ink-light);
+    letter-spacing: 0.06em;
+    opacity: 0.8;
+  }
+
+  /* ── 动画 ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="device-shell">
+  <div class="page">
+
+    <!-- 顶部栏 -->
+    <div class="topbar">
+      <div class="vol-tag">Vol. 17</div>
+      <div class="close-btn"></div>
+    </div>
+
+    <!-- 信笺主体 -->
+    <div class="letter-wrap">
+      <div class="letter-body">
+
+        <!-- 天头朱砂横线 -->
+        <div class="letter-topline"></div>
+
+        <!-- 信头 -->
+        <div class="letter-head">
+          <div class="head-left">
+            <span class="captured-label">Captured at</span>
+            <div class="letter-date" id="letterDate">二零二五年 · 初夏</div>
+          </div>
+          <div class="archive-tag">
+            <span>私有档案·严禁翻阅</span>
+          </div>
+        </div>
+
+        <!-- 正文区 -->
+        <div class="letter-content">
+          <!-- 左侧天干竖格线区 -->
+          <div class="side-rule"></div>
+
+          <!-- 编辑区 -->
+          <div class="editor-zone">
+            <div class="ruled-lines" id="ruledLines"></div>
+            <textarea
+              class="editor-field"
+              id="editor"
+              placeholder="在此刻的宁静中，留下你的记忆碎片..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- 附件栏 -->
+        <div class="attach-bar">
+          <div class="attach-item">
+            <svg class="attach-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span class="attach-label">MAP</span>
+          </div>
+          <div class="attach-sep"></div>
+          <div class="attach-item">
+            <svg class="attach-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="1"/>
+              <circle cx="12" cy="12" r="3.2"/>
+              <circle cx="17.5" cy="8.5" r="0.9" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="attach-label">IMAGE</span>
+          </div>
+          <div class="attach-sep"></div>
+          <div class="attach-item">
+            <svg class="attach-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z"/>
+              <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="9" y1="22" x2="15" y2="22"/>
+            </svg>
+            <span class="attach-label">VOICE</span>
+          </div>
+        </div>
+
+      </div><!-- .letter-body -->
+    </div><!-- .letter-wrap -->
+
+    <!-- 底部按钮区 -->
+    <div class="bottom-area">
+      <div class="word-count" id="wordCount">0 字</div>
+      <button class="seal-btn">
+        <div class="btn-dot"></div>
+        <span>封存这一刻</span>
+      </button>
+      <div class="seal-hint">
+        <div class="hint-line"></div>
+        <span class="hint-text">封存后将锁定，到期方可开启</span>
+        <div class="hint-line"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 格线生成（与 line-height: 2.0 * 14px = 28px 对齐）
+  const container = document.getElementById('ruledLines');
+  for (let i = 0; i < 22; i++) {
+    const line = document.createElement('div');
+    line.className = 'ruled-line';
+    line.style.top = (i * 28) + 'px';
+    container.appendChild(line);
+  }
+
+  // 字数统计
+  const editor = document.getElementById('editor');
+  const wc = document.getElementById('wordCount');
+  editor.addEventListener('input', () => {
+    const n = editor.value.replace(/\s/g, '').length;
+    wc.textContent = n + ' 字';
+  });
+
+  // 动态日期
+  const nums = ['零','一','二','三','四','五','六','七','八','九'];
+  const seasons = {
+    0:'严冬',1:'立春',2:'初春',3:'暮春',
+    4:'初夏',5:'仲夏',6:'盛夏',7:'初秋',
+    8:'暮秋',9:'深秋',10:'初冬',11:'严冬'
+  };
+  const d = new Date();
+  const yearStr = String(d.getFullYear()).split('').map(c => nums[+c]).join('');
+  document.getElementById('letterDate').textContent =
+    yearStr + '年 · ' + seasons[d.getMonth()];
+</script>
+</body>
+</html>

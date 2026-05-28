@@ -20,19 +20,7 @@ const form = reactive({
   password: '',
 })
 
-const welcomeKicker = computed(() => (mode.value === 'login' ? '欢迎回来' : '初次相逢'))
-const welcomeCopy = computed(() =>
-  mode.value === 'login'
-    ? '那些被认真封存的片段，仍在这里安静等你。'
-    : '从这一刻起，为未来留下第一条可以回望的线索。'
-)
-const primaryLabel = computed(() => (mode.value === 'login' ? '进入档案馆' : '完成注册'))
 const showPreviewEntry = isPreviewModeEnabled
-const modeSummary = computed(() =>
-  mode.value === 'login'
-    ? '昵称会一并显示，但登录时仅校验用户名 / 邮箱与密码。'
-    : '注册会校验昵称、用户名 / 邮箱与密码，并保留你此刻的名字。'
-)
 
 const switchMode = (next: Mode) => {
   if (loading.value || mode.value === next) return
@@ -106,20 +94,15 @@ const onRegister = async () => {
 
 const onSubmit = async () => {
   if (loading.value) return
-
   if (mode.value === 'login') {
     await onLogin()
     return
   }
-
   await onRegister()
 }
 
 const enterPreview = () => {
-  if (loading.value) {
-    return
-  }
-
+  if (loading.value) return
   createPreviewSession()
   uni.switchTab({ url: '/pages/home/index' })
 }
@@ -133,352 +116,392 @@ onShow(() => {
   <view class="page">
     <AppTopSafeBar transparent />
 
-    <view class="page-glow page-glow-top" />
-    <view class="page-glow page-glow-bottom" />
+    <!-- 宣纸纹理光晕 -->
+    <view class="paper-glow paper-glow--tl" aria-hidden="true" />
+    <view class="paper-glow paper-glow--br" aria-hidden="true" />
+    <view class="paper-glow paper-glow--center" aria-hidden="true" />
 
-    <view class="content">
+    <view class="page-inner">
+      <!-- 品牌名 -->
+      <view class="logo">时 光 回 序</view>
+
+      <!-- Hero 区 -->
       <view class="hero">
-        <view class="hero-kicker">{{ welcomeKicker }}</view>
-        <view class="brand-title">时光回序</view>
-        <view class="hero-copy">{{ welcomeCopy }}</view>
-      </view>
-
-      <view class="mode-switch">
-        <view
-          class="mode-item"
-          :class="{ active: mode === 'login' }"
-          @tap="switchMode('login')"
-        >
-          <text class="mode-text">登录</text>
-          <view class="mode-underline" />
+        <view class="headline">
+          <text class="headline-line1">久违了，</text>
+          <text class="headline-line2">时 间 的 旅 人</text>
         </view>
-        <view
-          class="mode-item"
-          :class="{ active: mode === 'register' }"
-          @tap="switchMode('register')"
-        >
-          <text class="mode-text">注册</text>
-          <view class="mode-underline" />
-        </view>
-      </view>
+        <view class="subtitle">在此处，开启你的私人档案馆</view>
 
-      <view class="form">
-        <view class="field">
-          <text class="field-label">昵称</text>
-          <input
-            v-model="form.nickname"
-            class="field-input"
-            placeholder="昵称"
-            placeholder-class="field-placeholder"
-            maxlength="50"
-          />
-        </view>
-
-        <view class="field">
-          <text class="field-label">用户名 / 邮箱</text>
-          <input
-            v-model="form.username"
-            class="field-input"
-            placeholder="用户名 / 邮箱"
-            placeholder-class="field-placeholder"
-            maxlength="80"
-          />
-        </view>
-
-        <view class="field field-password">
-          <text class="field-label">密码</text>
-          <input
-            v-model="form.password"
-            class="field-input"
-            :password="!passwordVisible"
-            placeholder="密码"
-            placeholder-class="field-placeholder"
-            maxlength="64"
-          />
+        <!-- 登录 / 注册 Tab -->
+        <view class="tab-row">
           <view
-            class="eye"
-            :class="{ 'eye-on': passwordVisible }"
-            @tap="togglePassword"
-            aria-label="切换密码可见性"
-          />
+            class="tab"
+            :class="{ 'tab--active': mode === 'login' }"
+            @tap="switchMode('login')"
+          >
+            <text class="tab-text">登 录</text>
+          </view>
+          <view class="tab-sep">·</view>
+          <view
+            class="tab"
+            :class="{ 'tab--active': mode === 'register' }"
+            @tap="switchMode('register')"
+          >
+            <text class="tab-text">注 册</text>
+          </view>
         </view>
-      </view>
 
-      <view class="mode-summary">
-        {{ modeSummary }}
-      </view>
+        <!-- 表单 -->
+        <view class="field-group">
+          <view v-if="mode === 'register'" class="field">
+            <input
+              v-model="form.nickname"
+              class="field-input"
+              placeholder="昵 称"
+              placeholder-class="field-placeholder"
+              maxlength="50"
+            />
+          </view>
 
-      <view class="action">
-        <button class="pill-button" :loading="loading" @tap="onSubmit">
-          {{ primaryLabel }}
-        </button>
-      </view>
+          <view class="field">
+            <input
+              v-model="form.username"
+              class="field-input"
+              placeholder="用 户 名 / 邮 箱"
+              placeholder-class="field-placeholder"
+              maxlength="80"
+            />
+          </view>
 
-      <view v-if="showPreviewEntry" class="preview-action">
-        <button class="preview-button" @tap="enterPreview">
-          预览进入
-        </button>
-      </view>
+          <view class="field field--password">
+            <input
+              v-model="form.password"
+              class="field-input"
+              :password="!passwordVisible"
+              placeholder="密 码"
+              placeholder-class="field-placeholder"
+              maxlength="64"
+            />
+            <view
+              class="eye-toggle"
+              :class="{ 'eye-toggle--on': passwordVisible }"
+              @tap="togglePassword"
+              aria-label="切换密码可见性"
+            />
+          </view>
+        </view>
 
-      <view class="action-note">
-        {{ mode === 'login' ? '已有账号可直接进入，昵称不会在登录时额外拦截。' : '完成注册后会回到登录态，不会自动跳转其他页面。' }}
+        <!-- CTA 按钮 -->
+        <view class="cta-wrap" @tap="onSubmit">
+          <view class="cta" :class="{ 'cta--loading': loading }">
+            <view class="cta-corner cta-corner--tl" aria-hidden="true" />
+            <view class="cta-corner cta-corner--br" aria-hidden="true" />
+            <view class="cta-dot" aria-hidden="true" />
+            <text class="cta-text">{{ loading ? '请稍候...' : (mode === 'login' ? '进 入 档 案 馆' : '完 成 注 册') }}</text>
+          </view>
+        </view>
+
+        <!-- 预览入口 -->
+        <view v-if="showPreviewEntry" class="preview-entry" @tap="enterPreview">
+          <text class="preview-text">预览进入</text>
+        </view>
+
+        <!-- 忘记密码 -->
+        <view class="forgot">寻回记忆（忘记密码）</view>
       </view>
     </view>
   </view>
 </template>
 
 <style scoped>
+/* ── 页面底：宣纸渐变 ── */
 .page {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 38%),
-    radial-gradient(circle at 88% 16%, rgba(240, 225, 196, 0.28) 0%, rgba(240, 225, 196, 0) 26%),
-    radial-gradient(circle at 8% 86%, rgba(205, 219, 227, 0.18) 0%, rgba(205, 219, 227, 0) 30%),
-    linear-gradient(180deg, #f8f9fa 0%, #f1f4f6 100%);
+  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
 }
 
-.page-glow {
+/* 宣纸光晕 */
+.paper-glow {
   position: absolute;
-  border-radius: 999rpx;
-  filter: blur(18rpx);
   pointer-events: none;
-  opacity: 0.8;
+  border-radius: 999rpx;
 }
-
-.page-glow-top {
-  top: 100rpx;
-  right: -90rpx;
-  width: 280rpx;
-  height: 280rpx;
-  background: rgba(240, 214, 169, 0.24);
-}
-
-.page-glow-bottom {
+.paper-glow--tl {
+  top: -60rpx;
   left: -80rpx;
-  bottom: 180rpx;
-  width: 260rpx;
-  height: 260rpx;
-  background: rgba(165, 185, 198, 0.16);
+  width: 400rpx;
+  height: 400rpx;
+  background: radial-gradient(ellipse, rgba(200, 185, 158, 0.18) 0%, transparent 70%);
+}
+.paper-glow--br {
+  bottom: 80rpx;
+  right: -60rpx;
+  width: 360rpx;
+  height: 360rpx;
+  background: radial-gradient(ellipse, rgba(178, 162, 135, 0.14) 0%, transparent 70%);
+}
+.paper-glow--center {
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500rpx;
+  height: 350rpx;
+  background: radial-gradient(ellipse, rgba(250, 245, 238, 0.36) 0%, transparent 75%);
 }
 
-.content {
+/* ── 内容层 ── */
+.page-inner {
   position: relative;
-  z-index: 1;
-  padding: 8rpx 72rpx 80rpx;
+  z-index: 2;
+  padding: 0 56rpx;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 
-.hero {
-  margin-top: 176rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ── 品牌名 ── */
+.logo {
+  padding-top: 104rpx;
   text-align: center;
-}
-
-.hero-kicker {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 24rpx;
-  letter-spacing: 8rpx;
-  color: #97a1a8;
+  font-weight: 300;
+  letter-spacing: 0.55em;
+  color: #9e9890;
 }
 
-.brand-title {
-  margin-top: 28rpx;
-  font-size: 68rpx;
-  line-height: 1.16;
-  color: #1f262b;
-  letter-spacing: 14rpx;
-  font-weight: 600;
-  text-indent: 14rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+/* ── Hero ── */
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 48rpx;
+  padding-bottom: 64rpx;
 }
 
-.hero-copy {
-  margin-top: 40rpx;
-  max-width: 470rpx;
-  font-size: 26rpx;
+/* 主标题 */
+.headline {
+  text-align: center;
+  line-height: 1.55;
+  margin-bottom: 24rpx;
+}
+.headline-line1 {
+  display: block;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-weight: 300;
+  font-size: 60rpx;
+  letter-spacing: 0.06em;
+  color: #302e29;
+}
+.headline-line2 {
+  display: block;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-weight: 300;
+  font-size: 52rpx;
+  letter-spacing: 0.04em;
+  color: #6b6560;
+}
+
+/* 副文案 */
+.subtitle {
+  text-align: center;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 24rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.08em;
   line-height: 1.8;
-  color: #8d979d;
-  letter-spacing: 2rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  margin-bottom: 80rpx;
 }
 
-.mode-switch {
-  margin-top: 172rpx;
+/* ── Tab 行 ── */
+.tab-row {
   display: flex;
   justify-content: center;
-  gap: 72rpx;
+  align-items: flex-end;
+  margin-bottom: 80rpx;
 }
 
-.mode-item {
+.tab {
+  padding: 12rpx 56rpx 20rpx;
+  border-bottom: 3rpx solid #c8c2b8;
+}
+.tab-text {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 30rpx;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: #4a4640;
+}
+.tab--active {
+  border-bottom: 5rpx solid #302e29;
+}
+.tab--active .tab-text {
+  color: #302e29;
+  font-weight: 500;
+}
+
+.tab-sep {
+  align-self: stretch;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 14rpx;
-  padding: 4rpx 8rpx 0;
+  padding: 0 12rpx 20rpx;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 24rpx;
+  color: #6b6560;
+  border-bottom: 3rpx solid #c8c2b8;
 }
 
-.mode-text {
-  font-size: 28rpx;
-  letter-spacing: 6rpx;
-  color: #b0b9bf;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
-  transition: color 160ms ease;
-}
-
-.mode-item.active .mode-text {
-  color: #32424c;
-}
-
-.mode-underline {
-  width: 48rpx;
-  height: 2rpx;
-  background: transparent;
-  border-radius: 2rpx;
-  transition: background 160ms ease;
-}
-
-.mode-item.active .mode-underline {
-  background: #7a8891;
-}
-
-.form {
-  margin-top: 88rpx;
+/* ── 输入框 ── */
+.field-group {
   display: flex;
   flex-direction: column;
-  gap: 54rpx;
+  gap: 0;
+  margin-bottom: 96rpx;
+  padding: 0 48rpx;
 }
 
 .field {
   position: relative;
-  padding: 0 6rpx 18rpx;
-  border-bottom: 1rpx solid rgba(163, 175, 183, 0.34);
+  padding: 30rpx 0 28rpx;
+  border-bottom: 1rpx solid #c8c2b8;
 }
-
-.field-label {
-  display: block;
-  margin-bottom: 16rpx;
-  font-size: 22rpx;
-  line-height: 1;
-  letter-spacing: 4rpx;
-  color: #a2acb2;
-  text-align: center;
+.field + .field {
+  margin-top: 16rpx;
 }
 
 .field-input {
   width: 100%;
-  height: 64rpx;
-  text-align: center;
   background: transparent;
   border: none;
-  font-size: 30rpx;
-  letter-spacing: 3rpx;
-  color: #27343d;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-}
-
-.field-password .field-input {
-  padding: 0 64rpx;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: #1a1814;
+  text-align: center;
 }
 
 :deep(.field-placeholder) {
-  color: #bcc5ca;
-  font-size: 30rpx;
-  letter-spacing: 3rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  color: #a09a92;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 300;
+  letter-spacing: 0.12em;
 }
 
-.eye {
+.field--password .field-input {
+  padding-right: 64rpx;
+}
+
+/* 眼睛图标 */
+.eye-toggle {
   position: absolute;
-  right: 6rpx;
-  bottom: 18rpx;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 44rpx;
   height: 44rpx;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 36rpx 36rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa5ac' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z'/><circle cx='12' cy='12' r='2.6'/><line x1='4' y1='4' x2='20' y2='20'/></svg>");
-  opacity: 0.85;
+  background-size: 32rpx 32rpx;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a09a92' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M2 12s3.636-7 10-7 10 7 10 7-3.636 7-10 7S2 12 2 12z'/><circle cx='12' cy='12' r='3'/><line x1='4' y1='4' x2='20' y2='20'/></svg>");
+}
+.eye-toggle--on {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M2 12s3.636-7 10-7 10 7 10 7-3.636 7-10 7S2 12 2 12z'/><circle cx='12' cy='12' r='3'/></svg>");
 }
 
-.eye.eye-on {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8891' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z'/><circle cx='12' cy='12' r='2.6'/></svg>");
-  opacity: 1;
-}
-
-.mode-summary {
-  margin-top: 40rpx;
-  text-align: center;
-  font-size: 22rpx;
-  line-height: 1.9;
-  color: #98a2a8;
-  letter-spacing: 1rpx;
-}
-
-.action {
-  margin-top: 98rpx;
+/* ── CTA 按钮 ── */
+.cta-wrap {
   display: flex;
   justify-content: center;
+  margin-bottom: 0;
 }
 
-.pill-button {
-  width: 380rpx;
-  height: 92rpx;
-  line-height: 92rpx;
-  padding: 0;
-  background: linear-gradient(180deg, rgba(251, 252, 252, 0.96) 0%, rgba(241, 245, 247, 0.96) 100%);
-  border: 1rpx solid rgba(151, 164, 173, 0.52);
-  border-radius: 999rpx;
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.88) inset,
-    0 14rpx 28rpx rgba(81, 96, 107, 0.08);
-  color: #2f3e47;
+.cta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 88rpx;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 30rpx;
-  letter-spacing: 8rpx;
   font-weight: 400;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  letter-spacing: 0.2em;
+  color: #4a4640;
+  background: transparent;
+  border: 3rpx solid #6b6560;
+  border-radius: 4rpx;
+}
+.cta--loading {
+  opacity: 0.6;
 }
 
-.pill-button::after {
-  border: none;
+/* 四角装饰 */
+.cta-corner {
+  position: absolute;
+  width: 16rpx;
+  height: 16rpx;
+  border-color: #6b6560;
+  border-style: solid;
+}
+.cta-corner--tl {
+  top: -6rpx;
+  left: -6rpx;
+  border-width: 4rpx 0 0 4rpx;
+}
+.cta-corner--br {
+  bottom: -6rpx;
+  right: -6rpx;
+  border-width: 0 4rpx 4rpx 0;
 }
 
-.pill-button[loading]::before {
-  margin-right: 12rpx;
+/* 朱砂点 */
+.cta-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #b5352a;
+  flex-shrink: 0;
 }
 
-.action-note {
-  margin-top: 36rpx;
-  text-align: center;
-  font-size: 22rpx;
-  line-height: 1.8;
-  color: #a5aeb4;
+.cta-text {
+  color: #4a4640;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 30rpx;
+  font-weight: 400;
+  letter-spacing: 0.2em;
 }
 
-.preview-action {
-  margin-top: 24rpx;
+/* ── 预览入口 ── */
+.preview-entry {
+  margin-top: 40rpx;
   display: flex;
   justify-content: center;
 }
-
-.preview-button {
-  width: 300rpx;
-  height: 76rpx;
-  line-height: 76rpx;
-  padding: 0;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(166, 176, 183, 0.42);
-  background: rgba(255, 255, 255, 0.52);
-  color: #7e8a92;
-  font-size: 24rpx;
-  letter-spacing: 6rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+.preview-text {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 22rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  letter-spacing: 0.06em;
+  padding: 8rpx 24rpx;
+  border: 1rpx solid rgba(200, 194, 184, 0.5);
+  border-radius: 4rpx;
 }
 
-.preview-button::after {
-  border: none;
+/* ── 忘记密码 ── */
+.forgot {
+  text-align: center;
+  margin-top: 72rpx;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 22rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  letter-spacing: 0.06em;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import EmptyState from '../../components/common/EmptyState.vue'
 import PaperContainer from '../../components/common/PaperContainer.vue'
@@ -23,6 +23,47 @@ const source = ref<EditorSource>('home')
 const detailLoading = ref(false)
 const currentRecordId = ref<number | null>(null)
 const detailErrorState = ref<'NONE' | 'INVALID_ID' | 'NOT_FOUND' | 'LOAD_FAILED'>('NONE')
+
+// 倒计时
+const countdownH = ref('--')
+const countdownM = ref('--')
+const countdownS = ref('--')
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+const startCountdown = (unlockAt: string | null | undefined) => {
+  if (countdownTimer) clearInterval(countdownTimer)
+  if (!unlockAt) return
+  const target = new Date(unlockAt).getTime()
+  const tick = () => {
+    const diff = Math.max(0, target - Date.now())
+    const h = Math.floor(diff / 3600000)
+    const m = Math.floor((diff % 3600000) / 60000)
+    const s = Math.floor((diff % 60000) / 1000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    countdownH.value = pad(h)
+    countdownM.value = pad(m)
+    countdownS.value = pad(s)
+  }
+  tick()
+  countdownTimer = setInterval(tick, 1000)
+}
+
+onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer) })
+
+// Archive meta（封存页顶部 Archive No. / 季节）
+const archiveNo = computed(() => {
+  if (!detail.value?.id) return ''
+  return `Archive No. ${String(detail.value.id).padStart(3, '0')}`
+})
+
+const archiveSeason = computed(() => {
+  if (!detail.value?.createdAt) return ''
+  const d = new Date(detail.value.createdAt)
+  const seasons = ['Winter','Winter','Spring','Spring','Spring','Summer','Summer','Summer','Autumn','Autumn','Autumn','Winter']
+  const years = ['2018','2019','2020','2021','2022','2023','2024','2025','2026']
+  const year = years.find(y => String(d.getFullYear()) === y) || String(d.getFullYear())
+  return `${seasons[d.getMonth()]}, ${year}`
+})
 
 const { cssVars, navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } =
   useWechatNavMetrics()
@@ -205,6 +246,9 @@ const loadDetail = async (recordId: number) => {
 
   try {
     await refreshUnlockState(recordId)
+    if (detail.value?.status === RecordStatus.SEALED) {
+      startCountdown(detail.value.unlockAt)
+    }
   } catch (error) {
     detailErrorState.value = resolveDetailErrorState(error)
   } finally {
@@ -283,18 +327,32 @@ onLoad(async (query) => {
 
 <template>
   <view class="archive-page" :class="{ 'archive-page--unlocked': isUnlocked }" :style="pageStyle">
-    <!-- 纸雾 / 点阵档案底纹 -->
+    <!-- 宣纸底纹 -->
     <view class="archive-backdrop" />
 
+    <!-- 顶部安全区：SEALED 态显示品牌名 + 关闭 -->
     <view class="archive-top-safe" :style="topSafeStyle">
       <view class="archive-top-safe__mist" />
 
       <view class="archive-top-safe__nav" :style="topNavStyle">
-        <view v-if="detail && !isUnlocked && archiveDateText" class="archive-top-safe__meta">
+        <!-- SEALED / DRAFT：品牌名居中 -->
+        <view v-if="!isUnlocked" class="archive-top-safe__logo">
+          <text class="archive-top-safe__logo-text">时 光 回 序</text>
+        </view>
+
+        <!-- UNLOCKED：日期 meta -->
+        <view v-if="isUnlocked && detail && archiveDateText" class="archive-top-safe__meta">
           <view class="archive-top-safe__subline">{{ archiveDateText }}</view>
         </view>
 
+        <!-- 关闭按钮 -->
         <view v-if="!isUnlocked" class="archive-close" :style="closeRailStyle" @tap="closePage">
+          <view class="archive-close__icon">
+            <view class="archive-close__line archive-close__line--a" />
+            <view class="archive-close__line archive-close__line--b" />
+          </view>
+        </view>
+        <view v-if="isUnlocked" class="archive-close archive-close--content" @tap="closePage">
           <view class="archive-close__icon">
             <view class="archive-close__line archive-close__line--a" />
             <view class="archive-close__line archive-close__line--b" />
@@ -315,25 +373,11 @@ onLoad(async (query) => {
       </view>
 
       <view v-else-if="detail" class="archive-stage">
-        <view class="archive-intro">
-          <view v-if="isUnlocked" class="archive-close archive-close--content" @tap="closePage">
-            <view class="archive-close__icon">
-              <view class="archive-close__line archive-close__line--a" />
-              <view class="archive-close__line archive-close__line--b" />
-            </view>
-          </view>
-          <view v-if="isUnlocked" class="archive-intro__copy">
-            {{ unlockMomentText || archiveDateText }}
-          </view>
-          <view v-else-if="isSealed" class="archive-intro__copy">
-            档案仍在封存中，等到约定的时间再翻开。
-          </view>
-          <view v-else-if="isDraft" class="archive-intro__copy">
-            这封信还在写作途中，可以继续补完后再封存。
-          </view>
-        </view>
 
-        <!-- DRAFT：最小改动保留 -->
+        <!-- DRAFT -->
+        <view v-if="isDraft" class="archive-intro">
+          <view class="archive-intro__copy">这封信还在写作途中，可以继续补完后再封存。</view>
+        </view>
         <view v-if="isDraft" class="fallback-panel">
           <PaperContainer radius="xl" class="status-card">
             <view class="panel-title">继续完善后再封存</view>
@@ -343,26 +387,102 @@ onLoad(async (query) => {
           <PrimaryButton text="继续编辑草稿" @tap="openEditor" />
         </view>
 
-        <!-- SEALED：最小改动保留 -->
-        <view v-else-if="isSealed" class="fallback-panel">
-          <PaperContainer radius="xl" warm class="status-card">
-            <view class="panel-title">信件已封存，暂不可阅读</view>
-            <view class="panel-content">到达解锁时间之前，内容保持封存状态。</view>
-            <view class="time-grid">
-              <view class="time-item">
-                <view class="time-label">封存时间</view>
-                <view class="time-value">{{ formatDateTime(detail.sealedAt) }}</view>
+        <!-- SEALED：定稿视觉 -->
+        <view v-else-if="isSealed" class="sealed-stage">
+          <!-- Archive meta -->
+          <view class="sealed-meta">
+            <text class="sealed-meta__no">{{ archiveNo }}</text>
+            <text class="sealed-meta__season">{{ archiveSeason }}</text>
+          </view>
+
+          <!-- 短横线 -->
+          <view class="sealed-deco-line" aria-hidden="true" />
+
+          <!-- 信件卡片 -->
+          <view class="sealed-card">
+            <!-- 左侧朱砂竖线 -->
+            <view class="sealed-card__vline" aria-hidden="true" />
+            <!-- 右上折角 -->
+            <view class="sealed-card__corner" aria-hidden="true" />
+
+            <!-- 卡片 meta 行 -->
+            <view class="sealed-card__meta">
+              <view class="sealed-card__meta-left">
+                <view class="sealed-seal">
+                  <text class="sealed-seal__char">封</text>
+                </view>
+                <text class="sealed-card__tag">过去的你</text>
               </view>
-              <view class="time-item">
-                <view class="time-label">解锁时间</view>
-                <view class="time-value">{{ formatDateTime(detail.unlockAt) }}</view>
+              <view class="sealed-card__location">
+                <view class="sealed-card__loc-dot" aria-hidden="true" />
+                <text class="sealed-card__loc-text">{{ detail.title || '未命名档案' }}</text>
               </view>
             </view>
-          </PaperContainer>
+
+            <!-- 引句 -->
+            <view class="sealed-quote">
+              <text class="sealed-quote__text">"那时的风，似乎比现在要慢一些。"</text>
+            </view>
+
+            <!-- 模糊正文 -->
+            <view class="sealed-body-wrap">
+              <text class="sealed-body">{{ detail.content || '内容已封存，等待解锁后方可阅读。' }}</text>
+              <view class="sealed-body__veil" aria-hidden="true" />
+            </view>
+
+            <!-- 星形装饰 -->
+            <view class="sealed-sparkle" aria-hidden="true">✦</view>
+          </view>
+
+          <!-- 倒计时区 -->
+          <view class="sealed-lock">
+            <view class="sealed-lock__live">
+              <view class="sealed-lock__pulse" aria-hidden="true" />
+              <text class="sealed-lock__live-text">即将抵达，封印未解</text>
+            </view>
+
+            <view class="sealed-countdown">
+              <text class="sealed-countdown__label">还 有</text>
+              <view class="sealed-countdown__digits">
+                <view class="digit-block">
+                  <text class="digit-num">{{ countdownH }}</text>
+                  <text class="digit-unit">时</text>
+                </view>
+                <text class="digit-sep">:</text>
+                <view class="digit-block">
+                  <text class="digit-num">{{ countdownM }}</text>
+                  <text class="digit-unit">分</text>
+                </view>
+                <text class="digit-sep">:</text>
+                <view class="digit-block">
+                  <text class="digit-num">{{ countdownS }}</text>
+                  <text class="digit-unit">秒</text>
+                </view>
+              </view>
+            </view>
+
+            <view class="sealed-deco-line-sm" aria-hidden="true" />
+          </view>
+
+          <!-- 留下回应 CTA -->
+          <view class="sealed-cta-wrap">
+            <view class="sealed-cta" @tap="() => uni.showToast({ title: '解封后方可留下回应', icon: 'none' })">
+              <view class="sealed-cta__corner sealed-cta__corner--tl" aria-hidden="true" />
+              <view class="sealed-cta__corner sealed-cta__corner--br" aria-hidden="true" />
+              <view class="sealed-cta__dot" aria-hidden="true" />
+              <text class="sealed-cta__text">留 下 回 应</text>
+            </view>
+          </view>
+
+          <!-- 底部说明 -->
+          <text class="sealed-sub-hint">解封后，过去的你将读到这封信</text>
         </view>
 
-        <!-- UNLOCKED：档案信件阅读页 -->
-        <view v-else-if="isUnlocked" class="letter-stage">
+        <!-- UNLOCKED：档案信件阅读页（保持原有结构） -->
+        <view v-else-if="isUnlocked" class="archive-intro">
+          <view class="archive-intro__copy">{{ unlockMomentText || archiveDateText }}</view>
+        </view>
+        <view v-if="isUnlocked" class="letter-stage">
           <view class="letter-paper">
             <view class="letter-paper__glow" />
 
@@ -389,7 +509,6 @@ onLoad(async (query) => {
             </view>
 
             <view class="present-area">
-              <!-- 已提交回应 -->
               <template v-if="detail.hasReply">
                 <view v-if="replyLoading" class="present-slot present-slot--loading">
                   <text class="present-placeholder">正在载入你留下的那句话…</text>
@@ -400,18 +519,14 @@ onLoad(async (query) => {
                   </view>
                   <view class="present-action">
                     <view class="present-note">这句回应还在档案里，只是暂时没取出来。</view>
-                    <view class="present-retry" @tap="retryLoadReply">
-                      <text>重新加载</text>
-                    </view>
+                    <view class="present-retry" @tap="retryLoadReply"><text>重新加载</text></view>
                   </view>
                 </template>
                 <template v-else>
                   <view class="present-slot present-slot--submitted">
                     <view class="present-slot__header">
                       <text class="present-slot__label">你曾回应</text>
-                      <text v-if="replyResult?.createdAt" class="present-slot__time">
-                        {{ formatDateTime(replyResult.createdAt) }}
-                      </text>
+                      <text v-if="replyResult?.createdAt" class="present-slot__time">{{ formatDateTime(replyResult.createdAt) }}</text>
                     </view>
                     <view class="present-slot__content">{{ replyResult?.content }}</view>
                   </view>
@@ -421,7 +536,6 @@ onLoad(async (query) => {
                 </template>
               </template>
 
-              <!-- 未回应且可回应 -->
               <template v-else-if="detail.canReply">
                 <view class="present-slot present-slot--input">
                   <textarea
@@ -435,17 +549,12 @@ onLoad(async (query) => {
                 </view>
                 <view class="present-action">
                   <view class="present-note">只写一句也可以，像把今天轻轻放回过去。</view>
-                  <view
-                    class="present-btn"
-                    :class="{ 'present-btn--disabled': submittingReply }"
-                    @tap="submitReply"
-                  >
+                  <view class="present-btn" :class="{ 'present-btn--disabled': submittingReply }" @tap="submitReply">
                     <text>{{ submittingReply ? '发送中…' : '留下回应' }}</text>
                   </view>
                 </view>
               </template>
 
-              <!-- 不可回应 -->
               <template v-else>
                 <view class="present-slot present-slot--locked">
                   <text class="present-placeholder">此刻暂不可留下回应</text>
@@ -472,33 +581,28 @@ onLoad(async (query) => {
 .archive-page {
   position: relative;
   min-height: 100vh;
-  --font-reading: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', serif;
-  --font-secondary:
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
-  padding-left: 48rpx;
-  padding-right: 48rpx;
+  --font-reading: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --font-secondary: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  padding-left: 56rpx;
+  padding-right: 56rpx;
   padding-bottom: 80rpx;
-  background:
-    radial-gradient(circle at top, rgba(246, 249, 251, 0.95) 0%, rgba(242, 245, 247, 0.94) 36%, #edf1f3 100%);
+  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
   overflow: hidden;
 }
 
 .archive-page--unlocked {
-  background:
-    radial-gradient(circle at top, rgba(249, 246, 239, 0.95) 0%, rgba(243, 239, 231, 0.6) 24%, rgba(237, 241, 243, 0.94) 100%);
+  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
 }
 
-/* 极轻档案底纹：冷灰白 + 点阵 */
+/* 宣纸底纹 */
 .archive-backdrop {
   position: absolute;
   inset: 0;
   z-index: 0;
   background-image:
-    radial-gradient(circle at 18% 8%, rgba(255, 253, 248, 0.88) 0%, rgba(244, 246, 248, 0) 56%),
-    radial-gradient(rgba(120, 136, 150, 0.1) 1rpx, transparent 1rpx),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 30%);
-  background-size: 100% 100%, 20rpx 20rpx, 100% 100%;
-  background-position: 0 0, 0 0, 0 0;
+    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200, 185, 158, 0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185, 168, 140, 0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250, 245, 238, 0.18) 0%, transparent 75%);
   pointer-events: none;
 }
 
@@ -519,12 +623,28 @@ onLoad(async (query) => {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 130% at 50% 0%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, rgba(239, 242, 244, 0.92) 0%, rgba(239, 242, 244, 0) 100%);
+    radial-gradient(120% 130% at 50% 0%, rgba(250, 247, 242, 0.82) 0%, rgba(250, 247, 242, 0) 60%),
+    linear-gradient(180deg, rgba(245, 240, 232, 0.92) 0%, rgba(245, 240, 232, 0) 100%);
 }
 
 .archive-top-safe__nav {
   position: relative;
+}
+
+/* 品牌名（SEALED / DRAFT 态居中） */
+.archive-top-safe__logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.archive-top-safe__logo-text {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 24rpx;
+  font-weight: 300;
+  letter-spacing: 0.55em;
+  color: #9e9890;
 }
 
 .archive-top-safe__meta {
@@ -958,5 +1078,374 @@ onLoad(async (query) => {
   font-size: 24rpx;
   line-height: 1.7;
   font-family: var(--font-secondary);
+}
+
+/* ========== SEALED 定稿视觉 ========== */
+.sealed-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Archive meta */
+.sealed-meta {
+  text-align: center;
+  margin-bottom: 56rpx;
+}
+
+.sealed-meta__no {
+  display: block;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  color: #c8c2b8;
+  text-transform: uppercase;
+  margin-bottom: 8rpx;
+}
+
+.sealed-meta__season {
+  display: block;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 26rpx;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: #9e9890;
+  font-style: italic;
+}
+
+/* 短横线 */
+.sealed-deco-line {
+  width: 64rpx;
+  height: 1rpx;
+  background: #c8c2b8;
+  margin: 0 auto 64rpx;
+}
+
+.sealed-deco-line-sm {
+  width: 48rpx;
+  height: 1rpx;
+  background: #c8c2b8;
+  margin: 0 auto;
+}
+
+/* 信件卡片 */
+.sealed-card {
+  position: relative;
+  width: 100%;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  border-radius: 2rpx;
+  padding: 56rpx 48rpx 48rpx 64rpx;
+  box-shadow:
+    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
+    0 4rpx 24rpx rgba(140, 120, 90, 0.06),
+    0 2rpx 6rpx rgba(140, 120, 90, 0.04);
+  margin-bottom: 56rpx;
+}
+
+/* 左侧朱砂竖线 */
+.sealed-card__vline {
+  position: absolute;
+  left: 0;
+  top: 40rpx;
+  bottom: 40rpx;
+  width: 3rpx;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(181, 53, 42, 0.35) 25%,
+    rgba(181, 53, 42, 0.35) 75%,
+    transparent
+  );
+  border-radius: 2rpx;
+}
+
+/* 右上折角 */
+.sealed-card__corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28rpx;
+  height: 28rpx;
+  background: linear-gradient(
+    225deg,
+    rgba(230, 218, 200, 0.9) 0%,
+    rgba(230, 218, 200, 0.9) 48%,
+    rgba(252, 249, 244, 0) 50%
+  );
+  border-left: 1rpx solid rgba(188, 174, 152, 0.22);
+  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
+}
+
+/* 卡片 meta 行 */
+.sealed-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40rpx;
+}
+
+.sealed-card__meta-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* 封印章 */
+.sealed-seal {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  border: 2rpx solid #b5352a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.sealed-seal__char {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 20rpx;
+  color: #b5352a;
+}
+
+.sealed-card__tag {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.1em;
+}
+
+.sealed-card__location {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.sealed-card__loc-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #c8c2b8;
+}
+
+.sealed-card__loc-text {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  letter-spacing: 0.06em;
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 引句 */
+.sealed-quote {
+  margin-bottom: 36rpx;
+}
+
+.sealed-quote__text {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 40rpx;
+  font-weight: 300;
+  color: #302e29;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+}
+
+/* 模糊正文 */
+.sealed-body-wrap {
+  position: relative;
+  margin-bottom: 20rpx;
+}
+
+.sealed-body {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 300;
+  color: #6b6560;
+  line-height: 1.85;
+  letter-spacing: 0.03em;
+  filter: blur(3px);
+}
+
+.sealed-body__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 0%, rgba(252, 249, 244, 0.82) 80%);
+  pointer-events: none;
+}
+
+/* 星形装饰 */
+.sealed-sparkle {
+  text-align: right;
+  opacity: 0.35;
+  font-size: 32rpx;
+  color: #c8c2b8;
+}
+
+/* 倒计时区 */
+.sealed-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36rpx;
+  margin-bottom: 44rpx;
+}
+
+.sealed-lock__live {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.sealed-lock__pulse {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #b5352a;
+  opacity: 0.6;
+}
+
+.sealed-lock__live-text {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.1em;
+}
+
+.sealed-countdown {
+  text-align: center;
+}
+
+.sealed-countdown__label {
+  display: block;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.12em;
+  margin-bottom: 16rpx;
+}
+
+.sealed-countdown__digits {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4rpx;
+}
+
+.digit-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 76rpx;
+}
+
+.digit-num {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 56rpx;
+  font-weight: 300;
+  color: #302e29;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.digit-unit {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 18rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  letter-spacing: 0.1em;
+  margin-top: 6rpx;
+}
+
+.digit-sep {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 44rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  padding-bottom: 16rpx;
+  margin: 0 4rpx;
+}
+
+/* 留下回应 CTA */
+.sealed-cta-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 44rpx;
+  margin-bottom: 0;
+}
+
+.sealed-cta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 26rpx 72rpx;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: #302e29;
+  background: transparent;
+  border: 1rpx solid #c8c2b8;
+  border-radius: 4rpx;
+}
+
+.sealed-cta__corner {
+  position: absolute;
+  width: 12rpx;
+  height: 12rpx;
+  border-color: #9e9890;
+  border-style: solid;
+}
+
+.sealed-cta__corner--tl {
+  top: -2rpx;
+  left: -2rpx;
+  border-width: 2rpx 0 0 2rpx;
+}
+
+.sealed-cta__corner--br {
+  bottom: -2rpx;
+  right: -2rpx;
+  border-width: 0 2rpx 2rpx 0;
+}
+
+.sealed-cta__dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #b5352a;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.sealed-cta__text {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: #302e29;
+}
+
+/* 底部说明 */
+.sealed-sub-hint {
+  display: block;
+  text-align: center;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  letter-spacing: 0.08em;
+  margin-top: 32rpx;
 }
 </style>

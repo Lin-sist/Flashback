@@ -1,33 +1,27 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
-import AppPageShell from '../../components/common/AppPageShell.vue'
 import { recordService } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
 import { hasAuthenticatedSession } from '../../utils'
 
 type SettingKey = 'record' | 'tag' | 'privacy' | 'notify' | 'about'
-type SettingTone = 'archive' | 'privacy' | 'about'
-type SettingIcon = 'book' | 'tag' | 'lock' | 'bell' | 'info'
 
 interface SettingItem {
   key: SettingKey
   title: string
-  subtitle: string
-  icon: SettingIcon
+  iconClass: string
   meta?: string
 }
 
 interface SettingGroup {
-  title: string
-  tone: SettingTone
+  label: string
   items: SettingItem[]
 }
 
 const userStore = useUserStore()
-
-const appVersion = 'MVP 0.1.0'
+const appVersion = 'v2.0.0'
 
 const routeMap: Record<SettingKey, string> = {
   record: '/pages/user-center/archive-preference/index',
@@ -39,49 +33,42 @@ const routeMap: Record<SettingKey, string> = {
 
 const settingGroups: SettingGroup[] = [
   {
-    title: '档案整理',
-    tone: 'archive',
+    label: '档 案 设 置',
     items: [
-      { key: 'record', title: '档案偏好', subtitle: '记录类型与封存习惯', icon: 'book' },
-      { key: 'tag', title: '标签管理', subtitle: '情绪标签与主题标签', icon: 'tag' },
+      { key: 'record', title: '整理偏好', iconClass: 'icon-archive' },
+      { key: 'tag', title: '视觉外观', iconClass: 'icon-appearance' },
     ],
   },
   {
-    title: '提醒与权限',
-    tone: 'privacy',
+    label: '隐 私 与 安 全',
     items: [
-      { key: 'privacy', title: '隐私与安全', subtitle: '登录状态与访问权限', icon: 'lock' },
-      { key: 'notify', title: '提醒设置', subtitle: '解锁提醒与通知偏好', icon: 'bell' },
+      { key: 'privacy', title: '访问控制', iconClass: 'icon-lock' },
+      { key: 'notify', title: '数据备份', iconClass: 'icon-backup' },
     ],
   },
   {
-    title: '关于',
-    tone: 'about',
+    label: '关 于',
     items: [
-      { key: 'about', title: '关于时光回序', subtitle: '版本说明与项目边界', icon: 'info', meta: appVersion },
+      { key: 'about', title: '版本信息', iconClass: 'icon-info', meta: appVersion },
     ],
   },
 ]
 
 const nickname = ref('访客')
-const signature = ref('把经历写给未来的自己')
+const signature = ref('在静默中整理岁月的碎片')
 const avatarUrl = ref('')
 const savedCount = ref(0)
-const waitingUnlockCount = ref(0)
+const archiveDays = ref(0)
 const centerLoading = ref(false)
 const centerLoadFailed = ref(false)
 const profileReady = ref(false)
 
 const avatarInitial = computed(() => (nickname.value.trim() || '访').slice(0, 1))
-const displaySavedCount = computed(() => formatCount(savedCount.value))
-const displayWaitingUnlockCount = computed(() => formatCount(waitingUnlockCount.value))
+const displaySavedCount = computed(() => String(savedCount.value).replace(/\B(?=(\d{3})+(?!\d))/g, ','))
+const displayArchiveDays = computed(() => String(archiveDays.value))
 const showInitialLoading = computed(() => centerLoading.value && !profileReady.value)
 const showInitialFailure = computed(() => centerLoadFailed.value && !profileReady.value)
 const showStaleNotice = computed(() => centerLoadFailed.value && profileReady.value)
-
-function formatCount(value: number) {
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-}
 
 const ensureLogin = () => {
   if (!hasAuthenticatedSession()) {
@@ -91,36 +78,30 @@ const ensureLogin = () => {
   return true
 }
 
-const handleGroupTap = (key: SettingKey) => {
+const handleItemTap = (key: SettingKey) => {
   const targetUrl = routeMap[key]
   if (!targetUrl) {
     uni.showToast({ title: '页面开发中', icon: 'none' })
     return
   }
-
   uni.navigateTo({ url: targetUrl })
 }
 
 const loadCenterData = async () => {
-  if (!ensureLogin()) {
-    return
-  }
-
+  if (!ensureLogin()) return
   centerLoading.value = true
   centerLoadFailed.value = false
-
   try {
     const [user, sealedPage, unlockedPage] = await Promise.all([
       userStore.fetchUserInfo(),
       recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
       recordService.getUnlockedRecords(1, 1),
     ])
-
     nickname.value = user?.nickname || user?.username || '访客'
-    signature.value = user?.email?.trim() || '把经历写给未来的自己'
+    signature.value = user?.email?.trim() || '在静默中整理岁月的碎片'
     avatarUrl.value = user?.avatar?.trim() || ''
     savedCount.value = sealedPage.total + unlockedPage.total
-    waitingUnlockCount.value = sealedPage.total
+    archiveDays.value = sealedPage.total
     profileReady.value = true
   } catch {
     centerLoadFailed.value = true
@@ -130,9 +111,7 @@ const loadCenterData = async () => {
   }
 }
 
-const logout = () => {
-  userStore.logout()
-}
+const logout = () => { userStore.logout() }
 
 onShow(() => {
   uni.hideTabBar({ animation: false })
@@ -141,503 +120,559 @@ onShow(() => {
 </script>
 
 <template>
-  <AppPageShell class="page" title="时光回序" current="user-center">
-    <template #background>
-      <view class="page-glow page-glow-left" />
-      <view class="page-glow page-glow-right" />
-    </template>
+  <view class="page">
+    <view class="paper-texture" />
+    <view class="paper-glow" />
 
-    <view v-if="showInitialLoading" class="state-card">
-      <view class="state-kicker">PERSONAL CONTROL</view>
-      <view class="state-title">正在整理你的个人档案</view>
-      <view class="state-desc">昵称、统计与设置入口会在这里归位。</view>
-    </view>
+    <scroll-view class="scroll-body" scroll-y enhanced :show-scrollbar="false">
 
-    <view v-else-if="showInitialFailure" class="state-card state-card-failed">
-      <view class="state-kicker">PERSONAL CONTROL</view>
-      <view class="state-title">个人信息暂时没有加载出来</view>
-      <view class="state-desc">网络有点慢，稍后再试一次。</view>
-      <view class="state-action" @tap="loadCenterData">重新加载</view>
-    </view>
+      <!-- top brand bar -->
+      <view class="top-bar">
+        <view class="logo">时 光 回 序</view>
+        <view class="more-btn">
+          <view class="more-dot" />
+          <view class="more-dot" />
+          <view class="more-dot" />
+        </view>
+      </view>
 
-    <template v-else>
-      <view class="identity">
-        <view class="identity-ring">
+      <!-- loading state -->
+      <view v-if="showInitialLoading" class="state-block">
+        <view class="state-title">正在整理你的个人档案</view>
+        <view class="state-desc">昵称、统计与设置入口会在这里归位。</view>
+      </view>
+
+      <!-- failure state -->
+      <view v-else-if="showInitialFailure" class="state-block">
+        <view class="state-title">个人信息暂时没有加载出来</view>
+        <view class="state-desc">网络有点慢，稍后再试一次。</view>
+        <view class="state-action" @tap="loadCenterData">重新加载</view>
+      </view>
+
+      <template v-else>
+        <!-- profile hero -->
+        <view class="profile-hero">
           <view class="avatar-wrap">
-            <image v-if="avatarUrl" class="avatar" :src="avatarUrl" mode="aspectFill" />
-            <text v-else class="avatar-fallback">{{ avatarInitial }}</text>
+            <view class="avatar-ring" />
+            <view class="avatar">
+              <image v-if="avatarUrl" class="avatar-img" :src="avatarUrl" mode="aspectFill" />
+              <text v-else class="avatar-fallback">{{ avatarInitial }}</text>
+            </view>
+          </view>
+          <view class="profile-name">{{ nickname }}</view>
+          <view class="profile-bio">{{ signature }}</view>
+          <view class="deco-line" />
+        </view>
+
+        <!-- stale notice -->
+        <view v-if="showStaleNotice" class="stale-notice">
+          网络有点慢，当前展示的是上次同步的信息
+          <text class="stale-action" @tap="loadCenterData">重试</text>
+        </view>
+
+        <!-- stats row -->
+        <view class="stats-row">
+          <view class="stat-card">
+            <view class="stat-label">已存记忆</view>
+            <view class="stat-num">{{ displaySavedCount }}</view>
+          </view>
+          <view class="stat-card stat-card-highlight">
+            <view class="stat-label">存档天数</view>
+            <view class="stat-num">{{ displayArchiveDays }}</view>
           </view>
         </view>
-        <view class="identity-kicker">PERSONAL CONTROL</view>
-        <view class="identity-name">{{ nickname }}</view>
-        <view class="identity-signature">{{ signature }}</view>
-      </view>
 
-      <view v-if="showStaleNotice" class="inline-notice">
-        网络有点慢，当前展示的是上次同步的信息
-        <text class="inline-notice-action" @tap="loadCenterData">重试</text>
-      </view>
-
-      <view class="stats-row">
-        <view class="stat-card stat-card-cool">
-          <view class="stat-label">已存记忆</view>
-          <view class="stat-value">{{ displaySavedCount }}</view>
-          <view class="stat-meta">已封存与已解锁记录总数</view>
-        </view>
-        <view class="stat-card stat-card-warm">
-          <view class="stat-label">待解封</view>
-          <view class="stat-value">{{ displayWaitingUnlockCount }}</view>
-          <view class="stat-meta">仍在等待开启的封存记录</view>
-        </view>
-      </view>
-
-      <view class="group-list">
-        <view v-for="group in settingGroups" :key="group.title" class="group">
-          <view class="group-title">{{ group.title }}</view>
-          <view class="group-card" :class="`group-card-${group.tone}`">
+        <!-- settings groups -->
+        <view v-for="group in settingGroups" :key="group.label" class="settings-section">
+          <view class="section-label">{{ group.label }}</view>
+          <view class="settings-group">
             <view
               v-for="(item, index) in group.items"
               :key="item.key"
-              class="group-row"
-              :class="{ 'group-row-subdued': item.key === 'about' }"
-              @tap="handleGroupTap(item.key)"
+              class="setting-item"
+              :class="{ 'setting-item-last': index === group.items.length - 1 }"
+              @tap="handleItemTap(item.key)"
             >
-              <view class="row-icon-wrap" :class="`row-icon-wrap-${group.tone}`">
-                <view class="icon" :class="`icon-${item.icon}`" />
+              <view class="setting-icon">
+                <view class="icon" :class="item.iconClass" />
               </view>
-              <view class="row-copy">
-                <view class="row-label">{{ item.title }}</view>
-                <view class="row-subtitle">{{ item.subtitle }}</view>
-              </view>
-              <view class="row-meta">
-                <view v-if="item.meta" class="row-meta-text">{{ item.meta }}</view>
-                <view class="row-arrow">›</view>
-              </view>
-              <view v-if="index < group.items.length - 1" class="group-divider" />
+              <view class="setting-text">{{ item.title }}</view>
+              <view v-if="item.meta" class="setting-badge">{{ item.meta }}</view>
+              <view v-else class="setting-arrow" />
             </view>
           </view>
         </view>
-      </view>
 
-      <view class="logout-wrap">
-        <view class="logout-tip">账户操作</view>
-        <view class="logout-button" @tap="logout">退出登录</view>
+        <!-- logout -->
+        <view class="logout-wrap">
+          <view class="logout-btn" @tap="logout">退出当前账户</view>
+        </view>
+      </template>
+
+      <!-- nav safe area -->
+      <view class="nav-safe-area" />
+    </scroll-view>
+
+    <!-- bottom navigation -->
+    <view class="bottom-nav-shell">
+      <view class="bottom-nav">
+        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/home/index' })">
+          <text class="nav-label">首 页</text>
+        </view>
+        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/timeline/index' })">
+          <text class="nav-label">时 光 轴</text>
+        </view>
+        <view class="nav-item active" @tap="() => {}">
+          <text class="nav-label">我 的</text>
+          <view class="nav-dot" />
+        </view>
       </view>
-    </template>
-  </AppPageShell>
+    </view>
+  </view>
 </template>
 
 <style scoped>
 .page {
   position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(214, 224, 230, 0.48) 0, rgba(214, 224, 230, 0) 36%),
-    radial-gradient(circle at top right, rgba(244, 232, 210, 0.72) 0, rgba(244, 232, 210, 0) 34%),
-    linear-gradient(180deg, #fbfcfd 0%, #f6f8f9 100%);
+  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
   overflow: hidden;
 }
 
-.page-glow {
-  position: absolute;
-  width: 320rpx;
-  height: 320rpx;
-  border-radius: 999rpx;
-  filter: blur(16rpx);
-  opacity: 0.65;
+.paper-texture {
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.15'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23f)' opacity='0.055'/%3E%3C/svg%3E");
   pointer-events: none;
+  z-index: 0;
 }
 
-.page-glow-left {
-  top: 160rpx;
-  left: -140rpx;
-  background: rgba(215, 226, 232, 0.5);
+.paper-glow {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200, 185, 158, 0.09) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185, 168, 140, 0.06) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 55% at 70% 78%, rgba(178, 162, 135, 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250, 245, 238, 0.18) 0%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.page-glow-right {
-  top: 420rpx;
-  right: -120rpx;
-  background: rgba(243, 223, 187, 0.46);
-}
-
-.state-card {
+.scroll-body {
   position: relative;
   z-index: 1;
-  margin-top: 80rpx;
+  height: 100vh;
+}
+
+/* ── top bar ── */
+.top-bar {
+  padding-top: calc(env(safe-area-inset-top) + 52px);
+  padding-left: 56rpx;
+  padding-right: 56rpx;
+  text-align: center;
+  position: relative;
+}
+
+.logo {
+  font-family: var(--fb-font-serif);
+  font-size: 24rpx;
+  font-weight: 300;
+  letter-spacing: 0.55em;
+  color: var(--fb-ink-light);
+}
+
+.more-btn {
+  position: absolute;
+  right: 56rpx;
+  top: calc(env(safe-area-inset-top) + 52px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8rpx;
+  height: 36rpx;
+}
+
+.more-dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: var(--fb-ink-light);
+  margin: 0 auto;
+}
+
+/* ── state blocks ── */
+.state-block {
+  margin: 80rpx 56rpx 0;
   padding: 48rpx 42rpx;
-  border-radius: 40rpx;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 24rpx 52rpx rgba(26, 26, 26, 0.06);
-  backdrop-filter: blur(10rpx);
-}
-
-.state-card-failed {
-  background: rgba(253, 249, 247, 0.92);
-}
-
-.state-kicker {
-  font-size: 22rpx;
-  color: #9aa3a9;
-  letter-spacing: 5rpx;
+  border-radius: 4rpx;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
 }
 
 .state-title {
-  margin-top: 18rpx;
-  font-size: 42rpx;
-  line-height: 1.3;
-  color: #1a1a1a;
-  font-weight: 600;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: var(--fb-font-serif);
+  font-size: 36rpx;
+  color: var(--fb-ink);
+  line-height: 1.4;
 }
 
 .state-desc {
   margin-top: 18rpx;
-  font-size: 28rpx;
+  font-size: 26rpx;
+  color: var(--fb-ink-mid);
   line-height: 1.7;
-  color: #7f8c93;
 }
 
 .state-action {
   margin-top: 34rpx;
-  width: 220rpx;
-  height: 84rpx;
-  border-radius: 999rpx;
-  background: #3b647a;
-  color: #ffffff;
-  font-size: 28rpx;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 80rpx;
+  padding: 0 40rpx;
+  border-radius: 4rpx;
+  background: var(--fb-vermilion);
+  color: #ffffff;
+  font-size: 28rpx;
 }
 
-.identity {
-  position: relative;
-  z-index: 1;
-  margin-top: 36rpx;
+/* ── profile hero ── */
+.profile-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-}
-
-.identity-ring {
-  width: 220rpx;
-  height: 220rpx;
-  padding: 14rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(234, 239, 242, 0.76) 100%);
-  box-shadow: 0 18rpx 40rpx rgba(31, 45, 54, 0.09);
+  padding-top: 72rpx;
 }
 
 .avatar-wrap {
-  width: 100%;
-  height: 100%;
-  border-radius: 999rpx;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 28% 26%, rgba(255, 255, 255, 0.68) 0, rgba(255, 255, 255, 0) 32%),
-    linear-gradient(160deg, #6e8796 0%, #314955 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  width: 152rpx;
+  height: 152rpx;
+  margin-bottom: 28rpx;
+}
+
+.avatar-ring {
+  position: absolute;
+  inset: -8rpx;
+  border-radius: 50%;
+  border: 1rpx solid var(--fb-ink-faint);
 }
 
 .avatar {
+  width: 152rpx;
+  height: 152rpx;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #3a5a5c 0%, #1e3535 60%, #2a4a3a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.avatar-img {
   width: 100%;
   height: 100%;
   display: block;
 }
 
 .avatar-fallback {
-  color: #ffffff;
-  font-size: 72rpx;
-  font-weight: 500;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: var(--fb-font-serif);
+  font-size: 64rpx;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
   letter-spacing: 4rpx;
 }
 
-.identity-kicker {
-  margin-top: 28rpx;
+.profile-name {
+  font-family: var(--fb-font-serif);
+  font-size: 40rpx;
+  font-weight: 400;
+  color: var(--fb-ink);
+  letter-spacing: 0.12em;
+  margin-bottom: 12rpx;
+}
+
+.profile-bio {
+  font-family: var(--fb-font-serif);
   font-size: 22rpx;
-  color: #9aa3a9;
-  letter-spacing: 6rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.06em;
 }
 
-.identity-name {
-  margin-top: 18rpx;
-  font-size: 52rpx;
-  line-height: 1.2;
-  font-weight: 600;
-  color: #171a1d;
-  letter-spacing: 4rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+.deco-line {
+  width: 64rpx;
+  height: 1rpx;
+  background: var(--fb-ink-faint);
+  margin-top: 56rpx;
 }
 
-.identity-signature {
-  margin-top: 16rpx;
-  max-width: 560rpx;
-  font-size: 26rpx;
-  line-height: 1.8;
-  color: #7f8c93;
-  letter-spacing: 1rpx;
-}
-
-.inline-notice {
-  position: relative;
-  z-index: 1;
-  margin-top: 34rpx;
-  padding: 24rpx 30rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.7);
-  color: #7d878d;
+/* ── stale notice ── */
+.stale-notice {
+  margin: 32rpx 56rpx 0;
   font-size: 24rpx;
-  line-height: 1.7;
-}
-
-.inline-notice-action {
-  margin-left: 12rpx;
-  color: #3b647a;
-}
-
-.stats-row {
-  position: relative;
-  z-index: 1;
-  margin-top: 44rpx;
+  color: var(--fb-ink-mid);
   display: flex;
-  gap: 20rpx;
+  gap: 16rpx;
+}
+
+.stale-action {
+  color: var(--fb-vermilion);
+}
+
+/* ── stats row ── */
+.stats-row {
+  display: flex;
+  gap: 24rpx;
+  margin: 48rpx 56rpx 0;
 }
 
 .stat-card {
   flex: 1;
-  min-height: 230rpx;
-  padding: 34rpx 30rpx 30rpx;
-  border-radius: 34rpx;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  position: relative;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  border-radius: 2rpx;
+  padding: 36rpx 40rpx 32rpx;
+  box-shadow:
+    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
+    0 4rpx 24rpx rgba(140, 120, 90, 0.06),
+    0 2rpx 6rpx rgba(140, 120, 90, 0.04);
+  overflow: hidden;
 }
 
-.stat-card-cool {
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12rpx 28rpx rgba(26, 26, 26, 0.05);
+/* vermilion left accent */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 32rpx;
+  bottom: 32rpx;
+  width: 3rpx;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(181, 53, 42, 0.35) 25%,
+    rgba(181, 53, 42, 0.35) 75%,
+    transparent
+  );
+  border-radius: 2rpx;
 }
 
-.stat-card-warm {
-  background: linear-gradient(180deg, #f4e7cf 0%, #ead5ae 100%);
-  box-shadow: 0 12rpx 28rpx rgba(135, 112, 61, 0.08);
+/* corner fold */
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20rpx;
+  height: 20rpx;
+  background: linear-gradient(225deg, rgba(230, 218, 200, 0.9) 0%, rgba(230, 218, 200, 0.9) 48%, rgba(252, 249, 244, 0) 50%);
+  border-left: 1rpx solid rgba(188, 174, 152, 0.22);
+  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
 }
 
 .stat-label {
-  font-size: 24rpx;
-  color: #86939a;
-  letter-spacing: 2rpx;
+  font-family: var(--fb-font-sans);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.08em;
+  margin-bottom: 16rpx;
 }
 
-.stat-card-warm .stat-label {
-  color: #8a7750;
-}
-
-.stat-value {
-  margin-top: 18rpx;
-  font-size: 80rpx;
+.stat-num {
+  font-family: var(--fb-font-serif);
+  font-size: 56rpx;
+  font-weight: 300;
+  color: var(--fb-ink-mid);
+  letter-spacing: 0.02em;
   line-height: 1;
-  color: #35586d;
-  font-weight: 500;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Times New Roman', serif;
-  letter-spacing: 2rpx;
 }
 
-.stat-card-warm .stat-value {
-  color: #6d582b;
+.stat-card-highlight .stat-num {
+  color: #8a6a3a;
 }
 
-.stat-meta {
-  margin-top: 18rpx;
-  font-size: 22rpx;
-  line-height: 1.6;
-  color: #8d989e;
+/* ── settings sections ── */
+.settings-section {
+  margin-top: 64rpx;
+  padding: 0 56rpx;
 }
 
-.stat-card-warm .stat-meta {
-  color: #88754e;
+.section-label {
+  font-family: var(--fb-font-sans);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.12em;
+  margin-bottom: 20rpx;
+  padding-left: 4rpx;
 }
 
-.group-list {
+.settings-group {
   position: relative;
-  z-index: 1;
-  margin-top: 58rpx;
-}
-
-.group + .group {
-  margin-top: 34rpx;
-}
-
-.group-title {
-  padding: 0 14rpx 20rpx;
-  font-size: 25rpx;
-  color: #9aa3a9;
-  letter-spacing: 4rpx;
-}
-
-.group-card {
-  border-radius: 34rpx;
-  padding: 8rpx 0;
+  background: rgba(252, 249, 244, 0.72);
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  border-radius: 2rpx;
+  box-shadow:
+    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
+    0 4rpx 24rpx rgba(140, 120, 90, 0.06);
   overflow: hidden;
-  box-shadow: 0 12rpx 30rpx rgba(26, 26, 26, 0.04);
 }
 
-.group-card-archive {
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.group-card-privacy {
-  background: rgba(241, 244, 246, 0.95);
-}
-
-.group-card-about {
-  background: rgba(247, 245, 240, 0.96);
-}
-
-.group-row {
-  position: relative;
-  min-height: 124rpx;
-  padding: 0 32rpx;
+.setting-item {
   display: flex;
   align-items: center;
+  gap: 28rpx;
+  padding: 30rpx 36rpx;
+  position: relative;
 }
 
-.group-row-subdued .row-label {
-  color: #30363a;
-}
-
-.group-row-subdued .row-subtitle {
-  color: #90989d;
-}
-
-.group-divider {
+.setting-item:not(.setting-item-last)::after {
+  content: '';
   position: absolute;
-  left: 104rpx;
-  right: 32rpx;
   bottom: 0;
+  left: 92rpx;
+  right: 36rpx;
   height: 1rpx;
-  background: rgba(26, 26, 26, 0.08);
+  background: rgba(188, 174, 152, 0.22);
 }
 
-.row-icon-wrap {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 18rpx;
+.setting-icon {
+  width: 36rpx;
+  height: 36rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.row-icon-wrap-archive {
-  background: rgba(59, 100, 122, 0.1);
-}
-
-.row-icon-wrap-privacy {
-  background: rgba(90, 109, 120, 0.1);
-}
-
-.row-icon-wrap-about {
-  background: rgba(122, 111, 88, 0.1);
-}
-
-.row-copy {
-  flex: 1;
-  min-width: 0;
-  margin-left: 22rpx;
-}
-
-.row-label {
-  font-size: 31rpx;
-  color: #1a1a1a;
-  font-weight: 500;
-  letter-spacing: 1rpx;
-}
-
-.row-subtitle {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.5;
-  color: #88949b;
-}
-
-.row-meta {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  margin-left: 16rpx;
-}
-
-.row-meta-text {
-  font-size: 22rpx;
-  color: #a08f69;
-  letter-spacing: 1rpx;
-}
-
-.row-arrow {
-  font-size: 38rpx;
-  line-height: 1;
-  color: #a0a9ae;
-}
-
-.logout-wrap {
-  position: relative;
-  z-index: 1;
-  margin-top: 74rpx;
-  padding-bottom: 18rpx;
-  text-align: center;
-}
-
-.logout-tip {
-  font-size: 22rpx;
-  color: #b0b7bc;
-  letter-spacing: 5rpx;
-}
-
-.logout-button {
-  margin: 22rpx auto 0;
-  width: 280rpx;
-  height: 88rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(200, 83, 74, 0.18);
-  background: rgba(255, 255, 255, 0.74);
-  color: #b25d57;
-  font-size: 28rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: 2rpx;
-}
-
 .icon {
-  width: 34rpx;
-  height: 34rpx;
+  width: 32rpx;
+  height: 32rpx;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
 }
 
-.icon-book {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b647a' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z'/><path d='M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z'/></svg>");
+.icon-archive {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19V6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5V19l-8-2-8 2Z'/><line x1='8' y1='10' x2='16' y2='10'/><line x1='8' y1='14' x2='13' y2='14'/></svg>");
 }
 
-.icon-tag {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b647a' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M20 10 10.5 19.5a2.1 2.1 0 0 1-3 0L4.5 16.5a2.1 2.1 0 0 1 0-3L14 4h6v6z'/><circle cx='16.5' cy='7.5' r='1.2'/></svg>");
+.icon-appearance {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/></svg>");
 }
 
 .icon-lock {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2355636b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='11' width='14' height='10' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>");
 }
 
-.icon-bell {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2355636b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V11a5 5 0 0 1 10 0v3.2a2 2 0 0 0 .6 1.4L19 17h-4'/><path d='M10 19a2 2 0 0 0 4 0'/></svg>");
+.icon-backup {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='22 12 16 12 14 15 10 15 8 12 2 12'/><path d='M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/></svg>");
 }
 
 .icon-info {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a6f58' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><line x1='12' y1='11' x2='12' y2='16'/><circle cx='12' cy='8' r='0.8' fill='%237a6f58' stroke='none'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239e9890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>");
+}
+
+.setting-arrow {
+  width: 26rpx;
+  height: 26rpx;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 13' fill='none' stroke='%23c8c2b8' stroke-width='1.5' stroke-linecap='round'><polyline points='4,2 9,6.5 4,11'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  flex-shrink: 0;
+}
+
+.setting-text {
+  flex: 1;
+  font-family: var(--fb-font-serif);
+  font-size: 28rpx;
+  font-weight: 300;
+  color: var(--fb-ink-mid);
+  letter-spacing: 0.03em;
+}
+
+.setting-badge {
+  font-family: var(--fb-font-sans);
+  font-size: 20rpx;
+  font-weight: 300;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.06em;
+}
+
+/* ── logout ── */
+.logout-wrap {
+  text-align: center;
+  margin: 56rpx 0 8rpx;
+}
+
+.logout-btn {
+  font-family: var(--fb-font-serif);
+  font-size: 26rpx;
+  font-weight: 300;
+  color: var(--fb-vermilion);
+  opacity: 0.75;
+  letter-spacing: 0.08em;
+  display: inline-block;
+}
+
+/* ── nav safe area ── */
+.nav-safe-area {
+  height: calc(128rpx + env(safe-area-inset-bottom));
+}
+
+/* ── bottom navigation ── */
+.bottom-nav-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  padding: 0 0 env(safe-area-inset-bottom);
+  border-top: 1rpx solid rgba(200, 194, 184, 0.3);
+  background: rgba(250, 247, 242, 0.96);
+  box-shadow: 0 -8rpx 24rpx rgba(48, 46, 41, 0.04);
+}
+
+.bottom-nav {
+  height: 104rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.nav-item {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+.nav-label {
+  font-family: var(--fb-font-serif);
+  font-size: 24rpx;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: var(--fb-ink-light);
+}
+
+.nav-item.active .nav-label {
+  color: var(--fb-ink);
+  font-weight: 400;
+}
+
+.nav-dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: var(--fb-vermilion);
+  opacity: 0.9;
 }
 </style>

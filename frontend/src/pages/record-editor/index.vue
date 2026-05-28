@@ -7,7 +7,6 @@ import { useRecordStore, useTagStore } from '../../stores'
 import { RecordType } from '../../types'
 import {
   formatDateTime,
-  formatDayText,
   getToken,
   hasAuthenticatedSession,
   toLocalDateTime,
@@ -54,8 +53,19 @@ const form = reactive({
   tagIds: [] as number[],
 })
 
-const writingDateText = computed(() => formatDayText(Date.now()))
-const writingMomentText = computed(() => formatDateTime(Date.now()))
+const wordCount = computed(() => form.content.replace(/\s/g, '').length)
+
+const writingDateText = computed(() => {
+  const nums = ['零','一','二','三','四','五','六','七','八','九']
+  const seasons: Record<number, string> = {
+    0:'严冬',1:'立春',2:'初春',3:'暮春',
+    4:'初夏',5:'仲夏',6:'盛夏',7:'初秋',
+    8:'暮秋',9:'深秋',10:'初冬',11:'严冬',
+  }
+  const d = new Date()
+  const yearStr = String(d.getFullYear()).split('').map((c) => nums[+c]).join('')
+  return yearStr + '年 · ' + seasons[d.getMonth()]
+})
 
 const ensureLogin = () => {
   if (!hasAuthenticatedSession()) {
@@ -330,17 +340,21 @@ onLoad(async (query) => {
 
 <template>
   <view class="page">
+    <!-- 宣纸底色光晕 -->
     <view class="page-bg" aria-hidden="true" />
 
+    <!-- 顶部栏：Vol. N + 关闭 -->
     <ImmersiveEditorTopBar :vol-no="form.volNo" @close="handleCloseWithAutoSave" />
 
     <view class="page-body">
+      <!-- 初始化中 -->
       <view v-if="initializing" class="state-paper">
         <text class="state-kicker">Preparing the archive page</text>
         <text class="state-title">正在初始化写作页...</text>
         <text class="state-desc">我们正在取回当前草稿与类型信息，稍候就能继续落笔。</text>
       </view>
 
+      <!-- 初始化失败 -->
       <view v-else-if="initFailed" class="state-paper">
         <text class="state-kicker">Initialization interrupted</text>
         <text class="state-title">写作页暂时没有打开</text>
@@ -348,88 +362,89 @@ onLoad(async (query) => {
         <view class="retry-btn" @tap="retryInitialization">重试初始化</view>
       </view>
 
+      <!-- 正常编辑态 -->
       <template v-else>
-        <view class="paper">
-          <view class="paper-inner">
-            <view class="paper-head">
+        <!-- 信笺主体 -->
+        <view class="letter-wrap">
+          <view class="letter-body">
+            <!-- 天头朱砂横线 -->
+            <view class="letter-topline" aria-hidden="true" />
+
+            <!-- 信头 -->
+            <view class="letter-head">
               <view class="head-left">
-                <text class="captured-at">Captured at</text>
-                <text class="date-title">{{ writingDateText }}</text>
-                <text class="date-sub">{{ writingMomentText }}</text>
+                <text class="captured-label">Captured at</text>
+                <text class="letter-date">{{ writingDateText }}</text>
               </view>
-
-              <view class="head-right">
-                <view class="seal">
-                  <text class="seal-text">私有档案·严禁翻阅</text>
-                </view>
+              <view class="archive-tag">
+                <text class="archive-tag-text">私有档案·严禁翻阅</text>
               </view>
             </view>
 
-            <view class="title-wrap">
-              <input
-                v-model="form.title"
-                class="title-input"
-                placeholder="给这一页轻轻落一个题目"
-                placeholder-class="title-placeholder"
-              />
-            </view>
-
-            <view class="content-wrap">
-              <textarea
-                v-model="form.content"
-                class="content-area"
-                auto-height
-                maxlength="5000"
-                placeholder="写下此刻想被未来自己看到的内容..."
-                placeholder-class="content-placeholder"
-              />
-            </view>
-
-            <view class="unlock-row">
-              <text class="unlock-label">Unlock after</text>
-              <input
-                v-model="form.unlockAtInput"
-                class="unlock-input"
-                placeholder="解锁时间，如 2026-12-31 20:00"
-                placeholder-class="unlock-placeholder"
-              />
-            </view>
-
-            <view class="aux-divider" aria-hidden="true" />
-            <view class="aux-row">
-              <view class="aux-item" @tap="onAuxTap('MAP')">
-                <view class="aux-circle">
-                  <view class="ic ic-map" />
+            <!-- 正文区：左侧朱砂竖线 + 编辑区 -->
+            <view class="letter-content">
+              <view class="side-rule" aria-hidden="true" />
+              <view class="editor-zone">
+                <!-- 解锁时间行（嵌入信纸内） -->
+                <view class="unlock-row">
+                  <text class="unlock-label">Unlock after</text>
+                  <input
+                    v-model="form.unlockAtInput"
+                    class="unlock-input"
+                    placeholder="解锁时间，如 2026-12-31 20:00"
+                    placeholder-class="unlock-placeholder"
+                  />
                 </view>
-                <text class="aux-label">MAP</text>
+                <textarea
+                  v-model="form.content"
+                  class="editor-field"
+                  auto-height
+                  maxlength="5000"
+                  placeholder="在此刻的宁静中，留下你的记忆碎片..."
+                  placeholder-class="editor-placeholder"
+                />
               </view>
+            </view>
 
-              <view class="aux-item" @tap="onAuxTap('IMAGE')">
-                <view class="aux-circle">
-                  <view class="ic ic-image" />
-                </view>
-                <text class="aux-label">IMAGE</text>
+            <!-- 附件栏 MAP / IMAGE / VOICE -->
+            <view class="attach-bar">
+              <view class="attach-item" @tap="onAuxTap('MAP')">
+                <view class="attach-icon attach-icon--map" aria-hidden="true" />
+                <text class="attach-label">MAP</text>
               </view>
-
-              <view class="aux-item" @tap="onAuxTap('VOICE')">
-                <view class="aux-circle">
-                  <view class="ic ic-voice" />
-                </view>
-                <text class="aux-label">VOICE</text>
+              <view class="attach-sep" aria-hidden="true" />
+              <view class="attach-item" @tap="onAuxTap('IMAGE')">
+                <view class="attach-icon attach-icon--image" aria-hidden="true" />
+                <text class="attach-label">IMAGE</text>
+              </view>
+              <view class="attach-sep" aria-hidden="true" />
+              <view class="attach-item" @tap="onAuxTap('VOICE')">
+                <view class="attach-icon attach-icon--voice" aria-hidden="true" />
+                <text class="attach-label">VOICE</text>
               </view>
             </view>
           </view>
         </view>
 
-        <view class="action-area">
-          <view class="seal-btn" :class="{ disabled: loading }" @tap="sealRecord">
+        <!-- 底部操作区 -->
+        <view class="bottom-area">
+          <text class="word-count">{{ wordCount }} 字</text>
+
+          <view class="seal-btn" :class="{ 'seal-btn--disabled': loading }" @tap="sealRecord">
+            <view class="seal-btn-corner seal-btn-corner--tl" aria-hidden="true" />
+            <view class="seal-btn-corner seal-btn-corner--br" aria-hidden="true" />
+            <view class="btn-dot" aria-hidden="true" />
             <text class="seal-btn-text">{{ loading ? '封存中...' : '封存这一刻' }}</text>
-            <view class="seal-btn-rule" />
-            <text class="seal-btn-arrow">›</text>
           </view>
 
-          <view class="draft-btn" :class="{ disabled: loading }" @tap="saveDraft">
-            {{ closing ? '自动保存中...' : loading ? '保存中...' : '保存草稿' }}
+          <view class="seal-hint">
+            <view class="hint-line" aria-hidden="true" />
+            <text class="hint-text">封存后将锁定，到期方可开启</text>
+            <view class="hint-line" aria-hidden="true" />
+          </view>
+
+          <view class="draft-btn" :class="{ 'draft-btn--disabled': loading }" @tap="saveDraft">
+            <text class="draft-btn-text">{{ closing ? '自动保存中...' : loading ? '保存中...' : '保存草稿' }}</text>
           </view>
         </view>
       </template>
@@ -441,8 +456,8 @@ onLoad(async (query) => {
 .page {
   position: relative;
   min-height: 100vh;
-  background: #eef1f3;
   overflow: hidden;
+  background: linear-gradient(160deg, #f5f0e8 0%, #ede8dc 45%, #e8e0d2 100%);
 }
 
 .page-bg {
@@ -450,340 +465,435 @@ onLoad(async (query) => {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 50%),
-    radial-gradient(88% 48% at 50% 100%, rgba(209, 217, 222, 0.55) 0%, rgba(209, 217, 222, 0) 56%),
-    linear-gradient(180deg, #eef1f3 0%, #edf0f2 100%);
+    radial-gradient(ellipse 70% 55% at 20% 8%, rgba(255, 248, 235, 0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 40% at 80% 20%, rgba(220, 208, 185, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 55%, rgba(255, 250, 240, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 75% 80%, rgba(200, 188, 165, 0.08) 0%, transparent 60%);
 }
 
 .page-body {
   position: relative;
   z-index: 1;
-  padding: 16rpx 40rpx calc(env(safe-area-inset-bottom) + 40rpx);
+  padding: 8rpx 56rpx calc(env(safe-area-inset-bottom) + 68rpx);
+  display: flex;
+  flex-direction: column;
 }
 
-.paper,
-.state-paper {
+/* ── 信笺容器 ── */
+.letter-wrap {
+  flex: 1;
+  margin-top: 20rpx;
   position: relative;
-  border-radius: 40rpx;
-  background: #fcfdfd;
+}
+
+.letter-body {
+  position: relative;
+  background: #fdfbf7;
+  border: 1rpx solid rgba(180, 168, 148, 0.45);
   box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.9) inset,
-    0 26rpx 56rpx rgba(60, 78, 92, 0.08),
-    0 8rpx 18rpx rgba(60, 78, 92, 0.04);
+    0 0 0 1rpx rgba(255, 253, 248, 0.8) inset,
+    4rpx 12rpx 48rpx rgba(120, 100, 70, 0.12),
+    -2rpx 4rpx 16rpx rgba(120, 100, 70, 0.06);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.paper::before,
-.state-paper::before {
+/* 右上折角 */
+.letter-body::after {
   content: '';
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 18%),
-    radial-gradient(100% 52% at 100% 0%, rgba(232, 236, 238, 0.26) 0%, rgba(232, 236, 238, 0) 56%);
+  top: 0;
+  right: 0;
+  width: 32rpx;
+  height: 32rpx;
+  background: linear-gradient(225deg, #ede8dc 0%, #ede8dc 48%, #fdfbf7 50%);
+  border-left: 1rpx solid rgba(180, 168, 148, 0.35);
+  border-bottom: 1rpx solid rgba(180, 168, 148, 0.35);
+  z-index: 4;
 }
 
-.paper-inner {
-  position: relative;
-  z-index: 1;
-  padding: 58rpx 48rpx 46rpx;
+/* 天头朱砂横线 */
+.letter-topline {
+  height: 2rpx;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(181, 53, 42, 0.22) 8%,
+    rgba(181, 53, 42, 0.28) 50%,
+    rgba(181, 53, 42, 0.22) 92%,
+    transparent 100%
+  );
+  flex-shrink: 0;
 }
 
-.paper-head {
+/* 信头 */
+.letter-head {
+  padding: 36rpx 40rpx 28rpx 48rpx;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24rpx;
+  flex-shrink: 0;
+  border-bottom: 1rpx solid rgba(192, 182, 165, 0.3);
 }
 
 .head-left {
   flex: 1;
-  min-width: 0;
-  padding-top: 6rpx;
 }
 
-.captured-at,
-.state-kicker,
-.note-kicker,
-.aux-label {
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Times New Roman', serif;
-}
-
-.captured-at {
+.captured-label {
   display: block;
-  font-size: 24rpx;
-  line-height: 1;
-  letter-spacing: 2rpx;
-  color: #89949a;
+  font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 20rpx;
   font-style: italic;
+  color: #9e9890;
+  letter-spacing: 0.06em;
+  margin-bottom: 10rpx;
+  opacity: 0.8;
 }
 
-.date-title {
-  display: block;
-  margin-top: 20rpx;
-  color: #1d2327;
-  font-size: 54rpx;
-  line-height: 1.2;
-  letter-spacing: 2rpx;
-  font-weight: 500;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+.letter-date {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 40rpx;
+  font-weight: 300;
+  color: #302e29;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
 }
 
-.date-sub {
-  display: block;
-  margin-top: 16rpx;
-  color: #97a0a6;
-  font-size: 22rpx;
-  letter-spacing: 1rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
-}
-
-.head-right {
-  display: flex;
-  align-items: flex-start;
-  flex-shrink: 0;
-}
-
-.seal {
-  min-height: 176rpx;
-  padding: 16rpx 12rpx;
-  border: 1rpx solid #d9c79a;
-  border-radius: 6rpx;
-  background: linear-gradient(180deg, #fbf4df 0%, #f4e8cd 100%);
+/* 竖排档案标签 */
+.archive-tag {
+  margin-top: 4rpx;
+  padding: 10rpx 8rpx;
+  border: 1rpx solid rgba(192, 182, 165, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.seal-text {
+.archive-tag-text {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 17rpx;
+  font-weight: 300;
+  color: #9e9890;
   writing-mode: vertical-rl;
   -webkit-writing-mode: vertical-rl;
-  color: #9f8a4c;
-  font-size: 22rpx;
-  letter-spacing: 6rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  opacity: 0.85;
 }
 
-.title-wrap {
-  margin-top: 58rpx;
-  padding-bottom: 18rpx;
-  border-bottom: 1rpx solid rgba(211, 218, 222, 0.75);
+/* 正文区 */
+.letter-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  min-height: 480rpx;
 }
 
-.title-input {
-  width: 100%;
-  min-height: 60rpx;
-  color: #1d2327;
-  font-size: 42rpx;
-  line-height: 1.35;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+/* 左侧朱砂竖格线 */
+.side-rule {
+  width: 72rpx;
+  flex-shrink: 0;
+  position: relative;
 }
 
-.content-wrap {
-  margin-top: 34rpx;
-  min-height: 540rpx;
+.side-rule::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 32rpx;
+  bottom: 32rpx;
+  width: 2rpx;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(181, 53, 42, 0.2) 15%,
+    rgba(181, 53, 42, 0.25) 50%,
+    rgba(181, 53, 42, 0.2) 85%,
+    transparent
+  );
 }
 
-.content-area {
-  width: 100%;
-  min-height: 540rpx;
-  color: #263038;
-  font-size: 32rpx;
-  line-height: 1.95;
-  letter-spacing: 1rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'PingFang SC', serif;
+/* 编辑区 */
+.editor-zone {
+  flex: 1;
+  padding: 24rpx 36rpx 24rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
-.title-placeholder {
-  color: #abb4b9;
-}
-
-.content-placeholder,
-.unlock-placeholder {
-  color: #96a1a8;
-}
-
+/* 解锁时间行 */
 .unlock-row {
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  margin-top: 36rpx;
-  padding: 16rpx 0 12rpx;
-  border-top: 1rpx solid rgba(215, 221, 225, 0.55);
+  gap: 16rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid rgba(192, 182, 165, 0.25);
 }
 
 .unlock-label {
   flex-shrink: 0;
-  color: #8d989e;
+  font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
   font-size: 20rpx;
-  letter-spacing: 1rpx;
   font-style: italic;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  color: #9e9890;
+  letter-spacing: 0.04em;
 }
 
 .unlock-input {
   flex: 1;
   min-height: 40rpx;
-  color: #5d6971;
-  font-size: 24rpx;
-  line-height: 1.4;
+  background: transparent;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 22rpx;
+  color: #6b6560;
+  letter-spacing: 0.03em;
 }
 
-.aux-divider {
-  height: 1rpx;
-  margin: 26rpx 8rpx 30rpx;
-  background: linear-gradient(
-    90deg,
-    rgba(200, 208, 213, 0) 0%,
-    rgba(200, 208, 213, 0.62) 20%,
-    rgba(200, 208, 213, 0.62) 80%,
-    rgba(200, 208, 213, 0) 100%
-  );
+:deep(.unlock-placeholder) {
+  color: rgba(180, 170, 155, 0.7);
+  font-size: 22rpx;
 }
 
-.aux-row {
+/* 正文 textarea */
+.editor-field {
+  width: 100%;
+  min-height: 400rpx;
+  background: transparent;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 300;
+  color: #6b6560;
+  line-height: 2.0;
+  letter-spacing: 0.04em;
+}
+
+:deep(.editor-placeholder) {
+  color: rgba(180, 170, 155, 0.7);
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 28rpx;
+}
+
+/* 附件栏 */
+.attach-bar {
+  flex-shrink: 0;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.28);
+  padding: 24rpx 40rpx;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-around;
-  padding: 0 16rpx;
+  align-items: center;
 }
 
-.aux-item {
+.attach-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14rpx;
+  gap: 10rpx;
+  padding: 6rpx 0;
 }
 
-.aux-circle {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid #cfd6da;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.aux-label {
-  color: #8a949a;
-  font-size: 20rpx;
-  letter-spacing: 4rpx;
-}
-
-.ic {
-  width: 32rpx;
-  height: 32rpx;
+.attach-icon {
+  width: 40rpx;
+  height: 40rpx;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
 }
 
-.ic-map {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z'/><circle cx='12' cy='9' r='2.4'/></svg>");
+.attach-icon--map {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239e9890' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'/><circle cx='12' cy='10' r='3'/></svg>");
 }
 
-.ic-image {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M4 8.5h3.2l1.6-2.2h6.4l1.6 2.2H20a1 1 0 0 1 1 1v8.3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z'/><circle cx='12' cy='13.6' r='3.4'/></svg>");
+.attach-icon--image {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239e9890' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='14' rx='1'/><circle cx='12' cy='12' r='3.2'/><circle cx='17.5' cy='8.5' r='0.9' fill='%239e9890' stroke='none'/></svg>");
 }
 
-.ic-voice {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6870' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='3.5' width='6' height='11' rx='3'/><path d='M6 12a6 6 0 0 0 12 0'/><line x1='12' y1='18' x2='12' y2='21'/><line x1='9' y1='21' x2='15' y2='21'/></svg>");
+.attach-icon--voice {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239e9890' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z'/><path d='M19 10v2a7 7 0 01-14 0v-2'/><line x1='12' y1='19' x2='12' y2='22'/><line x1='9' y1='22' x2='15' y2='22'/></svg>");
 }
 
-.action-area {
-  margin-top: 34rpx;
+.attach-label {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 17rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.12em;
+}
+
+.attach-sep {
+  width: 1rpx;
+  height: 48rpx;
+  background: rgba(192, 182, 165, 0.4);
+}
+
+/* ── 底部操作区 ── */
+.bottom-area {
+  padding: 36rpx 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0;
 }
 
+.word-count {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #c8c2b8;
+  letter-spacing: 0.08em;
+  margin-bottom: 28rpx;
+}
+
+/* 封存按钮 */
 .seal-btn {
-  display: inline-flex;
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 360rpx;
-  width: auto;
-  max-width: 520rpx;
-  height: 84rpx;
-  padding: 0 42rpx;
-  border-radius: 999rpx;
-  background: #2e5062;
-  box-shadow:
-    0 12rpx 24rpx rgba(46, 80, 98, 0.22),
-    0 2rpx 0 rgba(255, 255, 255, 0.1) inset;
+  width: 480rpx;
+  height: 96rpx;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 30rpx;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: #302e29;
+  background: transparent;
+  border: 1rpx solid #c8c2b8;
+  border-radius: 4rpx;
+  gap: 20rpx;
+}
+
+.seal-btn--disabled {
+  opacity: 0.6;
+}
+
+.seal-btn-corner {
+  position: absolute;
+  width: 14rpx;
+  height: 14rpx;
+  border-color: #9e9890;
+  border-style: solid;
+}
+
+.seal-btn-corner--tl {
+  top: -2rpx;
+  left: -2rpx;
+  border-width: 2rpx 0 0 2rpx;
+}
+
+.seal-btn-corner--br {
+  bottom: -2rpx;
+  right: -2rpx;
+  border-width: 0 2rpx 2rpx 0;
+}
+
+.btn-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #b5352a;
+  opacity: 0.72;
+  flex-shrink: 0;
 }
 
 .seal-btn-text {
-  color: #ffffff;
-  font-size: 28rpx;
-  letter-spacing: 6rpx;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 30rpx;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: #302e29;
 }
 
-.seal-btn-rule {
-  width: 1rpx;
-  height: 24rpx;
-  margin: 0 22rpx;
-  background: rgba(255, 255, 255, 0.35);
+/* 提示文字 */
+.seal-hint {
+  margin-top: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
-.seal-btn-arrow {
-  color: #ffffff;
-  font-size: 28rpx;
-  line-height: 1;
-  margin-top: -2rpx;
-  font-family: 'Songti SC', 'STSong', 'Times New Roman', serif;
+.hint-line {
+  width: 36rpx;
+  height: 1rpx;
+  background: #c8c2b8;
 }
 
+.hint-text {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 20rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+/* 草稿按钮 */
 .draft-btn {
-  margin-top: 18rpx;
-  color: #79858d;
+  margin-top: 24rpx;
+  padding: 12rpx 32rpx;
+}
+
+.draft-btn--disabled {
+  opacity: 0.6;
+}
+
+.draft-btn-text {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
   font-size: 22rpx;
-  letter-spacing: 2rpx;
-  padding: 10rpx 18rpx;
+  font-weight: 300;
+  color: #9e9890;
+  letter-spacing: 0.06em;
 }
 
-.disabled {
-  opacity: 0.66;
-}
-
+/* ── 状态页（初始化中 / 失败） ── */
 .state-paper {
   position: relative;
   z-index: 1;
-  margin-top: 18rpx;
+  margin-top: 36rpx;
   padding: 72rpx 48rpx 64rpx;
+  background: rgba(253, 251, 247, 0.9);
+  border: 1rpx solid rgba(180, 168, 148, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
 
+.state-kicker {
+  font-family: Georgia, 'Noto Serif SC', serif;
+  font-size: 20rpx;
+  font-style: italic;
+  color: #9e9890;
+  letter-spacing: 0.06em;
+}
+
 .state-title {
   margin-top: 18rpx;
-  color: #1d2327;
+  color: #302e29;
   font-size: 40rpx;
   line-height: 1.35;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
 }
 
 .state-desc {
   margin-top: 18rpx;
-  color: #78858d;
+  color: #9e9890;
   font-size: 26rpx;
   line-height: 1.8;
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
 }
 
 .retry-btn {
   margin-top: 34rpx;
   min-width: 240rpx;
   padding: 18rpx 30rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 80, 98, 0.08);
-  color: #2e5062;
+  border: 1rpx solid rgba(180, 168, 148, 0.5);
+  color: #6b6560;
   font-size: 26rpx;
-  letter-spacing: 2rpx;
+  letter-spacing: 0.06em;
+  text-align: center;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
 }
 </style>
