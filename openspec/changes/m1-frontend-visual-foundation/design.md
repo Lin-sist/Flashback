@@ -104,7 +104,7 @@ Home FAILS M1 review if:
 
 ### Timeline High-Fidelity Contract / 时光轴高保真合同
 
-Timeline MUST follow `Docs/design/home-v2/时光回序_时光轴页面.html`.
+Timeline MUST follow `Docs/design/home-v2/时光轴.html`.
 
 Timeline MUST preserve:
 
@@ -128,7 +128,7 @@ Timeline FAILS M1 review if:
 
 ### User Center High-Fidelity Contract / 个人中心高保真合同
 
-User Center MUST follow `Docs/design/home-v2/个人主页.html` together with `Docs/design/home-v2/个人中心.png`.
+User Center MUST follow `Docs/design/home-v2/个人主页.html` together with `Docs/design/home-v2/个人主页.png`.
 
 If the HTML and screenshot differ, the Agent MUST stop and report `NEEDS_OWNER_CONFIRMATION` instead of choosing one silently.
 
@@ -194,12 +194,26 @@ Shared shell and navigation MAY be extracted only after the primary page behavio
 
 Secondary pages SHOULD align with the paper/vermilion system after primary pages are stable:
 
-- 我的记录
-- 新建记录
-- 时间回看 / record detail
-- settings-style user-center pages
+- 我的记录: `Docs/design/home-v2/我的档案.html` and `Docs/design/home-v2/我的档案.png`
+- 新建记录: `Docs/design/home-v2/新建.html` and `Docs/design/home-v2/新建.png`
+- 封存回看 / record detail SEALED: `Docs/design/home-v2/解锁.html` and `Docs/design/home-v2/解锁.png`
+- 时间回看 / record detail UNLOCKED: `Docs/design/home-v2/回看.html` and `Docs/design/home-v2/回看.png`
+- 登录 / 注册: `Docs/design/home-v2/登录.html` and `Docs/design/home-v2/登录.png`
+- settings-style user-center pages: `Docs/design/home-v2/个人主页_子页面.html`, with screenshots `整理偏好.png`、`视觉外观.png`、`访问控制.png`、`数据备份.png`、`版本信息.png`
 
 Secondary pages MUST remain secondary. They MUST NOT expand M1 scope enough to block primary page high-fidelity acceptance.
+
+### Settings Subpage Bundle / 设置子页面合集
+
+`Docs/design/home-v2/个人主页_子页面.html` is the canonical visual bundle for five settings-style subpages:
+
+- PAGE 0 整理偏好: current route `pages/user-center/archive-preference/index`.
+- PAGE 1 视觉外观: route pending; no current `pages.json` route is confirmed.
+- PAGE 2 访问控制: route pending; no current `pages.json` route is confirmed.
+- PAGE 3 数据备份: route pending; no current `pages.json` route is confirmed.
+- PAGE 4 版本信息: current route `pages/user-center/about/index`.
+
+Implementation Agents MUST use the matching screenshot for each subpage. They MUST NOT silently map `视觉外观`、`访问控制`、or `数据备份` onto legacy routes such as `tag-manage` or `notify-settings`. If a task asks for one of these route-pending subpages, the Agent MUST first obtain an owner-confirmed route decision or keep the work to visual extraction/review only.
 
 ## Constraints / 约束
 

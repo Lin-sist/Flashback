@@ -24,7 +24,7 @@ M1 MUST use exact canonical HTML files listed in `visual-reference-map.md`. The 
 
 #### Scenario: Agent starts page work / Agent 开始页面工作
 
-- **WHEN** an Agent begins work on Home、Timeline、or User Center
+- **WHEN** an Agent begins work on Home、Timeline、User Center, or a confirmed secondary page
 - **THEN** it opens `visual-reference-map.md` and the exact canonical HTML for that page
 - **AND** it uses the matching screenshot and design spec as supporting references
 
@@ -52,7 +52,7 @@ Home MUST match `Docs/design/home-v2/首页.html` at page hierarchy, visual cent
 
 ### Requirement: Timeline Must Match Finalized Timeline Reference / 时光轴 MUST 匹配定稿时光轴
 
-Timeline MUST match `Docs/design/home-v2/时光回序_时光轴页面.html` at top safe area, search/filter placement, `时间长廊` title treatment, chronological grouping, compact record cards, timestamp/status/title hierarchy, vertical marker rhythm, and bottom helper text.
+Timeline MUST match `Docs/design/home-v2/时光轴.html` at top safe area, search/filter placement, `时间长廊` title treatment, chronological grouping, compact record cards, timestamp/status/title hierarchy, vertical marker rhythm, and bottom helper text.
 
 #### Scenario: Timeline is reviewed / 审查时光轴
 
@@ -72,7 +72,7 @@ User Center MUST match the canonical User Center file listed in `visual-referenc
 
 #### Scenario: User Center is reviewed / 审查个人中心
 
-- **WHEN** the User Center page is compared with `Docs/design/home-v2/个人主页.html` and `Docs/design/home-v2/个人中心.png`
+- **WHEN** the User Center page is compared with `Docs/design/home-v2/个人主页.html` and `Docs/design/home-v2/个人主页.png`
 - **THEN** it presents the finalized identity structure, two statistic cards, grouped settings sections, quiet icon containers, and about/version section
 - **AND** it preserves canonical spacing and bottom navigation safety
 
@@ -149,6 +149,22 @@ M1 MUST keep only 首页、时光轴、个人中心 as primary tab pages, with �
 - **WHEN** Mini Program primary tabs are inspected
 - **THEN** only 首页、时光轴、个人中心 appear as first-level tabs
 - **AND** secondary pages are not promoted to primary tabs
+
+### Requirement: Settings Subpages Must Use Confirmed Bundle / 设置子页面 MUST 使用已确认合集
+
+Settings-style user center pages MUST use `Docs/design/home-v2/个人主页_子页面.html` and its matching screenshots as the canonical M1 visual reference when the target subpage is listed in `visual-reference-map.md`.
+
+#### Scenario: Agent implements a confirmed settings subpage / Agent 实现已确认设置子页
+
+- **WHEN** an Agent works on 整理偏好 or 版本信息
+- **THEN** it uses `Docs/design/home-v2/个人主页_子页面.html` and the matching screenshot (`整理偏好.png` or `版本信息.png`)
+- **AND** it keeps the page secondary under user center
+
+#### Scenario: Agent reaches route-pending settings subpage / Agent 遇到待确认路由设置子页
+
+- **WHEN** an Agent is asked to implement 视觉外观、访问控制、or 数据备份
+- **THEN** it MUST check `visual-reference-map.md` for route status
+- **AND** it MUST NOT silently repurpose `tag-manage` or `notify-settings` without owner confirmation
 
 ### Requirement: M1 Must Use V2.0 Visible Naming / M1 MUST 使用 V2.0 可见命名
 

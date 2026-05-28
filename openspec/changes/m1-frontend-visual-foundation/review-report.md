@@ -20,10 +20,16 @@ Design reference files reviewed:
 
 - `Docs/design/home-v2/首页.html`
 - `Docs/design/home-v2/首页.png`
-- `Docs/design/home-v2/时光回序_时光轴页面.html`
+- `Docs/design/home-v2/时光轴.html`
 - `Docs/design/home-v2/时光轴.png`
 - `Docs/design/home-v2/个人主页.html`
-- `Docs/design/home-v2/个人中心.png`
+- `Docs/design/home-v2/个人主页.png`
+- `Docs/design/home-v2/个人主页_子页面.html`
+- `Docs/design/home-v2/整理偏好.png`
+- `Docs/design/home-v2/视觉外观.png`
+- `Docs/design/home-v2/访问控制.png`
+- `Docs/design/home-v2/数据备份.png`
+- `Docs/design/home-v2/版本信息.png`
 - `Docs/design/home-v2/时光回序_设计规范.md`
 
 Routing file reviewed:
@@ -52,10 +58,12 @@ Canonical HTML mapping is confirmed for all primary M1 pages:
 | Page | Mini Program target | Canonical HTML | Screenshot | Status |
 | --- | --- | --- | --- | --- |
 | Home / 首页 | `pages/home/index` | `Docs/design/home-v2/首页.html` | `Docs/design/home-v2/首页.png` | confirmed |
-| Timeline / 时光轴 | `pages/timeline/index` | `Docs/design/home-v2/时光回序_时光轴页面.html` | `Docs/design/home-v2/时光轴.png` | confirmed |
-| User Center / 我的 | `pages/user-center/index` | `Docs/design/home-v2/个人主页.html` | `Docs/design/home-v2/个人中心.png` | confirmed |
+| Timeline / 时光轴 | `pages/timeline/index` | `Docs/design/home-v2/时光轴.html` | `Docs/design/home-v2/时光轴.png` | confirmed |
+| User Center / 我的 | `pages/user-center/index` | `Docs/design/home-v2/个人主页.html` | `Docs/design/home-v2/个人主页.png` | confirmed |
 
 No `NEEDS_OWNER_CONFIRMATION` item was found because each primary page has one clear HTML candidate in `Docs/design/home-v2/`.
+
+Settings-style subpage references are now locked through `Docs/design/home-v2/个人主页_子页面.html`. 整理偏好 maps to `pages/user-center/archive-preference/index`, and 版本信息 maps to `pages/user-center/about/index`. 视觉外观、访问控制、数据备份 have confirmed visual references but no confirmed current route, so implementation MUST wait for owner route confirmation before changing routes or repurposing legacy pages.
 
 ## 5. Key Constraint Improvements / 关键约束增强
 
@@ -70,6 +78,7 @@ No `NEEDS_OWNER_CONFIRMATION` item was found because each primary page has one c
 ## 6. Remaining Risks / 剩余风险
 
 - HTML file name risk: current mapping is clear, but future additional HTML variants must be marked `NEEDS_OWNER_CONFIRMATION` before implementation.
+- Settings route risk: `视觉外观`、`访问控制`、`数据备份` have canonical visuals but no confirmed Mini Program route in `pages.json`.
 - Mini Program rendering risk: HTML uses browser CSS and fonts that may differ from WeChat Mini Program rendering; acceptable differences must be documented and must not become structural drift.
 - Bottom safe-area risk: fixed or floating navigation can still cover content on long states unless tested on bottom scroll states.
 - Early abstraction risk: Agents may still try to start from tokens/components; tasks now force reference lock and page restoration first.
@@ -79,7 +88,7 @@ No `NEEDS_OWNER_CONFIRMATION` item was found because each primary page has one c
 ## 7. Acceptance Checklist / 验收清单
 
 - [ ] Home high-fidelity restored against `Docs/design/home-v2/首页.html`.
-- [ ] Timeline high-fidelity restored against `Docs/design/home-v2/时光回序_时光轴页面.html`.
+- [ ] Timeline high-fidelity restored against `Docs/design/home-v2/时光轴.html`.
 - [ ] User Center high-fidelity restored against `Docs/design/home-v2/个人主页.html`.
 - [ ] Bottom nav has no overlap on Home、Timeline、User Center bottom scroll states.
 - [ ] Visual evidence is complete for all three primary pages.
