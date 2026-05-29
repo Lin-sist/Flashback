@@ -208,12 +208,26 @@ Secondary pages MUST remain secondary. They MUST NOT expand M1 scope enough to b
 `Docs/design/home-v2/个人主页_子页面.html` is the canonical visual bundle for five settings-style subpages:
 
 - PAGE 0 整理偏好: current route `pages/user-center/archive-preference/index`.
-- PAGE 1 视觉外观: route pending; no current `pages.json` route is confirmed.
-- PAGE 2 访问控制: route pending; no current `pages.json` route is confirmed.
-- PAGE 3 数据备份: route pending; no current `pages.json` route is confirmed.
+- PAGE 1 视觉外观: confirmed M1 route `pages/user-center/visual-appearance/index`.
+- PAGE 2 访问控制: confirmed M1 route `pages/user-center/access-control/index`.
+- PAGE 3 数据备份: confirmed M1 route `pages/user-center/data-backup/index`.
 - PAGE 4 版本信息: current route `pages/user-center/about/index`.
 
-Implementation Agents MUST use the matching screenshot for each subpage. They MUST NOT silently map `视觉外观`、`访问控制`、or `数据备份` onto legacy routes such as `tag-manage` or `notify-settings`. If a task asks for one of these route-pending subpages, the Agent MUST first obtain an owner-confirmed route decision or keep the work to visual extraction/review only.
+The HTML bundle already contains all five page prototypes, switched in the browser prototype by page buttons. Implementation Agents MUST open that exact HTML file, locate the corresponding PAGE 0-4 section, and compare it with the matching PNG snapshot before editing. The PNG snapshots are visual verification references for the same prototypes, not alternate designs.
+
+Implementation Agents MUST use the matching screenshot for each subpage:
+
+- PAGE 0 整理偏好 -> `Docs/design/home-v2/整理偏好.png`
+- PAGE 1 视觉外观 -> `Docs/design/home-v2/视觉外观.png`
+- PAGE 2 访问控制 -> `Docs/design/home-v2/访问控制.png`
+- PAGE 3 数据备份 -> `Docs/design/home-v2/数据备份.png`
+- PAGE 4 版本信息 -> `Docs/design/home-v2/版本信息.png`
+
+Implementation Agents MUST add or use the dedicated routes above for `视觉外观`、`访问控制`、and `数据备份`, and MUST update the User Center entry route map accordingly. They MUST NOT silently map these pages onto legacy routes such as `tag-manage` or `notify-settings`.
+
+Old route names and old page implementations are not visual authority. They MAY be referenced only for safe navigation patterns, login guards, local storage shape, or business-safe behavior. When old implementation conflicts with the prototype HTML or PNG snapshot, the prototype HTML and snapshot MUST win.
+
+Legacy `tag-manage` and `notify-settings` are not canonical M1 targets. Agents SHOULD leave them unchanged unless the current task explicitly asks to retire, hide, or remap legacy capabilities.
 
 ## Constraints / 约束
 

@@ -108,3 +108,155 @@ Risks:
 
 - 无。修改高度内聚于前端样式/模板文件，完全零副作用。
 
+### 2026-05-29 Codex
+
+Task:
+
+- 补充 M1 文档，将下一轮目标从旧的标题/注册昵称修复切换为个人主页五个设置子页面的高保真重构。
+- 确认 `视觉外观`、`访问控制`、`数据备份` 使用独立新路由，不复用 `tag-manage` / `notify-settings`。
+
+Modified:
+
+- `.ai/ACTIVE_TASK.md`
+- `openspec/changes/m1-frontend-visual-foundation/visual-reference-map.md`
+- `openspec/changes/m1-frontend-visual-foundation/design.md`
+- `openspec/changes/m1-frontend-visual-foundation/tasks.md`
+- `openspec/changes/m1-frontend-visual-foundation/proposal.md`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- 文档级更新，未修改前端代码，未运行小程序构建。
+- 后续实现 Agent 需要执行 `cd frontend; npm run build:mp-weixin` 并更新任务勾选。
+
+Risks:
+
+- 新增路由名称为本轮文档确认：`visual-appearance`、`access-control`、`data-backup`。如产品希望复用旧路由，需要先调整 OpenSpec。
+
+Next:
+
+- 实现五个个人主页设置子页面，并更新 `pages.json` 与 `user-center/index.vue` 的入口路由。
+
+### 2026-05-29 Codex (Clarification)
+
+Task:
+
+- 补充说明 `Docs/design/home-v2/个人主页_子页面.html` 是包含五个子页面的 canonical 原型合集，页面按钮仅用于在网页原型中切换不同子页面。
+- 强化下一轮实现必须对照 HTML bundle 与对应 PNG 快照进行高保真复刻，不以旧路由名或旧页面骨架为视觉依据。
+
+Modified:
+
+- `.ai/ACTIVE_TASK.md`
+- `openspec/changes/m1-frontend-visual-foundation/visual-reference-map.md`
+- `openspec/changes/m1-frontend-visual-foundation/design.md`
+- `openspec/changes/m1-frontend-visual-foundation/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- 文档级澄清，未修改前端代码，未运行小程序构建。
+
+Risks:
+
+- 无新增产品风险；仍需下一轮实现 Agent 按 HTML/Png 逐页核对。
+
+Next:
+
+- 按 `个人主页_子页面.html` PAGE 0-4 与五张 PNG 快照执行高保真重构。
+
+### 2026-05-29 Codex (Blank Screen Triage)
+
+Task:
+
+- 排查微信开发工具编译后一片空白的问题。
+- 验证新增个人主页子页面路由与小程序构建。
+
+Modified:
+
+- `frontend/src/pages/user-center/archive-preference/index.vue`
+- `frontend/src/pages/user-center/visual-appearance/index.vue`
+- `frontend/src/pages/user-center/access-control/index.vue`
+- `frontend/src/pages/user-center/data-backup/index.vue`
+- `frontend/src/pages/user-center/about/index.vue`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- `pages.json` 已注册 `visual-appearance`、`access-control`、`data-backup`，生成的 `dist/build/mp-weixin/app.json` 路由列表正确。
+- 运行 `uni build -p mp-weixin` 成功。
+- 移除 5 个子页面中的 Google Fonts 远程 `@import url(...)` 后，确认 `frontend/dist/build/mp-weixin` 中不再包含 `@import` 或 `https://fonts.googleapis`。
+
+Risks:
+
+- 微信开发工具仍需重新导入/刷新 `frontend/dist/build/mp-weixin` 后人工确认白屏消失。
+- 其他 WXSS 兼容性细节如 `backdrop-filter` 不应导致整页白屏，但后续可在真机/开发工具中继续精修。
+
+Next:
+
+- 在微信开发工具中清缓存并重新编译；如仍白屏，优先查看 Console / WXML / WXSS 报错行。
+
+### 2026-05-29 Antigravity
+
+Task:
+
+- 完成 `整理偏好`、`视觉外观`、`访问控制`、`数据备份`、`版本信息` 五个设置子页面的高保真重构。
+- 更新路由表，使从个人主页点击对应设置项时跳转到正确的 canonical 路由。
+
+Modified:
+
+- `frontend/src/pages.json`
+- `frontend/src/pages/user-center/index.vue`
+- `frontend/src/pages/user-center/archive-preference/index.vue`
+- `frontend/src/pages/user-center/visual-appearance/index.vue`
+- `frontend/src/pages/user-center/access-control/index.vue`
+- `frontend/src/pages/user-center/data-backup/index.vue`
+- `frontend/src/pages/user-center/about/index.vue`
+
+Verification:
+
+- 成功运行 `npm run build:mp-weixin`，0 报错，编译通过。
+- 对照 `个人主页_子页面.html` 及五张对应快照，高保真还原了 5 个二级设置页面。
+- 将内联 SVG 转换为 uniapp 兼容的 base64 `background-image`。
+- 从 HTML 抽取了所有特有样式（如状态徽章、访问日志小标、滑块控件、纸色块、版本更新块等），并补充了移动端安全区 `padding-bottom`。
+- 本地状态（滑块、单选等）已包含基础点击切换视觉效果。
+- 更新了 `tasks.md` 对应的检查项。
+
+Risks:
+
+- 无。所有的页面只影响前端视觉交互，没有修改或调用真实环境接口能力（如 iCloud 真实备份或真实的锁屏能力）。
+
+Next:
+
+- 移交验收或开启其他页面的高保真重构。
+
+### 2026-05-29 Codex (Sealed Page Entry Triage)
+
+Task:
+
+- 校验 `Docs/design/home-v2/封存.html` 对应页面是否已在前端重构。
+- 若已存在，则修复“点击已封存记录无法进入封存页”的入口问题。
+
+Modified:
+
+- `frontend/src/pages/home/index.vue`
+- `frontend/src/pages/record-list/index.vue`
+- `frontend/src/pages/timeline/index.vue`
+- `frontend/src/pages/record-detail/index.vue`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- 确认仓库没有独立封存页路由；现有实现位于 `frontend/src/pages/record-detail/index.vue` 的 `SEALED` 分支。
+- 对照 `Docs/design/home-v2/封存.html`，该分支已包含封存页核心结构：Archive meta、封存信件卡片、模糊正文、倒计时区与禁用态回应 CTA。
+- 修复 `record-list`、`timeline`、`home` 三处入口，使已封存记录跳转到 `record-detail` 并由 `SEALED` 分支渲染封存页。
+- 成功运行 `uni build -p mp-weixin`。
+
+Risks:
+
+- 未在微信开发工具中人工点击验证；需在小程序中分别从首页、我的档案、时光轴进入已封存记录做视觉确认。
+- 封存页目前复用 `record-detail` 路由，不是独立 route；如后续要求页面资产/生命周期完全独立，再补 OpenSpec 并拆路由。
+
+Next:
+
+- 在微信开发工具中点击已封存记录确认能进入封存页。
+- 若视觉与 `封存.png` 仍有偏差，再进入 M1 页面精修。

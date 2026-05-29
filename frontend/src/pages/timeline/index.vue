@@ -119,10 +119,6 @@ const openNode = (item: TimelineItemVO) => {
     uni.navigateTo({ url: `/pages/record-editor/index?id=${item.id}&source=timeline` })
     return
   }
-  if (item.status === RecordStatus.SEALED) {
-    uni.showToast({ title: '该记录已封存，暂不可查看', icon: 'none' })
-    return
-  }
   uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}&source=timeline` })
 }
 

@@ -378,7 +378,7 @@ onLoad(async (query) => {
           <PrimaryButton text="继续编辑草稿" @tap="openEditor" />
         </view>
 
-        <!-- ══════ SEALED：封存回看（解锁.html 结构） ══════ -->
+        <!-- ══════ SEALED：封存页（封存.html 结构） ══════ -->
         <view v-else-if="isSealed" class="sealed-hero">
 
           <!-- Archive meta（居中） -->
@@ -764,7 +764,7 @@ onLoad(async (query) => {
 }
 
 /* ═══════════════════════════════════════
-   SEALED：封存回看（解锁.html）
+   SEALED：封存页（封存.html）
 ═══════════════════════════════════════ */
 .sealed-hero {
   display: flex;

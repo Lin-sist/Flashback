@@ -75,11 +75,15 @@
 - [x] Restore Archive Detail SEALED state against `Docs/design/home-v2/解锁.html`: 时光回序 logo, close btn, Archive No. + season, deco line, letter-card with seal/过去的你/location/blurred body/sparkle, countdown digits, 留下回应 CTA, sub-hint.
 - [ ] Restore My Records page against `Docs/design/home-v2/我的档案.html`: top back/title, search, filter tabs, 档案概览, status cards, write CTA, and footnote.
 - [ ] Restore Time Review / record detail UNLOCKED state against `Docs/design/home-v2/回看.html`: archive no/location, season, quote, readable letter card, 留下回应 CTA, 收入时光轴 secondary action, and reply sheet visual state.
-- [ ] Restore Archive Preference / 整理偏好 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 0 and `Docs/design/home-v2/整理偏好.png`.
-- [ ] Restore Version Info / 版本信息 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 4 and `Docs/design/home-v2/版本信息.png`.
-- [ ] Do not implement route-pending settings subpages (`视觉外观`、`访问控制`、`数据备份`) until route ownership is confirmed; use their screenshots for visual review/planning only.
-- [ ] Keep legacy `tag-manage` and `notify-settings` routes unchanged unless a task explicitly maps them to a confirmed canonical subpage.
-- [ ] Keep secondary pages outside first-level tab navigation.
+- [x] Restore Archive Preference / 整理偏好 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 0 and `Docs/design/home-v2/整理偏好.png`.
+- [x] Restore Visual Appearance / 视觉外观 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 1 and `Docs/design/home-v2/视觉外观.png`; add/use route `pages/user-center/visual-appearance/index`.
+- [x] Restore Access Control / 访问控制 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 2 and `Docs/design/home-v2/访问控制.png`; add/use route `pages/user-center/access-control/index`.
+- [x] Restore Data Backup / 数据备份 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 3 and `Docs/design/home-v2/数据备份.png`; add/use route `pages/user-center/data-backup/index`.
+- [x] Restore Version Info / 版本信息 against `Docs/design/home-v2/个人主页_子页面.html` PAGE 4 and `Docs/design/home-v2/版本信息.png`.
+- [x] Confirm each settings subpage implementation uses the HTML bundle and matching PNG snapshot as the high-fidelity source, not the old settings page skeleton or old route name.
+- [x] Update User Center settings entry routing so `整理偏好`、`视觉外观`、`访问控制`、`数据备份`、`版本信息` each navigate to their confirmed canonical subpage route.
+- [x] Keep legacy `tag-manage` and `notify-settings` routes unchanged unless a task explicitly maps them to a confirmed canonical subpage.
+- [x] Keep secondary pages outside first-level tab navigation.
 - [ ] Use existing `frontend/src/features/preview` as the initial demo data path unless a later OpenSpec change replaces it.
 - [ ] Do not implement subscription-message behavior, AI changes, or real MAP / IMAGE / VOICE capabilities while aligning secondary pages.
 

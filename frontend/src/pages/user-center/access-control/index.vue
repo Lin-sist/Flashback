@@ -21,13 +21,12 @@ const goBack = () => {
 }
 
 // Local demo state
-const reminder = ref(true)
-const skipHoliday = ref(false)
-const sealPeriod = ref(0) // 0: 3 months, 1: 1 year, 2: 3 years, 3: custom
-const showWordCount = ref(true)
-const writingGuide = ref(true)
-const autoSave = ref(true)
-const recordDuration = ref(false)
+const usePassword = ref(true)
+const useFaceId = ref(true)
+const useFingerprint = ref(false)
+const autoLock = ref(1) // 0: 立即, 1: 1分钟, 2: 5分钟, 3: 永不
+const maskScreenshot = ref(true)
+const maskNotification = ref(true)
 
 const toggle = (refVar: any) => { refVar.value = !refVar.value }
 
@@ -44,101 +43,89 @@ onLoad(() => {
           <view class="back-arr" />
           <text class="back-label">我 的</text>
         </view>
-        <view class="page-title">整 理 偏 好</view>
+        <view class="page-title">访 问 控 制</view>
         <view class="top-right-space" />
       </view>
 
       <view class="section">
-        <view class="section-label">书 写 提 醒</view>
+        <view class="section-label">锁 定 方 式</view>
         <view class="group-card">
           <view class="row">
-            <view class="row-icon icon-daily" />
-            <view class="row-label">每日提醒</view>
-            <view class="toggle" :class="{ on: reminder }" @tap="toggle(reminder)">
-              <view class="toggle-dot" />
-            </view>
+            <view class="row-icon icon-password" />
+            <view class="row-label">密码解锁</view>
+            <view class="toggle" :class="{ on: usePassword }" @tap="toggle(usePassword)"><view class="toggle-dot" /></view>
           </view>
           <view class="row">
-            <view class="row-icon icon-time" />
-            <view class="row-label">提醒时间</view>
-            <view class="row-sub">21:00</view>
+            <view class="row-icon icon-face" />
+            <view class="row-label">面容 ID</view>
+            <view class="toggle" :class="{ on: useFaceId }" @tap="toggle(useFaceId)"><view class="toggle-dot" /></view>
           </view>
           <view class="row">
-            <view class="row-icon icon-holiday" />
-            <view class="row-label">节假日跳过</view>
-            <view class="toggle" :class="{ on: skipHoliday }" @tap="toggle(skipHoliday)">
-              <view class="toggle-dot" />
-            </view>
+            <view class="row-icon icon-finger" />
+            <view class="row-label">指纹解锁</view>
+            <view class="toggle" :class="{ on: useFingerprint }" @tap="toggle(useFingerprint)"><view class="toggle-dot" /></view>
           </view>
         </view>
       </view>
 
       <view class="section">
-        <view class="section-label">默 认 封 存 期</view>
+        <view class="section-label">自 动 锁 定</view>
         <view class="group-card">
           <view class="radio-group">
-            <view class="radio-row" :class="{ sel: sealPeriod === 0 }" @tap="sealPeriod = 0">
-              <view class="radio-circle" :class="{ sel: sealPeriod === 0 }"><view class="radio-dot" /></view>
-              <view style="flex: 1;">
-                <view class="radio-text">3 个月后解封</view>
-                <view class="radio-desc">短暂沉淀，适合日常记录</view>
-              </view>
+            <view class="radio-row" :class="{ sel: autoLock === 0 }" @tap="autoLock = 0">
+              <view class="radio-circle" :class="{ sel: autoLock === 0 }"><view class="radio-dot" /></view>
+              <view class="radio-text">立即锁定</view>
             </view>
-            <view class="radio-row" :class="{ sel: sealPeriod === 1 }" @tap="sealPeriod = 1">
-              <view class="radio-circle" :class="{ sel: sealPeriod === 1 }"><view class="radio-dot" /></view>
-              <view style="flex: 1;">
-                <view class="radio-text">1 年后解封</view>
-                <view class="radio-desc">跨越四季，感受时间厚度</view>
-              </view>
+            <view class="radio-row" :class="{ sel: autoLock === 1 }" @tap="autoLock = 1">
+              <view class="radio-circle" :class="{ sel: autoLock === 1 }"><view class="radio-dot" /></view>
+              <view class="radio-text">1 分钟后</view>
             </view>
-            <view class="radio-row" :class="{ sel: sealPeriod === 2 }" @tap="sealPeriod = 2">
-              <view class="radio-circle" :class="{ sel: sealPeriod === 2 }"><view class="radio-dot" /></view>
-              <view style="flex: 1;">
-                <view class="radio-text">3 年后解封</view>
-                <view class="radio-desc">给未来的自己一封远信</view>
-              </view>
+            <view class="radio-row" :class="{ sel: autoLock === 2 }" @tap="autoLock = 2">
+              <view class="radio-circle" :class="{ sel: autoLock === 2 }"><view class="radio-dot" /></view>
+              <view class="radio-text">5 分钟后</view>
             </view>
-            <view class="radio-row" :class="{ sel: sealPeriod === 3 }" @tap="sealPeriod = 3">
-              <view class="radio-circle" :class="{ sel: sealPeriod === 3 }"><view class="radio-dot" /></view>
-              <view style="flex: 1;">
-                <view class="radio-text">自行设定</view>
-                <view class="radio-desc">每篇单独决定封存时长</view>
-              </view>
+            <view class="radio-row" :class="{ sel: autoLock === 3 }" @tap="autoLock = 3">
+              <view class="radio-circle" :class="{ sel: autoLock === 3 }"><view class="radio-dot" /></view>
+              <view class="radio-text">永不自动锁定</view>
             </view>
           </view>
         </view>
       </view>
 
       <view class="section">
-        <view class="section-label">书 写 辅 助</view>
+        <view class="section-label">访 问 记 录</view>
         <view class="group-card">
           <view class="row">
-            <view class="row-icon icon-wordcount" />
-            <view class="row-label">显示字数统计</view>
-            <view class="toggle" :class="{ on: showWordCount }" @tap="toggle(showWordCount)">
-              <view class="toggle-dot" />
+            <view class="seal"><text>阅</text></view>
+            <view style="flex: 1;">
+              <view class="row-label">最近访问</view>
+              <view class="row-sub" style="margin-top: 4rpx;">今日 · 09:42</view>
+            </view>
+            <view class="badge-ok">
+              <view class="badge-dot" />
+              <text class="badge-text">正常</text>
             </view>
           </view>
+          <view class="row" style="cursor: pointer;">
+            <view class="row-icon icon-log" />
+            <view class="row-label">查看访问日志</view>
+            <view class="icon-arrow" />
+          </view>
+        </view>
+      </view>
+
+      <view class="section">
+        <view class="section-label">隐 私 保 护</view>
+        <view class="group-card">
           <view class="row">
-            <view class="row-icon icon-guide" />
-            <view class="row-label">书写引导提示</view>
-            <view class="toggle" :class="{ on: writingGuide }" @tap="toggle(writingGuide)">
-              <view class="toggle-dot" />
-            </view>
+            <view class="row-icon icon-shield" />
+            <view class="row-label">截屏遮蔽</view>
+            <view class="toggle" :class="{ on: maskScreenshot }" @tap="toggle(maskScreenshot)"><view class="toggle-dot" /></view>
           </view>
           <view class="row">
-            <view class="row-icon icon-draft" />
-            <view class="row-label">自动保存草稿</view>
-            <view class="toggle" :class="{ on: autoSave }" @tap="toggle(autoSave)">
-              <view class="toggle-dot" />
-            </view>
-          </view>
-          <view class="row">
-            <view class="row-icon icon-duration" />
-            <view class="row-label">记录创作时长</view>
-            <view class="toggle" :class="{ on: recordDuration }" @tap="toggle(recordDuration)">
-              <view class="toggle-dot" />
-            </view>
+            <view class="row-icon icon-eye" />
+            <view class="row-label">通知预览遮蔽</view>
+            <view class="toggle" :class="{ on: maskNotification }" @tap="toggle(maskNotification)"><view class="toggle-dot" /></view>
           </view>
         </view>
       </view>
@@ -297,13 +284,13 @@ onLoad(() => {
   background-repeat: no-repeat;
   background-position: center;
 }
-.icon-daily { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='8' r='6'/><polyline points='8,5 8,8 10,9.5'/></svg>"); }
-.icon-time { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='3' width='12' height='11' rx='1'/><line x1='2' y1='6' x2='14' y2='6'/><line x1='5' y1='1' x2='5' y2='4'/><line x1='11' y1='1' x2='11' y2='4'/></svg>"); }
-.icon-holiday { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2'/><path d='M8 6v2l1.5 1.5'/></svg>"); }
-.icon-wordcount { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 13L8 3l5 10H3z'/><line x1='5' y1='10' x2='11' y2='10'/></svg>"); }
-.icon-guide { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='8' cy='8' r='6'/><path d='M8 6 C7 6 6 7 6 8 C6 10 8 10.5 8 12'/><circle cx='8' cy='13.5' r='0.8' fill='%236b6560' stroke='none'/></svg>"); }
-.icon-draft { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='4' width='12' height='9' rx='1'/><line x1='5' y1='7' x2='11' y2='7'/><line x1='5' y1='9.5' x2='9' y2='9.5'/></svg>"); }
-.icon-duration { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M2 4h12v8H2z'/><polyline points='2,4 8,9 14,4'/></svg>"); }
+.icon-password { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='7' width='10' height='8' rx='1'/><path d='M5 7V5a3 3 0 0 1 6 0v2'/><circle cx='8' cy='11' r='1.2' fill='%236b6560' stroke='none'/></svg>"); }
+.icon-face { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><ellipse cx='8' cy='6' rx='3' ry='3.5'/><path d='M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6'/><path d='M6 14l1-2 1 2' stroke-width='1'/></svg>"); }
+.icon-finger { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M8 2 C5 2 3 4 3 7 L3 9 L13 9 L13 7 C13 4 11 2 8 2'/><rect x='4' y='9' width='8' height='5' rx='1'/><path d='M7 9 L7 7 L9 7 L9 9'/></svg>"); }
+.icon-log { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M2 4h12v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z'/><line x1='5' y1='4' x2='5' y2='1'/><line x1='11' y1='4' x2='11' y2='1'/><line x1='2' y1='7' x2='14' y2='7'/></svg>"); }
+.icon-arrow { width: 26rpx; height: 26rpx; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 13' stroke='%23c8c2b8' fill='none' stroke-width='1.5' stroke-linecap='round'><polyline points='4,2 9,6.5 4,11'/></svg>"); background-size: contain; background-repeat: no-repeat; background-position: center; flex-shrink: 0; }
+.icon-shield { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M8 1L2 4v4c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L8 1z'/></svg>"); }
+.icon-eye { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' stroke='%236b6560' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M1 8 C4 3 12 3 15 8 C12 13 4 13 1 8'/><circle cx='8' cy='8' r='2.5'/></svg>"); }
 
 .row-label {
   flex: 1;
@@ -413,11 +400,46 @@ onLoad(() => {
 .radio-row.sel .radio-text {
   color: var(--ink);
 }
-.radio-desc {
+
+/* ── seal ── */
+.seal {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--vermilion);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.72;
+  flex-shrink: 0;
+}
+.seal text {
+  font-family: var(--serif);
+  font-size: 20rpx;
+  color: var(--vermilion);
+}
+
+/* ── status badge ── */
+.badge-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 6rpx 16rpx;
+  border: 1rpx solid rgba(188, 174, 152, 0.35);
+  border-radius: 2rpx;
+  background: rgba(252, 249, 244, 0.8);
+}
+.badge-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(120, 160, 100, 0.7);
+}
+.badge-text {
   font-family: var(--sans);
   font-size: 20rpx;
   font-weight: 300;
   color: var(--ink-light);
-  margin-top: 4rpx;
+  letter-spacing: 0.06em;
 }
 </style>

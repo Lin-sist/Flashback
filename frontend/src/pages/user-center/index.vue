@@ -6,7 +6,7 @@ import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
 import { hasAuthenticatedSession } from '../../utils'
 
-type SettingKey = 'record' | 'tag' | 'privacy' | 'notify' | 'about'
+type SettingKey = 'record' | 'appearance' | 'privacy' | 'backup' | 'about' | 'tag' | 'notify'
 
 interface SettingItem {
   key: SettingKey
@@ -21,14 +21,16 @@ interface SettingGroup {
 }
 
 const userStore = useUserStore()
-const appVersion = 'v2.0.0'
+const appVersion = 'v2.4.0'
 
 const routeMap: Record<SettingKey, string> = {
   record: '/pages/user-center/archive-preference/index',
-  tag: '/pages/user-center/tag-manage/index',
-  privacy: '/pages/user-center/notify-settings/index',
-  notify: '/pages/user-center/notify-settings/index',
+  appearance: '/pages/user-center/visual-appearance/index',
+  privacy: '/pages/user-center/access-control/index',
+  backup: '/pages/user-center/data-backup/index',
   about: '/pages/user-center/about/index',
+  tag: '/pages/user-center/tag-manage/index',
+  notify: '/pages/user-center/notify-settings/index',
 }
 
 const settingGroups: SettingGroup[] = [
@@ -36,14 +38,14 @@ const settingGroups: SettingGroup[] = [
     label: '档 案 设 置',
     items: [
       { key: 'record', title: '整理偏好', iconClass: 'icon-archive' },
-      { key: 'tag', title: '视觉外观', iconClass: 'icon-appearance' },
+      { key: 'appearance', title: '视觉外观', iconClass: 'icon-appearance' },
     ],
   },
   {
     label: '隐 私 与 安 全',
     items: [
       { key: 'privacy', title: '访问控制', iconClass: 'icon-lock' },
-      { key: 'notify', title: '数据备份', iconClass: 'icon-backup' },
+      { key: 'backup', title: '数据备份', iconClass: 'icon-backup' },
     ],
   },
   {

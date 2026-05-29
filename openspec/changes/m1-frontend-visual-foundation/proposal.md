@@ -23,6 +23,7 @@ The first M1 implementation attempt showed that "visual foundation" can be misre
 In scope / 范围内：
 
 - High-fidelity translation of finalized Home、Timeline、User Center HTML pages into WeChat Mini Program pages.
+- High-fidelity translation of confirmed settings-style User Center subpages in `Docs/design/home-v2/个人主页_子页面.html`: 整理偏好、视觉外观、访问控制、数据备份、版本信息.
 - Exact canonical mapping through `visual-reference-map.md`.
 - Page hierarchy, visual center, spacing rhythm, typography hierarchy, card composition, action priority, navigation placement, scroll behavior, safe-area behavior, and visual density from canonical HTML.
 - Replacing existing frontend structure when it conflicts with canonical HTML.
@@ -46,6 +47,7 @@ Out of scope / 范围外：
 - Treating the visual spec as loose inspiration while ignoring canonical HTML.
 - Accepting color-only, token-only, skin-only, or old-skeleton refactors as M1 completion.
 - Expanding secondary pages until they block Home、Timeline、User Center high-fidelity restoration.
+- Reusing legacy `tag-manage` or `notify-settings` as silent substitutes for canonical settings-style subpages.
 
 ## Success Criteria / 成功标准
 
@@ -70,6 +72,7 @@ Out of scope / 范围外：
 - M1 MUST NOT start with a component-library-first implementation.
 - V2.0 visible names are 我的记录、时光轴、时间回看.
 - Existing `frontend/src/features/preview` remains the initial demo data path.
+- M1 confirms dedicated settings-style subpage routes for `视觉外观`、`访问控制`、and `数据备份`; legacy `tag-manage` and `notify-settings` are not canonical M1 targets unless a later task explicitly remaps or retires them.
 - One-click preview / no-login demo mode is allowed for V2.0 demo.
 - V2.0 does not include management/admin portal.
 - H5/Web user-side方案 is historical reference only, not M1 acceptance target.

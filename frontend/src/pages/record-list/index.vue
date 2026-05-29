@@ -9,7 +9,6 @@ import {
   type RecordListItemVO,
 } from '../../types'
 import {
-  calculateRemainingDays,
   formatDayText,
   hasAuthenticatedSession,
 } from '../../utils'
@@ -135,17 +134,6 @@ const openRecord = (item: RecordListItemVO) => {
   if (item.status === RecordStatus.DRAFT) {
     uni.navigateTo({
       url: `/pages/record-editor/index?id=${item.id}&source=archive`,
-    })
-    return
-  }
-  if (item.status === RecordStatus.SEALED) {
-    const remainingDays = calculateRemainingDays(item.unlockAt)
-    uni.showToast({
-      title:
-        remainingDays > 0
-          ? `距离解封还有 ${remainingDays} 天`
-          : '已到解封时间，请稍后查看',
-      icon: 'none',
     })
     return
   }

@@ -104,7 +104,11 @@ const goLatestUnlocked = () => {
 
 const goLatestSealed = () => {
   if (sealedState.value === 'error') { retryHomeSummary(); return }
-  uni.navigateTo({ url: '/pages/record-list/index' })
+  if (!latestSealed.value) {
+    uni.navigateTo({ url: '/pages/record-list/index' })
+    return
+  }
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${latestSealed.value.id}&source=home` })
 }
 
 /* arrival card display */

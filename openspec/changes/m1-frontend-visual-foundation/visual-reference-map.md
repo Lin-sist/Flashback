@@ -66,9 +66,9 @@ Secondary pages MAY be visually aligned after the primary pages are stable, but 
 | My Records / 我的记录 | `pages/record-list/index` | `Docs/design/home-v2/我的档案.html` | `Docs/design/home-v2/我的档案.png` | High fidelity | confirmed |
 | Time Review / 时间回看 | `pages/record-detail/index` (UNLOCKED state) | `Docs/design/home-v2/回看.html` | `Docs/design/home-v2/回看.png` | High fidelity | confirmed |
 | Archive Preference / 整理偏好 | `pages/user-center/archive-preference/index` | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 0) | `Docs/design/home-v2/整理偏好.png` | High fidelity | confirmed |
-| Visual Appearance / 视觉外观 | NEEDS_OWNER_CONFIRMATION (no current route in `pages.json`) | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 1) | `Docs/design/home-v2/视觉外观.png` | High fidelity | route pending |
-| Access Control / 访问控制 | NEEDS_OWNER_CONFIRMATION (no current route in `pages.json`) | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 2) | `Docs/design/home-v2/访问控制.png` | High fidelity | route pending |
-| Data Backup / 数据备份 | NEEDS_OWNER_CONFIRMATION (no current route in `pages.json`) | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 3) | `Docs/design/home-v2/数据备份.png` | High fidelity | route pending |
+| Visual Appearance / 视觉外观 | `pages/user-center/visual-appearance/index` | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 1) | `Docs/design/home-v2/视觉外观.png` | High fidelity | confirmed |
+| Access Control / 访问控制 | `pages/user-center/access-control/index` | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 2) | `Docs/design/home-v2/访问控制.png` | High fidelity | confirmed |
+| Data Backup / 数据备份 | `pages/user-center/data-backup/index` | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 3) | `Docs/design/home-v2/数据备份.png` | High fidelity | confirmed |
 | Version Info / 版本信息 | `pages/user-center/about/index` | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 4) | `Docs/design/home-v2/版本信息.png` | High fidelity | confirmed |
 | Tag Manage / 标签管理 | `pages/user-center/tag-manage/index` | — | — | no dedicated canonical target in current M1 references | pending |
 | Notify Settings / 通知设置 | `pages/user-center/notify-settings/index` | — | — | no subscription-message implementation in M1; do not map to Access Control without owner confirmation | pending |
@@ -95,11 +95,23 @@ Secondary pages MAY be visually aligned after the primary pages are stable, but 
 | My Records / 我的记录 | `Docs/design/home-v2/我的档案.html` | `Docs/design/home-v2/我的档案.png` | `pages/record-list/index` | back title `我的档案`, search, status filter tabs, 档案概览 summary, paper cards with status badges, write CTA, quiet footnote |
 | Time Review / 时间回看 | `Docs/design/home-v2/回看.html` | `Docs/design/home-v2/回看.png` | `pages/record-detail/index` (UNLOCKED state) | 时光回序 logo, close btn, archive no/location, season, quote, seal row, readable letter card, 留下回应 CTA, 收入时光轴 secondary action, reply sheet visual only |
 | Archive Preference / 整理偏好 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 0) | `Docs/design/home-v2/整理偏好.png` | `pages/user-center/archive-preference/index` | top back/title, grouped paper cards, toggle rows, default seal-period radio list, writing assistance rows, save CTA |
-| Visual Appearance / 视觉外观 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 1) | `Docs/design/home-v2/视觉外观.png` | NEEDS_OWNER_CONFIRMATION | paper tone swatches, font size choices, line-height slider, display toggles, save CTA |
-| Access Control / 访问控制 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 2) | `Docs/design/home-v2/访问控制.png` | NEEDS_OWNER_CONFIRMATION | lock method radio rows, auto-lock slider, access record summary, privacy protection toggles, save CTA |
-| Data Backup / 数据备份 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 3) | `Docs/design/home-v2/数据备份.png` | NEEDS_OWNER_CONFIRMATION | backup status badge, storage summary, auto backup rows, manual export/import actions, danger-zone action |
+| Visual Appearance / 视觉外观 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 1) | `Docs/design/home-v2/视觉外观.png` | `pages/user-center/visual-appearance/index` | paper tone swatches, font size choices, line-height slider, display toggles, save CTA |
+| Access Control / 访问控制 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 2) | `Docs/design/home-v2/访问控制.png` | `pages/user-center/access-control/index` | lock method radio rows, auto-lock slider, access record summary, privacy protection toggles, save CTA |
+| Data Backup / 数据备份 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 3) | `Docs/design/home-v2/数据备份.png` | `pages/user-center/data-backup/index` | backup status badge, storage summary, auto backup rows, manual export/import actions, danger-zone action |
 | Version Info / 版本信息 | `Docs/design/home-v2/个人主页_子页面.html` (PAGE 4) | `Docs/design/home-v2/版本信息.png` | `pages/user-center/about/index` | app mark, version label, update log, about rows, quiet quote card |
 
 ## Route Pending Notes / 路由待确认说明
 
-`个人主页_子页面.html` locks visual references for five settings-style subpages. Only `整理偏好` and `版本信息` have clear current Mini Program routes in `frontend/src/pages.json`. `视觉外观`、`访问控制`、`数据备份` need owner route confirmation before implementation changes routes, repurposes legacy routes, or adds new pages. M1 Agents MUST NOT silently map these pages onto `tag-manage` or `notify-settings`.
+`个人主页_子页面.html` locks visual references for five settings-style subpages. This HTML file is a prototype bundle: the browser prototype switches between the five subpages through page buttons, but all five prototypes live in this one canonical HTML file. The matching PNG snapshots in `Docs/design/home-v2/` are verification references for those same prototype pages.
+
+M1 now confirms dedicated Mini Program routes for all five pages:
+
+- `整理偏好` -> `pages/user-center/archive-preference/index`
+- `视觉外观` -> `pages/user-center/visual-appearance/index`
+- `访问控制` -> `pages/user-center/access-control/index`
+- `数据备份` -> `pages/user-center/data-backup/index`
+- `版本信息` -> `pages/user-center/about/index`
+
+Implementation MUST be high-fidelity reconstruction against the HTML bundle and PNG snapshots. Old frontend route names or existing settings-page skeletons MUST NOT be treated as visual references.
+
+Legacy `tag-manage` and `notify-settings` remain non-canonical M1 routes. M1 Agents MUST NOT silently repurpose them for `视觉外观`、`访问控制`、or `数据备份`. If those legacy routes are kept, hidden, or removed later, that decision belongs to a separate task unless explicitly included in the current implementation scope.
