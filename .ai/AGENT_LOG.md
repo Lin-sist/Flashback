@@ -287,3 +287,32 @@ Next:
 
 - 按精修阶段逐个修复视觉 / 交互 / 路由 / safe-area / 小程序兼容问题。
 - 精修完成后补充最终 handoff，并勾选 section 6 与 section 7 的验收项。
+
+### 2026-05-29 Codex (M1 Merge Blocker Closure)
+
+Task:
+
+- 修复合并前审查发现的前端硬 blocker，并完成最终构建 / 类型检查收口。
+
+Modified:
+
+- `frontend/src/pages/home/index.vue`
+- `frontend/src/pages/record-detail/index.vue`
+- `frontend/src/pages/timeline/index.vue`
+- `frontend/src/pages/user-center/index.vue`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- `.\node_modules\.bin\vue-tsc.cmd --noEmit` 通过。
+- `.\node_modules\.bin\uni.cmd build -p mp-weixin` 通过。
+- 确认底部导航不再在模板表达式里直接引用 `uni.switchTab`。
+- 确认 `record-detail` 模板引用的 `archiveNoCN` 已在 `<script setup>` 中定义。
+
+Risks:
+
+- 未在微信开发者工具 / 真机中做最终点击验收；合并前仍建议人工抽测首页、时光轴、个人中心底部导航以及已封存 / 已解封详情页。
+
+Next:
+
+- 若人工抽测无新增问题，可合并 `feat/m1-frontend-visual-foundation` 到 `main`。

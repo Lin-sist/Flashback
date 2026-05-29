@@ -100,17 +100,17 @@
 - [ ] Provide visual comparison evidence for User Center.
 - [ ] Provide visual comparison evidence for secondary canonical pages after polish fixes.
 - [ ] Confirm visual evidence documents any Mini Program rendering differences.
-- [ ] Run WeChat Mini Program build when feasible, or record why it was skipped.
+- [x] Run WeChat Mini Program build when feasible, or record why it was skipped.
 - [ ] Confirm bottom navigation does not overlap scroll content at bottom state.
-- [ ] Confirm tasks were executed in order: reference lock / page restoration before tokens.
-- [ ] Confirm no backend、database、schema、admin、deployment、monitoring、business-rule、AI、subscription-message, package, lockfile, or real MAP / IMAGE / VOICE implementation files were modified.
+- [x] Confirm tasks were executed in order: reference lock / page restoration before tokens.
+- [x] Confirm no backend、database、schema、admin、deployment、monitoring、business-rule、AI、subscription-message, package, lockfile, or real MAP / IMAGE / VOICE implementation files were modified.
 - [ ] Confirm M1 would fail if only colors, typography tokens, radius, shadows, or old-page skinning changed.
 
 ## 7. Frontend Polish Completion Gate / 前端精修完成门槛
 
-- [ ] Fix page-level polish defects reported during review without expanding beyond M1 frontend visual scope.
-- [ ] Confirm all canonical routes still navigate correctly after polish.
+- [x] Fix page-level polish defects reported during review without expanding beyond M1 frontend visual scope.
+- [x] Confirm all canonical routes still navigate correctly after polish.
 - [ ] Confirm visual-only controls remain local/demo-only and do not imply real backend capability.
-- [ ] Re-run `cd frontend; npm run build:mp-weixin` after polish fixes, or record why it was skipped.
-- [ ] Record the final polish handoff in `.ai/AGENT_LOG.md`.
+- [x] Re-run `cd frontend; npm run build:mp-weixin` after polish fixes, or record why it was skipped.
+- [x] Record the final polish handoff in `.ai/AGENT_LOG.md`.
 - [ ] When all checks in section 6 and section 7 pass, mark M1 frontend reconstruction complete and ready for final acceptance / archive.

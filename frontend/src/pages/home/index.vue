@@ -111,6 +111,14 @@ const goLatestSealed = () => {
   uni.navigateTo({ url: `/pages/record-detail/index?id=${latestSealed.value.id}&source=home` })
 }
 
+const goTimeline = () => {
+  uni.switchTab({ url: '/pages/timeline/index' })
+}
+
+const goUserCenter = () => {
+  uni.switchTab({ url: '/pages/user-center/index' })
+}
+
 /* arrival card display */
 const arrivalTitle = computed(() => {
   if (latestSealed.value?.title?.trim()) return latestSealed.value.title.trim()
@@ -215,10 +223,10 @@ onShow(() => {
           <text class="nav-label">首 页</text>
           <view class="nav-dot" />
         </view>
-        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/timeline/index' })">
+        <view class="nav-item" @tap="goTimeline">
           <text class="nav-label">时光轴</text>
         </view>
-        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/user-center/index' })">
+        <view class="nav-item" @tap="goUserCenter">
           <text class="nav-label">我 的</text>
         </view>
       </view>

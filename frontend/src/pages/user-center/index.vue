@@ -93,6 +93,14 @@ const navigateToArchive = () => {
   uni.navigateTo({ url: '/pages/record-list/index' })
 }
 
+const goHome = () => {
+  uni.switchTab({ url: '/pages/home/index' })
+}
+
+const goTimeline = () => {
+  uni.switchTab({ url: '/pages/timeline/index' })
+}
+
 const loadCenterData = async () => {
   if (!ensureLogin()) return
   centerLoading.value = true
@@ -222,10 +230,10 @@ onShow(() => {
     <!-- bottom navigation -->
     <view class="bottom-nav-shell">
       <view class="bottom-nav">
-        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/home/index' })">
+        <view class="nav-item" @tap="goHome">
           <text class="nav-label">首 页</text>
         </view>
-        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/timeline/index' })">
+        <view class="nav-item" @tap="goTimeline">
           <text class="nav-label">时光轴</text>
         </view>
         <view class="nav-item active" @tap="() => {}">

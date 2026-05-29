@@ -122,6 +122,14 @@ const openNode = (item: TimelineItemVO) => {
   uni.navigateTo({ url: `/pages/record-detail/index?id=${item.id}&source=timeline` })
 }
 
+const goHome = () => {
+  uni.switchTab({ url: '/pages/home/index' })
+}
+
+const goUserCenter = () => {
+  uni.switchTab({ url: '/pages/user-center/index' })
+}
+
 const loadTimeline = async () => {
   if (!ensureLogin()) return
   loading.value = true
@@ -314,14 +322,14 @@ onShow(() => {
     <!-- bottom navigation -->
     <view class="bottom-nav-shell">
       <view class="bottom-nav">
-        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/home/index' })">
+        <view class="nav-item" @tap="goHome">
           <text class="nav-label">首 页</text>
         </view>
         <view class="nav-item active" @tap="() => {}">
           <text class="nav-label">时光轴</text>
           <view class="nav-dot" />
         </view>
-        <view class="nav-item" @tap="() => uni.switchTab({ url: '/pages/user-center/index' })">
+        <view class="nav-item" @tap="goUserCenter">
           <text class="nav-label">我 的</text>
         </view>
       </view>

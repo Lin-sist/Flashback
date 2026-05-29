@@ -68,6 +68,13 @@ const archiveSeasonCN = computed(() => {
   return `${year}年 · ${seasons[d.getMonth()]}季`
 })
 
+const archiveNoCN = computed(() => {
+  if (!detail.value?.id) return ''
+  const cn = '〇一二三四五六七八九'
+  const cnId = String(detail.value.id).split('').map(n => cn[Number(n)]).join('')
+  return `存档第 ${cnId} 号`
+})
+
 // 位置（若记录有 location 字段则展示）
 const archiveLocation = computed(() => {
   if (!detail.value) return ''
