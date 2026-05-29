@@ -51,20 +51,6 @@ const startCountdown = (unlockAt: string | number | null | undefined) => {
 
 onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer) })
 
-// ── Archive meta ──
-const archiveNo = computed(() => {
-  if (!detail.value?.id) return ''
-  return `Archive No. ${String(detail.value.id).padStart(3, '0')}`
-})
-
-// 封存页用英文格式；解锁页用中文格式
-const archiveNoCN = computed(() => {
-  if (!detail.value?.id) return ''
-  const cn = '〇一二三四五六七八九'
-  const cnId = String(detail.value.id).split('').map(n => cn[Number(n)]).join('')
-  return `存档第 ${cnId} 号`
-})
-
 const archiveSeason = computed(() => {
   if (!detail.value?.createdAt) return ''
   const d = new Date(detail.value.createdAt as string)
@@ -122,7 +108,7 @@ const topNavStyle = computed(() => ({
 }))
 
 const closeRailStyle = computed(() => ({
-  left: '56rpx',
+  left: '0',
 }))
 
 const detail = computed(() => {
@@ -293,14 +279,6 @@ const closeReplySheet = () => {
   showReplySheet.value = false
 }
 
-const addToTimeline = () => {
-  uni.showToast({ title: '已记录到时光轴', icon: 'none' })
-}
-
-const onSealedCtaTap = () => {
-  uni.showToast({ title: '解封后方可留下回应', icon: 'none' })
-}
-
 onLoad(async (query) => {
   if (!ensureLogin()) return
   const querySource = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
@@ -383,8 +361,8 @@ onLoad(async (query) => {
 
           <!-- Archive meta（居中） -->
           <view class="sealed-meta">
-            <text class="sealed-meta__no">{{ archiveNo }}</text>
-            <text class="sealed-meta__season">{{ archiveSeason }}</text>
+            <text class="sealed-meta__no">{{ archiveNoCN }}</text>
+            <text class="sealed-meta__season">{{ archiveSeasonCN }}</text>
           </view>
 
           <!-- 装饰横线 -->
@@ -450,16 +428,6 @@ onLoad(async (query) => {
               </view>
             </view>
             <view class="sealed-deco-line-sm" />
-          </view>
-
-          <!-- 留下回应 CTA（封存中禁用） -->
-          <view class="sealed-cta-wrap">
-            <view class="sealed-cta" @tap="onSealedCtaTap">
-              <view class="sealed-cta__corner sealed-cta__corner--tl" />
-              <view class="sealed-cta__corner sealed-cta__corner--br" />
-              <view class="sealed-cta__dot" />
-              <text class="sealed-cta__text">留 下 回 应</text>
-            </view>
           </view>
 
           <text class="sealed-sub-hint">解封后，过去的你将读到这封信</text>
@@ -531,11 +499,6 @@ onLoad(async (query) => {
               <view class="unlock-cta-corner unlock-cta-corner--br" />
               <view class="unlock-cta-dot" />
               <text class="unlock-cta-text">留 下 回 应</text>
-            </view>
-
-            <!-- 收入时光轴 -->
-            <view class="unlock-sec-link" @tap="addToTimeline">
-              <text class="unlock-sec-link-text">收入时光轴</text>
             </view>
           </view>
         </view>
@@ -790,7 +753,6 @@ onLoad(async (query) => {
   font-weight: 300;
   letter-spacing: 0.25em;
   color: var(--ink-faint);
-  text-transform: uppercase;
   margin-bottom: 8rpx;
 }
 
@@ -801,7 +763,6 @@ onLoad(async (query) => {
   font-weight: 300;
   letter-spacing: 0.08em;
   color: var(--ink-light);
-  font-style: italic;
 }
 
 /* 装饰横线 */

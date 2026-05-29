@@ -332,7 +332,9 @@ onShow(() => {
 <style scoped>
 .page {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
   overflow: hidden;
 }
@@ -361,7 +363,9 @@ onShow(() => {
 .scroll-body {
   position: relative;
   z-index: 1;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 /* ── filter overlay ── */
@@ -996,37 +1000,33 @@ onShow(() => {
 
 /* ── nav safe area ── */
 .nav-safe-area {
-  height: calc(128rpx + env(safe-area-inset-bottom));
+  height: 24rpx;
 }
 
 /* ── bottom navigation ── */
 .bottom-nav-shell {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 80;
   padding: 0 0 env(safe-area-inset-bottom);
+  background: transparent;
   border-top: 1rpx solid rgba(200, 194, 184, 0.3);
-  background: rgba(250, 247, 242, 0.96);
-  box-shadow: 0 -8rpx 24rpx rgba(48, 46, 41, 0.04);
 }
 
 .bottom-nav {
-  height: 104rpx;
+  height: auto;
+  padding: 32rpx 0 68rpx;
   display: flex;
   align-items: center;
   justify-content: space-around;
 }
 
 .nav-item {
-  flex: 1;
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8rpx;
+  padding: 8rpx 32rpx;
 }
 
 .nav-label {
@@ -1035,11 +1035,12 @@ onShow(() => {
   font-weight: 300;
   letter-spacing: 0.2em;
   color: var(--fb-ink-light);
+  transition: color 0.2s;
 }
 
 .nav-item.active .nav-label {
   color: var(--fb-ink);
-  font-weight: 400;
+  font-weight: 300;
 }
 
 .nav-dot {
@@ -1047,7 +1048,7 @@ onShow(() => {
   height: 6rpx;
   border-radius: 50%;
   background: var(--fb-vermilion);
-  opacity: 0.9;
+  margin-top: 4rpx;
 }
 
 @keyframes pulse-inner {

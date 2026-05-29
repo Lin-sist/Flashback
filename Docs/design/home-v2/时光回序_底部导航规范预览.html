@@ -1,0 +1,196 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#302e29;--ink-mid:#6b6560;--ink-light:#9e9890;--ink-faint:#c8c2b8;
+  --vermilion:#b5352a;
+  --serif:'Noto Serif SC','Songti SC',Georgia,serif;
+  --sans:'Noto Sans SC','PingFang SC',sans-serif;
+}
+body{background:#e8e2d8;padding:20px;font-family:var(--serif);}
+<br>
+.section-label{
+  font-family:var(--sans);font-size:11px;font-weight:300;
+  color:#9e9890;letter-spacing:0.12em;
+  margin:0 0 10px 4px;
+}
+<br>
+/* 预览卡片外壳 */
+.preview-row{display:flex;gap:12px;margin-bottom:24px;justify-content:center;}
+.device-frame{
+  width:130px;
+  background:linear-gradient(170deg,#faf7f2 0%,#f5f0e8 55%,#f0ebe0 100%);
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:0 2px 12px rgba(0,0,0,0.1);
+}
+.frame-label{
+  font-family:var(--sans);font-size:9px;font-weight:300;
+  color:var(--ink-light);letter-spacing:0.1em;
+  text-align:center;padding:8px 0 4px;
+  border-bottom:0.5px solid rgba(200,194,184,0.3);
+}
+<br>
+/* 导航本体 */
+.nav{
+  padding:14px 0 28px;
+  display:flex;justify-content:space-around;align-items:center;
+  border-top:0.5px solid rgba(200,194,184,0.3);
+  background:transparent;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;
+  gap:4px;padding:4px 10px;cursor:pointer;
+  position:relative;
+}
+.nav-label{
+  font-family:var(--serif);font-size:11px;font-weight:300;
+  letter-spacing:0.2em;color:var(--ink-light);
+}
+.nav-item.active .nav-label{color:var(--ink);}
+.nav-dot{
+  width:3px;height:3px;border-radius:50%;
+  background:var(--vermilion);
+}
+<br>
+/* 规范说明区 */
+.spec-card{
+  background:rgba(252,249,244,0.8);
+  border:0.5px solid rgba(188,174,152,0.28);
+  border-radius:2px;
+  padding:16px 18px;
+  margin-bottom:12px;
+}
+.spec-card::before{
+  content:'';display:block;
+  position:relative;left:-18px;top:0;
+  width:1.5px;height:0;
+}
+.spec-title{
+  font-family:var(--serif);font-size:12px;font-weight:400;
+  color:var(--ink);letter-spacing:0.08em;margin-bottom:10px;
+  padding-bottom:8px;border-bottom:0.5px solid rgba(200,194,184,0.35);
+}
+.spec-row{
+  display:flex;align-items:baseline;gap:8px;
+  margin-bottom:7px;
+}
+.spec-key{
+  font-family:var(--sans);font-size:10px;font-weight:300;
+  color:var(--ink-light);letter-spacing:0.06em;
+  min-width:72px;flex-shrink:0;
+}
+.spec-val{
+  font-family:var(--sans);font-size:10px;font-weight:300;
+  color:var(--ink-mid);letter-spacing:0.04em;line-height:1.6;
+}
+.spec-val code{
+  background:rgba(48,46,41,0.06);
+  padding:1px 5px;border-radius:1px;
+  font-size:9px;letter-spacing:0;
+  font-family:monospace;color:var(--ink);
+}
+.dot-demo{
+  display:inline-block;
+  width:3px;height:3px;border-radius:50%;
+  background:var(--vermilion);
+  vertical-align:middle;margin:0 4px;
+}
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400&family=Noto+Sans+SC:wght@300&display=swap" rel="stylesheet">
+
+<div class="section-label">三种页面激活状态</div>
+<div class="preview-row">
+  <div class="device-frame">
+    <div class="frame-label">首 页 激 活</div>
+    <div class="nav">
+      <div class="nav-item active">
+        <span class="nav-label">首 页</span>
+        <div class="nav-dot"></div>
+      </div>
+      <div class="nav-item">
+        <span class="nav-label">时光轴</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-label">我 的</span>
+      </div>
+    </div>
+  </div>
+  <div class="device-frame">
+    <div class="frame-label">时光轴激活</div>
+    <div class="nav">
+      <div class="nav-item">
+        <span class="nav-label">首 页</span>
+      </div>
+      <div class="nav-item active">
+        <span class="nav-label">时光轴</span>
+        <div class="nav-dot"></div>
+      </div>
+      <div class="nav-item">
+        <span class="nav-label">我 的</span>
+      </div>
+    </div>
+  </div>
+  <div class="device-frame">
+    <div class="frame-label">我 的 激 活</div>
+    <div class="nav">
+      <div class="nav-item">
+        <span class="nav-label">首 页</span>
+      </div>
+      <div class="nav-item">
+        <span class="nav-label">时光轴</span>
+      </div>
+      <div class="nav-item active">
+        <span class="nav-label">我 的</span>
+        <div class="nav-dot"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">组件规范</div>
+
+<div class="spec-card">
+  <div class="spec-title">容器</div>
+  <div class="spec-row"><span class="spec-key">padding</span><span class="spec-val"><code>20px 0 36px</code>（顶 20，底 36 留 home bar 空间）</span></div>
+  <div class="spec-row"><span class="spec-key">border-top</span><span class="spec-val"><code>0.5px solid rgba(200,194,184,0.3)</code>，极轻分隔线</span></div>
+  <div class="spec-row"><span class="spec-key">background</span><span class="spec-val">透明，透出宣纸背景</span></div>
+  <div class="spec-row"><span class="spec-key">layout</span><span class="spec-val"><code>flex · justify-content: space-around</code></span></div>
+  <div class="spec-row"><span class="spec-key">动画</span><span class="spec-val"><code>fadeUp 0.8s ease 1.8s both</code>（最后入场）</span></div>
+</div>
+
+<div class="spec-card">
+  <div class="spec-title">导航项 .nav-item</div>
+  <div class="spec-row"><span class="spec-key">布局</span><span class="spec-val"><code>flex-direction: column · align-items: center · gap: 4px</code></span></div>
+  <div class="spec-row"><span class="spec-key">padding</span><span class="spec-val"><code>4px 16px</code>，保证点击热区</span></div>
+  <div class="spec-row"><span class="spec-key">三项等宽</span><span class="spec-val">不分主次，靠颜色区分选中态</span></div>
+</div>
+
+<div class="spec-card">
+  <div class="spec-title">文字 .nav-label</div>
+  <div class="spec-row"><span class="spec-key">字体</span><span class="spec-val"><code>--serif</code>（Noto Serif SC），延续产品气韵</span></div>
+  <div class="spec-row"><span class="spec-key">font-size</span><span class="spec-val"><code>12px</code></span></div>
+  <div class="spec-row"><span class="spec-key">font-weight</span><span class="spec-val"><code>300</code></span></div>
+  <div class="spec-row"><span class="spec-key">letter-spacing</span><span class="spec-val"><code>0.2em</code>（导航专用宽字距）</span></div>
+  <div class="spec-row"><span class="spec-key">未选中色</span><span class="spec-val"><code>--ink-light · #9e9890</code></span></div>
+  <div class="spec-row"><span class="spec-key">选中色</span><span class="spec-val"><code>--ink · #302e29</code>，<code>transition: color 0.2s</code></span></div>
+</div>
+
+<div class="spec-card">
+  <div class="spec-title">选中指示点 .nav-dot <span class="dot-demo"></span></div>
+  <div class="spec-row"><span class="spec-key">尺寸</span><span class="spec-val"><code>3 × 3px · border-radius: 50%</code></span></div>
+  <div class="spec-row"><span class="spec-key">颜色</span><span class="spec-val"><code>--vermilion · #b5352a</code>，产品唯一彩色</span></div>
+  <div class="spec-row"><span class="spec-key">位置</span><span class="spec-val">文字正下方，<code>margin-top: 2px</code>，通过 <code>::after</code> 或独立 div 实现均可</span></div>
+  <div class="spec-row"><span class="spec-key">无选中时</span><span class="spec-val">该元素不渲染（不占位）</span></div>
+  <div class="spec-row"><span class="spec-key">无动画</span><span class="spec-val">静止圆点，不使用 pulse（pulse 仅用于动态状态）</span></div>
+</div>
+
+<div class="spec-card">
+  <div class="spec-title">严格禁止</div>
+  <div class="spec-row"><span class="spec-key">❌</span><span class="spec-val">任何图标（icon）—— 本产品导航无图标，仅文字</span></div>
+  <div class="spec-row"><span class="spec-key">❌</span><span class="spec-val">下划线、高亮背景块作为选中指示</span></div>
+  <div class="spec-row"><span class="spec-key">❌</span><span class="spec-val">选中项加粗（font-weight 提升）</span></div>
+  <div class="spec-row"><span class="spec-key">❌</span><span class="spec-val">实色填充导航背景（如白色底板）</span></div>
+  <div class="spec-row"><span class="spec-key">❌</span><span class="spec-val">无衬线字体（--sans）用于导航文字</span></div>
+</div>

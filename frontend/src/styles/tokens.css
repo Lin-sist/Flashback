@@ -20,7 +20,7 @@ page,
   --fb-color-paper-emphasis: var(--fb-paper-2);
 
   /* ── 字体 ── */
-  --fb-font-serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --fb-font-serif: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
   --fb-font-sans:  'Noto Sans SC', 'PingFang SC', sans-serif;
 
   /* ── 字号 ── */

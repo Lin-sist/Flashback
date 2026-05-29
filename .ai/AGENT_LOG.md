@@ -260,3 +260,30 @@ Next:
 
 - 在微信开发工具中点击已封存记录确认能进入封存页。
 - 若视觉与 `封存.png` 仍有偏差，再进入 M1 页面精修。
+
+### 2026-05-29 Codex (M1 Polish Gate)
+
+Task:
+
+- 根据项目状态更新 OpenSpec：所有 M1 前端页面级重构已完成，当前进入前端精修 / 验收阶段。
+- 明确精修完成后，M1 前端重构任务即可视为完成。
+
+Modified:
+
+- `openspec/changes/m1-frontend-visual-foundation/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- 未修改前端实现代码。
+- OpenSpec 现在包含 `Current Phase / 当前阶段` 和 `Frontend Polish Completion Gate / 前端精修完成门槛`。
+- 未将 M1 直接标记为完成；保留视觉证据、构建、导航、安全区、范围安全检查等验收项作为完成前置条件。
+
+Risks:
+
+- 本轮未重新运行前端构建或视觉验收；后续精修完成后仍需按 OpenSpec gate 验证。
+
+Next:
+
+- 按精修阶段逐个修复视觉 / 交互 / 路由 / safe-area / 小程序兼容问题。
+- 精修完成后补充最终 handoff，并勾选 section 6 与 section 7 的验收项。

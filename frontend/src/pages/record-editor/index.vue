@@ -323,7 +323,7 @@ const sealRecord = async () => {
   }
 }
 
-const onAuxTap = (name: 'MAP' | 'IMAGE' | 'VOICE') => {
+const onAuxTap = (name: '地点' | '图片' | '语音') => {
   uni.showToast({ title: `${name} 功能将在后续版本开放`, icon: 'none' })
 }
 
@@ -373,7 +373,7 @@ onLoad(async (query) => {
             <!-- 信头 -->
             <view class="letter-head">
               <view class="head-left">
-                <text class="captured-label">Captured at</text>
+                <text class="captured-label">记录于</text>
                 <text class="letter-date">{{ writingDateText }}</text>
               </view>
               <view class="archive-tag">
@@ -391,16 +391,6 @@ onLoad(async (query) => {
                   placeholder="拟定一个标题..."
                   placeholder-class="title-placeholder"
                 />
-                <!-- 解锁时间行（嵌入信纸内） -->
-                <view class="unlock-row">
-                  <text class="unlock-label">Unlock after</text>
-                  <input
-                    v-model="form.unlockAtInput"
-                    class="unlock-input"
-                    placeholder="解锁时间，如 2026-12-31 20:00"
-                    placeholder-class="unlock-placeholder"
-                  />
-                </view>
                 <textarea
                   v-model="form.content"
                   class="editor-field"
@@ -412,21 +402,32 @@ onLoad(async (query) => {
               </view>
             </view>
 
+            <!-- 解封时间设置区 -->
+            <view class="unlock-bar">
+              <text class="unlock-label">解封时间</text>
+              <input
+                v-model="form.unlockAtInput"
+                class="unlock-input"
+                placeholder="选择未来开启的时间"
+                placeholder-class="unlock-placeholder"
+              />
+            </view>
+
             <!-- 附件栏 MAP / IMAGE / VOICE -->
             <view class="attach-bar">
-              <view class="attach-item" @tap="onAuxTap('MAP')">
+              <view class="attach-item" @tap="onAuxTap('地点')">
                 <view class="attach-icon attach-icon--map" aria-hidden="true" />
-                <text class="attach-label">MAP</text>
+                <text class="attach-label">地点</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
-              <view class="attach-item" @tap="onAuxTap('IMAGE')">
+              <view class="attach-item" @tap="onAuxTap('图片')">
                 <view class="attach-icon attach-icon--image" aria-hidden="true" />
-                <text class="attach-label">IMAGE</text>
+                <text class="attach-label">图片</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
-              <view class="attach-item" @tap="onAuxTap('VOICE')">
+              <view class="attach-item" @tap="onAuxTap('语音')">
                 <view class="attach-icon attach-icon--voice" aria-hidden="true" />
-                <text class="attach-label">VOICE</text>
+                <text class="attach-label">语音</text>
               </view>
             </view>
           </view>
@@ -549,9 +550,8 @@ onLoad(async (query) => {
 
 .captured-label {
   display: block;
-  font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 20rpx;
-  font-style: italic;
   color: #9e9890;
   letter-spacing: 0.06em;
   margin-bottom: 10rpx;
@@ -650,20 +650,19 @@ onLoad(async (query) => {
   font-weight: 500;
 }
 
-/* 解锁时间行 */
-.unlock-row {
+/* 解封时间设置区 */
+.unlock-bar {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  padding-bottom: 16rpx;
-  border-bottom: 1rpx solid rgba(192, 182, 165, 0.25);
+  gap: 24rpx;
+  padding: 24rpx 40rpx;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.15);
 }
 
 .unlock-label {
   flex-shrink: 0;
-  font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 20rpx;
-  font-style: italic;
   color: #9e9890;
   letter-spacing: 0.04em;
 }
@@ -741,8 +740,8 @@ onLoad(async (query) => {
 }
 
 .attach-label {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
-  font-size: 17rpx;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 18rpx;
   font-weight: 300;
   color: #9e9890;
   letter-spacing: 0.12em;
