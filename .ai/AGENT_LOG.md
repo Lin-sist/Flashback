@@ -316,3 +316,54 @@ Risks:
 Next:
 
 - 若人工抽测无新增问题，可合并 `feat/m1-frontend-visual-foundation` 到 `main`。
+
+### 2026-05-29 Codex (Preview Experience Build)
+
+Task:
+
+- 为手机端无法登录场景重新生成微信小程序体验/预览产物，沿用此前 V1.0.1 使用方式的 `frontend/dist/dev/mp-weixin` 目录。
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- Generated ignored artifact: `frontend/dist/dev/mp-weixin`
+
+Verification:
+
+- 直接运行项目本地 Uni CLI：`.\node_modules\.bin\uni.cmd -p mp-weixin --mode preview`。
+- 命令为开发/watch 模式，120s 后超时退出，但产物已写入。
+- 确认 `frontend/dist/dev/mp-weixin/config/app-env.js` 中 `isPreviewModeEnabled = true`。
+- 确认 `frontend/dist/dev/mp-weixin/pages/login/index.wxml` 包含「预览进入」入口。
+
+Risks:
+
+- 未在微信开发者工具或真机上导入并扫码预览；需要人工导入 `frontend/dist/dev/mp-weixin` 后点击「预览进入」确认完整路径。
+- 体验版绕过真实登录，只用于手机端视觉/流程体验，不代表生产登录问题已修复。
+
+### 2026-05-29 Codex (Preview Build Path Correction)
+
+Task:
+
+- 用户反馈微信开发工具打开 `frontend/dist/dev/mp-weixin` 时没有「预览进入」，重新确认构建路径并提供可跳过登录的体验版。
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- Generated ignored artifact: `frontend/dist/build/mp-weixin`
+- Generated ignored artifact: `frontend/dist/preview/mp-weixin`
+- Patched ignored artifact: `frontend/dist/dev/mp-weixin/config/app-env.js`
+
+Verification:
+
+- 确认此前 `frontend/dist/dev/mp-weixin/config/app-env.js` 实际为 `isPreviewModeEnabled = false`，这是入口不显示的直接原因。
+- 使用显式环境变量运行：`VITE_PREVIEW_MODE=true .\node_modules\.bin\uni.cmd build -p mp-weixin --mode preview`，构建成功。
+- Uni 输出提示导入目录为 `dist/build/mp-weixin`。
+- 确认 `frontend/dist/build/mp-weixin/config/app-env.js` 为 `exports.isPreviewModeEnabled=!0`。
+- 复制 `frontend/dist/build/mp-weixin` 到 `frontend/dist/preview/mp-weixin`，作为明确命名的体验版目录。
+- 确认 `frontend/dist/preview/mp-weixin/pages/login/index.wxml` 包含「预览进入」入口。
+- 将当前已打开路径 `frontend/dist/dev/mp-weixin/config/app-env.js` 也切为 `isPreviewModeEnabled = true`，方便微信开发工具刷新后使用。
+
+Risks:
+
+- 未在微信开发者工具中实际点击「编译」和「预览进入」。
+- 后续如果重新运行普通 dev/build 命令，`dist/dev/mp-weixin` 或 `dist/build/mp-weixin` 可能再次被普通模式覆盖；需要重新用 preview build 命令生成。
