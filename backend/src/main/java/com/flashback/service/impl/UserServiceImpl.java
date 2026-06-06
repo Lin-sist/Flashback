@@ -31,6 +31,7 @@ import java.time.LocalDateTime;
 public class UserServiceImpl implements UserService {
 
     private static final String TOKEN_TYPE_BEARER = "Bearer";
+    private static final int OPENID_MAX_LENGTH = 100;
 
     private final UserMapper userMapper;
     private final JwtTokenProvider jwtTokenProvider;
@@ -121,6 +122,29 @@ public class UserServiceImpl implements UserService {
         return toUserInfo(requireUserById(userId));
     }
 
+    @Override
+    @Transactional
+    public UserInfoVO bindVerifiedWechatOpenid(Long userId, String openid) {
+        requireUserById(userId);
+
+        String normalizedOpenid = normalizeRequired(openid, "openid不能为空");
+        if (normalizedOpenid.length() > OPENID_MAX_LENGTH) {
+            throw badRequest("openid长度不能超过100");
+        }
+
+        User existing = userMapper.selectByOpenid(normalizedOpenid);
+        if (existing != null && !existing.getId().equals(userId)) {
+            throw badRequest("openid已绑定其他用户");
+        }
+
+        try {
+            userMapper.updateOpenidById(userId, normalizedOpenid, LocalDateTime.now(clock));
+        } catch (DuplicateKeyException ex) {
+            throw badRequest("openid已绑定其他用户");
+        }
+        return toUserInfo(requireUserById(userId));
+    }
+
     private User requireUserById(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -175,6 +199,7 @@ public class UserServiceImpl implements UserService {
         vo.setStatus(user.getStatus());
         vo.setCreatedAt(user.getCreatedAt());
         vo.setUpdatedAt(user.getUpdatedAt());
+        vo.setWechatBound(normalizeOptional(user.getOpenid()) != null);
         return vo;
     }
 }

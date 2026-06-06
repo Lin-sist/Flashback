@@ -8,10 +8,14 @@ import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.common.page.PageResult;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordReminder;
+import com.flashback.domain.RecordReminderStatus;
 import com.flashback.domain.RecordTagName;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.Tag;
 import com.flashback.domain.UnlockNoticeLog;
+import com.flashback.domain.User;
+import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
@@ -21,6 +25,7 @@ import com.flashback.mapper.RecordMapper;
 import com.flashback.mapper.ReplyMapper;
 import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
+import com.flashback.mapper.UserMapper;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
@@ -50,6 +55,8 @@ public class RecordServiceImpl implements RecordService {
     private static final int UNLOCK_BATCH_SIZE = 100;
     private static final String NOTICE_TYPE_SYSTEM_UNLOCK = "SYSTEM_UNLOCK";
     private static final String NOTICE_STATUS_SUCCESS = "SUCCESS";
+    private static final String TEMPLATE_TYPE_UNLOCK_REMINDER = "UNLOCK_REMINDER";
+    private static final String OPENID_NOT_BOUND_MESSAGE = "openid not bound";
     private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
     };
@@ -59,6 +66,8 @@ public class RecordServiceImpl implements RecordService {
     private final RecordTagMapper recordTagMapper;
     private final ReplyMapper replyMapper;
     private final UnlockNoticeLogMapper unlockNoticeLogMapper;
+    private final RecordReminderMapper recordReminderMapper;
+    private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -68,6 +77,8 @@ public class RecordServiceImpl implements RecordService {
             RecordTagMapper recordTagMapper,
             ReplyMapper replyMapper,
             UnlockNoticeLogMapper unlockNoticeLogMapper,
+            RecordReminderMapper recordReminderMapper,
+            UserMapper userMapper,
             ObjectMapper objectMapper,
             Clock clock) {
         this.recordMapper = recordMapper;
@@ -75,6 +86,8 @@ public class RecordServiceImpl implements RecordService {
         this.recordTagMapper = recordTagMapper;
         this.replyMapper = replyMapper;
         this.unlockNoticeLogMapper = unlockNoticeLogMapper;
+        this.recordReminderMapper = recordReminderMapper;
+        this.userMapper = userMapper;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -253,6 +266,7 @@ public class RecordServiceImpl implements RecordService {
                 int affected = recordMapper.unlockSealedById(record.getId(), now, now);
                 if (affected == 1) {
                     insertUnlockNoticeLog(record.getId(), record.getUserId(), now);
+                    createUnlockReminderIfAbsent(record.getId(), record.getUserId(), now);
                     unlockedCount++;
                 }
             }
@@ -296,6 +310,37 @@ public class RecordServiceImpl implements RecordService {
         unlockNoticeLog.setNoticeStatus(NOTICE_STATUS_SUCCESS);
         unlockNoticeLog.setCreatedAt(createdAt);
         unlockNoticeLogMapper.insert(unlockNoticeLog);
+    }
+
+    private void createUnlockReminderIfAbsent(Long recordId, Long userId, LocalDateTime now) {
+        try {
+            RecordReminder existing = recordReminderMapper.selectByRecordIdAndTemplateType(
+                    recordId,
+                    TEMPLATE_TYPE_UNLOCK_REMINDER);
+            if (existing != null) {
+                return;
+            }
+
+            User user = userMapper.selectById(userId);
+            String openid = user == null ? null : normalizeOptional(user.getOpenid());
+
+            RecordReminder reminder = new RecordReminder();
+            reminder.setRecordId(recordId);
+            reminder.setUserId(userId);
+            reminder.setTemplateType(TEMPLATE_TYPE_UNLOCK_REMINDER);
+            reminder.setCreatedAt(now);
+            reminder.setUpdatedAt(now);
+            if (openid == null) {
+                reminder.setReminderStatus(RecordReminderStatus.SKIPPED_NO_OPENID);
+                reminder.setLastError(OPENID_NOT_BOUND_MESSAGE);
+            } else {
+                reminder.setReminderStatus(RecordReminderStatus.PENDING);
+            }
+
+            recordReminderMapper.insert(reminder);
+        } catch (Exception ex) {
+            // Reminder persistence is best-effort in M2 and must never block unlock processing.
+        }
     }
 
     private String normalizeRequired(String value, String message) {

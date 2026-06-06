@@ -4,16 +4,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordReminder;
+import com.flashback.domain.RecordReminderStatus;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
+import com.flashback.domain.User;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
 import com.flashback.mapper.ReplyMapper;
 import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
+import com.flashback.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -44,6 +50,12 @@ class RecordServiceImplTest {
 
     @Mock
     private UnlockNoticeLogMapper unlockNoticeLogMapper;
+
+    @Mock
+    private RecordReminderMapper recordReminderMapper;
+
+    @Mock
+    private UserMapper userMapper;
 
     @Mock
     private TagMapper tagMapper;
@@ -65,6 +77,8 @@ class RecordServiceImplTest {
                 recordTagMapper,
                 replyMapper,
                 unlockNoticeLogMapper,
+                recordReminderMapper,
+                userMapper,
                 new ObjectMapper(),
                 clock);
     }
@@ -337,12 +351,19 @@ class RecordServiceImplTest {
                 .thenReturn(List.of(expired))
                 .thenReturn(List.of());
         when(recordMapper.unlockSealedById(eq(201L), any(), any())).thenReturn(1);
+        when(userMapper.selectById(11L)).thenReturn(mockUser(11L, null));
 
         int unlockedCount = recordService.runUnlockJob();
 
         assertThat(unlockedCount).isEqualTo(1);
         verify(recordMapper, times(1)).unlockSealedById(eq(201L), any(), any());
         verify(unlockNoticeLogMapper, times(1)).insert(any());
+        verify(recordReminderMapper, times(1)).insert(org.mockito.ArgumentMatchers.argThat(reminder ->
+                reminder.getRecordId().equals(201L)
+                        && reminder.getUserId().equals(11L)
+                        && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
+                        && reminder.getReminderStatus() == RecordReminderStatus.SKIPPED_NO_OPENID
+                        && "openid not bound".equals(reminder.getLastError())));
     }
 
     @Test
@@ -354,6 +375,7 @@ class RecordServiceImplTest {
         assertThat(unlockedCount).isEqualTo(0);
         verify(recordMapper, never()).unlockSealedById(any(), any(), any());
         verify(unlockNoticeLogMapper, never()).insert(any());
+        verify(recordReminderMapper, never()).insert(any());
     }
 
     @Test
@@ -371,6 +393,73 @@ class RecordServiceImplTest {
 
         assertThat(unlockedCount).isEqualTo(0);
         verify(unlockNoticeLogMapper, never()).insert(any());
+        verify(recordReminderMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldCreatePendingUnlockReminderWhenUserHasOpenid() {
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(401L);
+        expired.setUserId(31L);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(401L), any(), any())).thenReturn(1);
+        when(userMapper.selectById(31L)).thenReturn(mockUser(31L, "openid-31"));
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(recordReminderMapper).insert(org.mockito.ArgumentMatchers.argThat(reminder ->
+                reminder.getRecordId().equals(401L)
+                        && reminder.getUserId().equals(31L)
+                        && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
+                        && reminder.getReminderStatus() == RecordReminderStatus.PENDING
+                        && reminder.getLastError() == null));
+    }
+
+    @Test
+    void shouldNotCreateDuplicateUnlockReminderWhenMarkerExists() {
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(402L);
+        expired.setUserId(32L);
+
+        RecordReminder existing = new RecordReminder();
+        existing.setRecordId(402L);
+        existing.setTemplateType("UNLOCK_REMINDER");
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(402L), any(), any())).thenReturn(1);
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(402L, "UNLOCK_REMINDER")).thenReturn(existing);
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(recordReminderMapper, never()).insert(any());
+        verify(userMapper, never()).selectById(any());
+    }
+
+    @Test
+    void shouldContinueUnlockWhenReminderPersistenceFails() {
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(403L);
+        expired.setUserId(33L);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(403L), any(), any())).thenReturn(1);
+        doThrow(new RuntimeException("record_reminder unavailable"))
+                .when(recordReminderMapper)
+                .selectByRecordIdAndTemplateType(403L, "UNLOCK_REMINDER");
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(unlockNoticeLogMapper).insert(any());
     }
 
     private Record mockRecord(RecordStatus status) {
@@ -403,5 +492,12 @@ class RecordServiceImplTest {
         reply.setContent(content);
         reply.setCreatedAt(LocalDateTime.of(2026, 3, 26, 18, 0, 0));
         return reply;
+    }
+
+    private User mockUser(Long userId, String openid) {
+        User user = new User();
+        user.setId(userId);
+        user.setOpenid(openid);
+        return user;
     }
 }

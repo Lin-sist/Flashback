@@ -10,7 +10,8 @@ CREATE TABLE `user` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_user_username` (`username`)
+  UNIQUE KEY `uk_user_username` (`username`),
+  UNIQUE KEY `uk_user_openid` (`openid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `record` (
@@ -76,6 +77,25 @@ CREATE TABLE `reply` (
   CONSTRAINT `fk_reply_record_id`
     FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_reply_user_id`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `record_reminder` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `template_type` VARCHAR(40) NOT NULL,
+  `reminder_status` VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+  `last_error` VARCHAR(255) DEFAULT NULL,
+  `sent_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_reminder_record_template` (`record_id`, `template_type`),
+  KEY `idx_record_reminder_user_status` (`user_id`, `reminder_status`),
+  CONSTRAINT `fk_record_reminder_record_id`
+    FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_record_reminder_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -24,7 +24,9 @@ import java.time.ZoneId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -122,6 +124,55 @@ class UserServiceImplTest {
     }
 
     @Test
+    void shouldBindVerifiedWechatOpenid() {
+        User current = enabledUser(7L, "bind_user", null);
+        User bound = enabledUser(7L, "bind_user", "wx-openid-7");
+        when(userMapper.selectById(7L)).thenReturn(current, bound);
+        when(userMapper.selectByOpenid("wx-openid-7")).thenReturn(null);
+
+        var response = userService.bindVerifiedWechatOpenid(7L, " wx-openid-7 ");
+
+        assertThat(response.isWechatBound()).isTrue();
+        verify(userMapper).updateOpenidById(eq(7L), eq("wx-openid-7"), any());
+    }
+
+    @Test
+    void shouldRejectBlankOpenidWhenBindingWechatIdentity() {
+        when(userMapper.selectById(7L)).thenReturn(enabledUser(7L, "bind_user", null));
+
+        assertThatThrownBy(() -> userService.bindVerifiedWechatOpenid(7L, " "))
+                .isInstanceOf(BizException.class)
+                .hasMessage("openid不能为空");
+
+        verify(userMapper, never()).updateOpenidById(any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectOpenidAlreadyBoundToAnotherUser() {
+        when(userMapper.selectById(7L)).thenReturn(enabledUser(7L, "bind_user", null));
+        when(userMapper.selectByOpenid("wx-openid-shared"))
+                .thenReturn(enabledUser(8L, "other_user", "wx-openid-shared"));
+
+        assertThatThrownBy(() -> userService.bindVerifiedWechatOpenid(7L, "wx-openid-shared"))
+                .isInstanceOf(BizException.class)
+                .hasMessage("openid已绑定其他用户");
+
+        verify(userMapper, never()).updateOpenidById(any(), any(), any());
+    }
+
+    @Test
+    void shouldMapDuplicateOpenidRaceWhenBindingWechatIdentity() {
+        when(userMapper.selectById(7L)).thenReturn(enabledUser(7L, "bind_user", null));
+        when(userMapper.selectByOpenid("wx-openid-race")).thenReturn(null);
+        doThrow(new DuplicateKeyException("duplicate"))
+                .when(userMapper).updateOpenidById(any(), any(), any());
+
+        assertThatThrownBy(() -> userService.bindVerifiedWechatOpenid(7L, "wx-openid-race"))
+                .isInstanceOf(BizException.class)
+                .hasMessage("openid已绑定其他用户");
+    }
+
+    @Test
     void shouldFailWhenPasswordIncorrect() {
         LoginRequest request = new LoginRequest();
         request.setUsername("carol");
@@ -157,5 +208,16 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.login(request))
                 .isInstanceOf(BizException.class)
                 .hasMessage("用户名或密码错误");
+    }
+
+    private User enabledUser(Long id, String username, String openid) {
+        User user = new User();
+        user.setId(id);
+        user.setUsername(username);
+        user.setPasswordHash(BCrypt.hashpw("secret123", BCrypt.gensalt()));
+        user.setNickname(username);
+        user.setOpenid(openid);
+        user.setStatus(UserStatus.ENABLED);
+        return user;
     }
 }

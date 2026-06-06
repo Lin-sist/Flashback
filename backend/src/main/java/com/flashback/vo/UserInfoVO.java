@@ -17,6 +17,7 @@ public class UserInfoVO {
     private UserStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean wechatBound;
 
     public Long getId() {
         return id;
@@ -80,5 +81,13 @@ public class UserInfoVO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isWechatBound() {
+        return wechatBound;
+    }
+
+    public void setWechatBound(boolean wechatBound) {
+        this.wechatBound = wechatBound;
     }
 }

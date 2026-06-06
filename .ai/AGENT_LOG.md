@@ -469,3 +469,112 @@ Risks:
 
 - M2 implementation still needs a concrete minimal schema decision: reuse `user.openid` vs introduce `user_wechat_identity`, and `record_reminder` vs `notification_outbox`.
 - Future implementation must enforce one successful send per `record_id + template_type` and must not block unlock processing on send failure.
+
+### 2026-06-06 Codex (M2 Backend Optimization Implementation Slice)
+
+Task:
+
+- Implement the approved M2 backend optimization plan in the smallest backend slice.
+- Preserve M2 boundaries: no production notification center, no SMS, no admin template management, no real WeChat send API, no AI enhancement, no package/lockfile change.
+
+Modified:
+
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/test/resources/schema.sql`
+- `backend/src/main/java/com/flashback/domain/RecordReminder.java`
+- `backend/src/main/java/com/flashback/domain/RecordReminderStatus.java`
+- `backend/src/main/java/com/flashback/mapper/RecordReminderMapper.java`
+- `backend/src/main/resources/mapper/RecordReminderMapper.xml`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordReminderMapperIntegrationTest.java`
+- `.ai/AGENT_LOG.md`
+
+Backend fact checklist:
+
+- confirmed: auth/JWT local account flow, `@CurrentUser` user id, record owner-scoped detail/update/delete/seal/list/timeline, `DRAFT -> SEALED -> UNLOCKED`, sealed immutability through user update/delete/seal SQL + service checks, reply only after `UNLOCKED`, shared enabled tags, record-tag filtering scoped by record ownership, stable record list/timeline ordering with `created_at DESC, id DESC`, AI fallback isolated from record lifecycle.
+- partial: `user.openid` exists in schema/domain/mapper, but local register intentionally sets it to `null`; no WeChat login/bind API is implemented.
+- partial: unlock task already writes `unlock_notice_log`; this slice adds `record_reminder` as a minimal unlock-reminder outbox marker, but no real WeChat delivery.
+- planned: real WeChat subscription authorization flow, openid binding, real send implementation, retry policy, and template management.
+- out of scope: SMS, production notification center, campaign/admin management, monitoring/alerting, real MAP/IMAGE/VOICE, AI capability enhancement, package/lockfile changes.
+- unknown: production WeChat template ids and release-time Mini Program subscription-message configuration.
+
+API contract map:
+
+- 首页 / 个人中心: `/api/user/me`, `/api/auth/login`, `/api/auth/register`; preview mode returns frontend demo data when no token and preview session exists.
+- 新建记录: `POST /api/records`; draft payload aligns with backend DTO fields including record type, unlock time, tags, and optional AI snapshot fields.
+- 我的记录: `GET /api/records`; frontend currently passes page and status, while backend already supports record type, tag, and keyword filters for later UI use.
+- 时光轴: `GET /api/records/timeline`; backend scopes to user and supports year/tag filtering.
+- 封存详情 / 时间回看: `GET /api/records/{id}` and `POST /api/records/{id}/seal`; backend returns status, unlock/seal/unlocked times, tags, reply flags, and AI snapshot fields.
+- 回信: `GET/POST /api/records/{recordId}/reply`; backend requires record ownership and `UNLOCKED`.
+- 标签: `GET /api/tags`; current M2 model is shared enabled tags, with record filtering still ownership-scoped.
+
+Implementation:
+
+- Added `record_reminder` table with unique `(record_id, template_type)` for successful idempotency marker/outbox semantics.
+- Added `RecordReminder` / `RecordReminderStatus` and `RecordReminderMapper`.
+- Hooked `RecordServiceImpl.runUnlockJob()` so a successfully unlocked record creates one `UNLOCK_REMINDER` marker.
+- Reminder status is `PENDING` when the user has an `openid`, and `SKIPPED_NO_OPENID` when `openid` is absent.
+- Reminder persistence is best-effort and non-blocking; failure does not roll back or stop unlock processing.
+- No real WeChat API call, sender, retry loop, SMS behavior, or notification-center behavior was added.
+
+Verification:
+
+- Initial sandboxed Maven runs failed because Maven Central dependency resolution was blocked by sandbox network permissions.
+- Approved focused test run passed: `mvn -q "-Dtest=RecordServiceImplTest,RecordReminderMapperIntegrationTest,UnlockNoticeLogMapperIntegrationTest" test`.
+- Approved full backend test run passed: `mvn -q test`.
+- Focused tests cover pending/skipped reminder marker creation, duplicate marker avoidance, and non-blocking reminder persistence failure.
+- Mapper integration tests cover `record_reminder` insert/select and unique `(record_id, template_type)` enforcement.
+
+Risks:
+
+- `record_reminder` is a schema addition; existing local MySQL databases need the new table applied manually because this project does not currently use a migration tool.
+- Real WeChat send behavior remains intentionally unimplemented; a later OpenSpec change must define template ids, bind/login flow, sender, retry, and operational rules.
+- `user.openid` remains nullable and has no binding API, so normal local demo accounts will produce `SKIPPED_NO_OPENID` markers.
+- Frontend record-list UI currently sends status filters only; backend type/tag/keyword filters are ready but not fully exercised by page controls.
+
+### 2026-06-06 Codex (M2 WeChat Identity Binding Foundation)
+
+Task:
+
+- Continue M2 backend optimization after the minimal `record_reminder` foundation.
+- Add the smallest trusted backend boundary for future WeChat identity binding without exposing a public "client submits openid" API.
+
+Modified:
+
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/test/resources/schema.sql`
+- `backend/src/main/java/com/flashback/mapper/UserMapper.java`
+- `backend/src/main/resources/mapper/UserMapper.xml`
+- `backend/src/main/java/com/flashback/service/UserService.java`
+- `backend/src/main/java/com/flashback/service/impl/UserServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/UserInfoVO.java`
+- `backend/src/test/java/com/flashback/service/impl/UserServiceImplTest.java`
+- `backend/src/test/java/com/flashback/mapper/UserMapperIntegrationTest.java`
+- `.ai/AGENT_LOG.md`
+
+Implementation:
+
+- Added unique `uk_user_openid` on `user.openid` so one verified WeChat identity cannot bind to multiple users; nullable `openid` remains allowed for local demo accounts.
+- Added `UserMapper.selectByOpenid` and `UserMapper.updateOpenidById`.
+- Added `UserService.bindVerifiedWechatOpenid(userId, openid)` as a trusted service boundary for a future verified WeChat login / `code2session` flow.
+- Binding trims input, rejects blank or overlong openid, rejects openid already bound to another user, and maps duplicate-key races to a business error.
+- Added `UserInfoVO.wechatBound` to expose binding state without returning raw `openid`.
+- Did not add a public bind endpoint, real WeChat API call, sender, SMS, notification center, or package/lockfile changes.
+
+Verification:
+
+- Sandboxed focused Maven run failed due Maven Central permission restriction, same as prior M2 runs.
+- Approved focused tests passed: `mvn -q "-Dtest=UserServiceImplTest,UserMapperIntegrationTest,UserControllerAuthIntegrationTest" test`.
+- Approved full backend suite passed: `mvn -q test`.
+- `git diff --check` passed; only CRLF conversion warnings were reported.
+
+Risks:
+
+- Existing local MySQL databases need the new `uk_user_openid` index applied manually; duplicate non-null historical openids would block that index.
+- Public WeChat bind/login remains intentionally unimplemented until a later OpenSpec change defines code verification, app credentials, and security handling.
+- Normal local users still have nullable `openid`, so unlock reminders remain `SKIPPED_NO_OPENID` unless a future verified binding flow populates it.
+
+Next:
+
+- Next M2 slice should review whether frontend needs only `wechatBound` display state, or whether a new OpenSpec change should define real WeChat login/binding and subscription authorization timing.

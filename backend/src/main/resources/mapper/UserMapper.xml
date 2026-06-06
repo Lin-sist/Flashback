@@ -37,6 +37,14 @@
         LIMIT 1
     </select>
 
+    <select id="selectByOpenid" resultMap="UserResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `user`
+        WHERE openid = #{openid}
+        LIMIT 1
+    </select>
+
     <insert id="insert" parameterType="com.flashback.domain.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO `user` (
             username,
@@ -67,6 +75,14 @@
             nickname = #{nickname},
             email = #{email},
             avatar = #{avatar},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateOpenidById">
+        UPDATE `user`
+        SET
+            openid = #{openid},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>

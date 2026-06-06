@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.RecordReminderMapper">
+
+    <resultMap id="RecordReminderResultMap" type="com.flashback.domain.RecordReminder">
+        <id property="id" column="id"/>
+        <result property="recordId" column="record_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="templateType" column="template_type"/>
+        <result property="reminderStatus" column="reminder_status"
+                javaType="com.flashback.domain.RecordReminderStatus"/>
+        <result property="lastError" column="last_error"/>
+        <result property="sentAt" column="sent_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="selectByRecordIdAndTemplateType" resultMap="RecordReminderResultMap">
+        SELECT
+            id,
+            record_id,
+            user_id,
+            template_type,
+            reminder_status,
+            last_error,
+            sent_at,
+            created_at,
+            updated_at
+        FROM record_reminder
+        WHERE record_id = #{recordId}
+          AND template_type = #{templateType}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.flashback.domain.RecordReminder" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO record_reminder (
+            record_id,
+            user_id,
+            template_type,
+            reminder_status,
+            last_error,
+            sent_at,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{recordId},
+            #{userId},
+            #{templateType},
+            #{reminderStatus},
+            #{lastError},
+            #{sentAt},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+</mapper>

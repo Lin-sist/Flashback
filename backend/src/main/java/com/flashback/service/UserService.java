@@ -19,4 +19,6 @@ public interface UserService {
     UserInfoVO getCurrentUser(Long userId);
 
     UserInfoVO updateProfile(Long userId, UpdateUserProfileRequest request);
+
+    UserInfoVO bindVerifiedWechatOpenid(Long userId, String openid);
 }
