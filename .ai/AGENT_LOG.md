@@ -750,3 +750,58 @@ Risks:
 Next:
 
 - Next M2 slice can inspect frontend service/mock compatibility for V2 pages, or perform a final M2 evidence audit to identify any remaining backend gaps.
+
+### 2026-06-06 Codex (M2 Frontend Contract Compatibility Review)
+
+Task:
+
+- Continue M2 backend optimization with a frontend service/mock compatibility review.
+- Map current V2 frontend service calls to the backend contracts already verified in M2.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+
+Evidence:
+
+- `frontend/src/services/recordService.ts` calls real backend APIs for `POST /api/records`, `PUT /api/records/{id}`, `DELETE /api/records/{id}`, `POST /api/records/{id}/seal`, `GET /api/records`, `GET /api/records/{id}`, `GET /api/records/unlocked`, and `GET /api/records/timeline`.
+- `frontend/src/services/replyService.ts` calls `GET/POST /api/records/{recordId}/reply` and uses preview data only when no token plus preview session exists.
+- `frontend/src/services/tagService.ts` calls `GET /api/tags`; frontend fetches all enabled shared tags, then `tagStore` separates mood/topic tags client-side.
+- `frontend/src/services/authService.ts` calls local register/login, `GET /api/user/me`, and `PUT /api/user/profile`; preview user info is used only under preview session without token.
+- `frontend/src/services/aiService.ts` calls authenticated `/api/ai/writing-prompts` and `/api/ai/summarize-record`; no preview bypass is implemented for AI service, which is acceptable because AI is not core lifecycle.
+- `frontend/src/features/preview/preview-session.ts` gates preview fallback by `isPreviewModeEnabled`, no token, and an explicit preview session.
+
+Contract map:
+
+- Home: uses record list counts by `DRAFT`, `SEALED`, and unlocked records; backend supports these APIs and ownership-scoped results.
+- 新建记录: uses tag list, detail prefill for editing, create/update draft payload fields, and seal API; backend tests cover draft lifecycle, tag validation, and seal constraints.
+- 我的记录: uses backend pagination and status filter; keyword search is currently client-side over the fetched page, while backend keyword/type/tag filters are available but not fully consumed by UI.
+- 时光轴: uses backend `year` filter; backend also supports `tagId`, but current page UI does not expose tag filtering.
+- 封存详情 / 时间回看: uses `GET /api/records/{id}` fields including status, timestamps, tags, AI snapshot fields, `canReply`, and `hasReply`.
+- 回信: uses backend reply detail/create only when unlocked detail reports reply availability; backend ownership and one-reply behavior are tested.
+- 标签: uses shared enabled tag list; current M2 shared-tag model matches backend and frontend.
+- 个人中心: uses current user plus simple record-count calls; backend exposes `wechatBound`, but frontend type/UI do not consume it yet.
+
+Compatibility findings:
+
+- confirmed: preview bypass stays frontend/demo-only and skips real backend record/reply/tag/timeline calls when active.
+- confirmed: current core V2 pages have backend API coverage without requiring new response fields.
+- partial: frontend `UserInfoVO` type does not include backend `wechatBound`; this is not a blocker because no current V2 page consumes it.
+- partial: backend supports record list `recordType`, `tagId`, and `keyword`, but current frontend only sends page/status and handles keyword client-side.
+- partial: backend timeline supports `tagId`, but current frontend timeline UI sends only `year`.
+- out of scope: reminder/subscription UI remains visual or settings placeholder; no frontend call to real subscription authorization or delivery exists in this phase.
+
+Verification:
+
+- Documentation-only review; no source implementation changed.
+- Read focused files under `frontend/src/services`, `frontend/src/features/preview`, relevant stores, and focused page call sites.
+- No Maven or frontend build was required because only `.ai/AGENT_LOG.md` was edited.
+
+Risks:
+
+- Client-side keyword search only filters the current fetched page, not the full backend result set; this is acceptable for current demo UI but should be revisited if search becomes a core backend-backed feature.
+- If product wants to display WeChat binding or reminder readiness, frontend types/UI should add `wechatBound` consumption in a separate focused slice.
+
+Next:
+
+- Next M2 slice should run a final requirement-by-requirement evidence audit against `m2-backend-optimization` and identify any remaining backend gaps before considering archive/closeout.
