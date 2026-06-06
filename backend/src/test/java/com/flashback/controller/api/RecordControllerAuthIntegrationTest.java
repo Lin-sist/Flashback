@@ -5,6 +5,8 @@ import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import com.flashback.domain.User;
 import com.flashback.domain.UserStatus;
+import com.flashback.dto.RecordPageQuery;
+import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
@@ -16,6 +18,7 @@ import com.flashback.vo.RecordTagVO;
 import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,10 +30,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -74,6 +79,48 @@ class RecordControllerAuthIntegrationTest {
                                 .andExpect(jsonPath("$.data.total").value(1))
                                 .andExpect(jsonPath("$.data.list[0].id").value(9001))
                                 .andExpect(jsonPath("$.data.list[0].status").value("DRAFT"));
+        }
+
+        @Test
+        void shouldPassMineRecordFiltersToService() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+                when(recordService.pageMine(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
+                                .thenReturn(PageResult.of(List.of(), 0L, 2, 20));
+
+                mockMvc.perform(get("/api/records")
+                                .header("Authorization", "Bearer " + token)
+                                .param("pageNum", "2")
+                                .param("pageSize", "20")
+                                .param("status", "SEALED")
+                                .param("recordType", "FUTURE_LETTER")
+                                .param("tagId", "12")
+                                .param("keyword", "阶段"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(0));
+
+                ArgumentCaptor<RecordPageQuery> queryCaptor = ArgumentCaptor.forClass(RecordPageQuery.class);
+                verify(recordService).pageMine(org.mockito.ArgumentMatchers.eq(5001L), queryCaptor.capture());
+                RecordPageQuery query = queryCaptor.getValue();
+                assertThat(query.getPageNum()).isEqualTo(2);
+                assertThat(query.getPageSize()).isEqualTo(20);
+                assertThat(query.getStatus()).isEqualTo(RecordStatus.SEALED);
+                assertThat(query.getRecordType()).isEqualTo(RecordType.FUTURE_LETTER);
+                assertThat(query.getTagId()).isEqualTo(12L);
+                assertThat(query.getKeyword()).isEqualTo("阶段");
+        }
+
+        @Test
+        void shouldReturn400WhenRecordPageSizeTooLarge() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+
+                mockMvc.perform(get("/api/records")
+                                .header("Authorization", "Bearer " + token)
+                                .param("pageSize", "201"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value(40000))
+                                .andExpect(jsonPath("$.message").value("pageSize: pageSize 最大为 200"));
         }
 
         @Test
@@ -145,6 +192,40 @@ class RecordControllerAuthIntegrationTest {
                                 .andExpect(jsonPath("$.data[0].yearMonth").value("2026-03"))
                                 .andExpect(jsonPath("$.data[0].items[0].id").value(9001))
                                 .andExpect(jsonPath("$.data[0].items[0].tagNames[0]").value("焦虑"));
+        }
+
+        @Test
+        void shouldPassTimelineFiltersToService() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+                when(recordService.timeline(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
+                                .thenReturn(List.of());
+
+                mockMvc.perform(get("/api/records/timeline")
+                                .header("Authorization", "Bearer " + token)
+                                .param("year", "2026")
+                                .param("tagId", "12"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(0));
+
+                ArgumentCaptor<RecordTimelineQuery> queryCaptor = ArgumentCaptor.forClass(RecordTimelineQuery.class);
+                verify(recordService).timeline(org.mockito.ArgumentMatchers.eq(5001L), queryCaptor.capture());
+                RecordTimelineQuery query = queryCaptor.getValue();
+                assertThat(query.getYear()).isEqualTo(2026);
+                assertThat(query.getTagId()).isEqualTo(12L);
+        }
+
+        @Test
+        void shouldReturn400WhenTimelineYearTooSmall() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+
+                mockMvc.perform(get("/api/records/timeline")
+                                .header("Authorization", "Bearer " + token)
+                                .param("year", "1969"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value(40000))
+                                .andExpect(jsonPath("$.message").value("year: year最小为1970"));
         }
 
         @Test

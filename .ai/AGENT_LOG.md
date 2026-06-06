@@ -612,3 +612,37 @@ Risks:
 Next:
 
 - Next M2 slice can review controller-level query validation and frontend contract usage for record list/timeline filters, or define a separate real WeChat login/binding change if subscription delivery moves beyond foundation.
+
+### 2026-06-06 Codex (M2 Record API Query Contract Evidence)
+
+Task:
+
+- Continue M2 backend optimization with controller/API contract coverage for record list and timeline query parameters.
+- Keep the slice limited to API entry validation and parameter binding evidence.
+
+Modified:
+
+- `backend/src/test/java/com/flashback/controller/api/RecordControllerAuthIntegrationTest.java`
+- `.ai/AGENT_LOG.md`
+
+Implementation:
+
+- Added controller integration coverage proving `/api/records` passes `pageNum`, `pageSize`, `status`, `recordType`, `tagId`, and `keyword` into `RecordService.pageMine`.
+- Added controller integration coverage proving `/api/records/timeline` passes `year` and `tagId` into `RecordService.timeline`.
+- Added validation coverage for `pageSize > 200` and timeline `year < 1970`.
+- No controller, service, SQL, schema, frontend, package, or OpenSpec implementation changes were required.
+
+Verification:
+
+- Sandboxed focused Maven run failed due Maven Central permission restriction, same as prior M2 runs.
+- Approved focused test passed: `mvn -q "-Dtest=RecordControllerAuthIntegrationTest" test`.
+- Approved full backend suite passed: `mvn -q test`.
+
+Risks:
+
+- This locks backend API parameter binding and validation, but does not prove the current frontend UI exposes all backend-supported filters.
+- Frontend contract usage should still be reviewed separately if M2 wants to replace remaining preview/mock assumptions.
+
+Next:
+
+- Next M2 slice can inspect frontend service calls for record list/timeline/tag compatibility, or move to AI fallback boundary evidence if frontend work should remain untouched.
