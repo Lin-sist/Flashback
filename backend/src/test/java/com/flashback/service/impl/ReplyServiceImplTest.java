@@ -55,6 +55,8 @@ class ReplyServiceImplTest {
         assertThatThrownBy(() -> replyService.create(1L, 100L, request))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("记录不存在");
+        verify(replyMapper, never()).selectByRecordId(any());
+        verify(replyMapper, never()).insert(any());
     }
 
     @Test
@@ -98,7 +100,12 @@ class ReplyServiceImplTest {
         assertThat(result.getRecordId()).isEqualTo(100L);
         assertThat(result.getContent()).isEqualTo("你做到了");
         assertThat(result.getReplyType()).isEqualTo(ReplyType.SHORT_REPLY);
-        verify(replyMapper).insert(any(Reply.class));
+        verify(replyMapper).insert(org.mockito.ArgumentMatchers.argThat(reply ->
+                reply.getRecordId().equals(100L)
+                        && reply.getUserId().equals(1L)
+                        && "你做到了".equals(reply.getContent())
+                        && reply.getReplyType() == ReplyType.SHORT_REPLY
+                        && LocalDateTime.of(2026, 4, 9, 20, 0, 0).equals(reply.getCreatedAt())));
     }
 
     @Test
@@ -171,6 +178,7 @@ class ReplyServiceImplTest {
         assertThatThrownBy(() -> replyService.detail(1L, 100L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("记录不存在");
+        verify(replyMapper, never()).selectByRecordId(any());
     }
 
     private Record mockRecord(RecordStatus status) {

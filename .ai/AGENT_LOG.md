@@ -681,3 +681,37 @@ Risks:
 Next:
 
 - Next M2 slice can inspect frontend service/mock compatibility for record list/timeline/tag usage, or add reply/tag controller evidence if backend-only work should continue.
+
+### 2026-06-06 Codex (M2 Reply Ownership Evidence)
+
+Task:
+
+- Continue M2 backend optimization with a narrow reply lifecycle and ownership evidence slice.
+- Strengthen proof that reply behavior stays owner-scoped and only follows unlocked records.
+
+Modified:
+
+- `backend/src/test/java/com/flashback/service/impl/ReplyServiceImplTest.java`
+- `.ai/AGENT_LOG.md`
+
+Implementation:
+
+- Added assertions that cross-user reply create/detail attempts stop after owned-record lookup and do not query or insert reply rows.
+- Strengthened successful reply creation coverage to verify persisted `recordId`, authenticated `userId`, trimmed content, `SHORT_REPLY`, and fixed clock `createdAt`.
+- Existing tests already cover unauthenticated reply API rejection, content validation, unsupported reply type rejection, reply-before-unlock rejection, duplicate reply rejection, and no-reply detail response.
+- No service/controller behavior, schema, frontend, package/lockfile, or OpenSpec implementation changes were required.
+
+Verification:
+
+- Sandboxed focused Maven run failed due Maven Central permission restriction, same as prior M2 runs.
+- Approved focused test passed: `mvn -q "-Dtest=ReplyServiceImplTest,ReplyControllerAuthIntegrationTest" test`.
+- Approved full backend suite passed: `mvn -q test`.
+
+Risks:
+
+- This locks current reply ownership behavior at service/controller boundaries; it does not add new reply types beyond `SHORT_REPLY`.
+- Future multi-reply or long-form reply support should be a separate OpenSpec change because current schema/service enforces one reply per record.
+
+Next:
+
+- Next M2 slice can inspect frontend service/mock compatibility for V2 pages, or add tag controller/shared-tag contract evidence.
