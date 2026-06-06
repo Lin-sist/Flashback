@@ -805,3 +805,52 @@ Risks:
 Next:
 
 - Next M2 slice should run a final requirement-by-requirement evidence audit against `m2-backend-optimization` and identify any remaining backend gaps before considering archive/closeout.
+
+### 2026-06-06 Codex (M2 Final Evidence Audit)
+
+Task:
+
+- Continue M2 backend optimization with a final requirement-by-requirement evidence audit.
+- Verify whether remaining M2 backend requirements are satisfied by current code, tests, and documented evidence.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+
+Audit result:
+
+- complete for current M2 scope: no additional P1 backend implementation defect was found in the final audit.
+- OpenSpec CLI remains unavailable in this shell (`openspec` command not found), so local OpenSpec files and current worktree evidence remain the authoritative audit source.
+
+Requirement evidence:
+
+- Backend capability fact source: `.ai/AGENT_LOG.md` contains confirmed/partial/planned/out-of-scope/unknown classifications for auth, records, replies, tags, timeline, unlock task, AI fallback, preview bypass, WeChat identity, and reminder persistence.
+- Record lifecycle: `RecordServiceImplTest`, `RecordMapperIntegrationTest`, and full test suite cover draft create/update, sealed immutability, seal constraints, unlock job eligibility, idempotency, unlocked detail, reply flags, and AI snapshot preservation/absence.
+- Record type support: create/update DTO and service tests cover `FUTURE_LETTER`, `NODE_RECORD`, and `EMOTION_NOTE`; invalid enum values are rejected by request binding/validation.
+- Authentication and ownership: controller auth tests cover unauthenticated rejection; service/mapper tests cover owner-scoped detail/update/delete/seal/list/timeline/reply and cross-user rejection.
+- Private data boundary: code search found logging limited to global unhandled exception path/message and unlock job counts; no record content, token, openid, or reminder payload content is logged by the M2 paths.
+- Frontend API contract: `.ai/AGENT_LOG.md` maps Home, 新建记录, 我的记录, 时光轴, 封存详情, 时间回看, 回信, 标签, and 个人中心 to current backend APIs and documents frontend partial use of backend filters.
+- List/timeline/tag stability: mapper/controller tests cover deterministic record list ordering, unlocked ordering, timeline ordering/grouping, status/type/tag/keyword parameter binding, shared enabled tags, and user-owned tag filtering.
+- Unlock task safety: `runUnlockJob` processes expired `SEALED` records only; tests cover no-op runs, concurrent/idempotent affected-row behavior, notice/reminder side effects only after successful transition, and non-blocking reminder persistence failure.
+- WeChat subscription-message foundation: `user.openid` is reused as nullable identity placeholder; trusted `bindVerifiedWechatOpenid` service boundary and `wechatBound` output are implemented; `record_reminder` is unique by `record_id + template_type`; unlock creates `PENDING` or `SKIPPED_NO_OPENID` reminder markers without real WeChat delivery.
+- AI fallback boundary: `AiServiceImplTest`, `AiControllerAuthIntegrationTest`, and `RecordServiceImplTest` prove AI is an authenticated supporting API/fallback path and does not block or mutate core record lifecycle operations.
+- Guardrails: no production notification center, SMS, admin template management, campaign delivery, real WeChat send API, real MAP/IMAGE/VOICE, monitoring, deployment, AI enhancement, or package/lockfile update was introduced.
+
+Verification:
+
+- Approved full backend suite passed: `mvn -q test`.
+- `rg`-based sensitive-log review over `backend/src/main/java/com/flashback` found no M2 path logging record content, tokens, openid, or reminder payload data.
+- `git log --oneline --max-count=12` confirms staged M2 commits from docs closeout through query, reminder, identity, AI, reply, tag, and frontend-contract evidence.
+
+Remaining risks:
+
+- Existing local MySQL databases still need manual schema application for `record_reminder` and `uk_user_openid` because no migration tool is present.
+- Real WeChat subscription authorization, code2session login/bind endpoint, template ids, sender, retry policy, and operational rules remain deliberately deferred to a later OpenSpec change.
+- Frontend currently does not consume backend `wechatBound`; this is not a current M2 blocker because no V2 page displays WeChat binding readiness.
+- Frontend keyword search filters only the fetched page; backend keyword/type/tag filters are available but not fully exposed by the current UI.
+- Demo-scale query correctness is covered; large-data performance benchmarking is out of current M2 scope.
+
+Next:
+
+- M2 backend optimization can be treated as implementation-complete for the current demo scope.
+- Before archive, run the project’s OpenSpec archive workflow once the `openspec` CLI is available, or archive manually according to the project process.
