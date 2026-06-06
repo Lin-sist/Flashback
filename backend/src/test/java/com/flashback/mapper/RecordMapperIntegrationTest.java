@@ -215,6 +215,42 @@ class RecordMapperIntegrationTest {
         }
 
         @Test
+        void shouldFilterRecordPageBySharedTagWithoutLeakingOtherUsers() {
+                long sharedTagId = insertTag("阶段复盘", "TOPIC", "ENABLED",
+                                LocalDateTime.of(2026, 4, 3, 0, 0, 0));
+
+                Record mine = newRecord(4010L, "我的阶段复盘", RecordStatus.SEALED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 4, 3, 9, 0, 0));
+                recordMapper.insert(mine);
+                bindRecordTag(mine.getId(), sharedTagId);
+
+                Record otherUser = newRecord(9010L, "别人的阶段复盘", RecordStatus.SEALED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 4, 3, 10, 0, 0));
+                recordMapper.insert(otherUser);
+                bindRecordTag(otherUser.getId(), sharedTagId);
+
+                long total = recordMapper.countByUserAndCondition(
+                                4010L,
+                                RecordStatus.SEALED,
+                                null,
+                                sharedTagId,
+                                "阶段");
+                List<Record> page = recordMapper.selectPageByUserAndCondition(
+                                4010L,
+                                RecordStatus.SEALED,
+                                null,
+                                sharedTagId,
+                                "阶段",
+                                0,
+                                10);
+
+                assertThat(total).isEqualTo(1L);
+                assertThat(page).hasSize(1);
+                assertThat(page.get(0).getId()).isEqualTo(mine.getId());
+                assertThat(page.get(0).getUserId()).isEqualTo(4010L);
+        }
+
+        @Test
         void shouldSelectExpiredSealedRecordsOnly() {
                 LocalDateTime now = LocalDateTime.of(2026, 3, 26, 16, 0, 0);
                 recordMapper.insert(newRecord(3001L, "expired-sealed", RecordStatus.SEALED, RecordType.NODE_RECORD,
@@ -279,6 +315,30 @@ class RecordMapperIntegrationTest {
         }
 
         @Test
+        void shouldUseIdDescTieBreakerWhenUnlockedAtIsSame() {
+                LocalDateTime sameUnlockedAt = LocalDateTime.of(2026, 3, 27, 9, 0, 0);
+
+                Record first = newRecord(3004L, "unlocked-same-first", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 3, 23, 10, 0, 0));
+                first.setUnlockedAt(sameUnlockedAt);
+                recordMapper.insert(first);
+
+                Record second = newRecord(3004L, "unlocked-same-second", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 3, 23, 11, 0, 0));
+                second.setUnlockedAt(sameUnlockedAt);
+                recordMapper.insert(second);
+
+                recordMapper.insert(newRecord(9004L, "other-user-unlocked", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 3, 23, 12, 0, 0)));
+
+                List<Record> page = recordMapper.selectUnlockedPageByUser(3004L, 0, 10);
+
+                assertThat(page).hasSize(2);
+                assertThat(page.get(0).getId()).isEqualTo(second.getId());
+                assertThat(page.get(1).getId()).isEqualTo(first.getId());
+        }
+
+        @Test
         void shouldSelectTimelineByYearAndTag() {
                 Record april = newRecord(5001L, "april-note", RecordStatus.SEALED, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 4, 2, 10, 0, 0));
@@ -294,6 +354,29 @@ class RecordMapperIntegrationTest {
                 List<Record> timeline = recordMapper.selectTimelineByUserAndCondition(5001L, topicTagId, 2026);
                 assertThat(timeline).hasSize(1);
                 assertThat(timeline.get(0).getId()).isEqualTo(april.getId());
+        }
+
+        @Test
+        void shouldUseIdDescTieBreakerAndUserScopeForTimelineWhenCreatedAtIsSame() {
+                LocalDateTime sameCreatedAt = LocalDateTime.of(2026, 5, 1, 10, 0, 0);
+
+                Record first = newRecord(5002L, "timeline-same-first", RecordStatus.SEALED, RecordType.NODE_RECORD,
+                                sameCreatedAt);
+                recordMapper.insert(first);
+
+                Record second = newRecord(5002L, "timeline-same-second", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                sameCreatedAt);
+                recordMapper.insert(second);
+
+                recordMapper.insert(newRecord(9002L, "other-user-newer", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 5, 2, 10, 0, 0)));
+
+                List<Record> timeline = recordMapper.selectTimelineByUserAndCondition(5002L, null, 2026);
+
+                assertThat(timeline).hasSize(2);
+                assertThat(timeline.get(0).getId()).isEqualTo(second.getId());
+                assertThat(timeline.get(1).getId()).isEqualTo(first.getId());
+                assertThat(timeline).allSatisfy(record -> assertThat(record.getUserId()).isEqualTo(5002L));
         }
 
         private long insertTag(String name, String type, String status, LocalDateTime createdAt) {

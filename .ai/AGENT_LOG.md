@@ -578,3 +578,37 @@ Risks:
 Next:
 
 - Next M2 slice should review whether frontend needs only `wechatBound` display state, or whether a new OpenSpec change should define real WeChat login/binding and subscription authorization timing.
+
+### 2026-06-06 Codex (M2 Query Stability Evidence)
+
+Task:
+
+- Continue M2 backend optimization with a narrow `List / Timeline / Tag Query Stability` slice.
+- Lock backend evidence for shared-tag filtering ownership, unlocked ordering, and timeline ordering without expanding product scope.
+
+Modified:
+
+- `backend/src/test/java/com/flashback/mapper/RecordMapperIntegrationTest.java`
+- `.ai/AGENT_LOG.md`
+
+Implementation:
+
+- Added mapper integration coverage that shared/global tag filtering still returns only records owned by the authenticated user.
+- Added unlocked-list ordering coverage for same `unlocked_at`, expecting deterministic `unlocked_at DESC, id DESC`.
+- Added timeline ordering and ownership coverage for same `created_at`, expecting deterministic `created_at DESC, id DESC` and no cross-user leakage.
+- No SQL or API changes were required; existing `RecordMapper.xml` already satisfied these M2 query stability boundaries.
+
+Verification:
+
+- Sandboxed focused Maven run failed due Maven Central permission restriction, same as prior M2 runs.
+- Approved focused test passed: `mvn -q "-Dtest=RecordMapperIntegrationTest" test`.
+- Approved full backend suite passed: `mvn -q test`.
+
+Risks:
+
+- Query performance was not benchmarked against a large MySQL dataset; current evidence is correctness and demo-scale stability.
+- Existing indexes appear aligned with current demo query shape, but future heavy tag/keyword search may need a separate performance-oriented OpenSpec change.
+
+Next:
+
+- Next M2 slice can review controller-level query validation and frontend contract usage for record list/timeline filters, or define a separate real WeChat login/binding change if subscription delivery moves beyond foundation.
