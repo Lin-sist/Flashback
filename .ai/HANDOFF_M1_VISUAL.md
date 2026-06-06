@@ -40,7 +40,11 @@ M1 is high-fidelity frontend visual translation for the WeChat Mini Program.
 | Seal / Archive / Review page | `pages/record-detail/index` (SEALED state) | `Docs/design/home-v2/解锁.html` | `Docs/design/home-v2/解锁.png` | confirmed |
 | My Records | `pages/record-list/index` | `Docs/design/home-v2/我的档案.html` | `Docs/design/home-v2/我的档案.png` | confirmed |
 | Record Detail / Time Review | `pages/record-detail/index` (UNLOCKED state) | `Docs/design/home-v2/回看.html` | `Docs/design/home-v2/回看.png` | confirmed |
-| Settings-style pages | `pages/user-center/archive-preference/index`, `pages/user-center/tag-manage/index`, `pages/user-center/notify-settings/index`, `pages/user-center/about/index` | NEEDS_OWNER_CONFIRMATION | NEEDS_OWNER_CONFIRMATION | pending |
+| Archive Preference / 整理偏好 | `pages/user-center/archive-preference/index` | `Docs/design/home-v2/个人主页_子页面.html` PAGE 0 | `Docs/design/home-v2/整理偏好.png` | confirmed |
+| Visual Appearance / 视觉外观 | `pages/user-center/visual-appearance/index` | `Docs/design/home-v2/个人主页_子页面.html` PAGE 1 | `Docs/design/home-v2/视觉外观.png` | confirmed |
+| Access Control / 访问控制 | `pages/user-center/access-control/index` | `Docs/design/home-v2/个人主页_子页面.html` PAGE 2 | `Docs/design/home-v2/访问控制.png` | confirmed |
+| Data Backup / 数据备份 | `pages/user-center/data-backup/index` | `Docs/design/home-v2/个人主页_子页面.html` PAGE 3 | `Docs/design/home-v2/数据备份.png` | confirmed |
+| Version Info / 版本信息 | `pages/user-center/about/index` | `Docs/design/home-v2/个人主页_子页面.html` PAGE 4 | `Docs/design/home-v2/版本信息.png` | confirmed |
 
 ## Current Known Workflow
 

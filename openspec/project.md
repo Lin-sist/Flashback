@@ -38,7 +38,7 @@ V2.0 includes / V2.0 包含：
 - 在完整 V2.0 计划中，frontend 和 backend 都可以分模块演进。
 - 可演示的用户侧 WeChat Mini Program 流程是优先事项。
 - 在工程执行前，SHOULD 先明确产品叙事、视觉系统与用户侧页面职责。
-- WeChat subscription message capability 属于 V2.0 规划，但归属后续模块，不属于 M1。
+- WeChat subscription message capability 属于 V2.0 规划，不属于 M1；M2 可纳入记录到期提醒的最小基础闭环，但不包含生产级通知中心或短信提醒。
 - V2.0 演示允许 one-click preview / no-login demo mode；除非后续 spec 修改，否则基于现有 `frontend/src/features/preview` 机制。
 
 V2.0 does not include / V2.0 不包含：

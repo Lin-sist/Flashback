@@ -155,6 +155,30 @@ class RecordMapperIntegrationTest {
         }
 
         @Test
+        void shouldUseIdDescTieBreakerWhenCreatedAtIsSame() {
+                LocalDateTime sameCreatedAt = LocalDateTime.of(2026, 2, 5, 9, 0, 0);
+                Record first = newRecord(1005L, "same-time-first", RecordStatus.DRAFT, RecordType.NODE_RECORD,
+                                sameCreatedAt);
+                recordMapper.insert(first);
+                Record second = newRecord(1005L, "same-time-second", RecordStatus.DRAFT, RecordType.NODE_RECORD,
+                                sameCreatedAt);
+                recordMapper.insert(second);
+
+                List<Record> page = recordMapper.selectPageByUserAndCondition(
+                                1005L,
+                                RecordStatus.DRAFT,
+                                RecordType.NODE_RECORD,
+                                null,
+                                null,
+                                0,
+                                10);
+
+                assertThat(page).hasSize(2);
+                assertThat(page.get(0).getId()).isEqualTo(second.getId());
+                assertThat(page.get(1).getId()).isEqualTo(first.getId());
+        }
+
+        @Test
         void shouldFilterRecordPageByTagAndKeyword() {
                 Record target = newRecord(4001L, "实习焦虑", RecordStatus.DRAFT, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 4, 1, 9, 0, 0));

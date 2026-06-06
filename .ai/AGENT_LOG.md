@@ -367,3 +367,105 @@ Risks:
 
 - 未在微信开发者工具中实际点击「编译」和「预览进入」。
 - 后续如果重新运行普通 dev/build 命令，`dist/dev/mp-weixin` 或 `dist/build/mp-weixin` 可能再次被普通模式覆盖；需要重新用 preview build 命令生成。
+
+### 2026-06-05 Codex (M2 Backend Docs Closeout)
+
+Task:
+
+- 收口 M2 后端优化入口文档，避免进入后端实现阶段时被旧 M1 前端任务误导。
+
+Modified:
+
+- `.ai/ACTIVE_TASK.md`
+- `.ai/HANDOFF_M1_VISUAL.md`
+- `openspec/changes/m2-backend-optimization/proposal.md`
+- `openspec/changes/m2-backend-optimization/design.md`
+- `openspec/changes/m2-backend-optimization/tasks.md`
+- `openspec/changes/m2-backend-optimization/specs/backend-core/spec.md`
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- 确认 `.ai/ACTIVE_TASK.md` 已改为纯 M2 后端入口任务。
+- 确认 M1 handoff 中五个 User Center settings-style subpage 状态均为 confirmed。
+- 明确 M2 当前标签模型为系统共享/global tags，record-tag 关系和 tag filtering 仍受 record ownership 保护。
+- 明确 record list 分页排序需要稳定 tie-breaker，例如 `created_at DESC, id DESC`。
+
+Risks:
+
+- 本次仅做文档收口，未修改后端代码，也未运行后端测试。
+
+### 2026-06-05 Codex (M2 Backend Capability Audit + Minimal Fix)
+
+Task:
+
+- 审查 M2 backend core capabilities，确认 record lifecycle、owner boundary、list/timeline/tag/reply/AI fallback、preview bypass 和 WeChat subscription message foundation 现状。
+- 对发现的 P2 稳定性缺口做最小修复。
+
+Modified:
+
+- `backend/src/main/resources/mapper/RecordMapper.xml`
+- `backend/src/test/java/com/flashback/mapper/RecordMapperIntegrationTest.java`
+- `.ai/AGENT_LOG.md`
+
+Evidence:
+
+- Auth/JWT: `AuthController` 提供本地注册/登录；`JwtAuthenticationInterceptor` 保护 `/api/**`，`@CurrentUser` 注入 `AuthUser.userId`；`User.openid` 字段存在但普通注册明确不接受客户端 openid。
+- Preview bypass: frontend `preview-session.ts` + services 在无 token 且有 preview session 时走 demo data，不触发真实 backend 或订阅消息。
+- Records: `RecordServiceImpl` 使用 `selectByIdAndUserId` 保护 detail/update/delete/seal；update/delete/seal 均要求 `DRAFT`；mapper update/delete/seal SQL 也包含 `user_id` + `status = 'DRAFT'`。
+- Unlock: scheduler 调 `recordService.runUnlockJob()`；SQL 只选 `status='SEALED' and unlock_at <= now`；unlock SQL 只更新 `SEALED`；service 仅在 affected=1 时写 `unlock_notice_log`，重复执行不重复写成功日志。
+- List/timeline/tag: list/timeline SQL 均带 `r.user_id = #{userId}`；tag definitions 为 shared enabled tags；tag filtering 使用 record ownership scoped query。
+- Reply: `ReplyServiceImpl` 先 `selectByIdAndUserId`，create 要求 `UNLOCKED`，`uk_reply_record_id` 防重复。
+- AI fallback: `AiServiceImpl` mock/fallback 独立 API，异常返回 fallback；record create/update/seal/unlock 不调用真实 AI，不阻塞核心流程。
+- Notification foundation: existing `unlock_notice_log` is unlock evidence only; no WeChat subscription send API/outbox/template config/openid binding API yet.
+
+Fix:
+
+- `RecordMapper.xml` record page order changed from `created_at DESC` to `created_at DESC, id DESC`.
+- Added mapper integration test for same `created_at` deterministic id-desc tie-breaker.
+
+Verification:
+
+- First `mvn -q test` failed inside sandbox because Maven could not resolve `spring-boot-starter-parent:3.3.5` from Maven Central due permission/network restriction.
+- Re-ran approved `mvn -q test` from `backend`; full backend test suite passed.
+
+Risks:
+
+- WeChat subscription message should be a new M2 subtask/spec slice before implementation; current code has data hints but no production send path.
+- Frontend record list currently exposes status filtering only; backend supports recordType/tag/keyword filters, but page-level UI does not yet use all of them.
+- `unlock_notice_log` has no unique `(record_id, notice_type, notice_status)` constraint; current normal unlock job is idempotent through record status update, but a future notification sender needs stronger outbox/log idempotency.
+
+### 2026-06-06 Codex (M2 Subscription Message Foundation Docs)
+
+Task:
+
+- 将记录到期提醒 / WeChat Mini Program subscription message foundation 正式纳入 `m2-backend-optimization` 文档范围。
+- 保持 M2 边界：只纳入 unlock reminder foundation，不做生产通知中心、短信提醒、admin template management、campaign delivery 或真实发布加固。
+
+Modified:
+
+- `.ai/ACTIVE_TASK.md`
+- `openspec/project.md`
+- `openspec/changes/m2-backend-optimization/proposal.md`
+- `openspec/changes/m2-backend-optimization/design.md`
+- `openspec/changes/m2-backend-optimization/tasks.md`
+- `openspec/changes/m2-backend-optimization/specs/backend-core/spec.md`
+- `.ai/AGENT_LOG.md`
+
+Evidence:
+
+- `proposal.md` adds M2 goal/scope/acceptance criteria for minimal WeChat subscription message foundation.
+- `design.md` adds "Notification Foundation, Not Notification Center" and review guidance for `openid`, preview bypass, seal-flow authorization timing, unlock-task hook, outbox/log persistence, idempotency, and sensitive-log avoidance.
+- `tasks.md` adds an explicit audit section for WeChat subscription message foundation and validation evidence requirements.
+- `backend-core/spec.md` adds SHALL scenarios for WeChat identity classification, preview bypass, seal-flow authorization point, non-blocking unlock reminder handling, idempotent successful sends, minimal persistence, and sensitive-log avoidance.
+
+Verification:
+
+- Documentation-only change.
+- Ran targeted text check across `.ai/ACTIVE_TASK.md`, `openspec/project.md`, and `openspec/changes/m2-backend-optimization/**` for subscription/reminder/notification wording.
+- No backend code, database schema, package, lockfile, multimedia, admin, SMS, or real AI implementation changes were made.
+
+Risks:
+
+- M2 implementation still needs a concrete minimal schema decision: reuse `user.openid` vs introduce `user_wechat_identity`, and `record_reminder` vs `notification_outbox`.
+- Future implementation must enforce one successful send per `record_id + template_type` and must not block unlock processing on send failure.

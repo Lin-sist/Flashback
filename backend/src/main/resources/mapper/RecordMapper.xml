@@ -185,7 +185,7 @@
                 OR r.content LIKE CONCAT('%', #{keyword}, '%')
             )
         </if>
-        ORDER BY r.created_at DESC
+        ORDER BY r.created_at DESC, r.id DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
