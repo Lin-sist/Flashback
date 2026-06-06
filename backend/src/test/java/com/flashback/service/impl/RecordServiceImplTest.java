@@ -230,6 +230,39 @@ class RecordServiceImplTest {
     }
 
     @Test
+    void shouldCreateDraftWithoutAiSnapshotAndPreserveOriginalContent() {
+        when(recordMapper.insert(any(Record.class))).thenAnswer(invocation -> {
+            Record record = invocation.getArgument(0);
+            record.setId(502L);
+            return 1;
+        });
+        when(recordMapper.selectByIdAndUserId(502L, 1L)).thenAnswer(invocation -> {
+            Record record = mockRecord(RecordStatus.DRAFT);
+            record.setId(502L);
+            record.setContent("不使用 AI，也先把今天的真实想法写下来");
+            record.setAiSummary(null);
+            record.setAiPromptResult(null);
+            return record;
+        });
+
+        com.flashback.dto.CreateRecordRequest request = new com.flashback.dto.CreateRecordRequest();
+        request.setTitle("无 AI 草稿");
+        request.setContent("不使用 AI，也先把今天的真实想法写下来");
+        request.setRecordType(RecordType.EMOTION_NOTE);
+
+        var result = recordService.create(1L, request);
+
+        verify(recordMapper).insert(org.mockito.ArgumentMatchers.argThat(record ->
+                "不使用 AI，也先把今天的真实想法写下来".equals(record.getContent())
+                        && record.getAiSummary() == null
+                        && record.getAiPromptResult() == null
+                        && record.getStatus() == RecordStatus.DRAFT));
+        assertThat(result.getContent()).isEqualTo("不使用 AI，也先把今天的真实想法写下来");
+        assertThat(result.getAiSummary()).isNull();
+        assertThat(result.getAiPromptResults()).isEmpty();
+    }
+
+    @Test
     void shouldClearAiFieldsWhenUpdateDraftWithoutAiSnapshot() {
         Record draft = mockRecord(RecordStatus.DRAFT);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);

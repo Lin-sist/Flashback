@@ -646,3 +646,38 @@ Risks:
 Next:
 
 - Next M2 slice can inspect frontend service calls for record list/timeline/tag compatibility, or move to AI fallback boundary evidence if frontend work should remain untouched.
+
+### 2026-06-06 Codex (M2 AI Fallback Boundary Evidence)
+
+Task:
+
+- Continue M2 backend optimization with a narrow AI fallback boundary slice.
+- Lock evidence that AI is a supporting API/snapshot capability and does not block the core record lifecycle.
+
+Modified:
+
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `.ai/AGENT_LOG.md`
+
+Implementation:
+
+- Added service-level coverage that a draft can be created without any AI snapshot fields.
+- The new test verifies original user content is persisted as record content, AI summary/prompt fields remain null/empty, and the record still enters `DRAFT`.
+- Confirmed existing AI service tests already cover mock output and unsupported-provider fallback.
+- Confirmed existing controller tests keep AI under authenticated `/api/ai/**` endpoints, separate from record create/update/seal/unlock.
+- No AI provider integration, AI enhancement, schema change, frontend change, package/lockfile change, or record lifecycle logic change was made.
+
+Verification:
+
+- Sandboxed focused Maven run failed due Maven Central permission restriction, same as prior M2 runs.
+- Approved focused test passed: `mvn -q "-Dtest=AiServiceImplTest,AiControllerAuthIntegrationTest,RecordServiceImplTest" test`.
+- Approved full backend suite passed: `mvn -q test`.
+
+Risks:
+
+- This proves current fallback/isolation behavior at service and controller boundaries; it does not add real AI disable flags or provider configuration UI.
+- Future real AI provider integration should be a separate OpenSpec change and must preserve this non-blocking boundary.
+
+Next:
+
+- Next M2 slice can inspect frontend service/mock compatibility for record list/timeline/tag usage, or add reply/tag controller evidence if backend-only work should continue.
