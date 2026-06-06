@@ -715,3 +715,38 @@ Risks:
 Next:
 
 - Next M2 slice can inspect frontend service/mock compatibility for V2 pages, or add tag controller/shared-tag contract evidence.
+
+### 2026-06-06 Codex (M2 Tag Shared Contract Evidence)
+
+Task:
+
+- Continue M2 backend optimization with a narrow tag API / shared-tag contract slice.
+- Lock SQL-level evidence for the current M2 model: tag definitions are shared/global, while only enabled tags are returned.
+
+Modified:
+
+- `backend/src/test/java/com/flashback/mapper/TagMapperIntegrationTest.java`
+- `.ai/AGENT_LOG.md`
+
+Implementation:
+
+- Added `TagMapperIntegrationTest` covering `selectEnabledByType(null)` and `selectEnabledByType(MOOD)`.
+- The new tests verify disabled tags are excluded, type filtering works, and results are stable by `id ASC`.
+- Added coverage that `countEnabledByIds` ignores disabled tags, supporting record create/update tag validation.
+- Existing controller tests already cover `/api/tags` authentication, disabled user rejection, invalid type validation, and successful typed tag response.
+- No service/controller/SQL implementation, schema, frontend, package/lockfile, or OpenSpec implementation changes were required.
+
+Verification:
+
+- Sandboxed focused Maven run failed due Maven Central permission restriction, same as prior M2 runs.
+- Approved focused test passed: `mvn -q "-Dtest=TagMapperIntegrationTest,TagControllerAuthIntegrationTest" test`.
+- Approved full backend suite passed: `mvn -q test`.
+
+Risks:
+
+- This proves shared enabled tag definitions and stable tag list ordering; record-tag ownership filtering is covered separately by record mapper tests.
+- User-created/private tags remain out of M2 scope unless a later OpenSpec change introduces them.
+
+Next:
+
+- Next M2 slice can inspect frontend service/mock compatibility for V2 pages, or perform a final M2 evidence audit to identify any remaining backend gaps.
