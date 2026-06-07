@@ -49,6 +49,12 @@ public interface RecordMapper {
                         @Param("unlockedAt") LocalDateTime unlockedAt,
                         @Param("updatedAt") LocalDateTime updatedAt);
 
+        int updateLaterReflectionByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("realityLater") String realityLater,
+                        @Param("updatedAt") LocalDateTime updatedAt);
+
         long countByUserAndCondition(
                         @Param("userId") Long userId,
                         @Param("status") RecordStatus status,

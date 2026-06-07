@@ -20,6 +20,7 @@ import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
+import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
@@ -194,6 +195,29 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
+    @Transactional
+    public RecordDetailVO updateLaterReflection(Long userId, Long id, UpdateLaterReflectionRequest request) {
+        Record current = requireOwnedRecord(id, userId);
+        if (current.getStatus() != RecordStatus.UNLOCKED) {
+            throw badRequest("仅UNLOCKED状态允许填写后来其实");
+        }
+        if (laterReflectionSubmitCount(current) >= 2) {
+            throw badRequest("后来其实提交次数已用完");
+        }
+
+        int affected = recordMapper.updateLaterReflectionByIdAndUserId(
+                id,
+                userId,
+                normalizeRequired(request.getRealityLater(), "realityLater不能为空"),
+                LocalDateTime.now(clock));
+        if (affected == 0) {
+            throw badRequest("后来其实提交次数已用完");
+        }
+
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
     public PageResult<RecordListItemVO> pageMine(Long userId, RecordPageQuery query) {
         int pageNum = query.getPageNum();
         int pageSize = query.getPageSize();
@@ -305,6 +329,10 @@ public class RecordServiceImpl implements RecordService {
         if (record.getStatus() != RecordStatus.DRAFT) {
             throw badRequest(message);
         }
+    }
+
+    private int laterReflectionSubmitCount(Record record) {
+        return record.getRealityLaterSubmitCount() == null ? 0 : record.getRealityLaterSubmitCount();
     }
 
     private BizException badRequest(String message) {

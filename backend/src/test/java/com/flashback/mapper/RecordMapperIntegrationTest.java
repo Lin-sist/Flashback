@@ -295,6 +295,41 @@ class RecordMapperIntegrationTest {
         }
 
         @Test
+        void updateLaterReflectionShouldOnlyAffectUnlockedWithinSubmitLimit() {
+                Record unlocked = newRecord(3005L, "later-ok", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 3, 24, 10, 0, 0));
+                unlocked.setRealityLaterSubmitCount(1);
+                recordMapper.insert(unlocked);
+
+                Record sealed = newRecord(3005L, "later-sealed", RecordStatus.SEALED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 3, 24, 11, 0, 0));
+                recordMapper.insert(sealed);
+
+                Record exhausted = newRecord(3005L, "later-exhausted", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 3, 24, 12, 0, 0));
+                exhausted.setRealityLaterSubmitCount(2);
+                recordMapper.insert(exhausted);
+
+                LocalDateTime updatedAt = LocalDateTime.of(2026, 3, 27, 10, 0, 0);
+
+                int updatedUnlocked = recordMapper.updateLaterReflectionByIdAndUserId(
+                                unlocked.getId(), 3005L, "后来其实我更需要慢一点", updatedAt);
+                int updatedSealed = recordMapper.updateLaterReflectionByIdAndUserId(
+                                sealed.getId(), 3005L, "sealed should fail", updatedAt);
+                int updatedExhausted = recordMapper.updateLaterReflectionByIdAndUserId(
+                                exhausted.getId(), 3005L, "exhausted should fail", updatedAt);
+
+                assertThat(updatedUnlocked).isEqualTo(1);
+                assertThat(updatedSealed).isEqualTo(0);
+                assertThat(updatedExhausted).isEqualTo(0);
+
+                Record found = recordMapper.selectByIdAndUserId(unlocked.getId(), 3005L);
+                assertThat(found.getRealityLater()).isEqualTo("后来其实我更需要慢一点");
+                assertThat(found.getRealityLaterSubmitCount()).isEqualTo(2);
+                assertThat(found.getUpdatedAt()).isEqualTo(updatedAt);
+        }
+
+        @Test
         void shouldPageUnlockedRecordsByUserOnly() {
                 Record unlockedOld = newRecord(3003L, "unlocked-old", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 3, 22, 10, 0, 0));

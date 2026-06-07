@@ -5,6 +5,7 @@ import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
+import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.auth.CurrentUser;
@@ -63,6 +64,14 @@ public class RecordController {
     @PostMapping("/{id}/seal")
     public ApiResponse<RecordDetailVO> seal(@CurrentUser AuthUser authUser, @PathVariable("id") Long id) {
         return ApiResponse.success(recordService.seal(authUser.getUserId(), id));
+    }
+
+    @PutMapping("/{id}/later-reflection")
+    public ApiResponse<RecordDetailVO> updateLaterReflection(
+            @CurrentUser AuthUser authUser,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateLaterReflectionRequest request) {
+        return ApiResponse.success(recordService.updateLaterReflection(authUser.getUserId(), id, request));
     }
 
     @GetMapping

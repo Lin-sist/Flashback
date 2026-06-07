@@ -157,6 +157,18 @@
           AND status = 'SEALED'
     </update>
 
+    <update id="updateLaterReflectionByIdAndUserId">
+        UPDATE `record`
+        SET
+            reality_later = #{realityLater},
+            reality_later_submit_count = COALESCE(reality_later_submit_count, 0) + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'UNLOCKED'
+          AND COALESCE(reality_later_submit_count, 0) &lt; 2
+    </update>
+
     <select id="countByUserAndCondition" resultType="long">
         SELECT COUNT(1)
         FROM `record` r

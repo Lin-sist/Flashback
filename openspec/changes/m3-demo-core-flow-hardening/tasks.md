@@ -78,17 +78,17 @@
 
 ## 5. Backend Phase: Record Reflection Fields
 
-- [ ] Extend create/update DTOs or equivalent contracts for M3 reflection fields after contract confirmation.
-- [ ] Preserve user original content.
+- [x] Extend create/update DTOs or equivalent contracts for M3 reflection fields after contract confirmation.
+- [x] Preserve user original content.
 - [ ] Add user-triggered AI organization for `beliefThen`.
 - [ ] Ensure AI output does not replace original content.
 - [ ] Ensure AI failure does not block record save or seal when non-AI validation passes.
-- [ ] Enforce that "后来其实" cannot be created or updated before unlock.
-- [ ] Add `PUT /api/records/{recordId}/later-reflection` with request `{ "realityLater": "string" }`.
-- [ ] Enforce that "后来其实" can be submitted at most 2 times after unlock by the owner.
-- [ ] Reject additional "后来其实" updates after the 2-submit limit is exhausted.
-- [ ] Ensure cross-user access to reflection fields is rejected.
-- [ ] Add tests for before-unlock, after-unlock, cross-user, and edit-limit "后来其实" behavior.
+- [x] Enforce that "后来其实" cannot be created or updated before unlock.
+- [x] Add `PUT /api/records/{recordId}/later-reflection` with request `{ "realityLater": "string" }`.
+- [x] Enforce that "后来其实" can be submitted at most 2 times after unlock by the owner.
+- [x] Reject additional "后来其实" updates after the 2-submit limit is exhausted.
+- [x] Ensure cross-user access to reflection fields is rejected.
+- [x] Add tests for before-unlock, after-unlock, cross-user, and edit-limit "后来其实" behavior.
 
 ## 6. Backend Phase: Life Node Records
 

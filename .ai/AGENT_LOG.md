@@ -1074,3 +1074,54 @@ Remaining risks:
 - `beliefThen` storage is wired into create/update, but a dedicated user-triggered AI organization API is still pending.
 - Reminder status migration and real WeChat send/not-configured behavior remain pending.
 - Demo/local MySQL databases need rebuild or manual schema application because the project has no migration tool.
+
+### 2026-06-07 Codex (M3 Later Reflection Endpoint)
+
+Task:
+
+- Implement the accepted M3 later reflection contract: `PUT /api/records/{recordId}/later-reflection` with request `{ "realityLater": "string" }`.
+- Enforce owner scope, `UNLOCKED` state, and at most 2 submissions.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/controller/api/RecordController.java`
+- `backend/src/main/java/com/flashback/dto/UpdateLaterReflectionRequest.java`
+- `backend/src/main/java/com/flashback/service/RecordService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/main/java/com/flashback/mapper/RecordMapper.java`
+- `backend/src/main/resources/mapper/RecordMapper.xml`
+- `backend/src/test/java/com/flashback/mapper/RecordMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Added `UpdateLaterReflectionRequest` with `realityLater` validation.
+- Added `PUT /api/records/{id}/later-reflection` in `RecordController`.
+- Added `RecordService.updateLaterReflection`.
+- Added mapper update that writes `reality_later`, increments `reality_later_submit_count`, and only affects owner-scoped `UNLOCKED` records with submit count below 2.
+- Service now rejects later reflection before unlock, rejects after the 2-submit limit, and uses existing owner lookup to reject cross-user access safely.
+- Added mapper/service tests for before-unlock rejection, after-unlock update, cross-user rejection, and exhausted edit-limit behavior.
+- Updated M3 task status for completed later-reflection backend work.
+
+Verification:
+
+- First sandboxed run of `mvn -q "-Dtest=RecordServiceImplTest,RecordMapperIntegrationTest" test` failed due restricted Maven dependency resolution.
+- Reran with approved escalation.
+- Passed: `mvn -q "-Dtest=RecordServiceImplTest,RecordMapperIntegrationTest" test`.
+
+Skipped verification reason:
+
+- Full `mvn -q test` was not run for this focused endpoint slice.
+- Frontend hide-modify behavior is not verified because frontend integration is a later M3 phase.
+
+Scope safety check:
+
+- This slice only changed the accepted later-reflection backend contract and focused tests.
+- It did not implement admin, production notification center, SMS, campaign delivery, deployment/monitoring, complex AI, real MAP/IMAGE/VOICE, frontend visual reconstruction, or package/lockfile updates.
+
+Remaining risks:
+
+- The backend now enforces the 2-submit limit, but frontend still needs a confirmed/readable way to hide the "修改" action during the frontend phase.
+- User-triggered AI organization for `beliefThen`, WeChat login, reminder delivery, and stage summary remain pending.

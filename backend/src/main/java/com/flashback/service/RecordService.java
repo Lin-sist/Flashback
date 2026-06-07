@@ -4,6 +4,7 @@ import com.flashback.common.page.PageResult;
 import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
+import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
@@ -23,6 +24,8 @@ public interface RecordService {
     void delete(Long userId, Long id);
 
     RecordDetailVO seal(Long userId, Long id);
+
+    RecordDetailVO updateLaterReflection(Long userId, Long id, UpdateLaterReflectionRequest request);
 
     PageResult<RecordListItemVO> pageMine(Long userId, RecordPageQuery query);
 

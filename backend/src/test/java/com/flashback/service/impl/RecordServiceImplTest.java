@@ -12,6 +12,7 @@ import com.flashback.domain.RecordType;
 import com.flashback.domain.User;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
+import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.mapper.RecordTagMapper;
@@ -312,6 +313,74 @@ class RecordServiceImplTest {
         assertThatThrownBy(() -> recordService.update(1L, 100L, request))
                 .isInstanceOf(BizException.class)
                 .hasMessage("lifeNodeCustomLabel仅在lifeNodeType为OTHER时允许填写");
+    }
+
+    @Test
+    void shouldRejectLaterReflectionBeforeUnlock() {
+        Record sealed = mockRecord(RecordStatus.SEALED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(sealed);
+
+        UpdateLaterReflectionRequest request = new UpdateLaterReflectionRequest();
+        request.setRealityLater("后来其实");
+
+        assertThatThrownBy(() -> recordService.updateLaterReflection(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("仅UNLOCKED状态允许填写后来其实");
+        verify(recordMapper, never()).updateLaterReflectionByIdAndUserId(any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectLaterReflectionWhenRecordNotOwned() {
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(null);
+
+        UpdateLaterReflectionRequest request = new UpdateLaterReflectionRequest();
+        request.setRealityLater("后来其实");
+
+        assertThatThrownBy(() -> recordService.updateLaterReflection(1L, 100L, request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("记录不存在");
+        verify(recordMapper, never()).updateLaterReflectionByIdAndUserId(any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldUpdateLaterReflectionAfterUnlockWithinLimit() {
+        Record unlocked = mockRecord(RecordStatus.UNLOCKED);
+        unlocked.setRealityLaterSubmitCount(1);
+
+        Record updated = mockRecord(RecordStatus.UNLOCKED);
+        updated.setRealityLater("后来其实我需要重新理解当时的焦虑");
+        updated.setRealityLaterSubmitCount(2);
+
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(unlocked, updated);
+        when(recordMapper.updateLaterReflectionByIdAndUserId(eq(100L), eq(1L), any(), any())).thenReturn(1);
+        when(replyMapper.selectByRecordId(100L)).thenReturn(null);
+
+        UpdateLaterReflectionRequest request = new UpdateLaterReflectionRequest();
+        request.setRealityLater("后来其实我需要重新理解当时的焦虑");
+
+        var result = recordService.updateLaterReflection(1L, 100L, request);
+
+        assertThat(result.getRealityLater()).isEqualTo("后来其实我需要重新理解当时的焦虑");
+        verify(recordMapper).updateLaterReflectionByIdAndUserId(
+                eq(100L),
+                eq(1L),
+                eq("后来其实我需要重新理解当时的焦虑"),
+                any());
+    }
+
+    @Test
+    void shouldRejectLaterReflectionWhenSubmitLimitExhausted() {
+        Record unlocked = mockRecord(RecordStatus.UNLOCKED);
+        unlocked.setRealityLaterSubmitCount(2);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(unlocked);
+
+        UpdateLaterReflectionRequest request = new UpdateLaterReflectionRequest();
+        request.setRealityLater("第三次修改");
+
+        assertThatThrownBy(() -> recordService.updateLaterReflection(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("后来其实提交次数已用完");
+        verify(recordMapper, never()).updateLaterReflectionByIdAndUserId(any(), any(), any(), any());
     }
 
     @Test
