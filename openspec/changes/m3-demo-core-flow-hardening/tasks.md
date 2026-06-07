@@ -2,41 +2,41 @@
 
 ## 0. Guardrails
 
-- [ ] Read `AGENTS.md`.
-- [ ] Read `.ai/ACTIVE_TASK.md`.
-- [ ] Read `openspec/project.md`.
-- [ ] Read `openspec/specs/backend-core/spec.md`.
-- [ ] Read this M3 OpenSpec change before implementation.
-- [ ] Read `openspec/changes/m3-demo-core-flow-hardening/backend-contract-decisions.md` before backend contract work.
-- [ ] Do not implement admin portal.
-- [ ] Do not implement production deployment, monitoring, alerting, or incident response.
-- [ ] Do not implement SMS reminders.
-- [ ] Do not implement a production notification center.
-- [ ] Do not implement admin template management or campaign delivery.
-- [ ] Do not implement complex AI growth analysis, scoring, diagnosis, or dashboards.
-- [ ] Do not implement real MAP / IMAGE / VOICE capability.
-- [ ] Do not perform broad frontend visual reconstruction.
-- [ ] Do not perform broad backend rewrite.
-- [ ] Do not remove account/password login.
-- [ ] Do not modify package or lockfile files unless required and explicitly justified.
-- [ ] State a reason before reading extra files outside the current task's direct scope.
-- [ ] Record all implementation notes, verification evidence, skipped verification reasons, and manual WeChat verification results in `.ai/AGENT_LOG.md`.
+- [x] Read `AGENTS.md`.
+- [x] Read `.ai/ACTIVE_TASK.md`.
+- [x] Read `openspec/project.md`.
+- [x] Read `openspec/specs/backend-core/spec.md`.
+- [x] Read this M3 OpenSpec change before implementation.
+- [x] Read `openspec/changes/m3-demo-core-flow-hardening/backend-contract-decisions.md` before backend contract work.
+- [x] Do not implement admin portal.
+- [x] Do not implement production deployment, monitoring, alerting, or incident response.
+- [x] Do not implement SMS reminders.
+- [x] Do not implement a production notification center.
+- [x] Do not implement admin template management or campaign delivery.
+- [x] Do not implement complex AI growth analysis, scoring, diagnosis, or dashboards.
+- [x] Do not implement real MAP / IMAGE / VOICE capability.
+- [x] Do not perform broad frontend visual reconstruction.
+- [x] Do not perform broad backend rewrite.
+- [x] Do not remove account/password login.
+- [x] Do not modify package or lockfile files unless required and explicitly justified.
+- [x] State a reason before reading extra files outside the current task's direct scope.
+- [x] Record all implementation notes, verification evidence, skipped verification reasons, and manual WeChat verification results in `.ai/AGENT_LOG.md`.
 
 ## 1. Establish M3 Backend Facts
 
-- [ ] Confirm actual current backend auth flow.
-- [ ] Confirm current user model and OpenID support.
-- [ ] Confirm current record DTO/entity/VO fields.
-- [ ] Confirm current AI prompt and summary APIs.
-- [ ] Confirm current unlock scheduler behavior.
-- [ ] Confirm current reminder/outbox/log foundation inherited from M2.
-- [ ] Confirm current backend modules for records, replies, tags, timeline, AI, reminders, and users.
-- [ ] Document confirmed, partial, planned, unknown, and out-of-scope capabilities before implementation.
-- [ ] Write fact findings to `.ai/AGENT_LOG.md`.
+- [x] Confirm actual current backend auth flow.
+- [x] Confirm current user model and OpenID support.
+- [x] Confirm current record DTO/entity/VO fields.
+- [x] Confirm current AI prompt and summary APIs.
+- [x] Confirm current unlock scheduler behavior.
+- [x] Confirm current reminder/outbox/log foundation inherited from M2.
+- [x] Confirm current backend modules for records, replies, tags, timeline, AI, reminders, and users.
+- [x] Document confirmed, partial, planned, unknown, and out-of-scope capabilities before implementation.
+- [x] Write fact findings to `.ai/AGENT_LOG.md`.
 
 ## 2. Backend Contract Confirmation Gate
 
-- [ ] Do not implement new or changed M3 backend API contracts until user confirmation is recorded.
+- [x] Do not implement new or changed M3 backend API contracts until user confirmation is recorded.
 - [x] Update `backend-contract-decisions.md` from `Pending` to `Accepted` or `Deferred` after user confirmation.
 - [x] Confirm WeChat login endpoint path and request/response DTO.
 - [x] Confirm whether local account binding to WeChat is included in M3 or deferred.

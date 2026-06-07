@@ -949,3 +949,70 @@ Remaining risks:
 
 - Real WeChat delivery verification still depends on template IDs and WeChat configuration.
 - The next implementation agent must translate the accepted contract into schema, DTO, service, controller, and tests without changing the accepted API semantics.
+
+### 2026-06-07 Codex (M3 Backend Facts Established)
+
+Task:
+
+- Start `m3-demo-core-flow-hardening` backend rectification.
+- Establish current backend facts before implementation, as required by `.ai/ACTIVE_TASK.md` and M3 OpenSpec.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Read M3 fact source documents: `AGENTS.md`, `.ai/ACTIVE_TASK.md`, `openspec/project.md`, accepted `backend-core`, `miniapp-core`, `v2-product-scope`, `agent-collaboration` specs, and M3 proposal/design/tasks/spec deltas/backend contract decisions.
+- Confirmed `openspec` CLI is unavailable in the current shell; file-based OpenSpec execution is used as fallback.
+- Confirmed current backend facts from directly required backend files only, covering auth, user, record, AI, unlock scheduler, reminder outbox/log, schema, and module entry points.
+- Marked M3 guardrails, backend fact establishment, and contract gate status in `tasks.md`.
+
+Capability classification:
+
+- Confirmed: account/password auth exists at `POST /api/auth/register` and `POST /api/auth/login`, with existing JWT response shape in `LoginResponseVO`.
+- Confirmed: user model has nullable `openid`, unique schema constraint, `wechatBound` output, and `bindVerifiedWechatOpenid` service boundary that rejects direct trust of registration-supplied openid.
+- Partial: WeChat identity storage exists, but real `POST /api/auth/wechat-login` and code2session exchange are not implemented.
+- Confirmed: record lifecycle uses `DRAFT`, `SEALED`, and `UNLOCKED`; update/delete/seal are owner-scoped; sealed records are immutable through normal update/delete paths.
+- Confirmed: record list and timeline queries are user-scoped and deterministic, including `created_at DESC, id DESC` ordering for main list and timeline.
+- Partial: record DTO/entity/VO currently support `content`, `coreQuestion`, `aiSummary`, and `aiPromptResults`; M3 fields `beliefThen`, `realityLater`, `lifeNodeType`, `lifeNodeCustomLabel`, and later-reflection submit count are not implemented.
+- Planned: `PUT /api/records/{recordId}/later-reflection` must be added per accepted M3 contract.
+- Confirmed: record types are `FUTURE_LETTER`, `NODE_RECORD`, and `EMOTION_NOTE`.
+- Planned: M3 life node enum values and custom label validation must be added separately from `RecordType`.
+- Confirmed: AI endpoints exist for writing prompts and record summarization under `/api/ai`, with mock/fallback behavior that does not block core record operations.
+- Partial: AI does not yet expose user-triggered organization for `beliefThen`, nor manual stage summary generation.
+- Confirmed: unlock scheduler calls `RecordService.runUnlockJob`; expired sealed records are unlocked in batches; repeated runs are idempotent by affected-row update; reminder persistence failure is best-effort and non-blocking.
+- Partial: M2 reminder foundation exists through `record_reminder` with unique `record_id + template_type`, but current statuses are `PENDING`, `SENT`, `FAILED`, and `SKIPPED_NO_OPENID`, which do not match accepted M3 statuses.
+- Planned: real WeChat subscription-message sender, template configuration, explicit `NOT_CONFIGURED`, and delivery-state transitions must be implemented.
+- Confirmed: backend modules exist for auth/users, records, replies, tags, timeline behavior inside `RecordService`, AI, reminders, and unlock notice logging.
+- Out of scope: admin portal, production notification center, SMS, campaign delivery, deployment/monitoring, complex AI analytics, real MAP/IMAGE/VOICE, broad backend rewrite, frontend visual reconstruction, and package/lockfile updates.
+
+Gaps before implementation:
+
+- Add schema/test-schema fields for `belief_then`, `reality_later`, later-reflection submit count, `life_node_type`, and `life_node_custom_label`.
+- Add Java DTO/entity/VO/mapper support for accepted M3 reflection and life node fields while preserving existing `content`.
+- Add later-reflection endpoint and service method enforcing owner, `UNLOCKED` status, and 2-submit limit.
+- Add real WeChat login service/controller support using accepted `POST /api/auth/wechat-login` contract and existing login response shape.
+- Replace/remap reminder statuses to accepted M3 values and add not-configured/non-blocking real send path.
+- Add manual `POST /api/stage-summaries/generate` endpoint that is user-scoped, on-demand, and non-persistent.
+
+Verification:
+
+- Documentation/fact-establishment slice only; no backend code or schema behavior was changed.
+- `openspec status --change "m3-demo-core-flow-hardening" --json` and `openspec instructions apply --change "m3-demo-core-flow-hardening" --json` both failed because `openspec` is not installed in the current shell.
+- No Maven tests were run for this slice because it only updates task status and implementation evidence.
+
+Skipped verification reason:
+
+- No application code, schema SQL, package, or lockfile files were changed in this slice.
+
+Scope safety check:
+
+- No admin, production deployment, monitoring, SMS, notification center, campaign delivery, real MAP/IMAGE/VOICE, broad backend rewrite, frontend visual reconstruction, or package/lockfile change was introduced.
+- Extra backend files were read only to establish the current M3 backend fact source required before implementation.
+
+Remaining risks:
+
+- Current working tree already contains M3 documentation activation changes and archived M2 files from earlier work; commit staging must remain scoped.
+- Real WeChat delivery and real WeChat login still depend on configuration and later manual Mini Program verification.
