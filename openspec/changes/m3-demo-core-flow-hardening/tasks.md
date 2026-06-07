@@ -80,9 +80,9 @@
 
 - [x] Extend create/update DTOs or equivalent contracts for M3 reflection fields after contract confirmation.
 - [x] Preserve user original content.
-- [ ] Add user-triggered AI organization for `beliefThen`.
-- [ ] Ensure AI output does not replace original content.
-- [ ] Ensure AI failure does not block record save or seal when non-AI validation passes.
+- [x] Add user-triggered AI organization for `beliefThen`.
+- [x] Ensure AI output does not replace original content.
+- [x] Ensure AI failure does not block record save or seal when non-AI validation passes.
 - [x] Enforce that "后来其实" cannot be created or updated before unlock.
 - [x] Add `PUT /api/records/{recordId}/later-reflection` with request `{ "realityLater": "string" }`.
 - [x] Enforce that "后来其实" can be submitted at most 2 times after unlock by the owner.

@@ -61,6 +61,7 @@ class AiServiceImplTest {
         assertThat(result.getEmotion()).contains("焦虑");
         assertThat(result.getCoreQuestion()).isEqualTo("我应该先做哪件事？");
         assertThat(result.getDesiredOutcome()).isNotBlank();
+        assertThat(result.getBeliefThen()).contains("那时的我可能以为");
     }
 
     @Test
@@ -80,5 +81,6 @@ class AiServiceImplTest {
         assertThat(result.getEmotion()).isEqualTo(properties.getFallback().getEmotion());
         assertThat(result.getCoreQuestion()).isEqualTo(properties.getFallback().getCoreQuestion());
         assertThat(result.getDesiredOutcome()).isEqualTo(properties.getFallback().getDesiredOutcome());
+        assertThat(result.getBeliefThen()).contains("那时的我可能以为");
     }
 }

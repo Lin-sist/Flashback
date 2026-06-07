@@ -53,7 +53,8 @@ public class AiServiceImpl implements AiService {
                     || isBlank(summary.getConfusion())
                     || isBlank(summary.getEmotion())
                     || isBlank(summary.getCoreQuestion())
-                    || isBlank(summary.getDesiredOutcome())) {
+                    || isBlank(summary.getDesiredOutcome())
+                    || isBlank(summary.getBeliefThen())) {
                 return fallbackSummary();
             }
             summary.setSource(resolveProvider());
@@ -106,6 +107,7 @@ public class AiServiceImpl implements AiService {
         vo.setEmotion(inferEmotion(content));
         vo.setCoreQuestion(!isBlank(coreQuestion) ? coreQuestion : inferCoreQuestion(content));
         vo.setDesiredOutcome(inferDesiredOutcome(content));
+        vo.setBeliefThen(inferBeliefThen(content));
         return vo;
     }
 
@@ -124,6 +126,7 @@ public class AiServiceImpl implements AiService {
         vo.setEmotion(fallback.getEmotion());
         vo.setCoreQuestion(fallback.getCoreQuestion());
         vo.setDesiredOutcome(fallback.getDesiredOutcome());
+        vo.setBeliefThen("那时的我可能以为，只要把眼前的问题想清楚，就能立刻知道下一步。");
         vo.setSource("fallback");
         return vo;
     }
@@ -152,6 +155,10 @@ public class AiServiceImpl implements AiService {
 
     private String inferDesiredOutcome(String content) {
         return "希望先把“" + preview(content, 16) + "”相关事项推进到可执行状态";
+    }
+
+    private String inferBeliefThen(String content) {
+        return "那时的我可能以为，最重要的是先解决“" + preview(content, 18) + "”带来的不确定感。";
     }
 
     private String preview(String value, int limit) {

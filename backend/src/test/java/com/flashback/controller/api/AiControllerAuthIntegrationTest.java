@@ -113,7 +113,8 @@ class AiControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.source").value("mock"))
                 .andExpect(jsonPath("$.data.summary").value("当前主要困惑集中在职业方向选择"))
-                .andExpect(jsonPath("$.data.confusion").value("职业方向不清晰"));
+                .andExpect(jsonPath("$.data.confusion").value("职业方向不清晰"))
+                .andExpect(jsonPath("$.data.beliefThen").value("那时以为只要选对方向就不会迷茫"));
     }
 
     private User enabledUser() {
@@ -137,6 +138,7 @@ class AiControllerAuthIntegrationTest {
         vo.setEmotion("偏迷茫");
         vo.setCoreQuestion("我应该先做什么");
         vo.setDesiredOutcome("形成一周可执行计划");
+        vo.setBeliefThen("那时以为只要选对方向就不会迷茫");
         vo.setSource("mock");
         return vo;
     }

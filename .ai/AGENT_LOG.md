@@ -1263,3 +1263,47 @@ Scope safety check:
 Remaining risks:
 
 - Remaining M3 backend work still includes user-triggered `beliefThen` AI organization, real subscription-message send adapter/authorization reporting, and manual stage summary generation.
+
+### 2026-06-07 Codex (M3 BeliefThen AI Organization Output)
+
+Task:
+
+- Add user-triggered AI organization support for `beliefThen` without introducing an unconfirmed new endpoint.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/service/impl/AiServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/AiSummaryVO.java`
+- `backend/src/test/java/com/flashback/service/impl/AiServiceImplTest.java`
+- `backend/src/test/java/com/flashback/controller/api/AiControllerAuthIntegrationTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Extended existing authenticated `POST /api/ai/summarize-record` response with accepted field `beliefThen`.
+- Mock AI summary now returns a gentle `beliefThen` organization suggestion derived from original content.
+- Fallback summary also returns safe `beliefThen` text.
+- No original record `content` is modified by AI output; persistence still happens only when create/update receives `beliefThen`.
+- No new AI endpoint path was introduced.
+
+Verification:
+
+- First sandboxed run of `mvn -q "-Dtest=AiServiceImplTest,AiControllerAuthIntegrationTest" test` failed due restricted Maven dependency resolution.
+- Reran with approved escalation.
+- Passed: `mvn -q "-Dtest=AiServiceImplTest,AiControllerAuthIntegrationTest" test`.
+
+Skipped verification reason:
+
+- Full `mvn -q test` was not rerun for this focused AI response slice.
+- Frontend user-trigger action wiring remains a later integration-phase task.
+
+Scope safety check:
+
+- This slice stays within gentle AI organization and existing AI fallback behavior.
+- It did not add scoring, diagnosis, growth analytics, forced lifecycle dependency, admin, production launch, notification center, SMS, or package/lockfile changes.
+
+Remaining risks:
+
+- Frontend still needs to call the AI organization action and save returned `beliefThen` into record create/update.
+- Stage summary and real reminder send adapter remain pending.

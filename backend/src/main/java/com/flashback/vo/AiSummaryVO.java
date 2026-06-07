@@ -10,6 +10,7 @@ public class AiSummaryVO {
     private String emotion;
     private String coreQuestion;
     private String desiredOutcome;
+    private String beliefThen;
     private String source;
 
     public String getSummary() {
@@ -50,6 +51,14 @@ public class AiSummaryVO {
 
     public void setDesiredOutcome(String desiredOutcome) {
         this.desiredOutcome = desiredOutcome;
+    }
+
+    public String getBeliefThen() {
+        return beliefThen;
+    }
+
+    public void setBeliefThen(String beliefThen) {
+        this.beliefThen = beliefThen;
     }
 
     public String getSource() {
