@@ -3,6 +3,7 @@ package com.flashback.service;
 import com.flashback.dto.LoginRequest;
 import com.flashback.dto.RegisterRequest;
 import com.flashback.dto.UpdateUserProfileRequest;
+import com.flashback.dto.WechatLoginRequest;
 import com.flashback.vo.LoginResponseVO;
 import com.flashback.vo.RegisterResponseVO;
 import com.flashback.vo.UserInfoVO;
@@ -15,6 +16,8 @@ public interface UserService {
     RegisterResponseVO register(RegisterRequest request);
 
     LoginResponseVO login(LoginRequest request);
+
+    LoginResponseVO wechatLogin(WechatLoginRequest request);
 
     UserInfoVO getCurrentUser(Long userId);
 

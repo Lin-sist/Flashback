@@ -3,6 +3,7 @@ package com.flashback.controller.api;
 import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.LoginRequest;
 import com.flashback.dto.RegisterRequest;
+import com.flashback.dto.WechatLoginRequest;
 import com.flashback.service.UserService;
 import com.flashback.vo.LoginResponseVO;
 import com.flashback.vo.RegisterResponseVO;
@@ -35,5 +36,10 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<LoginResponseVO> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.success(userService.login(request));
+    }
+
+    @PostMapping("/wechat-login")
+    public ApiResponse<LoginResponseVO> wechatLogin(@Valid @RequestBody WechatLoginRequest request) {
+        return ApiResponse.success(userService.wechatLogin(request));
     }
 }

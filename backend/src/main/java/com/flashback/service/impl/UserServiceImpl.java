@@ -2,11 +2,13 @@ package com.flashback.service.impl;
 
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
+import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.User;
 import com.flashback.domain.UserStatus;
 import com.flashback.dto.LoginRequest;
 import com.flashback.dto.RegisterRequest;
 import com.flashback.dto.UpdateUserProfileRequest;
+import com.flashback.dto.WechatLoginRequest;
 import com.flashback.mapper.UserMapper;
 import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
@@ -15,14 +17,21 @@ import com.flashback.service.UserService;
 import com.flashback.vo.LoginResponseVO;
 import com.flashback.vo.RegisterResponseVO;
 import com.flashback.vo.UserInfoVO;
+import com.flashback.wechat.WechatSession;
+import com.flashback.wechat.WechatSessionClient;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
+import java.util.UUID;
 
 /**
  * 用户模块核心业务实现。
@@ -35,11 +44,20 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AppWechatProperties appWechatProperties;
+    private final WechatSessionClient wechatSessionClient;
     private final Clock clock;
 
-    public UserServiceImpl(UserMapper userMapper, JwtTokenProvider jwtTokenProvider, Clock clock) {
+    public UserServiceImpl(
+            UserMapper userMapper,
+            JwtTokenProvider jwtTokenProvider,
+            AppWechatProperties appWechatProperties,
+            WechatSessionClient wechatSessionClient,
+            Clock clock) {
         this.userMapper = userMapper;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.appWechatProperties = appWechatProperties;
+        this.wechatSessionClient = wechatSessionClient;
         this.clock = clock;
     }
 
@@ -90,14 +108,32 @@ public class UserServiceImpl implements UserService {
             throw new BizException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "用户已禁用");
         }
 
-        // Token 仅通过既有 JwtTokenProvider 签发，claims 固定 userId + role。
-        String token = jwtTokenProvider.createToken(new AuthUser(user.getId(), AuthRole.USER));
+        return buildLoginResponse(user);
+    }
 
-        LoginResponseVO response = new LoginResponseVO();
-        response.setToken(token);
-        response.setTokenType(TOKEN_TYPE_BEARER);
-        response.setUserInfo(toUserInfo(user));
-        return response;
+    @Override
+    @Transactional
+    public LoginResponseVO wechatLogin(WechatLoginRequest request) {
+        String code = normalizeRequired(request.getCode(), "code不能为空");
+        if (!appWechatProperties.isConfigured()) {
+            throw new BizException(ErrorCode.INTERNAL_ERROR, HttpStatus.SERVICE_UNAVAILABLE, "微信登录未配置");
+        }
+
+        WechatSession session = wechatSessionClient.exchangeCodeForSession(code);
+        String openid = normalizeRequired(session.getOpenid(), "微信登录未返回有效身份");
+        if (openid.length() > OPENID_MAX_LENGTH) {
+            throw badRequest("openid长度不能超过100");
+        }
+
+        User user = userMapper.selectByOpenid(openid);
+        if (user == null) {
+            user = createWechatUser(openid);
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new BizException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "用户已禁用");
+        }
+
+        return buildLoginResponse(user);
     }
 
     @Override
@@ -155,6 +191,52 @@ public class UserServiceImpl implements UserService {
 
     private String hashPassword(String password) {
         return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    private User createWechatUser(String openid) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        User user = new User();
+        user.setUsername(buildWechatUsername(openid));
+        user.setPasswordHash(hashPassword(UUID.randomUUID().toString()));
+        user.setNickname("微信用户");
+        user.setOpenid(openid);
+        user.setStatus(UserStatus.ENABLED);
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
+        try {
+            userMapper.insert(user);
+        } catch (DuplicateKeyException ex) {
+            User existing = userMapper.selectByOpenid(openid);
+            if (existing != null) {
+                return existing;
+            }
+            throw badRequest("微信用户创建失败");
+        }
+        return user;
+    }
+
+    private String buildWechatUsername(String openid) {
+        return "wx_" + sha256Hex(openid).substring(0, 32);
+    }
+
+    private String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private LoginResponseVO buildLoginResponse(User user) {
+        // Token 仅通过既有 JwtTokenProvider 签发，claims 固定 userId + role。
+        String token = jwtTokenProvider.createToken(new AuthUser(user.getId(), AuthRole.USER));
+
+        LoginResponseVO response = new LoginResponseVO();
+        response.setToken(token);
+        response.setTokenType(TOKEN_TYPE_BEARER);
+        response.setUserInfo(toUserInfo(user));
+        return response;
     }
 
     private boolean verifyPassword(String plainPassword, String passwordHash) {

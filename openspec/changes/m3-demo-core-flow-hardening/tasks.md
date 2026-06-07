@@ -64,17 +64,17 @@
 
 ## 4. Backend Phase: Authentication
 
-- [ ] Preserve existing account/password register and login behavior.
-- [ ] Add `POST /api/auth/wechat-login`.
-- [ ] Ensure backend obtains OpenID through WeChat code2session.
-- [ ] Reject or fail explicitly when WeChat configuration is missing.
-- [ ] Do not trust client-supplied OpenID as login identity.
-- [ ] Reuse existing JWT response model where practical.
-- [ ] Support lookup or creation of user by OpenID.
-- [ ] Defer account/password to WeChat binding.
-- [ ] Return user info that makes WeChat binding/login status understandable.
-- [ ] Add backend tests or manual verification for account/password login.
-- [ ] Add backend tests or manual verification for WeChat login configured and not-configured paths.
+- [x] Preserve existing account/password register and login behavior.
+- [x] Add `POST /api/auth/wechat-login`.
+- [x] Ensure backend obtains OpenID through WeChat code2session.
+- [x] Reject or fail explicitly when WeChat configuration is missing.
+- [x] Do not trust client-supplied OpenID as login identity.
+- [x] Reuse existing JWT response model where practical.
+- [x] Support lookup or creation of user by OpenID.
+- [x] Defer account/password to WeChat binding.
+- [x] Return user info that makes WeChat binding/login status understandable.
+- [x] Add backend tests or manual verification for account/password login.
+- [x] Add backend tests or manual verification for WeChat login configured and not-configured paths.
 
 ## 5. Backend Phase: Record Reflection Fields
 

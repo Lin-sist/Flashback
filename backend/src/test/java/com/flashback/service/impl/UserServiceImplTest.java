@@ -1,13 +1,17 @@
 package com.flashback.service.impl;
 
 import com.flashback.common.exception.BizException;
+import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.User;
 import com.flashback.domain.UserStatus;
 import com.flashback.dto.LoginRequest;
 import com.flashback.dto.RegisterRequest;
+import com.flashback.dto.WechatLoginRequest;
 import com.flashback.mapper.UserMapper;
 import com.flashback.security.jwt.JwtTokenProvider;
 import com.flashback.vo.LoginResponseVO;
+import com.flashback.wechat.WechatSession;
+import com.flashback.wechat.WechatSessionClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,12 +43,18 @@ class UserServiceImplTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
+    @Mock
+    private WechatSessionClient wechatSessionClient;
+
+    private AppWechatProperties appWechatProperties;
+
     private UserServiceImpl userService;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-03-25T08:00:00Z"), ZoneId.of("Asia/Shanghai"));
-        userService = new UserServiceImpl(userMapper, jwtTokenProvider, clock);
+        appWechatProperties = new AppWechatProperties();
+        userService = new UserServiceImpl(userMapper, jwtTokenProvider, appWechatProperties, wechatSessionClient, clock);
     }
 
     @Test
@@ -121,6 +131,72 @@ class UserServiceImplTest {
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getTokenType()).isEqualTo("Bearer");
         assertThat(response.getUserInfo().getUsername()).isEqualTo("bob");
+    }
+
+    @Test
+    void shouldFailWechatLoginWhenNotConfigured() {
+        WechatLoginRequest request = new WechatLoginRequest();
+        request.setCode("wx-code");
+
+        assertThatThrownBy(() -> userService.wechatLogin(request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("微信登录未配置");
+
+        verify(wechatSessionClient, never()).exchangeCodeForSession(any());
+        verify(userMapper, never()).selectByOpenid(any());
+    }
+
+    @Test
+    void shouldReturnTokenWhenWechatOpenidExists() {
+        configureWechat();
+
+        User user = enabledUser(200L, "wx_existing", "openid-existing");
+        when(wechatSessionClient.exchangeCodeForSession("wx-code"))
+                .thenReturn(new WechatSession("openid-existing", "session-key"));
+        when(userMapper.selectByOpenid("openid-existing")).thenReturn(user);
+        when(jwtTokenProvider.createToken(any())).thenReturn("jwt-wx");
+
+        WechatLoginRequest request = new WechatLoginRequest();
+        request.setCode("wx-code");
+
+        LoginResponseVO response = userService.wechatLogin(request);
+
+        assertThat(response.getToken()).isEqualTo("jwt-wx");
+        assertThat(response.getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getUserInfo().isWechatBound()).isTrue();
+        assertThat(response.getUserInfo().getId()).isEqualTo(200L);
+    }
+
+    @Test
+    void shouldCreateUserWhenWechatOpenidIsNew() {
+        configureWechat();
+
+        when(wechatSessionClient.exchangeCodeForSession("wx-code"))
+                .thenReturn(new WechatSession("openid-new", "session-key"));
+        when(userMapper.selectByOpenid("openid-new")).thenReturn(null);
+        when(userMapper.insert(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(201L);
+            return 1;
+        });
+        when(jwtTokenProvider.createToken(any())).thenReturn("jwt-new-wx");
+
+        WechatLoginRequest request = new WechatLoginRequest();
+        request.setCode("wx-code");
+
+        LoginResponseVO response = userService.wechatLogin(request);
+
+        assertThat(response.getToken()).isEqualTo("jwt-new-wx");
+        assertThat(response.getUserInfo().getId()).isEqualTo(201L);
+        assertThat(response.getUserInfo().getUsername()).startsWith("wx_");
+        assertThat(response.getUserInfo().isWechatBound()).isTrue();
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userMapper).insert(captor.capture());
+        assertThat(captor.getValue().getOpenid()).isEqualTo("openid-new");
+        assertThat(captor.getValue().getUsername()).startsWith("wx_");
+        assertThat(captor.getValue().getPasswordHash()).isNotBlank();
+        assertThat(captor.getValue().getStatus()).isEqualTo(UserStatus.ENABLED);
     }
 
     @Test
@@ -219,5 +295,10 @@ class UserServiceImplTest {
         user.setOpenid(openid);
         user.setStatus(UserStatus.ENABLED);
         return user;
+    }
+
+    private void configureWechat() {
+        appWechatProperties.setAppId("app-id");
+        appWechatProperties.setSecret("secret");
     }
 }

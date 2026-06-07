@@ -32,3 +32,9 @@ app:
       emotion: 待整理
       core-question: 暂无
       desired-outcome: 暂无
+  wechat:
+    mini-program:
+      app-id: ${WECHAT_MINI_PROGRAM_APP_ID:}
+      secret: ${WECHAT_MINI_PROGRAM_SECRET:}
+      code2-session-url: ${WECHAT_CODE2SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
+      timeout-millis: ${WECHAT_CODE2SESSION_TIMEOUT_MILLIS:5000}

@@ -1125,3 +1125,58 @@ Remaining risks:
 
 - The backend now enforces the 2-submit limit, but frontend still needs a confirmed/readable way to hide the "修改" action during the frontend phase.
 - User-triggered AI organization for `beliefThen`, WeChat login, reminder delivery, and stage summary remain pending.
+
+### 2026-06-07 Codex (M3 WeChat Login Backend)
+
+Task:
+
+- Implement M3 backend WeChat Mini Program code login while preserving account/password login.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/java/com/flashback/config/AppWechatProperties.java`
+- `backend/src/main/java/com/flashback/controller/api/AuthController.java`
+- `backend/src/main/java/com/flashback/dto/WechatLoginRequest.java`
+- `backend/src/main/java/com/flashback/service/UserService.java`
+- `backend/src/main/java/com/flashback/service/impl/UserServiceImpl.java`
+- `backend/src/main/java/com/flashback/wechat/WechatCode2SessionClient.java`
+- `backend/src/main/java/com/flashback/wechat/WechatSession.java`
+- `backend/src/main/java/com/flashback/wechat/WechatSessionClient.java`
+- `backend/src/test/java/com/flashback/service/impl/UserServiceImplTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Added `POST /api/auth/wechat-login` with request `{ "code": "string" }`.
+- Added `app.wechat.mini-program` configuration placeholders using environment variables `WECHAT_MINI_PROGRAM_APP_ID`, `WECHAT_MINI_PROGRAM_SECRET`, `WECHAT_CODE2SESSION_URL`, and `WECHAT_CODE2SESSION_TIMEOUT_MILLIS`.
+- Added minimal code2session client that calls WeChat server-side API and extracts trusted `openid`; client-supplied OpenID is not accepted.
+- Missing app id or secret now fails explicitly with `微信登录未配置` and does not issue a fake token.
+- Existing account/password login remains unchanged and reuses the same `LoginResponseVO` token/user-info shape.
+- WeChat login looks up user by trusted OpenID or creates a new enabled demo user with generated username and random password hash.
+- Account/password-to-WeChat binding remains deferred per accepted M3 contract.
+- User info continues to expose `wechatBound` based on stored `openid`.
+
+Verification:
+
+- First sandboxed run of `mvn -q "-Dtest=UserServiceImplTest,AuthControllerIntegrationTest" test` failed due restricted Maven dependency resolution.
+- Reran with approved escalation.
+- Passed: `mvn -q "-Dtest=UserServiceImplTest,AuthControllerIntegrationTest" test`.
+- Tests cover not-configured WeChat login, existing OpenID login, new OpenID user creation, and existing account/password login behavior.
+
+Skipped verification reason:
+
+- Full `mvn -q test` was not run for this focused auth slice.
+- Real WeChat Developer Tools login was not verified because app id/secret and real Mini Program login code are not configured in this environment.
+
+Scope safety check:
+
+- This slice only added demo-scoped WeChat code login backend support.
+- It did not implement account binding, account merge, admin portal, production launch hardening, monitoring, SMS, notification center, campaign delivery, real media/location capability, frontend visual reconstruction, or package/lockfile updates.
+
+Remaining risks:
+
+- Real WeChat login must be manually verified after valid Mini Program configuration is provided.
+- Generated WeChat-only users intentionally remain separate from account/password users until a future binding change.
+- User-triggered `beliefThen` AI organization, reminder delivery, and stage summary remain pending.
