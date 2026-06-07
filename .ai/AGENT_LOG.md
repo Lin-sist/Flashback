@@ -854,3 +854,98 @@ Next:
 
 - M2 backend optimization can be treated as implementation-complete for the current demo scope.
 - Before archive, run the project’s OpenSpec archive workflow once the `openspec` CLI is available, or archive manually according to the project process.
+
+### 2026-06-07 Codex (M3 Backend Rectification Documentation Activation)
+
+Task:
+
+- Update project documentation so M3 backend rectification becomes the active implementation source.
+- Archive M2 backend optimization docs and preserve M2 backend-core constraints as accepted baseline.
+- Add contract confirmation constraints before M3 backend implementation.
+
+Modified:
+
+- `AGENTS.md`
+- `.ai/ACTIVE_TASK.md`
+- `.ai/AGENT_LOG.md`
+- `openspec/specs/backend-core/spec.md`
+- `openspec/changes/archive/2026-06-07-m2-backend-optimization/`
+- `openspec/changes/m3-demo-core-flow-hardening/proposal.md`
+- `openspec/changes/m3-demo-core-flow-hardening/design.md`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+- `openspec/changes/m3-demo-core-flow-hardening/backend-contract-decisions.md`
+- `openspec/changes/m3-demo-core-flow-hardening/specs/backend-core/spec.md`
+
+What changed:
+
+- Promoted M2 backend-core requirements into accepted `openspec/specs/backend-core/spec.md`.
+- Moved M2 change docs into `openspec/changes/archive/2026-06-07-m2-backend-optimization/`.
+- Rewrote `.ai/ACTIVE_TASK.md` to make `m3-demo-core-flow-hardening` the active backend rectification source.
+- Updated `AGENTS.md` so M3 scope can modify backend, schema, AI organization, and subscription-message reminder code while still blocking admin, production, SMS, notification center, monitoring, deployment, real media/location, broad rewrites, and major visual redesign.
+- Added M3 phase boundaries: backend phase, frontend phase, and integration/verification phase.
+- Added `.ai/AGENT_LOG.md` as the required evidence location for implementation notes, verification results, skipped verification reasons, and manual WeChat verification.
+- Added `backend-contract-decisions.md` with pending backend API contract questions and recommended options that require user confirmation before implementation.
+- Added a backend spec requirement that M3 backend contracts must be confirmed before implementation when more than one reasonable option exists.
+
+Verification:
+
+- Documentation-only change; no backend or frontend tests were run.
+- M2 archive was performed manually because `openspec` CLI is unavailable in the shell.
+- M2 backend-core delta was synced manually into accepted specs before archive.
+
+Skipped verification reason:
+
+- No application code, schema SQL, package, or lockfile changes were made in this documentation activation slice.
+- Real WeChat delivery cannot be verified until template IDs and WeChat configuration are provided.
+
+Remaining risks:
+
+- Backend API contracts remain pending user confirmation in `backend-contract-decisions.md`.
+- Because the OpenSpec CLI is unavailable, archive/status validation could not be performed through the official command workflow.
+- M3 implementation should not start contract-sensitive backend code until the pending decisions are accepted or deferred.
+
+### 2026-06-07 Codex (M3 Backend Contract Decisions Accepted)
+
+Task:
+
+- Record user-confirmed M3 backend API contract decisions.
+- Update M3 OpenSpec documents so backend implementation can proceed without guessing contract details.
+
+Modified:
+
+- `.ai/ACTIVE_TASK.md`
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m3-demo-core-flow-hardening/proposal.md`
+- `openspec/changes/m3-demo-core-flow-hardening/design.md`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+- `openspec/changes/m3-demo-core-flow-hardening/backend-contract-decisions.md`
+- `openspec/changes/m3-demo-core-flow-hardening/specs/backend-core/spec.md`
+- `openspec/changes/m3-demo-core-flow-hardening/specs/miniapp-core/spec.md`
+
+Accepted decisions:
+
+- WeChat login endpoint is `POST /api/auth/wechat-login` with request `{ "code": "string" }`, reusing the existing login response shape.
+- Account/password to WeChat binding is deferred.
+- Reflection fields are `beliefThen` and `realityLater`.
+- `beliefThen` is generated only when the user actively triggers AI organization.
+- `realityLater` uses `PUT /api/records/{recordId}/later-reflection` and may be submitted at most 2 times after unlock.
+- After the second `realityLater` submission, frontend must hide the "修改" action and backend must reject further updates.
+- Life node fields are `lifeNodeType` and `lifeNodeCustomLabel`; non-`OTHER` custom labels fail validation.
+- Reminder statuses are `REQUESTED`, `AUTHORIZED`, `DENIED`, `NOT_CONFIGURED`, `SEND_PENDING`, `SEND_SUCCESS`, `SEND_FAILED`, and `SKIPPED_NO_OPENID`.
+- User refusal of subscription authorization should record `DENIED` where reminder status is persisted.
+- Stage summary endpoint is `POST /api/stage-summaries/generate`.
+- Stage summaries are generated on demand, returned directly, not persisted in M3, and entered from Personal Center only.
+
+Verification:
+
+- Documentation-only change; no backend or frontend tests were run.
+- Searched M3 documents for accepted contract terms including `beliefThen`, `realityLater`, `later-reflection`, `2-submit`, `POST /api/auth/wechat-login`, `POST /api/stage-summaries/generate`, `NOT_CONFIGURED`, and `DENIED`.
+
+Skipped verification reason:
+
+- No application code, schema SQL, package, or lockfile changes were made.
+
+Remaining risks:
+
+- Real WeChat delivery verification still depends on template IDs and WeChat configuration.
+- The next implementation agent must translate the accepted contract into schema, DTO, service, controller, and tests without changing the accepted API semantics.

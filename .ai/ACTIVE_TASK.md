@@ -2,66 +2,91 @@
 
 ## Task
 
-Current task: enter `m2-backend-optimization` backend implementation preparation.
+Current task: implement `m3-demo-core-flow-hardening` backend rectification.
 
-M1 frontend visual foundation and User Center settings-style subpage reconstruction are complete enough for M2 backend work to proceed. Do not treat old M1 frontend implementation instructions as the active task.
+M2 backend optimization has been archived after its backend-core constraints were promoted into `openspec/specs/backend-core/spec.md`. Do not treat `openspec/changes/archive/2026-06-07-m2-backend-optimization/` as the active implementation source.
 
-The current goal is to use `openspec/changes/m2-backend-optimization/` as the active backend fact source before making backend code changes.
+The current goal is to use `openspec/changes/m3-demo-core-flow-hardening/` as the active fact source before making backend code changes.
 
 ## Source Of Truth
 
 - `AGENTS.md`
 - `openspec/project.md`
-- `.ai/HANDOFF_M1_VISUAL.md`
-- `openspec/changes/m2-backend-optimization/proposal.md`
-- `openspec/changes/m2-backend-optimization/design.md`
-- `openspec/changes/m2-backend-optimization/tasks.md`
-- `openspec/changes/m2-backend-optimization/specs/backend-core/spec.md`
+- `openspec/specs/backend-core/spec.md`
+- `openspec/specs/miniapp-core/spec.md`
+- `openspec/specs/v2-product-scope/spec.md`
+- `openspec/specs/agent-collaboration/spec.md`
+- `openspec/changes/m3-demo-core-flow-hardening/proposal.md`
+- `openspec/changes/m3-demo-core-flow-hardening/design.md`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+- `openspec/changes/m3-demo-core-flow-hardening/specs/backend-core/spec.md`
+- `openspec/changes/m3-demo-core-flow-hardening/specs/miniapp-core/spec.md`
+- `openspec/changes/m3-demo-core-flow-hardening/specs/v2-product-scope/spec.md`
 
-Old `Docs/**` files may be used only as non-conflicting historical context. They are not the backend implementation fact source.
+Old `Docs/**` files may be used only as non-conflicting historical context. They are not the M3 implementation fact source.
+
+Archived M2 documents may be used only as historical rationale when they do not conflict with accepted specs or M3 documents.
 
 ## Current Phase
 
-M2 backend optimization may now proceed to backend code review and targeted backend changes.
+M3 backend rectification may now proceed only after establishing current backend facts and confirming any open backend API contract decisions with the user.
 
-Agents must first establish backend facts and constraints before modifying code:
+Agents must first:
 
-- classify backend capabilities as `confirmed`, `partial`, `planned`, `out of scope`, or `unknown`
-- compare actual backend behavior against the M2 OpenSpec documents
+- classify relevant backend capabilities as `confirmed`, `partial`, `planned`, `out of scope`, or `unknown`
+- compare actual backend behavior against accepted backend-core spec and M3 OpenSpec documents
 - document gaps before implementation
-- fix only the smallest backend defects required by the current M2 task
+- ask the user before finalizing uncertain backend API contracts
+- implement only the smallest backend changes required by the current M3 task
 
-## Primary M2 Focus
+## Primary M3 Backend Focus
 
-- record lifecycle correctness: `DRAFT -> SEALED -> UNLOCKED`
-- sealed record immutability
-- unlock timing, timezone consistency, and idempotency
-- privacy, authentication, authorization, and ownership boundaries
-- frontend API contract alignment for 我的记录、时光轴、时间回看、回信、标签
-- stable pagination, sorting, status filtering, type filtering, and tag filtering
-- WeChat Mini Program subscription message foundation for record unlock reminders
-- safe minimal AI fallback boundaries
+- preserve account/password login
+- add real WeChat Mini Program code login
+- never trust client-supplied OpenID as login proof
+- keep JWT response behavior aligned with the existing auth model where practical
+- add structured record reflection support for `你当时以为` and `后来其实`
+- ensure `你当时以为` is AI-organized without replacing user original content
+- ensure `后来其实` can only be written after `UNLOCKED`
+- add life node enum support with `OTHER` custom label
+- complete real unlock reminder delivery path for WeChat subscription messages
+- treat missing WeChat template ID as explicit `not_configured` behavior
+- ensure reminder send is idempotent and non-blocking for unlock processing
+- add user-manual stage summary generation
+- preserve M2 lifecycle, ownership, privacy, stable query, and AI fallback constraints
 
-## Explicit M2 Decisions
+## Explicit M3 Decisions
 
-- V2 tags are system-shared/global tags for the current demo unless a later change introduces user-created private tags.
-- Tag list APIs may return shared enabled tags.
-- Record/tag filtering and record-tag relationships must remain protected by record ownership.
-- Record list pagination must use deterministic ordering; when sorting by creation time, use an explicit stable tie-breaker such as `created_at DESC, id DESC`.
-- M2 may include a minimal WeChat subscription-message foundation: `openid` capability review, preview bypass fallback, seal-flow subscription authorization timing, unlock-task reminder hook, minimal reminder/outbox/log persistence, successful-send idempotency, and non-blocking failure handling.
-- Production-only modules remain out of scope for M2.
+- M3 is demo core flow hardening, not production launch.
+- Account/password login remains available.
+- Real WeChat login is required.
+- Real unlock reminders are required, but template IDs may be absent during implementation.
+- Template ID absence must be explicit and must not be recorded as fake send success.
+- Real reminder delivery must receive manual verification after template IDs are configured.
+- AI is limited to gentle prompts and content organization.
+- `你当时以为` is generated only when the user actively triggers AI organization.
+- `后来其实` is user-authored after unlock only and may be submitted at most 2 times.
+- Life nodes use fixed enum values first; `OTHER` allows user custom label.
+- Non-`OTHER` life node custom labels must fail validation.
+- Stage summary is triggered manually by the user, generated on demand, and not persisted in M3.
+- Demo database rebuild is allowed.
+- All implementation notes, verification evidence, skipped verification reasons, and manual WeChat verification results must be recorded in `.ai/AGENT_LOG.md`.
 
 ## Out Of Scope
 
-Do not implement or expand the following in M2 unless a separate OpenSpec change explicitly says so:
+Do not implement or expand the following in M3 unless a separate OpenSpec change explicitly says so:
 
-- production-grade WeChat subscription messages beyond the minimal unlock-reminder foundation
-- SMS reminders or a production notification center
-- real MAP / IMAGE / VOICE capability
 - admin portal
 - production deployment
 - monitoring, alerting, or incident response
-- AI capability enhancement
+- SMS reminders
+- production notification center
+- admin template management
+- campaign delivery
+- complex retry orchestration
+- complex AI growth analysis, scoring, diagnosis, or dashboards
+- social feed or sharing features
+- real MAP / IMAGE / VOICE capability
 - H5/Web user-side acceptance target
 - major frontend visual reconstruction
 - broad backend rewrite
@@ -71,18 +96,31 @@ Do not implement or expand the following in M2 unless a separate OpenSpec change
 
 Do not perform a full repository scan by default.
 
-Before backend implementation, read:
+Before M3 backend implementation, read:
 
 - `AGENTS.md`
 - `.ai/ACTIVE_TASK.md`
-- `.ai/HANDOFF_M1_VISUAL.md`
 - `openspec/project.md`
-- `openspec/changes/m2-backend-optimization/proposal.md`
-- `openspec/changes/m2-backend-optimization/design.md`
-- `openspec/changes/m2-backend-optimization/tasks.md`
-- `openspec/changes/m2-backend-optimization/specs/backend-core/spec.md`
+- `openspec/specs/backend-core/spec.md`
+- `openspec/changes/m3-demo-core-flow-hardening/proposal.md`
+- `openspec/changes/m3-demo-core-flow-hardening/design.md`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+- relevant M3 spec deltas
 
-After that, read only backend files directly required by the current task. If extra files are needed, state the reason before reading them.
+After that, read only backend files directly required by the current M3 backend task. If extra files are needed, state the reason before reading them.
+
+## Contract Confirmation Rule
+
+Backend API contracts that are not already explicit in M3 OpenSpec must be confirmed with the user before implementation.
+
+This includes:
+
+- endpoint paths
+- request/response DTO fields
+- enum names
+- persistence model choices where more than one reasonable option exists
+- whether a capability is persisted or computed on demand
+- frontend-visible error/status semantics
 
 ## Verification Required
 
@@ -93,9 +131,15 @@ For backend code changes:
 - document manual verification when automated tests are not practical
 - record backend work and evidence in `.ai/AGENT_LOG.md`
 
+For WeChat-specific behavior:
+
+- verify not-configured behavior without template IDs
+- verify real delivery manually after template IDs are configured
+- record manual WeChat Developer Tools verification evidence in `.ai/AGENT_LOG.md`
+
 For documentation-only changes:
 
-- verify the active task and M2 OpenSpec documents no longer conflict with the current phase
+- verify active task and OpenSpec documents no longer conflict with the current phase
 - include `git diff --stat`
 
 ## Output Required

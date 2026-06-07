@@ -1,0 +1,322 @@
+# Backend Core Specification
+
+## Purpose
+
+Define the accepted backend core constraints for Flashback V2.0 demo work.
+
+The backend core exists to protect the private record lifecycle, user ownership, Mini Program API contracts, stable record queries, safe AI fallback behavior, and the demo-scoped unlock reminder foundation.
+
+## Requirements
+
+### Requirement: Backend Capability Fact Source
+
+The system SHALL maintain a backend capability fact source for Flashback V2.0 that distinguishes confirmed implementation from partial, planned, unknown, and out-of-scope capabilities.
+
+#### Scenario: Confirmed capability is documented
+
+- WHEN a backend capability is verified in code
+- THEN it SHALL be documented as confirmed
+- AND the relevant module or API behavior SHALL be noted
+
+#### Scenario: Planned feature is not treated as implemented
+
+- WHEN a capability exists only in design notes or future plans
+- THEN it SHALL be documented as planned or out of scope
+- AND it SHALL NOT be used as an acceptance dependency for the current backend optimization phase
+
+#### Scenario: Unknown capability requires follow-up
+
+- WHEN code and documentation do not clearly confirm a capability
+- THEN it SHALL be marked as unknown
+- AND a follow-up verification task SHALL be recorded
+
+### Requirement: Record Lifecycle State Machine
+
+The system SHALL support the core record lifecycle using the states DRAFT, SEALED, and UNLOCKED.
+
+#### Scenario: Draft record is editable
+
+- GIVEN a record is in DRAFT state
+- AND the authenticated user owns the record
+- WHEN the user updates the draft through a supported API
+- THEN the system SHALL allow the update
+- AND the record SHALL remain owned by the same user
+
+#### Scenario: Draft record is sealed
+
+- GIVEN a record is in DRAFT state
+- AND the authenticated user owns the record
+- WHEN the user seals the record
+- THEN the system SHALL transition the record to SEALED
+- AND the system SHALL preserve the user original content
+- AND the system SHALL store or preserve the intended unlock time
+
+#### Scenario: Sealed record is immutable
+
+- GIVEN a record is in SEALED state
+- WHEN a normal user update request attempts to modify the sealed record content
+- THEN the system SHALL reject the update
+- AND the sealed original content SHALL remain unchanged
+
+#### Scenario: Sealed record becomes unlocked
+
+- GIVEN a record is in SEALED state
+- AND its unlock time has arrived
+- WHEN the unlock process runs
+- THEN the system SHALL transition the record to UNLOCKED
+- AND the unlocked record SHALL become available through supported unlocked-record or detail APIs for the owner
+
+#### Scenario: Unlock operation is idempotent
+
+- GIVEN a record is already in UNLOCKED state
+- WHEN the unlock process runs again for the same record
+- THEN the system SHALL NOT create duplicate unlock effects
+- AND the record SHALL remain in UNLOCKED state
+- AND the operation SHALL be safe to repeat
+
+### Requirement: Record Type Support
+
+The system SHALL support the record types FUTURE_LETTER, NODE_RECORD, and EMOTION_NOTE as current V2.0 user-side record types.
+
+#### Scenario: Supported record type is accepted
+
+- GIVEN an authenticated user creates or updates a record
+- WHEN the record type is FUTURE_LETTER, NODE_RECORD, or EMOTION_NOTE
+- THEN the system SHALL accept the type if all other validation passes
+
+#### Scenario: Unsupported record type is rejected or safely ignored
+
+- GIVEN an authenticated user submits an unsupported record type
+- WHEN the backend validates the request
+- THEN the system SHALL reject the unsupported type or safely handle it according to documented validation behavior
+
+### Requirement: User Authentication and Ownership
+
+The system SHALL protect user records through authentication and ownership checks.
+
+#### Scenario: Unauthenticated request is rejected
+
+- GIVEN a request requires user identity
+- WHEN the request does not contain valid authentication
+- THEN the system SHALL reject the request
+
+#### Scenario: User lists only own records
+
+- GIVEN an authenticated user requests a record list
+- WHEN the system returns records
+- THEN every returned record SHALL belong to the authenticated user
+
+#### Scenario: User reads only own record detail
+
+- GIVEN an authenticated user requests record detail
+- WHEN the requested record belongs to another user
+- THEN the system SHALL reject the request or return a safe not-found response
+- AND the response SHALL NOT expose private record content
+
+#### Scenario: User mutates only own records
+
+- GIVEN an authenticated user attempts to update, seal, unlock-related-read, or reply to a record
+- WHEN the record belongs to another user
+- THEN the system SHALL reject the operation
+- AND the target record SHALL remain unchanged
+
+### Requirement: Private Record Data Boundary
+
+The system SHALL treat records as private user-owned emotional content by default.
+
+#### Scenario: Sensitive content is not logged unnecessarily
+
+- GIVEN the system processes record content, token data, or user identifiers
+- WHEN logs are written
+- THEN logs SHALL NOT include unnecessary sensitive record content or authentication secrets
+
+#### Scenario: Timeline respects ownership
+
+- GIVEN an authenticated user requests timeline data
+- WHEN timeline entries are returned
+- THEN all entries SHALL be scoped to the authenticated user
+
+#### Scenario: Shared tag definitions are documented
+
+- GIVEN the V2 demo uses system-shared/global tag definitions
+- WHEN an authenticated user requests the tag list
+- THEN the backend MAY return shared enabled tags
+- AND this behavior SHALL be documented as the current V2 demo tag model
+
+#### Scenario: Tag filtering respects record ownership
+
+- GIVEN tag definitions are shared
+- WHEN an authenticated user filters records by tag
+- THEN the backend SHALL return only records owned by the authenticated user
+- AND record-tag relationships SHALL NOT expose another user's private records
+
+### Requirement: Frontend API Contract Alignment
+
+The backend SHALL provide or document API behavior required by the V2.0 Mini Program frontend mental model.
+
+#### Scenario: My Records page contract is supported
+
+- GIVEN the frontend displays 我的记录
+- WHEN it requests record list data
+- THEN the backend SHALL provide enough information to distinguish draft, sealed, and unlocked records
+- AND the response SHALL support stable pagination and sorting
+
+#### Scenario: Timeline page contract is supported
+
+- GIVEN the frontend displays 时光轴
+- WHEN it requests timeline data
+- THEN the backend SHALL provide user-scoped timeline entries
+- AND the ordering behavior SHALL be stable and documented
+
+#### Scenario: Time review detail contract is supported
+
+- GIVEN the frontend displays 时间回看 or unlocked detail
+- WHEN the owner requests an unlocked record
+- THEN the backend SHALL return the record detail required for review
+- AND it SHALL support reply-related behavior where implemented
+
+#### Scenario: Frontend mock dependency is identified
+
+- GIVEN a V2.0 frontend page depends on mock data or compatibility-only fields
+- WHEN backend contract alignment is reviewed
+- THEN the dependency SHALL be documented
+- AND a backend or frontend follow-up task SHALL be created if it affects the core demo flow
+
+### Requirement: List, Timeline, and Tag Query Stability
+
+The backend SHALL provide stable behavior for list, timeline, and tag-related queries used by the Mini Program demo.
+
+#### Scenario: Record list pagination is stable
+
+- GIVEN an authenticated user requests records with pagination
+- WHEN multiple records exist
+- THEN the backend SHALL return deterministic ordering
+- AND record-list sorting by creation time SHALL use a stable tie-breaker such as `created_at DESC, id DESC`
+- AND pagination SHALL not duplicate or skip records under normal query conditions
+
+#### Scenario: State filtering is supported or documented
+
+- GIVEN an authenticated user filters records by state
+- WHEN the state is DRAFT, SEALED, or UNLOCKED
+- THEN the backend SHALL return records matching the requested state or document the current limitation
+
+#### Scenario: Tag filtering is supported or documented
+
+- GIVEN an authenticated user filters records by tag
+- WHEN matching records exist
+- THEN the backend SHALL return only user-owned matching records or document the current limitation
+
+#### Scenario: Empty result is safe
+
+- GIVEN a list, timeline, or tag query has no matching results
+- WHEN the backend responds
+- THEN the response SHALL use a safe empty-result structure
+- AND SHALL NOT be treated as an error unless the request itself is invalid
+
+### Requirement: Unlock Task Safety
+
+The scheduled unlock mechanism SHALL be safe, repeatable, and scoped to eligible records.
+
+#### Scenario: Unlock task only processes eligible records
+
+- GIVEN the unlock task runs
+- WHEN records are selected for unlocking
+- THEN only eligible SEALED records whose unlock time has arrived SHALL be processed
+
+#### Scenario: Unlock task can run repeatedly
+
+- GIVEN the unlock task runs multiple times
+- WHEN the same records are encountered
+- THEN the task SHALL avoid duplicate side effects
+- AND records already UNLOCKED SHALL remain valid
+
+#### Scenario: Unlock task limitation is documented
+
+- GIVEN missed unlock recovery, timezone behavior, or scheduling precision is not fully implemented
+- WHEN backend optimization reviews the unlock mechanism
+- THEN the limitation SHALL be documented
+- AND the demo impact SHALL be assessed
+
+### Requirement: WeChat Subscription Message Foundation
+
+The system SHALL include a minimal WeChat Mini Program subscription message foundation for record unlock reminders when implemented in V2.0.
+
+This foundation SHALL remain demo-scoped and SHALL NOT become a production notification center, SMS reminder system, campaign system, or admin-managed template platform.
+
+#### Scenario: WeChat identity capability is classified
+
+- WHEN the backend capability fact source is established
+- THEN the system SHALL document whether the current user model supports `openid`
+- AND it SHALL document whether local-account users can later bind a WeChat identity
+- AND missing bind/login behavior SHALL be marked as partial, planned, or unknown instead of assumed implemented
+
+#### Scenario: Preview bypass avoids real subscription delivery
+
+- GIVEN a user is using preview bypass or no-login demo mode
+- WHEN the frontend reaches the subscription authorization or reminder-delivery path
+- THEN the system SHALL skip real WeChat subscription authorization and delivery
+- AND it SHALL keep only demo-safe fallback behavior
+
+#### Scenario: Seal flow can request subscription authorization
+
+- GIVEN an authenticated user seals a draft record
+- WHEN the seal operation succeeds
+- THEN the frontend contract SHALL have a documented point where Mini Program subscription authorization can be requested
+- AND refusal or unavailability of subscription authorization SHALL NOT undo the seal operation
+
+#### Scenario: Unlock reminder send is non-blocking
+
+- GIVEN a SEALED record becomes UNLOCKED through the unlock task
+- WHEN the subscription reminder foundation attempts to enqueue or send an unlock reminder
+- THEN notification failure SHALL be recorded if logging exists
+- AND the unlock transition SHALL remain successful
+- AND the unlock task SHALL continue processing eligible records
+
+#### Scenario: Successful reminder send is idempotent
+
+- GIVEN an unlock reminder has already been successfully sent for a record and template type
+- WHEN the reminder path runs again for the same `record_id + template_type`
+- THEN the system SHALL NOT send a duplicate successful message
+- AND it SHALL preserve a deterministic success record or idempotency marker
+
+#### Scenario: Notification persistence is minimal and explicit
+
+- WHEN the current backend lacks sufficient reminder persistence
+- THEN the design SHALL propose the smallest required model, such as `user_wechat_identity` or `user.openid`, `record_reminder` or `notification_outbox`, and `notification_log`
+- AND it SHALL avoid schema expansion unrelated to unlock reminders
+
+#### Scenario: Sensitive information is not logged
+
+- GIVEN subscription authorization, openid binding, enqueue, send, or failure handling occurs
+- WHEN logs or notification records are written
+- THEN they SHALL NOT include record content, authentication tokens, or unnecessary sensitive identifiers
+
+### Requirement: Minimal AI Fallback Boundary
+
+The system SHALL treat AI fallback as a supporting capability rather than a dependency of the core record lifecycle.
+
+#### Scenario: AI fallback failure does not block draft
+
+- GIVEN AI fallback is unavailable or fails
+- WHEN the user creates or updates a draft
+- THEN the draft operation SHALL continue if all non-AI validation passes
+
+#### Scenario: AI fallback failure does not block seal
+
+- GIVEN AI fallback is unavailable or fails
+- WHEN the user seals a record
+- THEN the seal operation SHALL continue if all non-AI validation passes
+
+#### Scenario: AI fallback does not mutate original content
+
+- GIVEN AI fallback generates summary, suggestion, or auxiliary content
+- WHEN the backend stores or returns AI-related output
+- THEN the user original content SHALL remain preserved
+- AND AI output SHALL NOT replace the original record text
+
+#### Scenario: AI fallback does not alter lifecycle state
+
+- GIVEN AI fallback runs during a record operation
+- WHEN AI fallback succeeds or fails
+- THEN it SHALL NOT independently change the record lifecycle state
+
