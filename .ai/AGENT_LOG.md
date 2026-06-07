@@ -1235,3 +1235,31 @@ Remaining risks:
 - Real WeChat subscription-message send adapter is still pending.
 - `DENIED` authorization reporting from frontend seal flow still needs a confirmed backend entry point or integration-phase handling.
 - Manual real delivery verification remains pending template ID and WeChat Developer Tools configuration.
+
+### 2026-06-07 Codex (M3 Backend Full Test Checkpoint)
+
+Task:
+
+- Run a backend full-test checkpoint after the committed M3 backend slices for facts, schema/record fields, later reflection, WeChat login, and reminder status migration.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- Passed: `mvn -q test` from `backend`.
+- The command was run with approved escalation because Maven dependency resolution is blocked under the default sandbox.
+
+Skipped verification reason:
+
+- No frontend type-check or Mini Program build was run in this backend checkpoint.
+- Real WeChat Developer Tools verification remains pending configuration and template IDs.
+
+Scope safety check:
+
+- Verification-only log entry; no application code, schema, package, lockfile, deployment, monitoring, admin, SMS, notification center, campaign, real MAP/IMAGE/VOICE, or frontend visual changes were made.
+
+Remaining risks:
+
+- Remaining M3 backend work still includes user-triggered `beliefThen` AI organization, real subscription-message send adapter/authorization reporting, and manual stage summary generation.
