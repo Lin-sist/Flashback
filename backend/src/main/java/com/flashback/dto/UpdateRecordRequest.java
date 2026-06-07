@@ -1,5 +1,6 @@
 package com.flashback.dto;
 
+import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,6 +31,14 @@ public class UpdateRecordRequest {
 
     @Size(max = 10, message = "aiPromptResults数量不能超过10")
     private List<@Size(max = 255, message = "aiPromptResults单项长度不能超过255") String> aiPromptResults;
+
+    @Size(max = 2000, message = "beliefThen长度不能超过2000")
+    private String beliefThen;
+
+    private LifeNodeType lifeNodeType;
+
+    @Size(max = 50, message = "lifeNodeCustomLabel长度不能超过50")
+    private String lifeNodeCustomLabel;
 
     private LocalDateTime unlockAt;
 
@@ -82,6 +91,30 @@ public class UpdateRecordRequest {
 
     public void setAiPromptResults(List<String> aiPromptResults) {
         this.aiPromptResults = aiPromptResults;
+    }
+
+    public String getBeliefThen() {
+        return beliefThen;
+    }
+
+    public void setBeliefThen(String beliefThen) {
+        this.beliefThen = beliefThen;
+    }
+
+    public LifeNodeType getLifeNodeType() {
+        return lifeNodeType;
+    }
+
+    public void setLifeNodeType(LifeNodeType lifeNodeType) {
+        this.lifeNodeType = lifeNodeType;
+    }
+
+    public String getLifeNodeCustomLabel() {
+        return lifeNodeCustomLabel;
+    }
+
+    public void setLifeNodeCustomLabel(String lifeNodeCustomLabel) {
+        this.lifeNodeCustomLabel = lifeNodeCustomLabel;
     }
 
     public LocalDateTime getUnlockAt() {

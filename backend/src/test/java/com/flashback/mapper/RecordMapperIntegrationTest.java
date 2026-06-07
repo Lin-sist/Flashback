@@ -1,6 +1,7 @@
 package com.flashback.mapper;
 
 import com.flashback.domain.Record;
+import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import org.junit.jupiter.api.Test;
@@ -62,11 +63,13 @@ class RecordMapperIntegrationTest {
                 int updatedDraft = recordMapper.updateDraftByIdAndUserId(
                                 draft.getId(), 1002L, "draft-updated", "content-updated",
                                 RecordType.EMOTION_NOTE, "core-updated", "summary-updated",
-                                "[\"prompt-a\",\"prompt-b\"]", unlockAt, updatedAt);
+                                "[\"prompt-a\",\"prompt-b\"]", "belief-updated",
+                                LifeNodeType.OTHER, "自定义节点", unlockAt, updatedAt);
                 int updatedSealed = recordMapper.updateDraftByIdAndUserId(
                                 sealed.getId(), 1002L, "sealed-updated", "content-updated",
                                 RecordType.EMOTION_NOTE, "core-updated", "summary-updated",
-                                "[\"prompt-a\",\"prompt-b\"]", unlockAt, updatedAt);
+                                "[\"prompt-a\",\"prompt-b\"]", "belief-updated",
+                                LifeNodeType.OTHER, "自定义节点", unlockAt, updatedAt);
 
                 assertThat(updatedDraft).isEqualTo(1);
                 assertThat(updatedSealed).isEqualTo(0);
@@ -79,6 +82,9 @@ class RecordMapperIntegrationTest {
                 assertThat(updatedRecord.getCoreQuestion()).isEqualTo("core-updated");
                 assertThat(updatedRecord.getAiSummary()).isEqualTo("summary-updated");
                 assertThat(updatedRecord.getAiPromptResult()).isEqualTo("[\"prompt-a\",\"prompt-b\"]");
+                assertThat(updatedRecord.getBeliefThen()).isEqualTo("belief-updated");
+                assertThat(updatedRecord.getLifeNodeType()).isEqualTo(LifeNodeType.OTHER);
+                assertThat(updatedRecord.getLifeNodeCustomLabel()).isEqualTo("自定义节点");
                 assertThat(updatedRecord.getUnlockAt()).isEqualTo(unlockAt);
                 assertThat(updatedRecord.getUpdatedAt()).isEqualTo(updatedAt);
         }

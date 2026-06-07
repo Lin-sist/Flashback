@@ -3,6 +3,7 @@ package com.flashback.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
+import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordReminder;
 import com.flashback.domain.RecordReminderStatus;
@@ -186,7 +187,7 @@ class RecordServiceImplTest {
         Record draft = mockRecord(RecordStatus.DRAFT);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
         when(tagMapper.countEnabledByIds(List.of(1L, 2L))).thenReturn(2L);
-        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(1);
 
         UpdateRecordRequest request = new UpdateRecordRequest();
@@ -196,6 +197,9 @@ class RecordServiceImplTest {
         request.setTagIds(List.of(1L, 2L, 2L));
         request.setAiSummary("新的AI总结");
         request.setAiPromptResults(List.of("先投递", "先投递", "补项目"));
+        request.setBeliefThen("当时以为只要多投递就会好");
+        request.setLifeNodeType(LifeNodeType.OTHER);
+        request.setLifeNodeCustomLabel("转专业");
 
         recordService.update(1L, 100L, request);
 
@@ -266,7 +270,7 @@ class RecordServiceImplTest {
     void shouldClearAiFieldsWhenUpdateDraftWithoutAiSnapshot() {
         Record draft = mockRecord(RecordStatus.DRAFT);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
-        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(1);
 
         UpdateRecordRequest request = new UpdateRecordRequest();
@@ -287,8 +291,27 @@ class RecordServiceImplTest {
                 any(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 any(),
                 any());
+    }
+
+    @Test
+    void shouldRejectCustomLifeNodeLabelWhenTypeIsNotOther() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft);
+
+        UpdateRecordRequest request = new UpdateRecordRequest();
+        request.setContent("new content");
+        request.setRecordType(RecordType.NODE_RECORD);
+        request.setLifeNodeType(LifeNodeType.WORK);
+        request.setLifeNodeCustomLabel("自定义工作节点");
+
+        assertThatThrownBy(() -> recordService.update(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("lifeNodeCustomLabel仅在lifeNodeType为OTHER时允许填写");
     }
 
     @Test
@@ -337,6 +360,8 @@ class RecordServiceImplTest {
         Record unlocked = mockRecord(RecordStatus.UNLOCKED);
         unlocked.setAiSummary("当前的困惑集中在实习准备");
         unlocked.setAiPromptResult("[\"你最担心的是什么？\",\"下一步先做哪件事？\"]");
+        unlocked.setBeliefThen("那时以为只要准备充分就不会紧张");
+        unlocked.setLifeNodeType(LifeNodeType.WORK);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(unlocked);
         when(replyMapper.selectByRecordId(100L)).thenReturn(mockReply(100L, 1L, "已写回信"));
 
@@ -344,6 +369,8 @@ class RecordServiceImplTest {
 
         assertThat(result.getAiSummary()).isEqualTo("当前的困惑集中在实习准备");
         assertThat(result.getAiPromptResults()).containsExactly("你最担心的是什么？", "下一步先做哪件事？");
+        assertThat(result.getBeliefThen()).isEqualTo("那时以为只要准备充分就不会紧张");
+        assertThat(result.getLifeNodeType()).isEqualTo(LifeNodeType.WORK);
         assertThat(result.getHasReply()).isTrue();
         assertThat(result.getCanReply()).isFalse();
     }

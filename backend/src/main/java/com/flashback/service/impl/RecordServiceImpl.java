@@ -7,6 +7,7 @@ import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.common.page.PageResult;
+import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordReminder;
 import com.flashback.domain.RecordReminderStatus;
@@ -107,6 +108,11 @@ public class RecordServiceImpl implements RecordService {
         record.setCoreQuestion(normalizeOptional(request.getCoreQuestion()));
         record.setAiSummary(normalizeOptional(request.getAiSummary()));
         record.setAiPromptResult(serializeAiPromptResults(request.getAiPromptResults()));
+        record.setBeliefThen(normalizeOptional(request.getBeliefThen()));
+        record.setLifeNodeType(request.getLifeNodeType());
+        record.setLifeNodeCustomLabel(validateLifeNodeCustomLabel(
+                request.getLifeNodeType(),
+                request.getLifeNodeCustomLabel()));
         record.setStatus(RecordStatus.DRAFT);
         record.setUnlockAt(request.getUnlockAt());
         record.setCreatedAt(now);
@@ -135,6 +141,9 @@ public class RecordServiceImpl implements RecordService {
                 normalizeOptional(request.getCoreQuestion()),
                 normalizeOptional(request.getAiSummary()),
                 serializeAiPromptResults(request.getAiPromptResults()),
+                normalizeOptional(request.getBeliefThen()),
+                request.getLifeNodeType(),
+                validateLifeNodeCustomLabel(request.getLifeNodeType(), request.getLifeNodeCustomLabel()),
                 request.getUnlockAt(),
                 LocalDateTime.now(clock));
         if (affected == 0) {
@@ -300,6 +309,14 @@ public class RecordServiceImpl implements RecordService {
 
     private BizException badRequest(String message) {
         return new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, message);
+    }
+
+    private String validateLifeNodeCustomLabel(LifeNodeType lifeNodeType, String customLabel) {
+        String normalizedLabel = normalizeOptional(customLabel);
+        if (normalizedLabel != null && lifeNodeType != LifeNodeType.OTHER) {
+            throw badRequest("lifeNodeCustomLabel仅在lifeNodeType为OTHER时允许填写");
+        }
+        return normalizedLabel;
     }
 
     private void insertUnlockNoticeLog(Long recordId, Long userId, LocalDateTime createdAt) {
@@ -474,6 +491,10 @@ public class RecordServiceImpl implements RecordService {
         vo.setUnlockedAt(record.getUnlockedAt());
         vo.setAiSummary(record.getAiSummary());
         vo.setAiPromptResults(deserializeAiPromptResults(record.getAiPromptResult()));
+        vo.setBeliefThen(record.getBeliefThen());
+        vo.setRealityLater(record.getRealityLater());
+        vo.setLifeNodeType(record.getLifeNodeType());
+        vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
         vo.setTags(loadRecordTags(record.getId()));
         boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
                 && replyMapper.selectByRecordId(record.getId()) != null;

@@ -17,6 +17,11 @@
         <result property="unlockedAt" column="unlocked_at"/>
         <result property="aiSummary" column="ai_summary"/>
         <result property="aiPromptResult" column="ai_prompt_result"/>
+        <result property="beliefThen" column="belief_then"/>
+        <result property="realityLater" column="reality_later"/>
+        <result property="realityLaterSubmitCount" column="reality_later_submit_count"/>
+        <result property="lifeNodeType" column="life_node_type" javaType="com.flashback.domain.LifeNodeType"/>
+        <result property="lifeNodeCustomLabel" column="life_node_custom_label"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -34,6 +39,11 @@
         unlocked_at,
         ai_summary,
         ai_prompt_result,
+        belief_then,
+        reality_later,
+        reality_later_submit_count,
+        life_node_type,
+        life_node_custom_label,
         created_at,
         updated_at
     </sql>
@@ -51,6 +61,11 @@
             unlocked_at,
             ai_summary,
             ai_prompt_result,
+            belief_then,
+            reality_later,
+            reality_later_submit_count,
+            life_node_type,
+            life_node_custom_label,
             created_at,
             updated_at
         ) VALUES (
@@ -65,6 +80,11 @@
             #{unlockedAt},
             #{aiSummary},
             #{aiPromptResult},
+            #{beliefThen},
+            #{realityLater},
+            COALESCE(#{realityLaterSubmitCount}, 0),
+            #{lifeNodeType},
+            #{lifeNodeCustomLabel},
             #{createdAt},
             #{updatedAt}
         )
@@ -88,6 +108,9 @@
             core_question = #{coreQuestion},
             ai_summary = #{aiSummary},
             ai_prompt_result = #{aiPromptResult},
+            belief_then = #{beliefThen},
+            life_node_type = #{lifeNodeType},
+            life_node_custom_label = #{lifeNodeCustomLabel},
             unlock_at = #{unlockAt},
             updated_at = #{updatedAt}
         WHERE id = #{id}

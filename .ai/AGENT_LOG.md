@@ -1016,3 +1016,61 @@ Remaining risks:
 
 - Current working tree already contains M3 documentation activation changes and archived M2 files from earlier work; commit staging must remain scoped.
 - Real WeChat delivery and real WeChat login still depend on configuration and later manual Mini Program verification.
+
+### 2026-06-07 Codex (M3 Record Reflection And Life Node Schema Base)
+
+Task:
+
+- Implement the first backend code slice for M3 record reflection and life node schema/contract base.
+- Keep the slice narrow: no WeChat login, no later-reflection endpoint, no reminder send adapter, and no stage summary endpoint yet.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/test/resources/schema.sql`
+- `backend/src/main/java/com/flashback/domain/LifeNodeType.java`
+- `backend/src/main/java/com/flashback/domain/Record.java`
+- `backend/src/main/java/com/flashback/dto/CreateRecordRequest.java`
+- `backend/src/main/java/com/flashback/dto/UpdateRecordRequest.java`
+- `backend/src/main/java/com/flashback/vo/RecordDetailVO.java`
+- `backend/src/main/java/com/flashback/mapper/RecordMapper.java`
+- `backend/src/main/resources/mapper/RecordMapper.xml`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/test/java/com/flashback/mapper/RecordMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Added record schema/test-schema fields: `belief_then`, `reality_later`, `reality_later_submit_count`, `life_node_type`, and `life_node_custom_label`.
+- Added `LifeNodeType` enum with accepted M3 values: `GRADUATION`, `WORK`, `MOVE`, `RELATIONSHIP`, `HEALTH`, `FAMILY`, `TURNING_POINT`, and `OTHER`.
+- Extended `Record`, create/update DTOs, detail VO, MyBatis result map, insert, and draft update mapping for `beliefThen`, life node type, and custom life node label.
+- Detail responses now include `beliefThen`, `realityLater`, `lifeNodeType`, and `lifeNodeCustomLabel`.
+- Added service validation so `lifeNodeCustomLabel` is accepted only when `lifeNodeType = OTHER`; non-`OTHER` custom labels fail with validation error.
+- Updated mapper/service tests for new fields and validation.
+- Updated M3 task status for completed schema and life node base items.
+
+Verification:
+
+- First sandboxed run of `mvn -q "-Dtest=RecordServiceImplTest,RecordMapperIntegrationTest" test` failed because Maven could not resolve the Spring Boot parent POM under restricted network access.
+- Reran the same focused command with approved escalation for dependency resolution.
+- Passed: `mvn -q "-Dtest=RecordServiceImplTest,RecordMapperIntegrationTest" test`.
+
+Skipped verification reason:
+
+- Full `mvn -q test` was not run for this slice to keep verification focused on the changed schema/record mapper/service behavior.
+- Real WeChat login and reminder delivery verification are not applicable to this slice.
+
+Scope safety check:
+
+- This slice only changed backend record schema/model/mapper/service tests and OpenSpec task evidence.
+- No admin, production deployment, monitoring, SMS, notification center, campaign delivery, real MAP/IMAGE/VOICE, broad backend rewrite, frontend visual reconstruction, or package/lockfile change was introduced.
+- Stage summaries remain on-demand and non-persistent; no stage summary table was added.
+
+Remaining risks:
+
+- `PUT /api/records/{recordId}/later-reflection` is still pending; `reality_later` and submit count are schema-backed but not yet writable through the accepted endpoint.
+- `beliefThen` storage is wired into create/update, but a dedicated user-triggered AI organization API is still pending.
+- Reminder status migration and real WeChat send/not-configured behavior remain pending.
+- Demo/local MySQL databases need rebuild or manual schema application because the project has no migration tool.

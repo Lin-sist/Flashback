@@ -1,5 +1,6 @@
 package com.flashback.vo;
 
+import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 
@@ -22,6 +23,10 @@ public class RecordDetailVO {
     private LocalDateTime unlockedAt;
     private String aiSummary;
     private List<String> aiPromptResults;
+    private String beliefThen;
+    private String realityLater;
+    private LifeNodeType lifeNodeType;
+    private String lifeNodeCustomLabel;
     private List<RecordTagVO> tags;
     private Boolean canReply;
     private Boolean hasReply;
@@ -114,6 +119,38 @@ public class RecordDetailVO {
 
     public void setAiPromptResults(List<String> aiPromptResults) {
         this.aiPromptResults = aiPromptResults;
+    }
+
+    public String getBeliefThen() {
+        return beliefThen;
+    }
+
+    public void setBeliefThen(String beliefThen) {
+        this.beliefThen = beliefThen;
+    }
+
+    public String getRealityLater() {
+        return realityLater;
+    }
+
+    public void setRealityLater(String realityLater) {
+        this.realityLater = realityLater;
+    }
+
+    public LifeNodeType getLifeNodeType() {
+        return lifeNodeType;
+    }
+
+    public void setLifeNodeType(LifeNodeType lifeNodeType) {
+        this.lifeNodeType = lifeNodeType;
+    }
+
+    public String getLifeNodeCustomLabel() {
+        return lifeNodeCustomLabel;
+    }
+
+    public void setLifeNodeCustomLabel(String lifeNodeCustomLabel) {
+        this.lifeNodeCustomLabel = lifeNodeCustomLabel;
     }
 
     public List<RecordTagVO> getTags() {

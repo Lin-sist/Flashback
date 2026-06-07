@@ -19,6 +19,11 @@ public class Record {
     private LocalDateTime unlockedAt;
     private String aiSummary;
     private String aiPromptResult;
+    private String beliefThen;
+    private String realityLater;
+    private Integer realityLaterSubmitCount;
+    private LifeNodeType lifeNodeType;
+    private String lifeNodeCustomLabel;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -116,6 +121,46 @@ public class Record {
 
     public void setAiPromptResult(String aiPromptResult) {
         this.aiPromptResult = aiPromptResult;
+    }
+
+    public String getBeliefThen() {
+        return beliefThen;
+    }
+
+    public void setBeliefThen(String beliefThen) {
+        this.beliefThen = beliefThen;
+    }
+
+    public String getRealityLater() {
+        return realityLater;
+    }
+
+    public void setRealityLater(String realityLater) {
+        this.realityLater = realityLater;
+    }
+
+    public Integer getRealityLaterSubmitCount() {
+        return realityLaterSubmitCount;
+    }
+
+    public void setRealityLaterSubmitCount(Integer realityLaterSubmitCount) {
+        this.realityLaterSubmitCount = realityLaterSubmitCount;
+    }
+
+    public LifeNodeType getLifeNodeType() {
+        return lifeNodeType;
+    }
+
+    public void setLifeNodeType(LifeNodeType lifeNodeType) {
+        this.lifeNodeType = lifeNodeType;
+    }
+
+    public String getLifeNodeCustomLabel() {
+        return lifeNodeCustomLabel;
+    }
+
+    public void setLifeNodeCustomLabel(String lifeNodeCustomLabel) {
+        this.lifeNodeCustomLabel = lifeNodeCustomLabel;
     }
 
     public LocalDateTime getCreatedAt() {

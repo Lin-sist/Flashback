@@ -51,16 +51,16 @@
 
 ## 3. Backend Schema and Contract Planning
 
-- [ ] Add or update schema support for "你当时以为" only after contract confirmation.
-- [ ] Add or update schema support for "后来其实" only after contract confirmation.
-- [ ] Add or update schema support for life node enum.
-- [ ] Add or update schema support for custom life node label when enum is OTHER.
-- [ ] Do not add stage summary persistence in M3; summaries are generated on demand.
+- [x] Add or update schema support for "你当时以为" only after contract confirmation.
+- [x] Add or update schema support for "后来其实" only after contract confirmation.
+- [x] Add or update schema support for life node enum.
+- [x] Add or update schema support for custom life node label when enum is OTHER.
+- [x] Do not add stage summary persistence in M3; summaries are generated on demand.
 - [ ] Add or update schema support for reminder configuration/status if M2 foundation is insufficient.
-- [ ] Keep schema changes narrow.
-- [ ] Document that demo database rebuild is allowed.
-- [ ] Update test schema consistently when backend schema changes.
-- [ ] Record schema decisions and rebuild expectations in `.ai/AGENT_LOG.md`.
+- [x] Keep schema changes narrow.
+- [x] Document that demo database rebuild is allowed.
+- [x] Update test schema consistently when backend schema changes.
+- [x] Record schema decisions and rebuild expectations in `.ai/AGENT_LOG.md`.
 
 ## 4. Backend Phase: Authentication
 
@@ -92,7 +92,7 @@
 
 ## 6. Backend Phase: Life Node Records
 
-- [ ] Define supported life node enum values:
+- [x] Define supported life node enum values:
   - GRADUATION
   - WORK
   - MOVE
@@ -110,8 +110,8 @@
   - 家庭
   - 转折
   - 其他
-- [ ] Allow custom life node label only when enum is OTHER.
-- [ ] Reject custom life node labels on non-OTHER values with validation failure.
+- [x] Allow custom life node label only when enum is OTHER.
+- [x] Reject custom life node labels on non-OTHER values with validation failure.
 - [ ] Ensure NODE_RECORD can be filtered or displayed without affecting other record types.
 - [ ] Add tests or manual verification for fixed enum and OTHER custom label.
 

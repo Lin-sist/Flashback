@@ -1,6 +1,7 @@
 package com.flashback.mapper;
 
 import com.flashback.domain.Record;
+import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import org.apache.ibatis.annotations.Mapper;
@@ -25,6 +26,9 @@ public interface RecordMapper {
                         @Param("coreQuestion") String coreQuestion,
                         @Param("aiSummary") String aiSummary,
                         @Param("aiPromptResult") String aiPromptResult,
+                        @Param("beliefThen") String beliefThen,
+                        @Param("lifeNodeType") LifeNodeType lifeNodeType,
+                        @Param("lifeNodeCustomLabel") String lifeNodeCustomLabel,
                         @Param("unlockAt") LocalDateTime unlockAt,
                         @Param("updatedAt") LocalDateTime updatedAt);
 
