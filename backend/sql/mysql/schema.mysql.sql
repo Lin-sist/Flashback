@@ -90,7 +90,7 @@ CREATE TABLE `record_reminder` (
   `record_id` BIGINT NOT NULL,
   `user_id` BIGINT NOT NULL,
   `template_type` VARCHAR(40) NOT NULL,
-  `reminder_status` VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+  `reminder_status` VARCHAR(30) NOT NULL DEFAULT 'REQUESTED',
   `last_error` VARCHAR(255) DEFAULT NULL,
   `sent_at` DATETIME DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

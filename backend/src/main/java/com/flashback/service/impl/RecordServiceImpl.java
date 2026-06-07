@@ -7,6 +7,7 @@ import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.common.page.PageResult;
+import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordReminder;
@@ -59,6 +60,7 @@ public class RecordServiceImpl implements RecordService {
     private static final String NOTICE_STATUS_SUCCESS = "SUCCESS";
     private static final String TEMPLATE_TYPE_UNLOCK_REMINDER = "UNLOCK_REMINDER";
     private static final String OPENID_NOT_BOUND_MESSAGE = "openid not bound";
+    private static final String TEMPLATE_NOT_CONFIGURED_MESSAGE = "wechat unlock reminder template not configured";
     private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
     };
@@ -71,6 +73,7 @@ public class RecordServiceImpl implements RecordService {
     private final RecordReminderMapper recordReminderMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final AppWechatProperties appWechatProperties;
     private final Clock clock;
 
     public RecordServiceImpl(
@@ -82,6 +85,7 @@ public class RecordServiceImpl implements RecordService {
             RecordReminderMapper recordReminderMapper,
             UserMapper userMapper,
             ObjectMapper objectMapper,
+            AppWechatProperties appWechatProperties,
             Clock clock) {
         this.recordMapper = recordMapper;
         this.tagMapper = tagMapper;
@@ -91,6 +95,7 @@ public class RecordServiceImpl implements RecordService {
         this.recordReminderMapper = recordReminderMapper;
         this.userMapper = userMapper;
         this.objectMapper = objectMapper;
+        this.appWechatProperties = appWechatProperties;
         this.clock = clock;
     }
 
@@ -378,8 +383,11 @@ public class RecordServiceImpl implements RecordService {
             if (openid == null) {
                 reminder.setReminderStatus(RecordReminderStatus.SKIPPED_NO_OPENID);
                 reminder.setLastError(OPENID_NOT_BOUND_MESSAGE);
+            } else if (!appWechatProperties.hasUnlockReminderTemplate()) {
+                reminder.setReminderStatus(RecordReminderStatus.NOT_CONFIGURED);
+                reminder.setLastError(TEMPLATE_NOT_CONFIGURED_MESSAGE);
             } else {
-                reminder.setReminderStatus(RecordReminderStatus.PENDING);
+                reminder.setReminderStatus(RecordReminderStatus.SEND_PENDING);
             }
 
             recordReminderMapper.insert(reminder);

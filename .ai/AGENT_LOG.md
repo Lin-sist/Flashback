@@ -1180,3 +1180,58 @@ Remaining risks:
 - Real WeChat login must be manually verified after valid Mini Program configuration is provided.
 - Generated WeChat-only users intentionally remain separate from account/password users until a future binding change.
 - User-triggered `beliefThen` AI organization, reminder delivery, and stage summary remain pending.
+
+### 2026-06-07 Codex (M3 Reminder Status And Not Configured State)
+
+Task:
+
+- Migrate unlock reminder status foundation from M2 states to accepted M3 states.
+- Implement explicit missing-template behavior for unlock reminders.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/test/resources/schema.sql`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/java/com/flashback/config/AppWechatProperties.java`
+- `backend/src/main/java/com/flashback/domain/RecordReminderStatus.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/test/java/com/flashback/mapper/RecordReminderMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Replaced old reminder states `PENDING`, `SENT`, and `FAILED` with accepted M3 states: `REQUESTED`, `AUTHORIZED`, `DENIED`, `NOT_CONFIGURED`, `SEND_PENDING`, `SEND_SUCCESS`, `SEND_FAILED`, and `SKIPPED_NO_OPENID`.
+- Updated schema defaults from `PENDING` to `REQUESTED`.
+- Added `WECHAT_UNLOCK_REMINDER_TEMPLATE_ID` placeholder via `app.wechat.mini-program.unlock-reminder-template-id`.
+- Unlock reminder creation now records:
+  - `SKIPPED_NO_OPENID` when the user has no OpenID.
+  - `NOT_CONFIGURED` when OpenID exists but the unlock reminder template ID is missing.
+  - `SEND_PENDING` when OpenID and template ID both exist, leaving real send adapter work to the next slice.
+- Existing unlock flow remains non-blocking; reminder persistence remains best-effort and does not roll back unlock.
+- Updated tests for skipped OpenID, not-configured template, and send-pending template-configured paths.
+
+Verification:
+
+- Confirmed no old reminder state references remain with `rg`.
+- First sandboxed run of `mvn -q "-Dtest=RecordServiceImplTest,RecordReminderMapperIntegrationTest" test` failed due restricted Maven dependency resolution.
+- Reran with approved escalation.
+- Passed: `mvn -q "-Dtest=RecordServiceImplTest,RecordReminderMapperIntegrationTest" test`.
+
+Skipped verification reason:
+
+- Full `mvn -q test` was not run for this focused reminder status slice.
+- Real WeChat subscription-message delivery was not attempted because the send adapter is not yet implemented and template ID is not configured.
+
+Scope safety check:
+
+- This slice only changed demo-scoped unlock reminder status/config behavior.
+- It did not implement admin template management, production notification center, SMS, campaign delivery, complex retry orchestration, deployment/monitoring, or package/lockfile updates.
+
+Remaining risks:
+
+- Real WeChat subscription-message send adapter is still pending.
+- `DENIED` authorization reporting from frontend seal flow still needs a confirmed backend entry point or integration-phase handling.
+- Manual real delivery verification remains pending template ID and WeChat Developer Tools configuration.

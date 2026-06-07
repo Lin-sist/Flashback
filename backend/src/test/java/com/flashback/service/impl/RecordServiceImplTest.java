@@ -3,6 +3,7 @@ package com.flashback.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
+import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordReminder;
@@ -68,11 +69,14 @@ class RecordServiceImplTest {
     @Mock
     private ReplyMapper replyMapper;
 
+    private AppWechatProperties appWechatProperties;
+
     private RecordServiceImpl recordService;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-03-26T08:00:00Z"), ZoneId.of("Asia/Shanghai"));
+        appWechatProperties = new AppWechatProperties();
         recordService = new RecordServiceImpl(
                 recordMapper,
                 tagMapper,
@@ -82,6 +86,7 @@ class RecordServiceImplTest {
                 recordReminderMapper,
                 userMapper,
                 new ObjectMapper(),
+                appWechatProperties,
                 clock);
     }
 
@@ -526,7 +531,7 @@ class RecordServiceImplTest {
     }
 
     @Test
-    void shouldCreatePendingUnlockReminderWhenUserHasOpenid() {
+    void shouldCreateNotConfiguredUnlockReminderWhenUserHasOpenidButTemplateMissing() {
         Record expired = mockRecord(RecordStatus.SEALED);
         expired.setId(401L);
         expired.setUserId(31L);
@@ -544,7 +549,32 @@ class RecordServiceImplTest {
                 reminder.getRecordId().equals(401L)
                         && reminder.getUserId().equals(31L)
                         && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
-                        && reminder.getReminderStatus() == RecordReminderStatus.PENDING
+                        && reminder.getReminderStatus() == RecordReminderStatus.NOT_CONFIGURED
+                        && "wechat unlock reminder template not configured".equals(reminder.getLastError())));
+    }
+
+    @Test
+    void shouldCreateSendPendingUnlockReminderWhenTemplateConfigured() {
+        appWechatProperties.setUnlockReminderTemplateId("template-id");
+
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(404L);
+        expired.setUserId(34L);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(404L), any(), any())).thenReturn(1);
+        when(userMapper.selectById(34L)).thenReturn(mockUser(34L, "openid-34"));
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(recordReminderMapper).insert(org.mockito.ArgumentMatchers.argThat(reminder ->
+                reminder.getRecordId().equals(404L)
+                        && reminder.getUserId().equals(34L)
+                        && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
+                        && reminder.getReminderStatus() == RecordReminderStatus.SEND_PENDING
                         && reminder.getLastError() == null));
     }
 

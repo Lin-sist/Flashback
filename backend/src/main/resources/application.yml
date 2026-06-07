@@ -38,3 +38,4 @@ app:
       secret: ${WECHAT_MINI_PROGRAM_SECRET:}
       code2-session-url: ${WECHAT_CODE2SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
       timeout-millis: ${WECHAT_CODE2SESSION_TIMEOUT_MILLIS:5000}
+      unlock-reminder-template-id: ${WECHAT_UNLOCK_REMINDER_TEMPLATE_ID:}

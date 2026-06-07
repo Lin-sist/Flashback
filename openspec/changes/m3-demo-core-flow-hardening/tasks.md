@@ -56,7 +56,7 @@
 - [x] Add or update schema support for life node enum.
 - [x] Add or update schema support for custom life node label when enum is OTHER.
 - [x] Do not add stage summary persistence in M3; summaries are generated on demand.
-- [ ] Add or update schema support for reminder configuration/status if M2 foundation is insufficient.
+- [x] Add or update schema support for reminder configuration/status if M2 foundation is insufficient.
 - [x] Keep schema changes narrow.
 - [x] Document that demo database rebuild is allowed.
 - [x] Update test schema consistently when backend schema changes.
@@ -120,10 +120,10 @@
 - [ ] Confirm reminder authorization timing in the frontend seal flow.
 - [ ] Store reminder intent or authorization result where required.
 - [ ] Implement or complete WeChat subscription-message send adapter.
-- [ ] Make template ID configuration-driven.
-- [ ] Treat missing template ID as explicit `not_configured` behavior.
+- [x] Make template ID configuration-driven.
+- [x] Treat missing template ID as explicit `not_configured` behavior.
 - [ ] Ensure `not_configured` does not block seal.
-- [ ] Ensure `not_configured` does not block unlock.
+- [x] Ensure `not_configured` does not block unlock.
 - [ ] Ensure send failure does not block unlock.
 - [ ] Ensure successful send is idempotent by record and template type.
 - [ ] Record `DENIED` when the user refuses subscription authorization.

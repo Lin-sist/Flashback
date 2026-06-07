@@ -82,7 +82,7 @@ class RecordReminderMapperIntegrationTest {
         reminder.setRecordId(recordId);
         reminder.setUserId(userId);
         reminder.setTemplateType(TEMPLATE_TYPE_UNLOCK_REMINDER);
-        reminder.setReminderStatus(RecordReminderStatus.PENDING);
+        reminder.setReminderStatus(RecordReminderStatus.SEND_PENDING);
         reminder.setCreatedAt(now);
         reminder.setUpdatedAt(now);
         return reminder;

@@ -1,11 +1,15 @@
 package com.flashback.domain;
 
 /**
- * 记录解锁提醒的最小状态。
+ * Record unlock reminder states accepted by M3.
  */
 public enum RecordReminderStatus {
-    PENDING,
-    SENT,
-    FAILED,
+    REQUESTED,
+    AUTHORIZED,
+    DENIED,
+    NOT_CONFIGURED,
+    SEND_PENDING,
+    SEND_SUCCESS,
+    SEND_FAILED,
     SKIPPED_NO_OPENID
 }

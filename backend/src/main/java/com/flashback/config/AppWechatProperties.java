@@ -14,6 +14,7 @@ public class AppWechatProperties {
     private String secret;
     private String code2SessionUrl = "https://api.weixin.qq.com/sns/jscode2session";
     private long timeoutMillis = 5000;
+    private String unlockReminderTemplateId;
 
     public String getAppId() {
         return appId;
@@ -47,8 +48,20 @@ public class AppWechatProperties {
         this.timeoutMillis = timeoutMillis;
     }
 
+    public String getUnlockReminderTemplateId() {
+        return unlockReminderTemplateId;
+    }
+
+    public void setUnlockReminderTemplateId(String unlockReminderTemplateId) {
+        this.unlockReminderTemplateId = unlockReminderTemplateId;
+    }
+
     public boolean isConfigured() {
         return hasText(appId) && hasText(secret);
+    }
+
+    public boolean hasUnlockReminderTemplate() {
+        return hasText(unlockReminderTemplateId);
     }
 
     private boolean hasText(String value) {
