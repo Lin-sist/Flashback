@@ -133,13 +133,13 @@
 
 ## 8. Backend Phase: Stage Summary
 
-- [ ] Add `POST /api/stage-summaries/generate`.
-- [ ] Ensure stage summary is scoped to the authenticated user.
-- [ ] Use lightweight statistics and AI organization only.
-- [ ] Ensure stage summary does not become a forced lifecycle step.
-- [ ] Ensure AI failure returns safe fallback or explicit unavailable state.
-- [ ] Do not persist stage summaries in M3.
-- [ ] Add tests or manual verification for manual generation and ownership safety.
+- [x] Add `POST /api/stage-summaries/generate`.
+- [x] Ensure stage summary is scoped to the authenticated user.
+- [x] Use lightweight statistics and AI organization only.
+- [x] Ensure stage summary does not become a forced lifecycle step.
+- [x] Ensure AI failure returns safe fallback or explicit unavailable state.
+- [x] Do not persist stage summaries in M3.
+- [x] Add tests or manual verification for manual generation and ownership safety.
 
 ## 9. Frontend Phase: Flow Completion
 

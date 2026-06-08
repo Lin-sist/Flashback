@@ -1307,3 +1307,49 @@ Remaining risks:
 
 - Frontend still needs to call the AI organization action and save returned `beliefThen` into record create/update.
 - Stage summary and real reminder send adapter remain pending.
+
+### 2026-06-07 Codex (M3 Manual Stage Summary Endpoint)
+
+Task:
+
+- Implement accepted M3 endpoint `POST /api/stage-summaries/generate`.
+- Keep summaries manual, user-scoped, on-demand, lightweight, and non-persistent.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/controller/api/StageSummaryController.java`
+- `backend/src/main/java/com/flashback/service/StageSummaryService.java`
+- `backend/src/main/java/com/flashback/service/impl/StageSummaryServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/StageSummaryVO.java`
+- `backend/src/test/java/com/flashback/controller/api/StageSummaryControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/StageSummaryServiceImplTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Added authenticated manual stage summary endpoint `POST /api/stage-summaries/generate`.
+- Added non-persistent `StageSummaryService` and `StageSummaryVO`.
+- Stage summary uses only the authenticated user's record counts and recent records through existing user-scoped mapper queries.
+- Summary includes lightweight counts for total records, unlocked records, and life-node records, plus a gentle generated text.
+- Added service and controller tests for user-scoped generation and auth requirement.
+- No stage summary table, history, dashboard, scoring, diagnosis, or analytics center was added.
+
+Verification:
+
+- First sandboxed run of `mvn -q "-Dtest=StageSummaryServiceImplTest,StageSummaryControllerAuthIntegrationTest" test` failed due restricted Maven dependency resolution.
+- Reran with approved escalation on 2026-06-08.
+- Passed: `mvn -q "-Dtest=StageSummaryServiceImplTest,StageSummaryControllerAuthIntegrationTest" test`.
+
+Skipped verification reason:
+
+- Full `mvn -q test` was not rerun for this focused stage summary slice.
+
+Scope safety check:
+
+- This slice only added the accepted manual stage summary backend endpoint and tests.
+- It did not add persistence, dashboard/history, scoring, diagnosis, admin, production launch, notification center, SMS, campaign delivery, deployment/monitoring, package/lockfile updates, or frontend visual changes.
+
+Remaining risks:
+
+- Real reminder send adapter and WeChat Developer Tools verification remain pending.
