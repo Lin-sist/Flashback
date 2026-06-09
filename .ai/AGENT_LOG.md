@@ -1353,3 +1353,46 @@ Scope safety check:
 Remaining risks:
 
 - Real reminder send adapter and WeChat Developer Tools verification remain pending.
+
+### 2026-06-09 Codex (M3 Local Mini Program Network Error Diagnosis)
+
+Task:
+
+- Diagnose Mini Program user-center network failure with backend log `Unknown column 'belief_then' in 'field list'`.
+- Identify whether the issue is frontend network handling, backend code, or local MySQL schema drift.
+
+Observed:
+
+- User-center page loads `userStore.fetchUserInfo()`, `recordService.getRecordList(...)`, and `recordService.getUnlockedRecords(...)` in one `Promise.all`.
+- Backend terminal snapshot showed the failing path:
+  `RecordController.page -> RecordServiceImpl.pageMine -> RecordMapper.selectPageByUserAndCondition`.
+- The SQL failure is `java.sql.SQLSyntaxErrorException: Unknown column 'belief_then' in 'field list'`.
+- `RecordMapper.xml` now selects M3 columns `belief_then`, `reality_later`, `reality_later_submit_count`, `life_node_type`, and `life_node_custom_label`.
+- `backend/sql/mysql/schema.mysql.sql` contains those M3 columns.
+- Actual local MySQL `flashback.record` table checked with `SHOW COLUMNS FROM flashback.record;` did not contain those M3 columns.
+- Actual local MySQL `flashback.record_reminder` table did not exist.
+
+Conclusion:
+
+- Root cause is local demo MySQL schema drift: code and repository schema have advanced to M3, but the running `flashback` database still uses an older table structure.
+- The Mini Program displays the generic network fallback because one record-list request fails with backend SQL 500, causing the user-center `Promise.all` to reject.
+
+Verification:
+
+- Confirmed default local dev database config uses `jdbc:mysql://127.0.0.1:3306/flashback`.
+- Confirmed `backend/start-dev.ps1` defaults to `DB_USERNAME=root` and `DB_PASSWORD=123456`.
+- Confirmed actual local MySQL `record` table lacks M3 record reflection/life-node columns.
+- Confirmed actual local MySQL `record_reminder` table is missing.
+
+Skipped verification reason:
+
+- Did not apply schema changes in this diagnostic step.
+- A temporary backend launch attempt from Codex timed out due local shell argument handling; no backend process was left running.
+
+Scope safety check:
+
+- No business code, frontend UI, package/lockfile, deployment, monitoring, admin, SMS, production notification center, or broad rewrite was changed.
+
+Recommended next step:
+
+- For M3 demo, rebuild or migrate the local MySQL schema before further Mini Program flow testing.
