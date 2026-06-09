@@ -77,6 +77,29 @@ class RecordReminderMapperIntegrationTest {
                 .isInstanceOf(DuplicateKeyException.class);
     }
 
+    @Test
+    void shouldUpdateReminderStatus() {
+        Record record = insertRecord(8103L, "update-reminder-record");
+        LocalDateTime now = LocalDateTime.of(2026, 3, 26, 9, 0, 0);
+        RecordReminder reminder = newReminder(record.getId(), 8103L, now);
+        recordReminderMapper.insert(reminder);
+
+        int updated = recordReminderMapper.updateStatusById(
+                reminder.getId(),
+                RecordReminderStatus.SEND_SUCCESS,
+                null,
+                now.plusMinutes(1),
+                now.plusMinutes(1));
+        RecordReminder found = recordReminderMapper.selectByRecordIdAndTemplateType(
+                record.getId(),
+                TEMPLATE_TYPE_UNLOCK_REMINDER);
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(found.getReminderStatus()).isEqualTo(RecordReminderStatus.SEND_SUCCESS);
+        assertThat(found.getLastError()).isNull();
+        assertThat(found.getSentAt()).isEqualTo(now.plusMinutes(1));
+    }
+
     private RecordReminder newReminder(Long recordId, Long userId, LocalDateTime now) {
         RecordReminder reminder = new RecordReminder();
         reminder.setRecordId(recordId);

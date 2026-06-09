@@ -37,5 +37,8 @@ app:
       app-id: ${WECHAT_MINI_PROGRAM_APP_ID:}
       secret: ${WECHAT_MINI_PROGRAM_SECRET:}
       code2-session-url: ${WECHAT_CODE2SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
+      access-token-url: ${WECHAT_ACCESS_TOKEN_URL:https://api.weixin.qq.com/cgi-bin/token}
+      subscribe-message-send-url: ${WECHAT_SUBSCRIBE_MESSAGE_SEND_URL:https://api.weixin.qq.com/cgi-bin/message/subscribe/send}
       timeout-millis: ${WECHAT_CODE2SESSION_TIMEOUT_MILLIS:5000}
       unlock-reminder-template-id: ${WECHAT_UNLOCK_REMINDER_TEMPLATE_ID:}
+      unlock-reminder-page: ${WECHAT_UNLOCK_REMINDER_PAGE:pages/record-detail/index}

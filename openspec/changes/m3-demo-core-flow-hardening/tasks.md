@@ -101,7 +101,7 @@
   - FAMILY
   - TURNING_POINT
   - OTHER
-- [ ] Map enum values to visible labels:
+- [x] Map enum values to visible labels:
   - 毕业
   - 工作
   - 搬家
@@ -112,24 +112,24 @@
   - 其他
 - [x] Allow custom life node label only when enum is OTHER.
 - [x] Reject custom life node labels on non-OTHER values with validation failure.
-- [ ] Ensure NODE_RECORD can be filtered or displayed without affecting other record types.
-- [ ] Add tests or manual verification for fixed enum and OTHER custom label.
+- [x] Ensure NODE_RECORD can be filtered or displayed without affecting other record types.
+- [x] Add tests or manual verification for fixed enum and OTHER custom label.
 
 ## 7. Backend Phase: Unlock Reminder Delivery
 
 - [ ] Confirm reminder authorization timing in the frontend seal flow.
 - [ ] Store reminder intent or authorization result where required.
-- [ ] Implement or complete WeChat subscription-message send adapter.
+- [x] Implement or complete WeChat subscription-message send adapter.
 - [x] Make template ID configuration-driven.
 - [x] Treat missing template ID as explicit `not_configured` behavior.
 - [ ] Ensure `not_configured` does not block seal.
 - [x] Ensure `not_configured` does not block unlock.
-- [ ] Ensure send failure does not block unlock.
-- [ ] Ensure successful send is idempotent by record and template type.
+- [x] Ensure send failure does not block unlock.
+- [x] Ensure successful send is idempotent by record and template type.
 - [ ] Record `DENIED` when the user refuses subscription authorization.
 - [ ] Ensure logs and reminder records do not include record content, auth tokens, or unnecessary sensitive identifiers.
-- [ ] Add tests or manual verification for success, failure, duplicate-send, and not-configured behavior.
-- [ ] Record that real delivery must be manually verified after template IDs are configured.
+- [x] Add tests or manual verification for success, failure, duplicate-send, and not-configured behavior.
+- [x] Record that real delivery must be manually verified after template IDs are configured.
 
 ## 8. Backend Phase: Stage Summary
 

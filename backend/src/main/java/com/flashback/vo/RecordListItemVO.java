@@ -16,6 +16,7 @@ public class RecordListItemVO {
     private String contentPreview;
     private RecordType recordType;
     private RecordStatus status;
+    private String lifeNodeLabel;
     private LocalDateTime unlockAt;
     private LocalDateTime createdAt;
     private List<String> tagNames;
@@ -58,6 +59,14 @@ public class RecordListItemVO {
 
     public void setStatus(RecordStatus status) {
         this.status = status;
+    }
+
+    public String getLifeNodeLabel() {
+        return lifeNodeLabel;
+    }
+
+    public void setLifeNodeLabel(String lifeNodeLabel) {
+        this.lifeNodeLabel = lifeNodeLabel;
     }
 
     public LocalDateTime getUnlockAt() {

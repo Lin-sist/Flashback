@@ -22,6 +22,7 @@ import com.flashback.mapper.ReplyMapper;
 import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.mapper.UserMapper;
+import com.flashback.wechat.WechatSubscribeMessageClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,6 +70,9 @@ class RecordServiceImplTest {
     @Mock
     private ReplyMapper replyMapper;
 
+    @Mock
+    private WechatSubscribeMessageClient wechatSubscribeMessageClient;
+
     private AppWechatProperties appWechatProperties;
 
     private RecordServiceImpl recordService;
@@ -87,6 +91,7 @@ class RecordServiceImplTest {
                 userMapper,
                 new ObjectMapper(),
                 appWechatProperties,
+                wechatSubscribeMessageClient,
                 clock);
     }
 
@@ -445,8 +450,24 @@ class RecordServiceImplTest {
         assertThat(result.getAiPromptResults()).containsExactly("你最担心的是什么？", "下一步先做哪件事？");
         assertThat(result.getBeliefThen()).isEqualTo("那时以为只要准备充分就不会紧张");
         assertThat(result.getLifeNodeType()).isEqualTo(LifeNodeType.WORK);
+        assertThat(result.getLifeNodeLabel()).isEqualTo("工作");
         assertThat(result.getHasReply()).isTrue();
         assertThat(result.getCanReply()).isFalse();
+    }
+
+    @Test
+    void shouldReturnCustomLifeNodeLabelForOther() {
+        Record unlocked = mockRecord(RecordStatus.UNLOCKED);
+        unlocked.setLifeNodeType(LifeNodeType.OTHER);
+        unlocked.setLifeNodeCustomLabel("换城市");
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(unlocked);
+        when(replyMapper.selectByRecordId(100L)).thenReturn(null);
+
+        var result = recordService.detail(1L, 100L);
+
+        assertThat(result.getLifeNodeType()).isEqualTo(LifeNodeType.OTHER);
+        assertThat(result.getLifeNodeCustomLabel()).isEqualTo("换城市");
+        assertThat(result.getLifeNodeLabel()).isEqualTo("换城市");
     }
 
     @Test
@@ -554,7 +575,7 @@ class RecordServiceImplTest {
     }
 
     @Test
-    void shouldCreateSendPendingUnlockReminderWhenTemplateConfigured() {
+    void shouldSendUnlockReminderWhenTemplateConfigured() {
         appWechatProperties.setUnlockReminderTemplateId("template-id");
 
         Record expired = mockRecord(RecordStatus.SEALED);
@@ -566,6 +587,11 @@ class RecordServiceImplTest {
                 .thenReturn(List.of());
         when(recordMapper.unlockSealedById(eq(404L), any(), any())).thenReturn(1);
         when(userMapper.selectById(34L)).thenReturn(mockUser(34L, "openid-34"));
+        when(recordReminderMapper.insert(any(RecordReminder.class))).thenAnswer(invocation -> {
+            RecordReminder reminder = invocation.getArgument(0);
+            reminder.setId(9001L);
+            return 1;
+        });
 
         int unlockedCount = recordService.runUnlockJob();
 
@@ -576,6 +602,46 @@ class RecordServiceImplTest {
                         && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
                         && reminder.getReminderStatus() == RecordReminderStatus.SEND_PENDING
                         && reminder.getLastError() == null));
+        verify(wechatSubscribeMessageClient).sendUnlockReminder(eq("openid-34"), eq(404L), any());
+        verify(recordReminderMapper).updateStatusById(
+                eq(9001L),
+                eq(RecordReminderStatus.SEND_SUCCESS),
+                org.mockito.ArgumentMatchers.isNull(),
+                any(),
+                any());
+    }
+
+    @Test
+    void shouldRecordSendFailedWithoutBlockingUnlockWhenWechatSendFails() {
+        appWechatProperties.setUnlockReminderTemplateId("template-id");
+
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(405L);
+        expired.setUserId(35L);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(405L), any(), any())).thenReturn(1);
+        when(userMapper.selectById(35L)).thenReturn(mockUser(35L, "openid-35"));
+        when(recordReminderMapper.insert(any(RecordReminder.class))).thenAnswer(invocation -> {
+            RecordReminder reminder = invocation.getArgument(0);
+            reminder.setId(9002L);
+            return 1;
+        });
+        doThrow(new RuntimeException("wechat unavailable"))
+                .when(wechatSubscribeMessageClient)
+                .sendUnlockReminder(eq("openid-35"), eq(405L), any());
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(recordReminderMapper).updateStatusById(
+                eq(9002L),
+                eq(RecordReminderStatus.SEND_FAILED),
+                eq("wechat unlock reminder send failed"),
+                org.mockito.ArgumentMatchers.isNull(),
+                any());
     }
 
     @Test

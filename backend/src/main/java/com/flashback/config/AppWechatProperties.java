@@ -13,8 +13,11 @@ public class AppWechatProperties {
     private String appId;
     private String secret;
     private String code2SessionUrl = "https://api.weixin.qq.com/sns/jscode2session";
+    private String accessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token";
+    private String subscribeMessageSendUrl = "https://api.weixin.qq.com/cgi-bin/message/subscribe/send";
     private long timeoutMillis = 5000;
     private String unlockReminderTemplateId;
+    private String unlockReminderPage = "pages/record-detail/index";
 
     public String getAppId() {
         return appId;
@@ -40,6 +43,22 @@ public class AppWechatProperties {
         this.code2SessionUrl = code2SessionUrl;
     }
 
+    public String getAccessTokenUrl() {
+        return accessTokenUrl;
+    }
+
+    public void setAccessTokenUrl(String accessTokenUrl) {
+        this.accessTokenUrl = accessTokenUrl;
+    }
+
+    public String getSubscribeMessageSendUrl() {
+        return subscribeMessageSendUrl;
+    }
+
+    public void setSubscribeMessageSendUrl(String subscribeMessageSendUrl) {
+        this.subscribeMessageSendUrl = subscribeMessageSendUrl;
+    }
+
     public long getTimeoutMillis() {
         return timeoutMillis;
     }
@@ -54,6 +73,14 @@ public class AppWechatProperties {
 
     public void setUnlockReminderTemplateId(String unlockReminderTemplateId) {
         this.unlockReminderTemplateId = unlockReminderTemplateId;
+    }
+
+    public String getUnlockReminderPage() {
+        return unlockReminderPage;
+    }
+
+    public void setUnlockReminderPage(String unlockReminderPage) {
+        this.unlockReminderPage = unlockReminderPage;
     }
 
     public boolean isConfigured() {

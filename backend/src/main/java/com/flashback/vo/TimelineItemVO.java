@@ -15,6 +15,7 @@ public class TimelineItemVO {
     private String title;
     private RecordStatus status;
     private RecordType recordType;
+    private String lifeNodeLabel;
     private LocalDateTime createdAt;
     private List<String> tagNames;
 
@@ -48,6 +49,14 @@ public class TimelineItemVO {
 
     public void setRecordType(RecordType recordType) {
         this.recordType = recordType;
+    }
+
+    public String getLifeNodeLabel() {
+        return lifeNodeLabel;
+    }
+
+    public void setLifeNodeLabel(String lifeNodeLabel) {
+        this.lifeNodeLabel = lifeNodeLabel;
     }
 
     public LocalDateTime getCreatedAt() {

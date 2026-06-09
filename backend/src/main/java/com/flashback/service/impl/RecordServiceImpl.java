@@ -30,6 +30,7 @@ import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.mapper.UserMapper;
 import com.flashback.service.RecordService;
+import com.flashback.wechat.WechatSubscribeMessageClient;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
 import com.flashback.vo.RecordTagVO;
@@ -74,6 +75,7 @@ public class RecordServiceImpl implements RecordService {
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
     private final AppWechatProperties appWechatProperties;
+    private final WechatSubscribeMessageClient wechatSubscribeMessageClient;
     private final Clock clock;
 
     public RecordServiceImpl(
@@ -86,6 +88,7 @@ public class RecordServiceImpl implements RecordService {
             UserMapper userMapper,
             ObjectMapper objectMapper,
             AppWechatProperties appWechatProperties,
+            WechatSubscribeMessageClient wechatSubscribeMessageClient,
             Clock clock) {
         this.recordMapper = recordMapper;
         this.tagMapper = tagMapper;
@@ -96,6 +99,7 @@ public class RecordServiceImpl implements RecordService {
         this.userMapper = userMapper;
         this.objectMapper = objectMapper;
         this.appWechatProperties = appWechatProperties;
+        this.wechatSubscribeMessageClient = wechatSubscribeMessageClient;
         this.clock = clock;
     }
 
@@ -391,8 +395,30 @@ public class RecordServiceImpl implements RecordService {
             }
 
             recordReminderMapper.insert(reminder);
+            if (reminder.getReminderStatus() == RecordReminderStatus.SEND_PENDING) {
+                sendUnlockReminder(reminder, openid, now);
+            }
         } catch (Exception ex) {
             // Reminder persistence is best-effort in M2 and must never block unlock processing.
+        }
+    }
+
+    private void sendUnlockReminder(RecordReminder reminder, String openid, LocalDateTime now) {
+        try {
+            wechatSubscribeMessageClient.sendUnlockReminder(openid, reminder.getRecordId(), now);
+            recordReminderMapper.updateStatusById(
+                    reminder.getId(),
+                    RecordReminderStatus.SEND_SUCCESS,
+                    null,
+                    now,
+                    now);
+        } catch (Exception ex) {
+            recordReminderMapper.updateStatusById(
+                    reminder.getId(),
+                    RecordReminderStatus.SEND_FAILED,
+                    "wechat unlock reminder send failed",
+                    null,
+                    now);
         }
     }
 
@@ -486,6 +512,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setContentPreview(toPreview(record.getContent()));
         vo.setRecordType(record.getRecordType());
         vo.setStatus(record.getStatus());
+        vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
         vo.setUnlockAt(record.getUnlockAt());
         vo.setCreatedAt(record.getCreatedAt());
         vo.setTagNames(tagNames);
@@ -498,6 +525,7 @@ public class RecordServiceImpl implements RecordService {
         item.setTitle(record.getTitle());
         item.setStatus(record.getStatus());
         item.setRecordType(record.getRecordType());
+        item.setLifeNodeLabel(resolveLifeNodeLabel(record));
         item.setCreatedAt(record.getCreatedAt());
         item.setTagNames(tagNames);
         return item;
@@ -531,6 +559,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setRealityLater(record.getRealityLater());
         vo.setLifeNodeType(record.getLifeNodeType());
         vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
+        vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
         vo.setTags(loadRecordTags(record.getId()));
         boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
                 && replyMapper.selectByRecordId(record.getId()) != null;
@@ -539,6 +568,18 @@ public class RecordServiceImpl implements RecordService {
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
         return vo;
+    }
+
+    private String resolveLifeNodeLabel(Record record) {
+        LifeNodeType lifeNodeType = record.getLifeNodeType();
+        if (lifeNodeType == null) {
+            return null;
+        }
+        if (lifeNodeType == LifeNodeType.OTHER) {
+            String customLabel = normalizeOptional(record.getLifeNodeCustomLabel());
+            return customLabel == null ? LifeNodeType.OTHER.getLabel() : customLabel;
+        }
+        return lifeNodeType.getLabel();
     }
 
     private String serializeAiPromptResults(List<String> aiPromptResults) {

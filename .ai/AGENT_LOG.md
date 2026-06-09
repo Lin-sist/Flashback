@@ -1433,3 +1433,59 @@ Scope safety check:
 Remaining risks:
 
 - Backend reminder delivery adapter and frontend M3 flow completion still need implementation and verification.
+
+### 2026-06-09 Codex (M3 Life Node Labels And Reminder Send Adapter)
+
+Task:
+
+- Complete backend life node visible labels and the minimal real WeChat subscription-message send path for unlock reminders.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/domain/LifeNodeType.java`
+- `backend/src/main/java/com/flashback/vo/RecordDetailVO.java`
+- `backend/src/main/java/com/flashback/vo/RecordListItemVO.java`
+- `backend/src/main/java/com/flashback/vo/TimelineItemVO.java`
+- `backend/src/main/java/com/flashback/config/AppWechatProperties.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/java/com/flashback/wechat/WechatSubscribeMessageClient.java`
+- `backend/src/main/java/com/flashback/wechat/WechatSubscribeMessageHttpClient.java`
+- `backend/src/main/java/com/flashback/mapper/RecordReminderMapper.java`
+- `backend/src/main/resources/mapper/RecordReminderMapper.xml`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordReminderMapperIntegrationTest.java`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Added Chinese labels to the accepted M3 `LifeNodeType` enum.
+- Added `lifeNodeLabel` to record detail, record list item, and timeline item VO output.
+- `OTHER` life node uses the custom label when present and falls back to `其他`.
+- Kept existing `recordType=NODE_RECORD` filtering and display behavior; no new taxonomy or category management was added.
+- Added configurable WeChat access-token and subscribe-message send URLs plus a detail-page config for unlock reminder messages.
+- Added a minimal `WechatSubscribeMessageClient` and HTTP implementation using WeChat `cgi-bin/token` and `message/subscribe/send`.
+- When template ID exists and a trusted OpenID exists, unlock reminder send is attempted; success updates `record_reminder` to `SEND_SUCCESS`, failure updates it to `SEND_FAILED`.
+- Reminder send failures are caught and remain non-blocking for unlock processing.
+- Existing `record_id + template_type` marker prevents duplicate sends.
+- Reminder records do not store record content, auth tokens, session keys, or message payload content.
+
+Verification:
+
+- First sandboxed run of `mvn -q "-Dtest=RecordServiceImplTest,RecordReminderMapperIntegrationTest" test` failed because Maven dependency resolution was blocked by sandbox permissions.
+- Reran with approved escalation.
+- Passed: `mvn -q "-Dtest=RecordServiceImplTest,RecordReminderMapperIntegrationTest" test`.
+
+Skipped verification reason:
+
+- Real WeChat subscription delivery was not manually verified because no real Mini Program subscription template ID/configuration is available in this local environment.
+
+Scope safety check:
+
+- This slice stayed inside M3 backend/schema/test scope.
+- It did not add admin template management, production notification center, SMS, campaign delivery, complex retry orchestration, deployment, monitoring, package/lockfile changes, or frontend visual redesign.
+
+Remaining risks:
+
+- Frontend still needs to request subscription authorization after seal and record refusal/authorization result through a confirmed backend contract.
+- Real delivery must be manually verified after WeChat template ID and matching template keyword fields are configured.

@@ -56,4 +56,14 @@
         )
     </insert>
 
+    <update id="updateStatusById">
+        UPDATE record_reminder
+        SET
+            reminder_status = #{reminderStatus},
+            last_error = #{lastError},
+            sent_at = #{sentAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
 </mapper>

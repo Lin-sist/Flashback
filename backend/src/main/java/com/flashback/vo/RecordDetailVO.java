@@ -27,6 +27,7 @@ public class RecordDetailVO {
     private String realityLater;
     private LifeNodeType lifeNodeType;
     private String lifeNodeCustomLabel;
+    private String lifeNodeLabel;
     private List<RecordTagVO> tags;
     private Boolean canReply;
     private Boolean hasReply;
@@ -151,6 +152,14 @@ public class RecordDetailVO {
 
     public void setLifeNodeCustomLabel(String lifeNodeCustomLabel) {
         this.lifeNodeCustomLabel = lifeNodeCustomLabel;
+    }
+
+    public String getLifeNodeLabel() {
+        return lifeNodeLabel;
+    }
+
+    public void setLifeNodeLabel(String lifeNodeLabel) {
+        this.lifeNodeLabel = lifeNodeLabel;
     }
 
     public List<RecordTagVO> getTags() {
