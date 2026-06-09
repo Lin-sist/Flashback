@@ -1396,3 +1396,40 @@ Scope safety check:
 Recommended next step:
 
 - For M3 demo, rebuild or migrate the local MySQL schema before further Mini Program flow testing.
+
+### 2026-06-09 Codex (M3 Local Schema Repair)
+
+Task:
+
+- Unblock local Mini Program manual testing after backend failed on missing M3 database fields.
+
+Modified files:
+
+- `backend/sql/mysql/m3-local-schema-repair.sql`
+
+What changed:
+
+- Added a non-destructive local MySQL repair script for older demo databases.
+- The script adds missing `user.openid` support when absent.
+- The script adds missing M3 `record` columns: `belief_then`, `reality_later`, `reality_later_submit_count`, `life_node_type`, and `life_node_custom_label`.
+- The script creates `record_reminder` when absent, including the accepted M3 reminder statuses storage columns and idempotency key by `record_id + template_type`.
+- No existing data is deleted and no demo database rebuild is forced.
+
+Verification:
+
+- Applied the script to local `flashback` database with MySQL root credentials used by the local dev profile.
+- Verified `flashback.record` now contains `belief_then`, `reality_later`, `reality_later_submit_count`, `life_node_type`, and `life_node_custom_label`.
+- Verified `flashback.record_reminder` now exists.
+
+Skipped verification reason:
+
+- Did not drop/rebuild the database because preserving local manual-test data is safer and the missing schema pieces can be repaired non-destructively.
+
+Scope safety check:
+
+- This slice only touched a local demo schema repair script and local database structure.
+- It did not change package/lockfile, deployment, monitoring, admin, SMS, production notification center, campaign delivery, real MAP/IMAGE/VOICE, frontend visuals, or broad backend architecture.
+
+Remaining risks:
+
+- Backend reminder delivery adapter and frontend M3 flow completion still need implementation and verification.
