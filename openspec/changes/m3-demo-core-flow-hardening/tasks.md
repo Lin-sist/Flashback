@@ -117,17 +117,17 @@
 
 ## 7. Backend Phase: Unlock Reminder Delivery
 
-- [ ] Confirm reminder authorization timing in the frontend seal flow.
+- [x] Confirm reminder authorization timing in the frontend seal flow.
 - [ ] Store reminder intent or authorization result where required.
 - [x] Implement or complete WeChat subscription-message send adapter.
 - [x] Make template ID configuration-driven.
 - [x] Treat missing template ID as explicit `not_configured` behavior.
-- [ ] Ensure `not_configured` does not block seal.
+- [x] Ensure `not_configured` does not block seal.
 - [x] Ensure `not_configured` does not block unlock.
 - [x] Ensure send failure does not block unlock.
 - [x] Ensure successful send is idempotent by record and template type.
 - [ ] Record `DENIED` when the user refuses subscription authorization.
-- [ ] Ensure logs and reminder records do not include record content, auth tokens, or unnecessary sensitive identifiers.
+- [x] Ensure logs and reminder records do not include record content, auth tokens, or unnecessary sensitive identifiers.
 - [x] Add tests or manual verification for success, failure, duplicate-send, and not-configured behavior.
 - [x] Record that real delivery must be manually verified after template IDs are configured.
 
@@ -143,33 +143,33 @@
 
 ## 9. Frontend Phase: Flow Completion
 
-- [ ] Start this phase only after backend contracts are confirmed.
-- [ ] Update login page to support WeChat login and account/password login.
-- [ ] Keep preview mode clearly separate from real auth.
-- [ ] Update auth service to call WeChat login endpoint.
-- [ ] Update record editor to support user-triggered AI organization for "你当时以为".
-- [ ] Update record editor to support life node enum and OTHER custom label.
-- [ ] Update seal flow to request subscription authorization after successful seal.
-- [ ] Ensure subscription refusal does not undo seal UI state.
-- [ ] Update time review to display "你当时以为".
-- [ ] Update time review to allow "后来其实" only after unlock and only while the 2-submit limit allows modification.
-- [ ] Hide the "修改" action after the second "后来其实" submission.
-- [ ] Add manual stage summary entry point in Personal Center only.
-- [ ] Ensure visible naming uses "我的记录", "时光轴", and "时间回看".
-- [ ] Avoid major visual redesign unless needed to complete the flow.
+- [x] Start this phase only after backend contracts are confirmed.
+- [x] Update login page to support WeChat login and account/password login.
+- [x] Keep preview mode clearly separate from real auth.
+- [x] Update auth service to call WeChat login endpoint.
+- [x] Update record editor to support user-triggered AI organization for "你当时以为".
+- [x] Update record editor to support life node enum and OTHER custom label.
+- [x] Update seal flow to request subscription authorization after successful seal.
+- [x] Ensure subscription refusal does not undo seal UI state.
+- [x] Update time review to display "你当时以为".
+- [x] Update time review to allow "后来其实" only after unlock and only while the 2-submit limit allows modification.
+- [x] Hide the "修改" action after the second "后来其实" submission.
+- [x] Add manual stage summary entry point in Personal Center only.
+- [x] Ensure visible naming uses "我的记录", "时光轴", and "时间回看".
+- [x] Avoid major visual redesign unless needed to complete the flow.
 
 ## 10. Integration and Verification Phase
 
-- [ ] Run focused backend tests where practical.
+- [x] Run focused backend tests where practical.
 - [ ] Run full backend test suite when feasible.
-- [ ] Run frontend type-check when feasible.
-- [ ] Run Mini Program build when feasible.
+- [x] Run frontend type-check when feasible.
+- [x] Run Mini Program build when feasible.
 - [ ] Manually verify account/password login.
 - [ ] Manually verify WeChat login in WeChat Developer Tools when configuration is available.
 - [ ] Manually verify missing WeChat template ID behavior.
 - [ ] Manually verify real reminder delivery after template IDs are configured.
 - [ ] Manually verify create -> user-triggered AI organize -> seal -> unlock -> reminder attempt -> time review -> "后来其实" first submit -> "后来其实" second submit -> no more modify action -> stage summary.
-- [ ] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
+- [x] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
 
 ## 11. Final Review
 

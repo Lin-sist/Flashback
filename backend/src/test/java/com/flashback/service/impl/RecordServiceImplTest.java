@@ -440,6 +440,7 @@ class RecordServiceImplTest {
         unlocked.setAiSummary("当前的困惑集中在实习准备");
         unlocked.setAiPromptResult("[\"你最担心的是什么？\",\"下一步先做哪件事？\"]");
         unlocked.setBeliefThen("那时以为只要准备充分就不会紧张");
+        unlocked.setRealityLaterSubmitCount(1);
         unlocked.setLifeNodeType(LifeNodeType.WORK);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(unlocked);
         when(replyMapper.selectByRecordId(100L)).thenReturn(mockReply(100L, 1L, "已写回信"));
@@ -449,6 +450,7 @@ class RecordServiceImplTest {
         assertThat(result.getAiSummary()).isEqualTo("当前的困惑集中在实习准备");
         assertThat(result.getAiPromptResults()).containsExactly("你最担心的是什么？", "下一步先做哪件事？");
         assertThat(result.getBeliefThen()).isEqualTo("那时以为只要准备充分就不会紧张");
+        assertThat(result.getRealityLaterSubmitCount()).isEqualTo(1);
         assertThat(result.getLifeNodeType()).isEqualTo(LifeNodeType.WORK);
         assertThat(result.getLifeNodeLabel()).isEqualTo("工作");
         assertThat(result.getHasReply()).isTrue();

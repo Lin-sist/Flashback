@@ -25,6 +25,7 @@ public class RecordDetailVO {
     private List<String> aiPromptResults;
     private String beliefThen;
     private String realityLater;
+    private Integer realityLaterSubmitCount;
     private LifeNodeType lifeNodeType;
     private String lifeNodeCustomLabel;
     private String lifeNodeLabel;
@@ -136,6 +137,14 @@ public class RecordDetailVO {
 
     public void setRealityLater(String realityLater) {
         this.realityLater = realityLater;
+    }
+
+    public Integer getRealityLaterSubmitCount() {
+        return realityLaterSubmitCount;
+    }
+
+    public void setRealityLaterSubmitCount(Integer realityLaterSubmitCount) {
+        this.realityLaterSubmitCount = realityLaterSubmitCount;
     }
 
     public LifeNodeType getLifeNodeType() {

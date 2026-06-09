@@ -37,6 +37,19 @@ export const useUserStore = defineStore('user', {
 
       return result
     },
+    async wechatLogin(code: string) {
+      const result = await authService.wechatLogin({ code })
+      this.token = result.token
+      setToken(result.token)
+      clearPreviewSession()
+
+      const recordStore = useRecordStore()
+      const tagStore = useTagStore()
+      recordStore.clearCache()
+      tagStore.clearCache()
+
+      return result
+    },
     async fetchUserInfo() {
       if (!hasAuthenticatedSession()) {
         this.userInfo = null

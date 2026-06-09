@@ -1,4 +1,4 @@
-import type { RecordStatus, RecordType } from './enums'
+import type { LifeNodeType, RecordStatus, RecordType } from './enums'
 import type { TagVO } from './tag'
 
 export type DateTimeValue = string | number
@@ -10,6 +10,9 @@ export interface CreateRecordDTO {
   coreQuestion?: string
   aiSummary?: string | null
   aiPromptResults?: string[] | null
+  beliefThen?: string | null
+  lifeNodeType?: LifeNodeType | null
+  lifeNodeCustomLabel?: string | null
   tagIds?: number[] | null
   unlockAt?: string | null
 }
@@ -27,6 +30,7 @@ export interface RecordListItemVO {
   contentPreview: string
   recordType: RecordType
   status: RecordStatus
+  lifeNodeLabel?: string
   unlockAt?: DateTimeValue
   createdAt: DateTimeValue
   tagNames: string[]
@@ -44,6 +48,12 @@ export interface RecordDetailVO {
   unlockedAt?: DateTimeValue
   aiSummary?: string
   aiPromptResults?: string[]
+  beliefThen?: string
+  realityLater?: string
+  realityLaterSubmitCount?: number
+  lifeNodeType?: LifeNodeType
+  lifeNodeCustomLabel?: string
+  lifeNodeLabel?: string
   tags: TagVO[]
   canReply: boolean
   hasReply: boolean
@@ -56,6 +66,7 @@ export interface TimelineItemVO {
   title: string
   status: RecordStatus
   recordType: RecordType
+  lifeNodeLabel?: string
   createdAt: DateTimeValue
   tagNames: string[]
 }

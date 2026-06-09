@@ -1489,3 +1489,69 @@ Remaining risks:
 
 - Frontend still needs to request subscription authorization after seal and record refusal/authorization result through a confirmed backend contract.
 - Real delivery must be manually verified after WeChat template ID and matching template keyword fields are configured.
+
+### 2026-06-09 Codex (M3 Frontend Core Flow Completion)
+
+Task:
+
+- Connect the Mini Program user-side M3 demo flow to the accepted backend contracts so local manual testing can proceed.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/vo/RecordDetailVO.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `frontend/src/types/enums.ts`
+- `frontend/src/types/record.ts`
+- `frontend/src/types/auth.ts`
+- `frontend/src/services/authService.ts`
+- `frontend/src/services/recordService.ts`
+- `frontend/src/services/aiService.ts`
+- `frontend/src/services/stageSummaryService.ts`
+- `frontend/src/services/index.ts`
+- `frontend/src/stores/user.ts`
+- `frontend/src/pages/login/index.vue`
+- `frontend/src/pages/record-editor/index.vue`
+- `frontend/src/pages/record-detail/index.vue`
+- `frontend/src/pages/user-center/index.vue`
+- `frontend/src/pages.json`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Added `realityLaterSubmitCount` to backend record detail response so the Mini Program can hide the "修改" action after the second "后来其实" submission.
+- Added frontend M3 types for `LifeNodeType`, `beliefThen`, `realityLater`, life-node labels, WeChat login payload, and stage summary response.
+- Added frontend `POST /api/auth/wechat-login` service and user-store action while preserving account/password login and preview mode.
+- Login page now exposes both account/password login and WeChat login.
+- Record editor now supports record type selection, NODE_RECORD life-node enum, OTHER custom label, and user-triggered AI organization for "你当时以为".
+- Record editor stores `beliefThen`, `lifeNodeType`, and `lifeNodeCustomLabel` through the existing create/update record APIs.
+- Seal flow requests WeChat subscription authorization after successful seal when `VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID` is configured; missing frontend template ID skips authorization and does not undo seal.
+- Time review now displays "你当时以为" and supports after-unlock "后来其实" submission through `PUT /api/records/{id}/later-reflection`.
+- "后来其实" edit action is hidden after the backend-reported 2-submit limit is exhausted.
+- Personal Center now has a manual, on-demand stage summary entry point using `POST /api/stage-summaries/generate`.
+- Mini Program tab naming now uses `时光轴`.
+- No major visual reconstruction was performed.
+
+Verification:
+
+- Passed backend focused test: `mvn -q "-Dtest=RecordServiceImplTest" test`.
+- First sandboxed frontend type-check failed with `Access is denied`.
+- Reran with approved escalation and passed: `.\node_modules\.bin\vue-tsc.cmd --noEmit`.
+- Passed Mini Program build with approved escalation: `.\node_modules\.bin\uni.cmd build -p mp-weixin`.
+- Build output says to import `dist\build\mp-weixin` into WeChat Developer Tools.
+
+Skipped verification reason:
+
+- Did not manually verify inside WeChat Developer Tools in this agent session.
+- Real WeChat login and real subscription delivery still require valid Mini Program app ID/secret/template ID and manual Developer Tools verification.
+- Recording backend `DENIED` when the user refuses subscription authorization still needs a confirmed backend endpoint path for authorization-result reporting.
+
+Scope safety check:
+
+- Frontend work stayed in login, record editor, record detail, personal center, services, types, and page naming.
+- It did not add admin, production notification center, SMS, campaign delivery, deployment, monitoring, package/lockfile changes, real MAP/IMAGE/VOICE, social feed, complex AI scoring/diagnosis, or broad visual redesign.
+
+Remaining risks:
+
+- Need user confirmation for the authorization-result reporting endpoint before implementing persisted `AUTHORIZED`/`DENIED` frontend-to-backend recording.
+- Manual WeChat Developer Tools verification remains pending.

@@ -10,6 +10,17 @@ export enum RecordType {
   EMOTION_NOTE = 'EMOTION_NOTE',
 }
 
+export enum LifeNodeType {
+  GRADUATION = 'GRADUATION',
+  WORK = 'WORK',
+  MOVE = 'MOVE',
+  RELATIONSHIP = 'RELATIONSHIP',
+  HEALTH = 'HEALTH',
+  FAMILY = 'FAMILY',
+  TURNING_POINT = 'TURNING_POINT',
+  OTHER = 'OTHER',
+}
+
 export enum TagType {
   MOOD = 'MOOD',
   TOPIC = 'TOPIC',

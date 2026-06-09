@@ -5,6 +5,7 @@ import type {
   RegisterPayload,
   UserInfoVO,
   UserProfileUpdate,
+  WechatLoginPayload,
 } from '../types'
 import { getPreviewUserInfo } from '../features/preview/data/preview-data'
 import { hasPreviewSession } from '../features/preview/preview-session'
@@ -24,6 +25,14 @@ export const authService = {
   login(payload: LoginPayload) {
     return httpRequest<LoginResponseVO>({
       url: '/api/auth/login',
+      method: 'POST',
+      data: payload,
+      auth: false,
+    })
+  },
+  wechatLogin(payload: WechatLoginPayload) {
+    return httpRequest<LoginResponseVO>({
+      url: '/api/auth/wechat-login',
       method: 'POST',
       data: payload,
       auth: false,

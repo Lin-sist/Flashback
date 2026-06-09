@@ -41,6 +41,9 @@ const toDraftPayload = (payload: CreateRecordDTO | UpdateRecordDTO) => ({
   coreQuestion: payload.coreQuestion ?? null,
   aiSummary: payload.aiSummary ?? null,
   aiPromptResults: payload.aiPromptResults ?? [],
+  beliefThen: payload.beliefThen ?? null,
+  lifeNodeType: payload.lifeNodeType ?? null,
+  lifeNodeCustomLabel: payload.lifeNodeCustomLabel ?? null,
   unlockAt: payload.unlockAt ?? null,
   tagIds: payload.tagIds ?? [],
 })
@@ -116,6 +119,25 @@ export const recordService = {
 
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}`,
+    })
+  },
+  updateLaterReflection(id: string | number, realityLater: string) {
+    if (shouldUsePreviewData()) {
+      const detail = getPreviewRecordDetail(id)
+      if (!detail) {
+        return Promise.reject(new Error('Record not found'))
+      }
+      return Promise.resolve({
+        ...detail,
+        realityLater,
+        realityLaterSubmitCount: Math.min((detail.realityLaterSubmitCount || 0) + 1, 2),
+      })
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/later-reflection`,
+      method: 'PUT',
+      data: { realityLater },
     })
   },
   getUnlockedRecords(pageNum = 1, pageSize = 10) {

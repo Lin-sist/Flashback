@@ -3,8 +3,9 @@ import { onLoad } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
+import { aiService } from '../../services'
 import { useRecordStore, useTagStore } from '../../stores'
-import { RecordType } from '../../types'
+import { LifeNodeType, RecordType } from '../../types'
 import {
   formatDateTime,
   getToken,
@@ -27,6 +28,8 @@ const initializing = ref(false)
 const initFailed = ref(false)
 const initErrorMessage = ref('')
 const latestQuery = ref<Record<string, unknown>>({})
+const aiOrganizing = ref(false)
+const unlockReminderTemplateId = import.meta.env.VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID || ''
 
 interface EditorSnapshot {
   title: string
@@ -36,6 +39,9 @@ interface EditorSnapshot {
   unlockAtInput: string
   aiSummary: string
   aiPromptResults: string[]
+  beliefThen: string
+  lifeNodeType: LifeNodeType | null
+  lifeNodeCustomLabel: string
   tagIds: number[]
 }
 
@@ -50,8 +56,30 @@ const form = reactive({
   unlockAtInput: '',
   aiSummary: '',
   aiPromptResults: [] as string[],
+  beliefThen: '',
+  lifeNodeType: null as LifeNodeType | null,
+  lifeNodeCustomLabel: '',
   tagIds: [] as number[],
 })
+
+const recordTypeOptions = [
+  { value: RecordType.FUTURE_LETTER, label: '写给未来' },
+  { value: RecordType.NODE_RECORD, label: '人生节点' },
+  { value: RecordType.EMOTION_NOTE, label: '情绪片段' },
+]
+
+const lifeNodeOptions = [
+  { value: LifeNodeType.GRADUATION, label: '毕业' },
+  { value: LifeNodeType.WORK, label: '工作' },
+  { value: LifeNodeType.MOVE, label: '搬家' },
+  { value: LifeNodeType.RELATIONSHIP, label: '关系' },
+  { value: LifeNodeType.HEALTH, label: '健康' },
+  { value: LifeNodeType.FAMILY, label: '家庭' },
+  { value: LifeNodeType.TURNING_POINT, label: '转折' },
+  { value: LifeNodeType.OTHER, label: '其他' },
+]
+
+const isLifeNodeRecord = computed(() => form.recordType === RecordType.NODE_RECORD)
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
 
@@ -111,6 +139,9 @@ const buildSnapshot = (): EditorSnapshot => {
     unlockAtInput: form.unlockAtInput,
     aiSummary: form.aiSummary,
     aiPromptResults: [...form.aiPromptResults],
+    beliefThen: form.beliefThen,
+    lifeNodeType: form.lifeNodeType,
+    lifeNodeCustomLabel: form.lifeNodeCustomLabel,
     tagIds: sortedTagIds,
   }
 }
@@ -194,6 +225,9 @@ const fillByDetail = async (id: number) => {
   form.coreQuestion = detail.coreQuestion || ''
   form.aiSummary = detail.aiSummary || ''
   form.aiPromptResults = detail.aiPromptResults || []
+  form.beliefThen = detail.beliefThen || ''
+  form.lifeNodeType = detail.lifeNodeType || null
+  form.lifeNodeCustomLabel = detail.lifeNodeCustomLabel || ''
   form.tagIds = detail.tags.map((tag) => Number(tag.id))
   form.unlockAtInput = detail.unlockAt ? formatDateTime(detail.unlockAt) : ''
 }
@@ -248,6 +282,9 @@ const persistDraft = async () => {
     coreQuestion: form.coreQuestion || undefined,
     aiSummary: form.aiSummary || null,
     aiPromptResults: form.aiPromptResults,
+    beliefThen: form.beliefThen || null,
+    lifeNodeType: isLifeNodeRecord.value ? form.lifeNodeType : null,
+    lifeNodeCustomLabel: isLifeNodeRecord.value ? form.lifeNodeCustomLabel || null : null,
     tagIds: form.tagIds,
     unlockAt: unlockAt || null,
   }
@@ -261,6 +298,69 @@ const persistDraft = async () => {
   form.volNo = `Vol. ${String(created.id).padStart(2, '0')}`
   return created
 }
+
+const selectRecordType = (recordType: RecordType) => {
+  if (loading.value) return
+  form.recordType = recordType
+  if (recordType !== RecordType.NODE_RECORD) {
+    form.lifeNodeType = null
+    form.lifeNodeCustomLabel = ''
+    return
+  }
+  if (!form.lifeNodeType) {
+    form.lifeNodeType = LifeNodeType.TURNING_POINT
+  }
+}
+
+const selectLifeNodeType = (lifeNodeType: LifeNodeType) => {
+  if (loading.value) return
+  form.lifeNodeType = lifeNodeType
+  if (lifeNodeType !== LifeNodeType.OTHER) {
+    form.lifeNodeCustomLabel = ''
+  }
+}
+
+const organizeBeliefThen = async () => {
+  if (aiOrganizing.value) return
+  if (!validateRecordContent(form.content)) {
+    uni.showToast({ title: '先写下正文，再整理你当时以为', icon: 'none' })
+    return
+  }
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+
+  aiOrganizing.value = true
+  try {
+    const result = await aiService.summarizeRecord({
+      content: form.content,
+      coreQuestion: form.coreQuestion || undefined,
+    })
+    form.aiSummary = result.summary || form.aiSummary
+    form.beliefThen = result.beliefThen || result.coreQuestion || result.summary || ''
+    uni.showToast({ title: '已整理你当时以为', icon: 'success' })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    aiOrganizing.value = false
+  }
+}
+
+const requestUnlockReminderAuthorization = () => new Promise<'accepted' | 'rejected' | 'skipped'>((resolve) => {
+  if (!unlockReminderTemplateId || typeof uni.requestSubscribeMessage !== 'function') {
+    resolve('skipped')
+    return
+  }
+  uni.requestSubscribeMessage({
+    tmplIds: [unlockReminderTemplateId],
+    success: (res) => {
+      const result = res as unknown as Record<string, string>
+      resolve(result[unlockReminderTemplateId] === 'accept' ? 'accepted' : 'rejected')
+    },
+    fail: () => resolve('skipped'),
+  })
+})
 
 const saveDraft = async () => {
   if (loading.value) {
@@ -314,6 +414,7 @@ const sealRecord = async () => {
   try {
     const draft = await persistDraft()
     await recordStore.sealRecord(draft.id)
+    await requestUnlockReminderAuthorization()
     uni.showToast({ title: '已封存这一刻', icon: 'success' })
     setTimeout(() => returnToSource(), 300)
   } catch (error) {
@@ -397,6 +498,61 @@ onLoad(async (query) => {
                   auto-height
                   maxlength="5000"
                   placeholder="在此刻的宁静中，留下你的记忆碎片..."
+                  placeholder-class="editor-placeholder"
+                />
+              </view>
+            </view>
+
+            <view class="m3-panel">
+              <view class="m3-panel-label">记录类型</view>
+              <view class="type-row">
+                <view
+                  v-for="option in recordTypeOptions"
+                  :key="option.value"
+                  class="type-chip"
+                  :class="{ 'type-chip--active': form.recordType === option.value }"
+                  @tap="selectRecordType(option.value)"
+                >
+                  <text>{{ option.label }}</text>
+                </view>
+              </view>
+
+              <view v-if="isLifeNodeRecord" class="life-node-block">
+                <view class="m3-panel-label">人生节点</view>
+                <view class="life-node-grid">
+                  <view
+                    v-for="option in lifeNodeOptions"
+                    :key="option.value"
+                    class="life-node-chip"
+                    :class="{ 'life-node-chip--active': form.lifeNodeType === option.value }"
+                    @tap="selectLifeNodeType(option.value)"
+                  >
+                    <text>{{ option.label }}</text>
+                  </view>
+                </view>
+                <input
+                  v-if="form.lifeNodeType === LifeNodeType.OTHER"
+                  v-model="form.lifeNodeCustomLabel"
+                  class="life-node-input"
+                  placeholder="写下这个节点的名字"
+                  placeholder-class="unlock-placeholder"
+                  maxlength="50"
+                />
+              </view>
+
+              <view class="belief-block">
+                <view class="belief-head">
+                  <text class="m3-panel-label">你当时以为</text>
+                  <view class="belief-action" :class="{ 'belief-action--loading': aiOrganizing }" @tap="organizeBeliefThen">
+                    {{ aiOrganizing ? '整理中' : 'AI整理' }}
+                  </view>
+                </view>
+                <textarea
+                  v-model="form.beliefThen"
+                  class="belief-textarea"
+                  auto-height
+                  maxlength="1000"
+                  placeholder="可由 AI 帮你整理，也可以自己微调"
                   placeholder-class="editor-placeholder"
                 />
               </view>
@@ -648,6 +804,96 @@ onLoad(async (query) => {
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 32rpx;
   font-weight: 500;
+}
+
+.m3-panel {
+  margin: 0 40rpx 28rpx 48rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(192, 182, 165, 0.32);
+  background: rgba(253, 251, 247, 0.74);
+}
+
+.m3-panel-label {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 22rpx;
+  color: #857b6d;
+}
+
+.type-row,
+.life-node-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.type-chip,
+.life-node-chip {
+  min-width: 132rpx;
+  height: 56rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid rgba(166, 150, 124, 0.36);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: #6b6257;
+  background: rgba(255, 252, 246, 0.82);
+  box-sizing: border-box;
+}
+
+.type-chip--active,
+.life-node-chip--active {
+  border-color: rgba(181, 53, 42, 0.48);
+  color: #9a332a;
+  background: rgba(181, 53, 42, 0.06);
+}
+
+.life-node-block,
+.belief-block {
+  margin-top: 24rpx;
+}
+
+.life-node-input {
+  margin-top: 18rpx;
+  height: 64rpx;
+  padding: 0 18rpx;
+  border-bottom: 1rpx solid rgba(166, 150, 124, 0.38);
+  font-size: 24rpx;
+  color: #4a4640;
+}
+
+.belief-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.belief-action {
+  min-width: 112rpx;
+  height: 48rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid rgba(181, 53, 42, 0.36);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: #9a332a;
+}
+
+.belief-action--loading {
+  opacity: 0.66;
+}
+
+.belief-textarea {
+  width: 100%;
+  min-height: 92rpx;
+  margin-top: 14rpx;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 25rpx;
+  line-height: 1.75;
+  color: #4a4640;
 }
 
 /* 解封时间设置区 */

@@ -9,6 +9,10 @@ export interface LoginPayload {
   password: string
 }
 
+export interface WechatLoginPayload {
+  code: string
+}
+
 export interface LoginResponseVO {
   token: string
 }

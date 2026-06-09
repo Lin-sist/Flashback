@@ -12,6 +12,7 @@ type Mode = 'login' | 'register'
 const userStore = useUserStore()
 const mode = ref<Mode>('login')
 const loading = ref(false)
+const wechatLoading = ref(false)
 const passwordVisible = ref(false)
 
 const form = reactive({
@@ -93,6 +94,35 @@ const onSubmit = async () => {
     return
   }
   await onRegister()
+}
+
+const getWechatLoginCode = () => new Promise<string>((resolve, reject) => {
+  uni.login({
+    provider: 'weixin',
+    success: (res) => {
+      if (res.code) {
+        resolve(res.code)
+        return
+      }
+      reject(new Error('微信登录没有返回 code'))
+    },
+    fail: reject,
+  })
+})
+
+const onWechatLogin = async () => {
+  if (loading.value || wechatLoading.value) return
+  wechatLoading.value = true
+  try {
+    const code = await getWechatLoginCode()
+    await userStore.wechatLogin(code)
+    await userStore.fetchUserInfo()
+    uni.switchTab({ url: '/pages/home/index' })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    wechatLoading.value = false
+  }
 }
 
 const enterPreview = () => {
@@ -184,6 +214,10 @@ onShow(() => {
             <view class="cta-dot" aria-hidden="true" />
             <text class="cta-text">{{ loading ? '请稍候...' : (mode === 'login' ? '进 入 档 案 馆' : '完 成 注 册') }}</text>
           </view>
+        </view>
+
+        <view class="wechat-login" :class="{ 'wechat-login--loading': wechatLoading }" @tap="onWechatLogin">
+          <text class="wechat-login-text">{{ wechatLoading ? '微信登录中...' : '微信登录' }}</text>
         </view>
 
         <!-- 预览入口 -->
@@ -461,6 +495,28 @@ onShow(() => {
   font-size: 30rpx;
   font-weight: 400;
   letter-spacing: 0.2em;
+}
+
+.wechat-login {
+  width: 360rpx;
+  height: 76rpx;
+  margin: 24rpx auto 0;
+  border: 1rpx solid rgba(75, 130, 88, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(247, 250, 244, 0.72);
+}
+
+.wechat-login--loading {
+  opacity: 0.72;
+}
+
+.wechat-login-text {
+  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 24rpx;
+  color: #3f6f4a;
+  letter-spacing: 0.08em;
 }
 
 /* ── 预览入口 ── */

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
-import { recordService } from '../../services'
+import { recordService, stageSummaryService, type StageSummaryVO } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
 import { hasAuthenticatedSession } from '../../utils'
@@ -64,6 +64,8 @@ const archiveDays = ref(0)
 const centerLoading = ref(false)
 const centerLoadFailed = ref(false)
 const profileReady = ref(false)
+const summaryLoading = ref(false)
+const stageSummary = ref<StageSummaryVO | null>(null)
 
 const avatarInitial = computed(() => (nickname.value.trim() || '访').slice(0, 1))
 const displaySavedCount = computed(() => String(savedCount.value).replace(/\B(?=(\d{3})+(?!\d))/g, ','))
@@ -99,6 +101,18 @@ const goHome = () => {
 
 const goTimeline = () => {
   uni.switchTab({ url: '/pages/timeline/index' })
+}
+
+const generateStageSummary = async () => {
+  if (summaryLoading.value) return
+  summaryLoading.value = true
+  try {
+    stageSummary.value = await stageSummaryService.generate()
+  } catch {
+    uni.showToast({ title: '阶段总结暂时没有生成出来', icon: 'none' })
+  } finally {
+    summaryLoading.value = false
+  }
 }
 
 const loadCenterData = async () => {
@@ -193,6 +207,24 @@ onShow(() => {
           <view class="stat-card stat-card-highlight" hover-class="stat-card-hover" @tap="navigateToArchive">
             <view class="stat-label">存档天数</view>
             <view class="stat-num">{{ displayArchiveDays }}</view>
+          </view>
+        </view>
+
+        <view class="stage-summary">
+          <view class="stage-summary-head">
+            <view>
+              <view class="stage-summary-title">阶段总结</view>
+              <view class="stage-summary-desc">手动整理一次最近的记录与抵达</view>
+            </view>
+            <view class="stage-summary-action" @tap="generateStageSummary">
+              {{ summaryLoading ? '生成中' : '生成' }}
+            </view>
+          </view>
+          <view v-if="stageSummary" class="stage-summary-body">
+            <view class="stage-summary-text">{{ stageSummary.summary }}</view>
+            <view class="stage-summary-meta">
+              {{ stageSummary.recordCount }} 条记录 · {{ stageSummary.unlockedCount }} 次抵达 · {{ stageSummary.lifeNodeCount }} 个节点
+            </view>
           </view>
         </view>
 
@@ -517,6 +549,62 @@ onShow(() => {
 
 .stat-card-highlight .stat-num {
   color: #8a6a3a;
+}
+
+.stage-summary {
+  margin: 28rpx 56rpx 0;
+  padding: 28rpx;
+  border: 1rpx solid rgba(185, 170, 145, 0.3);
+  background: rgba(255, 252, 246, 0.68);
+}
+
+.stage-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.stage-summary-title {
+  font-family: var(--fb-font-serif);
+  font-size: 30rpx;
+  color: #4b4640;
+}
+
+.stage-summary-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8a8176;
+}
+
+.stage-summary-action {
+  min-width: 108rpx;
+  height: 54rpx;
+  border: 1rpx solid rgba(181, 53, 42, 0.36);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: #9a332a;
+}
+
+.stage-summary-body {
+  margin-top: 24rpx;
+  padding-top: 22rpx;
+  border-top: 1rpx solid rgba(185, 170, 145, 0.22);
+}
+
+.stage-summary-text {
+  font-family: var(--fb-font-serif);
+  font-size: 25rpx;
+  line-height: 1.8;
+  color: #4b4640;
+}
+
+.stage-summary-meta {
+  margin-top: 18rpx;
+  font-size: 21rpx;
+  color: #8a8176;
 }
 
 /* ── settings sections ── */

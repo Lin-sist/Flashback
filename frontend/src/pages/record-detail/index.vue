@@ -6,7 +6,7 @@ import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import EmptyState from '../../components/common/EmptyState.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
-import { replyService } from '../../services'
+import { recordService, replyService } from '../../services'
 import { useRecordStore } from '../../stores'
 import { RecordStatus, ReplyType, type ReplyVO } from '../../types'
 import { formatDateTime, getToken, hasAuthenticatedSession, toUserMessage } from '../../utils'
@@ -24,6 +24,8 @@ const detailLoading = ref(false)
 const currentRecordId = ref<number | null>(null)
 const detailErrorState = ref<'NONE' | 'INVALID_ID' | 'NOT_FOUND' | 'LOAD_FAILED'>('NONE')
 const showReplySheet = ref(false)
+const laterReflectionDraft = ref('')
+const submittingLaterReflection = ref(false)
 
 // ── 倒计时 ──
 const countdownH = ref('--')
@@ -137,6 +139,8 @@ const isSealed   = computed(() => detail.value?.status === RecordStatus.SEALED)
 const isUnlocked = computed(() => detail.value?.status === RecordStatus.UNLOCKED)
 const canSubmitReply   = computed(() => Boolean(detail.value?.canReply && !detail.value?.hasReply))
 const hasSubmittedReply = computed(() => Boolean(detail.value?.hasReply))
+const laterReflectionCount = computed(() => Number(detail.value?.realityLaterSubmitCount || 0))
+const canEditLaterReflection = computed(() => isUnlocked.value && laterReflectionCount.value < 2)
 
 const archiveDateText = computed(() => {
   if (!detail.value?.createdAt) return ''
@@ -274,6 +278,34 @@ const submitReply = async () => {
   }
 }
 
+const submitLaterReflection = async () => {
+  if (!detail.value?.id || !canEditLaterReflection.value) {
+    uni.showToast({ title: '后来其实已不能继续修改', icon: 'none' })
+    return
+  }
+  const content = laterReflectionDraft.value.trim()
+  if (!content) {
+    uni.showToast({ title: '先写下后来其实', icon: 'none' })
+    return
+  }
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+
+  submittingLaterReflection.value = true
+  try {
+    const updated = await recordService.updateLaterReflection(detail.value.id, content)
+    recordStore.detail = updated
+    laterReflectionDraft.value = updated.realityLater || ''
+    uni.showToast({ title: '后来其实已保存', icon: 'success' })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    submittingLaterReflection.value = false
+  }
+}
+
 const openReplySheet = () => {
   if (!canSubmitReply.value) {
     uni.showToast({ title: '当前无法留下回应', icon: 'none' })
@@ -303,6 +335,7 @@ onLoad(async (query) => {
   if (Number.isNaN(id)) { detailErrorState.value = 'INVALID_ID'; return }
   currentRecordId.value = id
   await loadDetail(id)
+  laterReflectionDraft.value = detail.value?.realityLater || ''
 })
 </script>
 
@@ -477,6 +510,37 @@ onLoad(async (query) => {
               <text class="unlock-card-text">{{ detail.content }}</text>
             </view>
             <text class="unlock-sparkle">✦</text>
+          </view>
+
+          <view class="reflection-panel">
+            <view class="reflection-block">
+              <text class="reflection-label">那时的我 · 你当时以为</text>
+              <text class="reflection-text">{{ detail.beliefThen || '当时的想法还没有整理出来。' }}</text>
+            </view>
+            <view class="reflection-block">
+              <view class="reflection-head">
+                <text class="reflection-label">现在的我 · 后来其实</text>
+                <text class="reflection-count">{{ laterReflectionCount }}/2</text>
+              </view>
+              <textarea
+                v-if="canEditLaterReflection"
+                v-model="laterReflectionDraft"
+                class="reflection-textarea"
+                auto-height
+                maxlength="1000"
+                placeholder="写下后来你真正理解到的事"
+                placeholder-class="reflection-placeholder"
+              />
+              <text v-else class="reflection-text">{{ detail.realityLater || '还没有写下后来其实。' }}</text>
+              <view
+                v-if="canEditLaterReflection"
+                class="reflection-save"
+                :class="{ 'reflection-save--loading': submittingLaterReflection }"
+                @tap="submitLaterReflection"
+              >
+                {{ submittingLaterReflection ? '保存中…' : (detail.realityLater ? '修改' : '保存') }}
+              </view>
+            </view>
           </view>
 
           <!-- 操作区 -->
@@ -1239,6 +1303,74 @@ onLoad(async (query) => {
   opacity: 0.35;
   font-size: 36rpx;
   color: var(--ink-faint);
+}
+
+.reflection-panel {
+  margin-top: 32rpx;
+  padding: 30rpx;
+  border: 1rpx solid rgba(188, 174, 152, 0.26);
+  background: rgba(252, 249, 244, 0.58);
+}
+
+.reflection-block + .reflection-block {
+  margin-top: 28rpx;
+  padding-top: 26rpx;
+  border-top: 1rpx solid rgba(188, 174, 152, 0.2);
+}
+
+.reflection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.reflection-label {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 23rpx;
+  color: var(--ink-soft);
+  margin-bottom: 14rpx;
+}
+
+.reflection-count {
+  font-size: 22rpx;
+  color: var(--ink-soft);
+}
+
+.reflection-text,
+.reflection-textarea {
+  width: 100%;
+  font-family: var(--font-reading);
+  font-size: 26rpx;
+  line-height: 1.85;
+  color: var(--ink-mid);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.reflection-textarea {
+  min-height: 116rpx;
+}
+
+.reflection-save {
+  width: 180rpx;
+  height: 58rpx;
+  margin-top: 20rpx;
+  border: 1rpx solid rgba(181, 53, 42, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #9a332a;
+}
+
+.reflection-save--loading {
+  opacity: 0.66;
+}
+
+:deep(.reflection-placeholder) {
+  color: rgba(130, 118, 102, 0.48);
 }
 
 /* 操作区 */

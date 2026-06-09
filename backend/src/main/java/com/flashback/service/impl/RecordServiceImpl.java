@@ -557,6 +557,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setAiPromptResults(deserializeAiPromptResults(record.getAiPromptResult()));
         vo.setBeliefThen(record.getBeliefThen());
         vo.setRealityLater(record.getRealityLater());
+        vo.setRealityLaterSubmitCount(laterReflectionSubmitCount(record));
         vo.setLifeNodeType(record.getLifeNodeType());
         vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
         vo.setLifeNodeLabel(resolveLifeNodeLabel(record));

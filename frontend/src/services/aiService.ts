@@ -22,6 +22,7 @@ export interface SummarizeRecordResponse {
   confusion: string
   emotion: string
   coreQuestion: string
+  beliefThen?: string
   desiredOutcome?: string
   source: string
 }
