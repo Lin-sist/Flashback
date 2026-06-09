@@ -161,7 +161,7 @@
 ## 10. Integration and Verification Phase
 
 - [x] Run focused backend tests where practical.
-- [ ] Run full backend test suite when feasible.
+- [x] Run full backend test suite when feasible.
 - [x] Run frontend type-check when feasible.
 - [x] Run Mini Program build when feasible.
 - [ ] Manually verify account/password login.

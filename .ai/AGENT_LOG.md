@@ -1555,3 +1555,42 @@ Remaining risks:
 
 - Need user confirmation for the authorization-result reporting endpoint before implementing persisted `AUTHORIZED`/`DENIED` frontend-to-backend recording.
 - Manual WeChat Developer Tools verification remains pending.
+
+### 2026-06-09 Codex (M3 Verification Sweep)
+
+Task:
+
+- Run the broad local verification sweep after backend and Mini Program M3 flow completion changes.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Recorded full backend test evidence.
+- Marked full backend test suite verification as complete in M3 tasks.
+
+Verification:
+
+- Passed: `mvn -q test` from `backend`.
+- Previously passed in this same M3 frontend slice: `.\node_modules\.bin\vue-tsc.cmd --noEmit`.
+- Previously passed in this same M3 frontend slice: `.\node_modules\.bin\uni.cmd build -p mp-weixin`.
+- Local MySQL schema was repaired earlier in this session and verified to contain M3 columns and `record_reminder`.
+
+Skipped verification reason:
+
+- Manual WeChat Developer Tools verification was not performed by the agent.
+- Real WeChat login requires valid Mini Program app ID/secret.
+- Real subscription delivery requires a valid template ID and matching template keyword configuration.
+- Persisting `DENIED` on subscription refusal requires a new backend endpoint path that is not yet confirmed in OpenSpec.
+
+Scope safety check:
+
+- Verification and task updates did not expand M3 into admin, production notification center, SMS, campaign delivery, deployment, monitoring, package/lockfile changes, or broad visual/backend rewrites.
+
+Remaining risks:
+
+- Confirm and implement a minimal subscription authorization result endpoint if persisted `AUTHORIZED`/`DENIED` is required before manual acceptance.
+- Complete manual WeChat Developer Tools verification with real configuration.
