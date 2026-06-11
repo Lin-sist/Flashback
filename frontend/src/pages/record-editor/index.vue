@@ -3,6 +3,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
+import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
 import { aiService } from '../../services'
 import { useRecordStore, useTagStore } from '../../stores'
 import { LifeNodeType, RecordReminderStatus, RecordType } from '../../types'
@@ -29,6 +30,7 @@ const initFailed = ref(false)
 const initErrorMessage = ref('')
 const latestQuery = ref<Record<string, unknown>>({})
 const aiOrganizing = ref(false)
+const showUnlockPicker = ref(false)
 const unlockReminderTemplateId = import.meta.env.VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID || ''
 
 interface EditorSnapshot {
@@ -83,99 +85,18 @@ const isLifeNodeRecord = computed(() => form.recordType === RecordType.NODE_RECO
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
 
-const unlockDateValue = ref('')
-const unlockTimeValue = ref('')
-
-const padDatePart = (value: number) => String(value).padStart(2, '0')
-
-const toDatePickerValue = (date: Date) =>
-  `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`
-
-const toTimePickerValue = (date: Date) =>
-  `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`
-
-const parseUnlockInputDate = (value: string) => {
-  if (!value) return null
-  const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'))
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-const defaultFutureUnlockDate = () => {
-  const date = new Date()
-  date.setDate(date.getDate() + 1)
-  date.setSeconds(0, 0)
-  return date
-}
-
-const defaultTimeForDate = (dateValue: string) => {
-  const now = new Date()
-  if (dateValue === toDatePickerValue(now)) {
-    const nextHour = new Date(now.getTime() + 60 * 60 * 1000)
-    nextHour.setSeconds(0, 0)
-    return toTimePickerValue(nextHour)
+const unlockDisplayText = computed(() => {
+  if (!form.unlockAtInput) return ''
+  const parts = form.unlockAtInput.split(' ')
+  if (parts.length === 2) {
+    const dateParts = parts[0].split('-')
+    const timeParts = parts[1].split(':')
+    if (dateParts.length === 3 && timeParts.length === 2) {
+      return `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeParts[0]}:${timeParts[1]}`
+    }
   }
-  return '09:00'
-}
-
-const syncUnlockPickerFromInput = () => {
-  const date = parseUnlockInputDate(form.unlockAtInput)
-  if (!date) {
-    unlockDateValue.value = ''
-    unlockTimeValue.value = ''
-    return
-  }
-  unlockDateValue.value = toDatePickerValue(date)
-  unlockTimeValue.value = toTimePickerValue(date)
-}
-
-const syncUnlockInputFromPicker = () => {
-  if (!unlockDateValue.value || !unlockTimeValue.value) {
-    form.unlockAtInput = ''
-    return
-  }
-  form.unlockAtInput = `${unlockDateValue.value} ${unlockTimeValue.value}`
-}
-
-const minUnlockDate = computed(() => toDatePickerValue(new Date()))
-
-const maxUnlockDate = computed(() => {
-  const date = new Date()
-  date.setFullYear(date.getFullYear() + 10)
-  return toDatePickerValue(date)
+  return form.unlockAtInput
 })
-
-const unlockDatePickerValue = computed(() => unlockDateValue.value || toDatePickerValue(defaultFutureUnlockDate()))
-
-const unlockTimePickerValue = computed(() => unlockTimeValue.value || defaultTimeForDate(unlockDatePickerValue.value))
-
-const unlockDateDisplay = computed(() => unlockDateValue.value || '选择日期')
-
-const unlockTimeDisplay = computed(() => unlockTimeValue.value || '选择时间')
-
-const readPickerValue = (event: unknown) => {
-  const detail = (event as { detail?: { value?: unknown } })?.detail
-  return typeof detail?.value === 'string' ? detail.value : ''
-}
-
-const onUnlockDateChange = (event: unknown) => {
-  const value = readPickerValue(event)
-  if (!value) return
-  unlockDateValue.value = value
-  if (!unlockTimeValue.value) {
-    unlockTimeValue.value = defaultTimeForDate(value)
-  }
-  syncUnlockInputFromPicker()
-}
-
-const onUnlockTimeChange = (event: unknown) => {
-  const value = readPickerValue(event)
-  if (!value) return
-  if (!unlockDateValue.value) {
-    unlockDateValue.value = toDatePickerValue(defaultFutureUnlockDate())
-  }
-  unlockTimeValue.value = value
-  syncUnlockInputFromPicker()
-}
 
 const writingDateText = computed(() => {
   const nums = ['零','一','二','三','四','五','六','七','八','九']
@@ -542,6 +463,15 @@ const onAuxTap = (name: '地点' | '图片' | '语音') => {
   uni.showToast({ title: `${name} 功能将在后续版本开放`, icon: 'none' })
 }
 
+const onUnlockBarTap = () => {
+  showUnlockPicker.value = true
+}
+
+const onUnlockConfirm = (datetime: string) => {
+  form.unlockAtInput = datetime
+  showUnlockPicker.value = false
+}
+
 onLoad(async (query) => {
   if (!ensureLogin()) {
     return
@@ -673,29 +603,14 @@ onLoad(async (query) => {
             </view>
 
             <!-- 解封时间设置区 -->
-            <view class="unlock-bar">
+            <view class="unlock-bar" @tap="onUnlockBarTap">
               <text class="unlock-label">解封时间</text>
-              <view class="unlock-picker-group">
-                <picker
-                  mode="date"
-                  :value="unlockDatePickerValue"
-                  :start="minUnlockDate"
-                  :end="maxUnlockDate"
-                  @change="onUnlockDateChange"
-                >
-                  <view class="unlock-picker-cell">
-                    <text>{{ unlockDateDisplay }}</text>
-                  </view>
-                </picker>
-                <picker
-                  mode="time"
-                  :value="unlockTimePickerValue"
-                  @change="onUnlockTimeChange"
-                >
-                  <view class="unlock-picker-cell">
-                    <text>{{ unlockTimeDisplay }}</text>
-                  </view>
-                </picker>
+              <view class="unlock-display">
+                <text
+                  class="unlock-text"
+                  :class="{ 'unlock-text--placeholder': !form.unlockAtInput }"
+                >{{ form.unlockAtInput ? unlockDisplayText : '选择未来开启的时间' }}</text>
+                <text class="unlock-arrow">›</text>
               </view>
             </view>
 
@@ -743,6 +658,13 @@ onLoad(async (query) => {
       </template>
     </view>
   </view>
+
+  <DateTimeWheelPicker
+    :visible="showUnlockPicker"
+    :initial-value="form.unlockAtInput || null"
+    @confirm="onUnlockConfirm"
+    @cancel="showUnlockPicker = false"
+  />
 </template>
 
 <style scoped>
@@ -1043,31 +965,33 @@ onLoad(async (query) => {
   letter-spacing: 0.04em;
 }
 
-.unlock-picker-group {
+.unlock-display {
   flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 14rpx;
-}
-
-.unlock-picker-cell {
-  min-height: 56rpx;
-  padding: 0 18rpx;
-  border: 1rpx solid rgba(166, 150, 124, 0.32);
-  background: rgba(255, 252, 246, 0.72);
   display: flex;
   align-items: center;
-  justify-content: center;
+  min-height: 40rpx;
+  gap: 8rpx;
+}
+
+.unlock-text {
+  flex: 1;
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 22rpx;
   color: #6b6560;
   letter-spacing: 0.03em;
-  box-sizing: border-box;
+  line-height: 1.4;
 }
 
-:deep(.unlock-placeholder) {
+.unlock-text--placeholder {
   color: rgba(180, 170, 155, 0.7);
-  font-size: 22rpx;
+}
+
+.unlock-arrow {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 40rpx;
+  color: #c8c2b8;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 /* 正文 textarea */
