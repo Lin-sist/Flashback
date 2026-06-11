@@ -164,9 +164,9 @@
 - [x] Run full backend test suite when feasible.
 - [x] Run frontend type-check when feasible.
 - [x] Run Mini Program build when feasible.
-- [ ] Manually verify account/password login.
+- [x] Manually verify account/password login.
 - [ ] Manually verify WeChat login in WeChat Developer Tools when configuration is available.
-- [ ] Manually verify missing WeChat template ID behavior.
+- [x] Manually verify missing WeChat template ID behavior.
 - [ ] Manually verify real reminder delivery after template IDs are configured.
 - [ ] Manually verify create -> user-triggered AI organize -> seal -> unlock -> reminder attempt -> time review -> "后来其实" first submit -> "后来其实" second submit -> no more modify action -> stage summary.
 - [x] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.

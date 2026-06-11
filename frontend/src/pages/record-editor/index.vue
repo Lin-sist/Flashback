@@ -83,6 +83,100 @@ const isLifeNodeRecord = computed(() => form.recordType === RecordType.NODE_RECO
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
 
+const unlockDateValue = ref('')
+const unlockTimeValue = ref('')
+
+const padDatePart = (value: number) => String(value).padStart(2, '0')
+
+const toDatePickerValue = (date: Date) =>
+  `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`
+
+const toTimePickerValue = (date: Date) =>
+  `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`
+
+const parseUnlockInputDate = (value: string) => {
+  if (!value) return null
+  const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const defaultFutureUnlockDate = () => {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  date.setSeconds(0, 0)
+  return date
+}
+
+const defaultTimeForDate = (dateValue: string) => {
+  const now = new Date()
+  if (dateValue === toDatePickerValue(now)) {
+    const nextHour = new Date(now.getTime() + 60 * 60 * 1000)
+    nextHour.setSeconds(0, 0)
+    return toTimePickerValue(nextHour)
+  }
+  return '09:00'
+}
+
+const syncUnlockPickerFromInput = () => {
+  const date = parseUnlockInputDate(form.unlockAtInput)
+  if (!date) {
+    unlockDateValue.value = ''
+    unlockTimeValue.value = ''
+    return
+  }
+  unlockDateValue.value = toDatePickerValue(date)
+  unlockTimeValue.value = toTimePickerValue(date)
+}
+
+const syncUnlockInputFromPicker = () => {
+  if (!unlockDateValue.value || !unlockTimeValue.value) {
+    form.unlockAtInput = ''
+    return
+  }
+  form.unlockAtInput = `${unlockDateValue.value} ${unlockTimeValue.value}`
+}
+
+const minUnlockDate = computed(() => toDatePickerValue(new Date()))
+
+const maxUnlockDate = computed(() => {
+  const date = new Date()
+  date.setFullYear(date.getFullYear() + 10)
+  return toDatePickerValue(date)
+})
+
+const unlockDatePickerValue = computed(() => unlockDateValue.value || toDatePickerValue(defaultFutureUnlockDate()))
+
+const unlockTimePickerValue = computed(() => unlockTimeValue.value || defaultTimeForDate(unlockDatePickerValue.value))
+
+const unlockDateDisplay = computed(() => unlockDateValue.value || '选择日期')
+
+const unlockTimeDisplay = computed(() => unlockTimeValue.value || '选择时间')
+
+const readPickerValue = (event: unknown) => {
+  const detail = (event as { detail?: { value?: unknown } })?.detail
+  return typeof detail?.value === 'string' ? detail.value : ''
+}
+
+const onUnlockDateChange = (event: unknown) => {
+  const value = readPickerValue(event)
+  if (!value) return
+  unlockDateValue.value = value
+  if (!unlockTimeValue.value) {
+    unlockTimeValue.value = defaultTimeForDate(value)
+  }
+  syncUnlockInputFromPicker()
+}
+
+const onUnlockTimeChange = (event: unknown) => {
+  const value = readPickerValue(event)
+  if (!value) return
+  if (!unlockDateValue.value) {
+    unlockDateValue.value = toDatePickerValue(defaultFutureUnlockDate())
+  }
+  unlockTimeValue.value = value
+  syncUnlockInputFromPicker()
+}
+
 const writingDateText = computed(() => {
   const nums = ['零','一','二','三','四','五','六','七','八','九']
   const seasons: Record<number, string> = {
@@ -230,6 +324,7 @@ const fillByDetail = async (id: number) => {
   form.lifeNodeCustomLabel = detail.lifeNodeCustomLabel || ''
   form.tagIds = detail.tags.map((tag) => Number(tag.id))
   form.unlockAtInput = detail.unlockAt ? formatDateTime(detail.unlockAt) : ''
+  syncUnlockPickerFromInput()
 }
 
 const resolveRecordId = (value: unknown) => {
@@ -580,12 +675,28 @@ onLoad(async (query) => {
             <!-- 解封时间设置区 -->
             <view class="unlock-bar">
               <text class="unlock-label">解封时间</text>
-              <input
-                v-model="form.unlockAtInput"
-                class="unlock-input"
-                placeholder="选择未来开启的时间"
-                placeholder-class="unlock-placeholder"
-              />
+              <view class="unlock-picker-group">
+                <picker
+                  mode="date"
+                  :value="unlockDatePickerValue"
+                  :start="minUnlockDate"
+                  :end="maxUnlockDate"
+                  @change="onUnlockDateChange"
+                >
+                  <view class="unlock-picker-cell">
+                    <text>{{ unlockDateDisplay }}</text>
+                  </view>
+                </picker>
+                <picker
+                  mode="time"
+                  :value="unlockTimePickerValue"
+                  @change="onUnlockTimeChange"
+                >
+                  <view class="unlock-picker-cell">
+                    <text>{{ unlockTimeDisplay }}</text>
+                  </view>
+                </picker>
+              </view>
             </view>
 
             <!-- 附件栏 MAP / IMAGE / VOICE -->
@@ -932,14 +1043,26 @@ onLoad(async (query) => {
   letter-spacing: 0.04em;
 }
 
-.unlock-input {
+.unlock-picker-group {
   flex: 1;
-  min-height: 40rpx;
-  background: transparent;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 14rpx;
+}
+
+.unlock-picker-cell {
+  min-height: 56rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid rgba(166, 150, 124, 0.32);
+  background: rgba(255, 252, 246, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 22rpx;
   color: #6b6560;
   letter-spacing: 0.03em;
+  box-sizing: border-box;
 }
 
 :deep(.unlock-placeholder) {

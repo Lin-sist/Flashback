@@ -1710,3 +1710,56 @@ Remaining risks:
 - Real WeChat login still needs manual verification with configured app ID/secret.
 - Real subscription delivery still needs template ID and keyword configuration, then manual Developer Tools verification.
 - Manual end-to-end demo acceptance remains pending outside automated tests.
+
+### 2026-06-11 Codex (M3 Record Editor Unlock Time Picker Fix)
+
+Task:
+
+- Investigate why the `feature/record-timeline` branch did not show the record unlock time wheel in WeChat Developer Tools.
+- Restore a Mini Program-friendly unlock time picker in the record editor.
+- Record user-reported manual verification evidence.
+
+Modified files:
+
+- `frontend/src/pages/record-editor/index.vue`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Confirmed current branch `feature/record-timeline` points to the same commit as `main` and `origin/feature/record-timeline`; `git diff --stat main...HEAD` was empty before the fix.
+- Confirmed no `picker`, `picker-view`, or time wheel implementation existed in the active record editor source before the fix.
+- Replaced the manual unlock time text input with two native Mini Program pickers:
+  - `picker mode="date"` for unlock date.
+  - `picker mode="time"` for unlock time.
+- Kept the existing `form.unlockAtInput` and `toLocalDateTime` persistence path unchanged.
+- Existing draft details now synchronize backend `unlockAt` into the date/time picker values.
+- New picker selections still save as `yyyy-MM-dd HH:mm`, preserving the existing save/seal validation path.
+- Updated M3 tasks to mark user-reported account/password login verification and missing-template subscription behavior as complete.
+
+Verification:
+
+- User reported account/password login now works.
+- User reported WeChat login displays not-configured behavior.
+- User reported real subscription template is not configured and the Mini Program shows skipped behavior.
+- Passed: `.\node_modules\.bin\vue-tsc.cmd --noEmit` from `frontend` with bundled Node on PATH.
+- Passed: `.\node_modules\.bin\uni.cmd build -p mp-weixin` from `frontend` with bundled Node on PATH.
+- Confirmed generated Mini Program output contains the picker controls: `frontend/dist/build/mp-weixin/pages/record-editor/index.wxml` includes `picker mode="date"` and `picker mode="time"`.
+
+Skipped verification reason:
+
+- The agent did not open WeChat Developer Tools directly.
+- Real configured WeChat login remains pending because the current app ID/secret configuration still reports not configured.
+- Real subscription delivery remains pending because subscription template ID and keyword configuration are not set.
+- Full end-to-end demo flow remains pending user-side Developer Tools verification.
+
+Scope safety check:
+
+- Stayed within M3 Mini Program record editor flow and evidence logging.
+- Did not change backend contracts, database schema, admin, SMS, production notification center, deployment, monitoring, complex AI, social features, real MAP/IMAGE/VOICE, package files, lockfiles, or broad visual layout.
+
+Remaining risks:
+
+- WeChat Developer Tools may still show old UI if it imports an older `dist/build/mp-weixin` or does not refresh after rebuild.
+- Native picker appearance is controlled by WeChat; visual style cannot be fully customized.
+- Real WeChat login and real subscription delivery still need configured credentials/templates and manual verification.
