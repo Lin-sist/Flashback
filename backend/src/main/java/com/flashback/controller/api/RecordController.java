@@ -7,6 +7,7 @@ import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.auth.CurrentUser;
 import com.flashback.service.RecordService;
@@ -72,6 +73,14 @@ public class RecordController {
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateLaterReflectionRequest request) {
         return ApiResponse.success(recordService.updateLaterReflection(authUser.getUserId(), id, request));
+    }
+
+    @PutMapping("/{id}/unlock-reminder-authorization")
+    public ApiResponse<RecordDetailVO> updateUnlockReminderAuthorization(
+            @CurrentUser AuthUser authUser,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateUnlockReminderAuthorizationRequest request) {
+        return ApiResponse.success(recordService.updateUnlockReminderAuthorization(authUser.getUserId(), id, request));
     }
 
     @GetMapping

@@ -1,5 +1,6 @@
 import { httpRequest } from './httpClient'
 import {
+  RecordReminderStatus,
   RecordType,
 } from '../types'
 import type {
@@ -92,6 +93,25 @@ export const recordService = {
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}/seal`,
       method: 'POST',
+    })
+  },
+  updateUnlockReminderAuthorization(id: string | number, status: RecordReminderStatus) {
+    if (shouldUsePreviewData()) {
+      const detail = getPreviewRecordDetail(id)
+      if (!detail) {
+        return Promise.reject(new Error('Record not found'))
+      }
+
+      return Promise.resolve({
+        ...detail,
+        unlockReminderStatus: status,
+      })
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/unlock-reminder-authorization`,
+      method: 'PUT',
+      data: { status },
     })
   },
   getRecordList(status: RecordStatus | 'ALL', query: PageQuery) {

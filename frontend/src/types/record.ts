@@ -1,4 +1,4 @@
-import type { LifeNodeType, RecordStatus, RecordType } from './enums'
+import type { LifeNodeType, RecordReminderStatus, RecordStatus, RecordType } from './enums'
 import type { TagVO } from './tag'
 
 export type DateTimeValue = string | number
@@ -54,6 +54,7 @@ export interface RecordDetailVO {
   lifeNodeType?: LifeNodeType
   lifeNodeCustomLabel?: string
   lifeNodeLabel?: string
+  unlockReminderStatus?: RecordReminderStatus
   tags: TagVO[]
   canReply: boolean
   hasReply: boolean

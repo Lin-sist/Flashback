@@ -8,7 +8,7 @@ import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { recordService, replyService } from '../../services'
 import { useRecordStore } from '../../stores'
-import { RecordStatus, ReplyType, type ReplyVO } from '../../types'
+import { RecordReminderStatus, RecordStatus, ReplyType, type ReplyVO } from '../../types'
 import { formatDateTime, getToken, hasAuthenticatedSession, toUserMessage } from '../../utils'
 
 type EditorSource = 'home' | 'archive' | 'timeline'
@@ -141,6 +141,22 @@ const canSubmitReply   = computed(() => Boolean(detail.value?.canReply && !detai
 const hasSubmittedReply = computed(() => Boolean(detail.value?.hasReply))
 const laterReflectionCount = computed(() => Number(detail.value?.realityLaterSubmitCount || 0))
 const canEditLaterReflection = computed(() => isUnlocked.value && laterReflectionCount.value < 2)
+
+const unlockReminderStatusText = computed(() => {
+  const status = detail.value?.unlockReminderStatus
+  if (!status) return '未记录订阅状态'
+  const statusMap: Record<RecordReminderStatus, string> = {
+    [RecordReminderStatus.REQUESTED]: '已尝试请求订阅，等待后续确认',
+    [RecordReminderStatus.AUTHORIZED]: '你已同意接收这条记录的抵达提醒',
+    [RecordReminderStatus.DENIED]: '你已拒绝本条记录的订阅提醒',
+    [RecordReminderStatus.NOT_CONFIGURED]: '提醒模板暂未配置，未伪造发送成功',
+    [RecordReminderStatus.SEND_PENDING]: '提醒已进入发送流程',
+    [RecordReminderStatus.SEND_SUCCESS]: '微信订阅提醒已发送',
+    [RecordReminderStatus.SEND_FAILED]: '提醒发送失败，记录解锁不受影响',
+    [RecordReminderStatus.SKIPPED_NO_OPENID]: '当前账号未绑定微信 OpenID，已跳过发送',
+  }
+  return statusMap[status] || '订阅提醒状态暂不可识别'
+})
 
 const archiveDateText = computed(() => {
   if (!detail.value?.createdAt) return ''
@@ -513,6 +529,10 @@ onLoad(async (query) => {
           </view>
 
           <view class="reflection-panel">
+            <view class="reflection-block">
+              <text class="reflection-label">订阅提醒</text>
+              <text class="reflection-text">{{ unlockReminderStatusText }}</text>
+            </view>
             <view class="reflection-block">
               <text class="reflection-label">那时的我 · 你当时以为</text>
               <text class="reflection-text">{{ detail.beliefThen || '当时的想法还没有整理出来。' }}</text>

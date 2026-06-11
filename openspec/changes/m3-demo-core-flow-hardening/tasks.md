@@ -118,7 +118,7 @@
 ## 7. Backend Phase: Unlock Reminder Delivery
 
 - [x] Confirm reminder authorization timing in the frontend seal flow.
-- [ ] Store reminder intent or authorization result where required.
+- [x] Store reminder intent or authorization result where required.
 - [x] Implement or complete WeChat subscription-message send adapter.
 - [x] Make template ID configuration-driven.
 - [x] Treat missing template ID as explicit `not_configured` behavior.
@@ -126,7 +126,7 @@
 - [x] Ensure `not_configured` does not block unlock.
 - [x] Ensure send failure does not block unlock.
 - [x] Ensure successful send is idempotent by record and template type.
-- [ ] Record `DENIED` when the user refuses subscription authorization.
+- [x] Record `DENIED` when the user refuses subscription authorization.
 - [x] Ensure logs and reminder records do not include record content, auth tokens, or unnecessary sensitive identifiers.
 - [x] Add tests or manual verification for success, failure, duplicate-send, and not-configured behavior.
 - [x] Record that real delivery must be manually verified after template IDs are configured.
@@ -173,15 +173,15 @@
 
 ## 11. Final Review
 
-- [ ] Confirm account/password login was not removed.
-- [ ] Confirm WeChat login does not trust client-supplied OpenID.
-- [ ] Confirm original record content remains preserved.
-- [ ] Confirm "后来其实" is after-unlock only.
-- [ ] Confirm "后来其实" cannot be submitted more than 2 times.
-- [ ] Confirm reminders are idempotent and non-blocking.
-- [ ] Confirm missing template ID does not fake success.
-- [ ] Confirm real delivery verification is either recorded or explicitly pending template ID configuration.
-- [ ] Confirm stage summary is manual.
-- [ ] Confirm stage summary is generated on demand and not persisted.
-- [ ] Confirm admin, SMS, production notification center, deployment, monitoring, complex AI, and broad redesign stayed out of scope.
-- [ ] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.
+- [x] Confirm account/password login was not removed.
+- [x] Confirm WeChat login does not trust client-supplied OpenID.
+- [x] Confirm original record content remains preserved.
+- [x] Confirm "后来其实" is after-unlock only.
+- [x] Confirm "后来其实" cannot be submitted more than 2 times.
+- [x] Confirm reminders are idempotent and non-blocking.
+- [x] Confirm missing template ID does not fake success.
+- [x] Confirm real delivery verification is either recorded or explicitly pending template ID configuration.
+- [x] Confirm stage summary is manual.
+- [x] Confirm stage summary is generated on demand and not persisted.
+- [x] Confirm admin, SMS, production notification center, deployment, monitoring, complex AI, and broad redesign stayed out of scope.
+- [x] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.

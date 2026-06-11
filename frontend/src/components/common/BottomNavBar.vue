@@ -13,7 +13,7 @@ const props = defineProps<{
 
 const navItems: BottomNavItem[] = [
   { key: 'home', label: '首页', path: '/pages/home/index' },
-  { key: 'timeline', label: '时间轴', path: '/pages/timeline/index' },
+  { key: 'timeline', label: '时光轴', path: '/pages/timeline/index' },
   { key: 'user-center', label: '我的', path: '/pages/user-center/index' },
 ]
 
@@ -40,7 +40,7 @@ const switchTo = (item: BottomNavItem) => {
         <text class="nav-item-text">首页</text>
       </view>
 
-      <!-- 时间轴 -->
+      <!-- 时光轴 -->
       <view
         class="nav-item"
         :class="{ active: props.current === 'timeline' }"
@@ -52,7 +52,7 @@ const switchTo = (item: BottomNavItem) => {
           <path d="M11 6.2H8.2"/>
           <path d="M13 6.2h2.8"/>
         </svg>
-        <text class="nav-item-text">时间轴</text>
+        <text class="nav-item-text">时光轴</text>
       </view>
 
       <!-- 我的 -->

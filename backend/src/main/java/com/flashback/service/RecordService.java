@@ -6,6 +6,7 @@ import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
 import com.flashback.vo.TimelineGroupVO;
@@ -26,6 +27,11 @@ public interface RecordService {
     RecordDetailVO seal(Long userId, Long id);
 
     RecordDetailVO updateLaterReflection(Long userId, Long id, UpdateLaterReflectionRequest request);
+
+    RecordDetailVO updateUnlockReminderAuthorization(
+            Long userId,
+            Long id,
+            UpdateUnlockReminderAuthorizationRequest request);
 
     PageResult<RecordListItemVO> pageMine(Long userId, RecordPageQuery query);
 

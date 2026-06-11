@@ -23,6 +23,7 @@ import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
 import com.flashback.mapper.ReplyMapper;
@@ -62,6 +63,8 @@ public class RecordServiceImpl implements RecordService {
     private static final String TEMPLATE_TYPE_UNLOCK_REMINDER = "UNLOCK_REMINDER";
     private static final String OPENID_NOT_BOUND_MESSAGE = "openid not bound";
     private static final String TEMPLATE_NOT_CONFIGURED_MESSAGE = "wechat unlock reminder template not configured";
+    private static final String AUTHORIZATION_UNAVAILABLE_MESSAGE = "wechat subscription authorization unavailable";
+    private static final String AUTHORIZATION_DENIED_MESSAGE = "wechat subscription authorization denied";
     private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
     };
@@ -227,6 +230,49 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
+    @Transactional
+    public RecordDetailVO updateUnlockReminderAuthorization(
+            Long userId,
+            Long id,
+            UpdateUnlockReminderAuthorizationRequest request) {
+        Record current = requireOwnedRecord(id, userId);
+        if (current.getStatus() == RecordStatus.DRAFT) {
+            throw badRequest("仅封存后的记录允许更新提醒授权状态");
+        }
+
+        RecordReminderStatus status = request.getStatus();
+        if (!isAuthorizationStatus(status)) {
+            throw badRequest("提醒授权状态仅支持REQUESTED、AUTHORIZED或DENIED");
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        RecordReminder existing = recordReminderMapper.selectByRecordIdAndTemplateType(
+                id,
+                TEMPLATE_TYPE_UNLOCK_REMINDER);
+        String lastError = authorizationLastError(status);
+        if (existing == null) {
+            RecordReminder reminder = new RecordReminder();
+            reminder.setRecordId(id);
+            reminder.setUserId(userId);
+            reminder.setTemplateType(TEMPLATE_TYPE_UNLOCK_REMINDER);
+            reminder.setReminderStatus(status);
+            reminder.setLastError(lastError);
+            reminder.setCreatedAt(now);
+            reminder.setUpdatedAt(now);
+            recordReminderMapper.insert(reminder);
+        } else if (existing.getReminderStatus() != RecordReminderStatus.SEND_SUCCESS) {
+            recordReminderMapper.updateStatusById(
+                    existing.getId(),
+                    status,
+                    lastError,
+                    null,
+                    now);
+        }
+
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
     public PageResult<RecordListItemVO> pageMine(Long userId, RecordPageQuery query) {
         int pageNum = query.getPageNum();
         int pageSize = query.getPageSize();
@@ -371,18 +417,20 @@ public class RecordServiceImpl implements RecordService {
             RecordReminder existing = recordReminderMapper.selectByRecordIdAndTemplateType(
                     recordId,
                     TEMPLATE_TYPE_UNLOCK_REMINDER);
-            if (existing != null) {
+            if (existing != null && !shouldAttemptSendFromExistingReminder(existing)) {
                 return;
             }
 
             User user = userMapper.selectById(userId);
             String openid = user == null ? null : normalizeOptional(user.getOpenid());
 
-            RecordReminder reminder = new RecordReminder();
-            reminder.setRecordId(recordId);
-            reminder.setUserId(userId);
-            reminder.setTemplateType(TEMPLATE_TYPE_UNLOCK_REMINDER);
-            reminder.setCreatedAt(now);
+            RecordReminder reminder = existing == null ? new RecordReminder() : existing;
+            if (existing == null) {
+                reminder.setRecordId(recordId);
+                reminder.setUserId(userId);
+                reminder.setTemplateType(TEMPLATE_TYPE_UNLOCK_REMINDER);
+                reminder.setCreatedAt(now);
+            }
             reminder.setUpdatedAt(now);
             if (openid == null) {
                 reminder.setReminderStatus(RecordReminderStatus.SKIPPED_NO_OPENID);
@@ -394,7 +442,16 @@ public class RecordServiceImpl implements RecordService {
                 reminder.setReminderStatus(RecordReminderStatus.SEND_PENDING);
             }
 
-            recordReminderMapper.insert(reminder);
+            if (existing == null) {
+                recordReminderMapper.insert(reminder);
+            } else {
+                recordReminderMapper.updateStatusById(
+                        reminder.getId(),
+                        reminder.getReminderStatus(),
+                        reminder.getLastError(),
+                        null,
+                        now);
+            }
             if (reminder.getReminderStatus() == RecordReminderStatus.SEND_PENDING) {
                 sendUnlockReminder(reminder, openid, now);
             }
@@ -561,6 +618,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setLifeNodeType(record.getLifeNodeType());
         vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
         vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
+        vo.setUnlockReminderStatus(resolveUnlockReminderStatus(record.getId()));
         vo.setTags(loadRecordTags(record.getId()));
         boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
                 && replyMapper.selectByRecordId(record.getId()) != null;
@@ -581,6 +639,37 @@ public class RecordServiceImpl implements RecordService {
             return customLabel == null ? LifeNodeType.OTHER.getLabel() : customLabel;
         }
         return lifeNodeType.getLabel();
+    }
+
+    private boolean isAuthorizationStatus(RecordReminderStatus status) {
+        return status == RecordReminderStatus.REQUESTED
+                || status == RecordReminderStatus.AUTHORIZED
+                || status == RecordReminderStatus.DENIED;
+    }
+
+    private String authorizationLastError(RecordReminderStatus status) {
+        if (status == RecordReminderStatus.REQUESTED) {
+            return AUTHORIZATION_UNAVAILABLE_MESSAGE;
+        }
+        if (status == RecordReminderStatus.DENIED) {
+            return AUTHORIZATION_DENIED_MESSAGE;
+        }
+        return null;
+    }
+
+    private boolean shouldAttemptSendFromExistingReminder(RecordReminder existing) {
+        RecordReminderStatus status = existing.getReminderStatus();
+        return status == RecordReminderStatus.AUTHORIZED
+                || status == RecordReminderStatus.REQUESTED
+                || status == RecordReminderStatus.NOT_CONFIGURED
+                || status == RecordReminderStatus.SEND_FAILED;
+    }
+
+    private RecordReminderStatus resolveUnlockReminderStatus(Long recordId) {
+        RecordReminder reminder = recordReminderMapper.selectByRecordIdAndTemplateType(
+                recordId,
+                TEMPLATE_TYPE_UNLOCK_REMINDER);
+        return reminder == null ? null : reminder.getReminderStatus();
     }
 
     private String serializeAiPromptResults(List<String> aiPromptResults) {

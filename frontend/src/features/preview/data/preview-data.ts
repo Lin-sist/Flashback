@@ -10,7 +10,7 @@ import type {
   TimelineQuery,
   UserInfoVO,
 } from '../../../types'
-import { RecordStatus, RecordType, ReplyType, TagType } from '../../../types'
+import { RecordReminderStatus, RecordStatus, RecordType, ReplyType, TagType } from '../../../types'
 
 interface PreviewRecordSeed {
   id: number
@@ -19,6 +19,7 @@ interface PreviewRecordSeed {
   contentPreview: string
   recordType: RecordType
   status: RecordStatus
+  unlockReminderStatus?: RecordReminderStatus
   createdAt: string
   updatedAt: string
   unlockAt?: string
@@ -71,6 +72,7 @@ const previewRecords: PreviewRecordSeed[] = [
     contentPreview: '你已经认真度过了这段日子，把那些来不及解释的疲惫与迟疑，都妥帖地封存在这里。',
     recordType: RecordType.NODE_RECORD,
     status: RecordStatus.SEALED,
+    unlockReminderStatus: RecordReminderStatus.AUTHORIZED,
     createdAt: '2026-03-08 21:12:00',
     updatedAt: '2026-03-08 21:20:00',
     sealedAt: '2026-03-08 21:20:00',
@@ -87,6 +89,7 @@ const previewRecords: PreviewRecordSeed[] = [
     contentPreview: '写下这段话的时候，我只是想替那时的自己留一盏灯。',
     recordType: RecordType.EMOTION_NOTE,
     status: RecordStatus.SEALED,
+    unlockReminderStatus: RecordReminderStatus.REQUESTED,
     createdAt: '2025-12-14 19:36:00',
     updatedAt: '2025-12-14 19:50:00',
     sealedAt: '2025-12-14 19:50:00',
@@ -103,6 +106,7 @@ const previewRecords: PreviewRecordSeed[] = [
     contentPreview: '原来许多以为过不去的时刻，真的会在某一天被温柔地翻过去。',
     recordType: RecordType.FUTURE_LETTER,
     status: RecordStatus.UNLOCKED,
+    unlockReminderStatus: RecordReminderStatus.SEND_SUCCESS,
     createdAt: '2025-04-03 22:10:00',
     updatedAt: '2026-04-03 09:12:00',
     sealedAt: '2025-04-03 22:18:00',
@@ -120,6 +124,7 @@ const previewRecords: PreviewRecordSeed[] = [
     contentPreview: '站台上的风有些凉，但人群慢慢散去的时候，我第一次觉得，原来等待本身也会留下痕迹。',
     recordType: RecordType.NODE_RECORD,
     status: RecordStatus.UNLOCKED,
+    unlockReminderStatus: RecordReminderStatus.NOT_CONFIGURED,
     createdAt: '2025-11-21 18:24:00',
     updatedAt: '2026-04-16 08:02:00',
     sealedAt: '2025-11-21 18:40:00',

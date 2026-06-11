@@ -220,7 +220,7 @@ onShow(loadList)
         <view class="back-arrow" />
         <text class="back-btn-label">返回</text>
       </view>
-      <text class="page-title">我的档案</text>
+      <text class="page-title">我的记录</text>
     </view>
 
     <!-- 滚动内容区 -->

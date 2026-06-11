@@ -15,6 +15,7 @@ import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordRequest;
+import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
@@ -442,8 +443,11 @@ class RecordServiceImplTest {
         unlocked.setBeliefThen("那时以为只要准备充分就不会紧张");
         unlocked.setRealityLaterSubmitCount(1);
         unlocked.setLifeNodeType(LifeNodeType.WORK);
+        RecordReminder reminder = new RecordReminder();
+        reminder.setReminderStatus(RecordReminderStatus.SEND_SUCCESS);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(unlocked);
         when(replyMapper.selectByRecordId(100L)).thenReturn(mockReply(100L, 1L, "已写回信"));
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(100L, "UNLOCK_REMINDER")).thenReturn(reminder);
 
         var result = recordService.detail(1L, 100L);
 
@@ -453,8 +457,62 @@ class RecordServiceImplTest {
         assertThat(result.getRealityLaterSubmitCount()).isEqualTo(1);
         assertThat(result.getLifeNodeType()).isEqualTo(LifeNodeType.WORK);
         assertThat(result.getLifeNodeLabel()).isEqualTo("工作");
+        assertThat(result.getUnlockReminderStatus()).isEqualTo(RecordReminderStatus.SEND_SUCCESS);
         assertThat(result.getHasReply()).isTrue();
         assertThat(result.getCanReply()).isFalse();
+    }
+
+    @Test
+    void shouldCreateUnlockReminderAuthorizationResult() {
+        Record sealed = mockRecord(RecordStatus.SEALED);
+        RecordReminder created = new RecordReminder();
+        created.setReminderStatus(RecordReminderStatus.DENIED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(sealed, sealed);
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(100L, "UNLOCK_REMINDER"))
+                .thenReturn(null)
+                .thenReturn(created);
+
+        UpdateUnlockReminderAuthorizationRequest request = new UpdateUnlockReminderAuthorizationRequest();
+        request.setStatus(RecordReminderStatus.DENIED);
+
+        var result = recordService.updateUnlockReminderAuthorization(1L, 100L, request);
+
+        verify(recordReminderMapper).insert(org.mockito.ArgumentMatchers.argThat(reminder ->
+                reminder.getRecordId().equals(100L)
+                        && reminder.getUserId().equals(1L)
+                        && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
+                        && reminder.getReminderStatus() == RecordReminderStatus.DENIED
+                        && "wechat subscription authorization denied".equals(reminder.getLastError())));
+        assertThat(result.getUnlockReminderStatus()).isEqualTo(RecordReminderStatus.DENIED);
+    }
+
+    @Test
+    void shouldRejectUnsupportedUnlockReminderAuthorizationStatus() {
+        Record sealed = mockRecord(RecordStatus.SEALED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(sealed);
+
+        UpdateUnlockReminderAuthorizationRequest request = new UpdateUnlockReminderAuthorizationRequest();
+        request.setStatus(RecordReminderStatus.SEND_SUCCESS);
+
+        assertThatThrownBy(() -> recordService.updateUnlockReminderAuthorization(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("提醒授权状态仅支持REQUESTED、AUTHORIZED或DENIED");
+        verify(recordReminderMapper, never()).insert(any());
+        verify(recordReminderMapper, never()).updateStatusById(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectUnlockReminderAuthorizationForDraft() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft);
+
+        UpdateUnlockReminderAuthorizationRequest request = new UpdateUnlockReminderAuthorizationRequest();
+        request.setStatus(RecordReminderStatus.AUTHORIZED);
+
+        assertThatThrownBy(() -> recordService.updateUnlockReminderAuthorization(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("仅封存后的记录允许更新提醒授权状态");
+        verify(recordReminderMapper, never()).insert(any());
     }
 
     @Test
@@ -611,6 +669,75 @@ class RecordServiceImplTest {
                 org.mockito.ArgumentMatchers.isNull(),
                 any(),
                 any());
+    }
+
+    @Test
+    void shouldSendUnlockReminderWhenAuthorizationWasRecordedBeforeUnlock() {
+        appWechatProperties.setUnlockReminderTemplateId("template-id");
+
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(406L);
+        expired.setUserId(36L);
+
+        RecordReminder existing = new RecordReminder();
+        existing.setId(9003L);
+        existing.setRecordId(406L);
+        existing.setUserId(36L);
+        existing.setTemplateType("UNLOCK_REMINDER");
+        existing.setReminderStatus(RecordReminderStatus.AUTHORIZED);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(406L), any(), any())).thenReturn(1);
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(406L, "UNLOCK_REMINDER")).thenReturn(existing);
+        when(userMapper.selectById(36L)).thenReturn(mockUser(36L, "openid-36"));
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(recordReminderMapper, never()).insert(any());
+        verify(recordReminderMapper).updateStatusById(
+                eq(9003L),
+                eq(RecordReminderStatus.SEND_PENDING),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                any());
+        verify(wechatSubscribeMessageClient).sendUnlockReminder(eq("openid-36"), eq(406L), any());
+        verify(recordReminderMapper).updateStatusById(
+                eq(9003L),
+                eq(RecordReminderStatus.SEND_SUCCESS),
+                org.mockito.ArgumentMatchers.isNull(),
+                any(),
+                any());
+    }
+
+    @Test
+    void shouldNotSendUnlockReminderWhenAuthorizationDenied() {
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(407L);
+        expired.setUserId(37L);
+
+        RecordReminder existing = new RecordReminder();
+        existing.setId(9004L);
+        existing.setRecordId(407L);
+        existing.setUserId(37L);
+        existing.setTemplateType("UNLOCK_REMINDER");
+        existing.setReminderStatus(RecordReminderStatus.DENIED);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(407L), any(), any())).thenReturn(1);
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(407L, "UNLOCK_REMINDER")).thenReturn(existing);
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(userMapper, never()).selectById(any());
+        verify(recordReminderMapper, never()).insert(any());
+        verify(recordReminderMapper, never()).updateStatusById(any(), any(), any(), any(), any());
+        verify(wechatSubscribeMessageClient, never()).sendUnlockReminder(any(), any(), any());
     }
 
     @Test

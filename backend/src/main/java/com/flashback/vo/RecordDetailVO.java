@@ -1,6 +1,7 @@
 package com.flashback.vo;
 
 import com.flashback.domain.LifeNodeType;
+import com.flashback.domain.RecordReminderStatus;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 
@@ -29,6 +30,7 @@ public class RecordDetailVO {
     private LifeNodeType lifeNodeType;
     private String lifeNodeCustomLabel;
     private String lifeNodeLabel;
+    private RecordReminderStatus unlockReminderStatus;
     private List<RecordTagVO> tags;
     private Boolean canReply;
     private Boolean hasReply;
@@ -169,6 +171,14 @@ public class RecordDetailVO {
 
     public void setLifeNodeLabel(String lifeNodeLabel) {
         this.lifeNodeLabel = lifeNodeLabel;
+    }
+
+    public RecordReminderStatus getUnlockReminderStatus() {
+        return unlockReminderStatus;
+    }
+
+    public void setUnlockReminderStatus(RecordReminderStatus unlockReminderStatus) {
+        this.unlockReminderStatus = unlockReminderStatus;
     }
 
     public List<RecordTagVO> getTags() {

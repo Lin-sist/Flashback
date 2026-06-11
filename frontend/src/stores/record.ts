@@ -6,6 +6,7 @@ import type {
   PaginationResponse,
   RecordDetailVO,
   RecordListItemVO,
+  RecordReminderStatus,
   RecordStatus,
   UpdateRecordDTO,
 } from '../types'
@@ -60,6 +61,11 @@ export const useRecordStore = defineStore('record', {
     },
     async sealRecord(id: string | number) {
       return recordService.sealRecord(id)
+    },
+    async updateUnlockReminderAuthorization(id: string | number, status: RecordReminderStatus) {
+      const result = await recordService.updateUnlockReminderAuthorization(id, status)
+      this.detail = result
+      return result
     },
   },
 })

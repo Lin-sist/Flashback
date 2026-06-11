@@ -5,7 +5,7 @@ import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/prev
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import { aiService } from '../../services'
 import { useRecordStore, useTagStore } from '../../stores'
-import { LifeNodeType, RecordType } from '../../types'
+import { LifeNodeType, RecordReminderStatus, RecordType } from '../../types'
 import {
   formatDateTime,
   getToken,
@@ -362,6 +362,25 @@ const requestUnlockReminderAuthorization = () => new Promise<'accepted' | 'rejec
   })
 })
 
+const toUnlockReminderAuthorizationStatus = (result: 'accepted' | 'rejected' | 'skipped') => {
+  if (result === 'accepted') return RecordReminderStatus.AUTHORIZED
+  if (result === 'rejected') return RecordReminderStatus.DENIED
+  return RecordReminderStatus.REQUESTED
+}
+
+const reportUnlockReminderAuthorization = async (id: number) => {
+  try {
+    const authorizationResult = await requestUnlockReminderAuthorization()
+    const updated = await recordStore.updateUnlockReminderAuthorization(
+      id,
+      toUnlockReminderAuthorizationStatus(authorizationResult)
+    )
+    recordStore.detail = updated
+  } catch {
+    // The record is already sealed; reminder authorization reporting must not undo it.
+  }
+}
+
 const saveDraft = async () => {
   if (loading.value) {
     return
@@ -414,7 +433,7 @@ const sealRecord = async () => {
   try {
     const draft = await persistDraft()
     await recordStore.sealRecord(draft.id)
-    await requestUnlockReminderAuthorization()
+    await reportUnlockReminderAuthorization(draft.id)
     uni.showToast({ title: '已封存这一刻', icon: 'success' })
     setTimeout(() => returnToSource(), 300)
   } catch (error) {

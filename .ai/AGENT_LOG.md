@@ -1594,3 +1594,119 @@ Remaining risks:
 
 - Confirm and implement a minimal subscription authorization result endpoint if persisted `AUTHORIZED`/`DENIED` is required before manual acceptance.
 - Complete manual WeChat Developer Tools verification with real configuration.
+
+### 2026-06-10 Codex (Design Document Implementation Audit)
+
+Task:
+
+- Compare `Docs/前期需求设计文档/设计文档.md` against the current M1-M3 project state.
+- Identify which early design items are implemented, partially implemented, deferred, or out of current V2.0/M3 scope.
+- Prepare next-step optimization strategy without changing application code.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Recorded this audit evidence only.
+- No frontend, backend, schema, OpenSpec, package, or lockfile files were changed.
+
+Verification:
+
+- Read `.ai/ACTIVE_TASK.md` and confirmed `m3-demo-core-flow-hardening` is the active fact source.
+- Read current M3 OpenSpec proposal, design, tasks, and accepted specs.
+- Read the old design document headings and core feature/MVP sections.
+- Inspected targeted implementation evidence for auth, record lifecycle, reflection fields, life-node labels, reminder delivery, stage summary, reply, timeline/list behavior, and Mini Program page registration.
+- Confirmed `git diff --stat` was empty before this evidence-log append; `git status --short` only showed untracked `.claude/settings.local.json` before this append.
+
+Skipped verification reason:
+
+- No backend test, frontend type-check, Mini Program build, or WeChat Developer Tools manual flow was run in this audit-only turn.
+- Real WeChat login and subscription-message delivery still require valid app ID, secret, template ID, template keyword configuration, and manual Developer Tools verification.
+
+Scope safety check:
+
+- This turn stayed in documentation/audit mode.
+- It did not implement admin, production deployment, monitoring, SMS, notification center, campaign delivery, complex AI scoring, social feed, real MAP/IMAGE/VOICE, package or lockfile changes, broad frontend visual redesign, or broad backend rewrite.
+
+Remaining risks:
+
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md` still has unchecked M3 final review and manual verification items.
+- Subscription authorization result persistence for `AUTHORIZED`/`DENIED` remains unresolved pending a confirmed endpoint path.
+- Visible old naming remains in targeted frontend search: `frontend/src/pages/record-list/index.vue` uses `我的档案`, and `frontend/src/components/common/BottomNavBar.vue` uses `时间轴`.
+
+### 2026-06-11 Codex (M3 Closeout: Reminder Authorization Status)
+
+Task:
+
+- Close the confirmed M3 reminder authorization gap.
+- Add minimal backend persistence for Mini Program subscription authorization results.
+- Expose unlock reminder status on time review.
+- Remove remaining visible naming residues that conflicted with M3 naming.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/dto/UpdateUnlockReminderAuthorizationRequest.java`
+- `backend/src/main/java/com/flashback/controller/api/RecordController.java`
+- `backend/src/main/java/com/flashback/service/RecordService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/RecordDetailVO.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `frontend/src/types/enums.ts`
+- `frontend/src/types/record.ts`
+- `frontend/src/services/recordService.ts`
+- `frontend/src/stores/record.ts`
+- `frontend/src/features/preview/data/preview-data.ts`
+- `frontend/src/pages/record-editor/index.vue`
+- `frontend/src/pages/record-detail/index.vue`
+- `frontend/src/pages/record-list/index.vue`
+- `frontend/src/components/common/BottomNavBar.vue`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added confirmed endpoint `PUT /api/records/{recordId}/unlock-reminder-authorization`.
+- Accepted request body `{ "status": "AUTHORIZED" | "DENIED" | "REQUESTED" }`.
+- Persisted authorization result in existing `record_reminder` with template type `UNLOCK_REMINDER`.
+- Recorded `DENIED` when the user refuses subscription authorization.
+- Rejected unsupported frontend-submitted statuses such as `SEND_SUCCESS`.
+- Rejected authorization status updates for `DRAFT` records.
+- Added `unlockReminderStatus` to `RecordDetailVO`.
+- Adjusted unlock reminder send logic so an existing `AUTHORIZED` or `REQUESTED` reminder marker does not block real send when the record unlocks.
+- Kept `DENIED` as a send stop marker.
+- Kept send failure and not-configured behavior non-blocking.
+- Frontend seal flow now reports `AUTHORIZED`, `DENIED`, or `REQUESTED` after subscription authorization.
+- Authorization reporting is best-effort after seal; failure to report does not undo or present the seal operation as failed.
+- Time review displays the record's unlock reminder status.
+- Preview data includes representative reminder statuses.
+- Replaced visible residual naming `我的档案` with `我的记录`, and `时间轴` with `时光轴`.
+- Marked M3 reminder authorization tasks and final review checklist items that are now code-reviewed or verified.
+
+Verification:
+
+- Passed: `mvn -q "-Dtest=RecordServiceImplTest" test` from `backend` after rerun with required network permission.
+- Passed: `mvn -q test` from `backend` after rerun with required network permission.
+- Passed: `.\node_modules\.bin\vue-tsc.cmd --noEmit` from `frontend` with bundled Node on PATH.
+- Passed: `.\node_modules\.bin\uni.cmd build -p mp-weixin` from `frontend` with bundled Node on PATH.
+- Passed naming scan: `rg -n "我的档案|时间轴|回看页" frontend/src` returned no matches.
+
+Skipped verification reason:
+
+- Manual account/password login was not performed in a running Mini Program or browser session.
+- Manual WeChat login in WeChat Developer Tools was not performed by the agent.
+- Manual missing-template-ID behavior was not performed in WeChat Developer Tools; automated backend tests still cover `NOT_CONFIGURED`.
+- Real reminder delivery was not manually verified because it requires configured subscription template ID and WeChat Developer Tools flow.
+- Full end-to-end Mini Program manual flow remains pending user-side DevTools verification.
+
+Scope safety check:
+
+- Stayed inside confirmed M3 scope: backend records/reminders, Mini Program seal/time-review flow, M3 task evidence, and visible naming.
+- Did not implement admin, SMS, production notification center, campaign delivery, monitoring, deployment, complex AI, social features, real MAP/IMAGE/VOICE, package or lockfile changes, broad frontend visual redesign, or broad backend rewrite.
+
+Remaining risks:
+
+- Real WeChat login still needs manual verification with configured app ID/secret.
+- Real subscription delivery still needs template ID and keyword configuration, then manual Developer Tools verification.
+- Manual end-to-end demo acceptance remains pending outside automated tests.
