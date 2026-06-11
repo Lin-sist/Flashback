@@ -3,6 +3,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
+import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
 import { aiService } from '../../services'
 import { useRecordStore, useTagStore } from '../../stores'
 import { LifeNodeType, RecordType } from '../../types'
@@ -29,6 +30,7 @@ const initFailed = ref(false)
 const initErrorMessage = ref('')
 const latestQuery = ref<Record<string, unknown>>({})
 const aiOrganizing = ref(false)
+const showUnlockPicker = ref(false)
 const unlockReminderTemplateId = import.meta.env.VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID || ''
 
 interface EditorSnapshot {
@@ -82,6 +84,19 @@ const lifeNodeOptions = [
 const isLifeNodeRecord = computed(() => form.recordType === RecordType.NODE_RECORD)
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
+
+const unlockDisplayText = computed(() => {
+  if (!form.unlockAtInput) return ''
+  const parts = form.unlockAtInput.split(' ')
+  if (parts.length === 2) {
+    const dateParts = parts[0].split('-')
+    const timeParts = parts[1].split(':')
+    if (dateParts.length === 3 && timeParts.length === 2) {
+      return `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeParts[0]}:${timeParts[1]}`
+    }
+  }
+  return form.unlockAtInput
+})
 
 const writingDateText = computed(() => {
   const nums = ['零','一','二','三','四','五','六','七','八','九']
@@ -428,6 +443,15 @@ const onAuxTap = (name: '地点' | '图片' | '语音') => {
   uni.showToast({ title: `${name} 功能将在后续版本开放`, icon: 'none' })
 }
 
+const onUnlockBarTap = () => {
+  showUnlockPicker.value = true
+}
+
+const onUnlockConfirm = (datetime: string) => {
+  form.unlockAtInput = datetime
+  showUnlockPicker.value = false
+}
+
 onLoad(async (query) => {
   if (!ensureLogin()) {
     return
@@ -559,14 +583,15 @@ onLoad(async (query) => {
             </view>
 
             <!-- 解封时间设置区 -->
-            <view class="unlock-bar">
+            <view class="unlock-bar" @tap="onUnlockBarTap">
               <text class="unlock-label">解封时间</text>
-              <input
-                v-model="form.unlockAtInput"
-                class="unlock-input"
-                placeholder="选择未来开启的时间"
-                placeholder-class="unlock-placeholder"
-              />
+              <view class="unlock-display">
+                <text
+                  class="unlock-text"
+                  :class="{ 'unlock-text--placeholder': !form.unlockAtInput }"
+                >{{ form.unlockAtInput ? unlockDisplayText : '选择未来开启的时间' }}</text>
+                <text class="unlock-arrow">›</text>
+              </view>
             </view>
 
             <!-- 附件栏 MAP / IMAGE / VOICE -->
@@ -613,6 +638,13 @@ onLoad(async (query) => {
       </template>
     </view>
   </view>
+
+  <DateTimeWheelPicker
+    :visible="showUnlockPicker"
+    :initial-value="form.unlockAtInput || null"
+    @confirm="onUnlockConfirm"
+    @cancel="showUnlockPicker = false"
+  />
 </template>
 
 <style scoped>
@@ -913,19 +945,33 @@ onLoad(async (query) => {
   letter-spacing: 0.04em;
 }
 
-.unlock-input {
+.unlock-display {
   flex: 1;
+  display: flex;
+  align-items: center;
   min-height: 40rpx;
-  background: transparent;
+  gap: 8rpx;
+}
+
+.unlock-text {
+  flex: 1;
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
   font-size: 22rpx;
   color: #6b6560;
   letter-spacing: 0.03em;
+  line-height: 1.4;
 }
 
-:deep(.unlock-placeholder) {
+.unlock-text--placeholder {
   color: rgba(180, 170, 155, 0.7);
-  font-size: 22rpx;
+}
+
+.unlock-arrow {
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 40rpx;
+  color: #c8c2b8;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 /* 正文 textarea */
