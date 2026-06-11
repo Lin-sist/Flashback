@@ -245,7 +245,6 @@ const fillByDetail = async (id: number) => {
   form.lifeNodeCustomLabel = detail.lifeNodeCustomLabel || ''
   form.tagIds = detail.tags.map((tag) => Number(tag.id))
   form.unlockAtInput = detail.unlockAt ? formatDateTime(detail.unlockAt) : ''
-  syncUnlockPickerFromInput()
 }
 
 const resolveRecordId = (value: unknown) => {

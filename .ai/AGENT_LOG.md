@@ -1763,3 +1763,44 @@ Remaining risks:
 - WeChat Developer Tools may still show old UI if it imports an older `dist/build/mp-weixin` or does not refresh after rebuild.
 - Native picker appearance is controlled by WeChat; visual style cannot be fully customized.
 - Real WeChat login and real subscription delivery still need configured credentials/templates and manual verification.
+
+### 2026-06-11 Codex (Remote-first Record Timeline Sync)
+
+Task:
+
+- Sync local `feature/record-timeline` with GitHub remote after the user confirmed the time wheel implementation had already been merged remotely.
+- Prefer the remote time wheel implementation over the local temporary date/time picker fix.
+
+Modified files:
+
+- `frontend/src/components/common/DateTimeWheelPicker.vue`
+- `frontend/src/pages/record-editor/index.vue`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Created local backup branch `backup/feature-record-timeline-before-remote-sync` at `097fcf4` before merging.
+- Merged `origin/feature/record-timeline` into local `feature/record-timeline` with conflict strategy preferring remote changes.
+- Adopted remote `DateTimeWheelPicker.vue`, which uses a five-column `picker-view` for year, month, day, hour, and minute.
+- Removed one stale local-only call to `syncUnlockPickerFromInput()` that remained after the remote-first merge and caused frontend type-check failure.
+
+Verification:
+
+- Initial post-merge `vue-tsc --noEmit` failed because `syncUnlockPickerFromInput` no longer existed after adopting the remote component.
+- Passed after the stale call was removed: `.\node_modules\.bin\vue-tsc.cmd --noEmit` from `frontend` with bundled Node on PATH.
+- Passed: `.\node_modules\.bin\uni.cmd build -p mp-weixin` from `frontend` with bundled Node on PATH.
+- Confirmed generated Mini Program output includes `components/common/DateTimeWheelPicker` and `picker-view` in `frontend/dist/build/mp-weixin`.
+
+Skipped verification reason:
+
+- The agent did not open WeChat Developer Tools directly; final visual confirmation remains user-side because the local Developer Tools environment is reported as slow.
+
+Scope safety check:
+
+- Stayed inside git synchronization and the record editor unlock time picker area.
+- Did not change backend contracts, database schema, admin, SMS, production notification center, deployment, monitoring, complex AI, social features, real MAP/IMAGE/VOICE, package files, lockfiles, or broad visual layout.
+
+Remaining risks:
+
+- The local branch is now ahead of `origin/feature/record-timeline` by the merge and follow-up fix/log commit until pushed.
+- WeChat Developer Tools may still need a clean compile/import of `frontend/dist/build/mp-weixin` to show the latest generated output.
