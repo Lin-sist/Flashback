@@ -143,7 +143,7 @@ watch(() => props.visible, (val) => {
 
 <template>
   <view v-if="visible" class="dt-overlay" @tap.stop="onOverlayTap">
-    <view class="dt-sheet">
+    <view class="dt-sheet" @tap.stop>
       <!-- 头部按钮 -- 放在滚轮上方 -->
       <cover-view class="dt-header">
         <cover-view class="dt-btn dt-btn--cancel" @tap="onOverlayTap">取消</cover-view>

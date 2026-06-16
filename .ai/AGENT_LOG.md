@@ -1804,3 +1804,480 @@ Remaining risks:
 
 - The local branch is now ahead of `origin/feature/record-timeline` by the merge and follow-up fix/log commit until pushed.
 - WeChat Developer Tools may still need a clean compile/import of `frontend/dist/build/mp-weixin` to show the latest generated output.
+
+### 2026-06-11 Codex (M3 Merge Readiness Audit)
+
+Task:
+
+- Inspect current `feature/record-timeline` branch implementation status against `main`.
+- Check whether the current branch and M3 implementation evidence support merge.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- No application implementation changed in this audit.
+- Confirmed `.ai/ACTIVE_TASK.md` and OpenSpec still point to `m3-demo-core-flow-hardening`.
+- Confirmed current branch is `feature/record-timeline`.
+- Confirmed `main...HEAD` implementation delta is limited to record editor unlock time wheel UI, `DateTimeWheelPicker.vue`, M3 task evidence, and `.ai/AGENT_LOG.md`.
+- Confirmed no backend, database schema, package, lockfile, deployment, monitoring, admin, SMS, notification-center, complex AI, social, or real MAP/IMAGE/VOICE files are changed by this branch delta.
+- Confirmed M3 task list still leaves configured WeChat login, real reminder delivery, and full manual end-to-end Mini Program flow as pending manual verification.
+
+Verification:
+
+- Passed after rerun with required network permission: `mvn -q test` from `backend`.
+- Passed: `.\node_modules\.bin\vue-tsc.cmd --noEmit` from `frontend` using bundled Node on PATH.
+- Passed: `.\node_modules\.bin\uni.cmd build -p mp-weixin` from `frontend` using bundled Node on PATH.
+- Passed: `git diff --check main...HEAD`.
+- Passed naming scan: `rg -n "我的档案|时间轴|回看页" frontend/src` returned no matches.
+- Confirmed generated Mini Program output includes `components/common/DateTimeWheelPicker` and `picker-view` under `frontend/dist/build/mp-weixin`.
+
+Skipped verification reason:
+
+- The agent did not open WeChat Developer Tools directly.
+- Manual WeChat login with configured app ID/secret remains pending because configuration availability must be verified in the Mini Program environment.
+- Real subscription reminder delivery remains pending because it requires configured subscription template ID and keyword setup.
+- Full create -> AI organize -> seal -> unlock -> reminder attempt -> time review -> first/second `realityLater` submit -> no-more-modify -> stage summary flow remains pending user-side Mini Program manual verification.
+
+Merge readiness conclusion:
+
+- Code-level automated checks support merging the current branch into `main`.
+- Product/demo acceptance is not fully closed until the remaining WeChat Developer Tools manual verification items are completed or explicitly accepted as post-merge pending risks.
+
+Scope safety check:
+
+- Stayed in audit/evidence mode plus generated-output verification.
+- Did not change backend contracts, database schema, admin, SMS, production notification center, deployment, monitoring, complex AI, social features, real MAP/IMAGE/VOICE, package files, lockfiles, or broad visual layout.
+
+Remaining risks:
+
+- `.claude/settings.local.json` is untracked local state and should not be included in merge artifacts unless intentionally added.
+- Current branch still needs push/update coordination if the merge target is remote.
+- WeChat Developer Tools may still require clean compile/import of `frontend/dist/build/mp-weixin` for visual confirmation.
+
+### 2026-06-16 Codex (M3 Local WeChat Backend Test Script)
+
+Task:
+
+- Create a temporary local backend startup script for M3 WeChat login and subscription-message manual verification.
+- Add the local script to git ignore so real AppID/AppSecret/template ID values do not enter version control.
+
+Modified files:
+
+- `.gitignore`
+- `backend/start-dev-wechat.local.ps1` (intentionally ignored by git)
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added `.gitignore` entry for `/backend/start-dev-wechat.local.ps1`.
+- Created `backend/start-dev-wechat.local.ps1` with fill-in placeholders for `WECHAT_MINI_PROGRAM_APP_ID`, `WECHAT_MINI_PROGRAM_SECRET`, and `WECHAT_UNLOCK_REMINDER_TEMPLATE_ID`.
+- Preserved existing DB username/password/profile parameters from the backend dev startup script pattern.
+- Added placeholder guards so the backend does not start before required WeChat verification values are filled.
+- Avoided printing AppSecret or other secret values.
+
+Verification:
+
+- Passed: PowerShell parser check for `backend/start-dev-wechat.local.ps1`.
+- Passed: `git check-ignore -v backend/start-dev-wechat.local.ps1` confirms the local script is ignored by `.gitignore`.
+- Confirmed `git status --short --ignored` shows `backend/start-dev-wechat.local.ps1` under ignored files, not as an untracked commit candidate.
+
+Skipped verification reason:
+
+- Backend startup and real WeChat verification are intentionally not run until the user fills local WeChat configuration values.
+
+Scope safety check:
+
+- Stayed within local verification support for M3.
+- Did not change backend contracts, database schema, application business logic, frontend behavior, deployment, monitoring, admin, SMS, production notification center, package files, or lockfiles.
+
+Remaining risks:
+
+- Manual WeChat Developer Tools verification still needs to be performed after the user fills the local script and rebuilds/imports the Mini Program with the matching frontend template ID.
+
+### 2026-06-16 Codex (M3 WeChat Login Failure Diagnosis)
+
+Task:
+
+- Diagnose user-reported Mini Program WeChat login failure: frontend shows `微信登录校验失败`.
+- Diagnose unlock reminder result: `当前微信未绑定openid，已跳过发送`.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/wechat/WechatCode2SessionClient.java`
+- `backend/src/main/java/com/flashback/wechat/WechatSubscribeMessageHttpClient.java`
+- `backend/start-dev-wechat.local.ps1` (intentionally ignored by git)
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added privacy-safe backend warning logs for WeChat API `errcode` / `errmsg` responses without logging AppSecret, access token, openid, session key, or request URLs.
+- Added local startup-script warnings when the backend WeChat AppID does not match `frontend/project.config.json` or generated `frontend/dist/build/mp-weixin/project.config.json`.
+- Identified likely diagnosis: the Mini Program project AppID used by WeChat Developer Tools does not match the AppID configured in the backend startup script, so `uni.login` returns a code for one AppID while backend `code2session` verifies it against another AppID.
+- Confirmed reminder skip behavior is consistent with the failed login: records created under an account/password or preview user have no bound openid, so unlock reminder delivery records `SKIPPED_NO_OPENID`.
+
+Verification:
+
+- Passed: PowerShell parser check for `backend/start-dev-wechat.local.ps1`.
+- Passed: `git check-ignore -v backend/start-dev-wechat.local.ps1` confirms the local script remains ignored by `.gitignore`.
+- Passed: `git diff --check`.
+- Attempted: `mvn -q test` from `backend`; sandboxed run failed because Maven could not download `spring-boot-starter-parent` from Maven Central due permission denial.
+- Attempted escalated rerun of `mvn -q test`; automatic approval review timed out twice before execution.
+
+Skipped verification reason:
+
+- Real WeChat login and real subscription-message delivery still require the user-side WeChat Developer Tools session with matching Mini Program AppID and configured template ID.
+- Full backend test verification is pending because the required Maven network/dependency access escalation did not complete in this run.
+
+Scope safety check:
+
+- Stayed within M3 WeChat login/reminder diagnosis and local verification support.
+- Did not change API contracts, database schema, frontend visible behavior, deployment, monitoring, admin, SMS, production notification center, package files, or lockfiles.
+
+Remaining risks:
+
+- If AppID alignment is fixed but login still fails, the next backend warning log should be checked for the actual WeChat `errcode` such as invalid secret, expired/used code, blocked network, or account permission issues.
+- Records already created under a non-WeChat user will continue to have no openid; create a fresh record after successful WeChat login for subscription-message verification.
+
+### 2026-06-16 Codex (M3 Mini Program AppID Source Diagnosis)
+
+Task:
+
+- Diagnose why root `frontend/project.config.json` AppID changed but WeChat Developer Tools opened from `frontend/dist/dev/mp-weixin` still uses `touristappid`.
+- Align local verification guidance with the user's actual DevTools entry path.
+
+Modified files:
+
+- `frontend/src/manifest.json`
+- `backend/start-dev-wechat.local.ps1` (intentionally ignored by git)
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Set the WeChat Mini Program AppID in `frontend/src/manifest.json` under `mp-weixin.appid` so generated `dist/dev/mp-weixin/project.config.json` can inherit the real AppID after rerunning the Uniapp dev build.
+- Updated the local backend test script to check `frontend/dist/dev/mp-weixin/project.config.json` by default, matching the user's usual WeChat Developer Tools entry path.
+- Kept an optional `-MiniProgramOutput build` parameter for users who intentionally open `frontend/dist/build/mp-weixin`.
+
+Diagnosis:
+
+- Root `frontend/project.config.json` is only authoritative when WeChat Developer Tools opens the frontend project root and follows `miniprogramRoot`.
+- When WeChat Developer Tools opens `frontend/dist/dev/mp-weixin` directly, that generated folder's own `project.config.json` is authoritative.
+- The generated dev config was still `touristappid` because `frontend/src/manifest.json` had an empty `mp-weixin.appid`.
+
+Verification:
+
+- Passed: PowerShell parser check for `backend/start-dev-wechat.local.ps1`.
+- Passed: `git check-ignore -v backend/start-dev-wechat.local.ps1` confirms the local script remains ignored.
+- Passed: `git diff --check`.
+- Confirmed `frontend/src/manifest.json` now contains the real `mp-weixin.appid`.
+- Confirmed existing generated `frontend/dist/dev/mp-weixin/project.config.json` still contains `touristappid` until the dev output is regenerated or edited locally.
+
+Skipped verification reason:
+
+- Real WeChat login still requires rerunning the Uniapp dev build, reopening or refreshing WeChat Developer Tools against `frontend/dist/dev/mp-weixin`, and retrying login manually.
+
+Scope safety check:
+
+- Stayed within M3 WeChat manual verification configuration.
+- Did not change backend contracts, database schema, business logic, deployment, monitoring, admin, SMS, package files, or lockfiles.
+
+Remaining risks:
+
+- Existing generated `frontend/dist/dev/mp-weixin/project.config.json` will remain `touristappid` until the frontend dev build regenerates it or the user edits that generated local file manually.
+- If AppID is aligned but login still fails, inspect backend `WeChat code2session rejected login code` warning for the actual WeChat `errcode`.
+
+### 2026-06-16 Codex (M3 Subscription Send Failure Diagnosis)
+
+Task:
+
+- Diagnose user-reported unlock reminder status: `订阅提醒发送失败，解锁不受影响` after WeChat login succeeds.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Tightened unlock reminder send eligibility so backend sends WeChat subscription messages only when an existing reminder authorization is `AUTHORIZED` or a prior authorized send path reached `SEND_FAILED`.
+- A newly unlocked record with openid and configured template ID but no authorization record now remains `REQUESTED` instead of attempting a send.
+- Existing `REQUESTED` reminders no longer attempt real delivery, because `REQUESTED` means authorization is not confirmed.
+- Existing `DENIED` reminders continue to skip sending.
+- Updated backend unit tests to reflect that missing authorization must not send and that send-failure behavior is tested from an authorized reminder.
+
+Diagnosis:
+
+- If the Mini Program did not show and accept a subscription prompt, the previous backend behavior could attempt to send without a real one-time subscription authorization, causing WeChat to reject delivery and the UI to show `SEND_FAILED`.
+- If the subscription prompt was accepted and the status still becomes `SEND_FAILED`, the next evidence needed is the backend warning log from `WechatSubscribeMessageHttpClient`, especially WeChat `errcode` / `errmsg`. Likely causes include template ID mismatch, template field key mismatch with backend payload `thing1` / `time2`, invalid page path, or WeChat permission/account restrictions.
+
+Verification:
+
+- Pending local syntax/status checks and backend tests after the behavior change.
+
+Skipped verification reason:
+
+- Real subscription delivery requires WeChat Developer Tools and a user-accepted subscription prompt.
+- Backend test execution may require Maven dependency/network access permission.
+
+Scope safety check:
+
+- Stayed inside M3 subscription reminder send eligibility and focused backend tests.
+- Did not change API contracts, database schema, frontend UI behavior, deployment, monitoring, admin, SMS, package files, or lockfiles.
+
+Remaining risks:
+
+- User must rebuild/restart backend and create a fresh record to verify the revised authorization gate.
+- If send still fails after accepting the subscription prompt, inspect backend `WeChat API rejected request` warning for exact WeChat `errcode`.
+
+### 2026-06-16 Codex (M3 Subscription Template Data Key Diagnosis)
+
+Task:
+
+- Diagnose user-provided backend log after accepting subscription authorization but still receiving `SEND_FAILED`.
+
+Evidence:
+
+- Backend log shows WeChat rejected the subscribe-message send with `errcode=47003` and `errmsg=argument invalid! data.thing3.value is empty`.
+- The request reached WeChat's subscribe-message API, so AppID, access token, openid, and the send path are no longer the primary blocker for this failure.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/config/AppWechatProperties.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/java/com/flashback/wechat/WechatSubscribeMessageHttpClient.java`
+- `backend/start-dev-wechat.local.ps1` (intentionally ignored by git)
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added configurable unlock reminder template data keys:
+  - `WECHAT_UNLOCK_REMINDER_THING_KEY`
+  - `WECHAT_UNLOCK_REMINDER_TIME_KEY`
+- Updated the subscribe-message payload builder to use configured data keys instead of hardcoded `thing1` / `time2`.
+- Set the local M3 WeChat backend test script to use `thing3` for the reminder text key based on the actual WeChat error.
+- Kept `time2` as the time key because the uploaded WeChat error only reported missing `thing3`.
+
+Diagnosis:
+
+- The user's WeChat subscription template expects a required `thing3` keyword.
+- Backend previously sent the reminder text as `thing1`, leaving `thing3` absent/empty from WeChat's perspective.
+- This explains `errcode=47003` and the frontend `SEND_FAILED` status after the user accepted subscription authorization.
+
+Verification:
+
+- Passed: PowerShell parser check for `backend/start-dev-wechat.local.ps1`.
+- Passed: `git check-ignore -v backend/start-dev-wechat.local.ps1` confirms the local script remains ignored.
+- Passed: `git diff --check`.
+- Attempted: `mvn -q -Dtest=RecordServiceImplTest test` from `backend`; sandboxed run failed because Maven could not download `spring-boot-starter-parent` from Maven Central due permission denial.
+- Attempted escalated rerun with `mvn -q test`; automatic approval review timed out before execution.
+
+Skipped verification reason:
+
+- Real delivery must be retried manually in WeChat Developer Tools after restarting backend with the updated local script and creating a fresh authorized subscription record.
+- Full backend test verification is pending because Maven dependency/network access escalation did not complete in this run.
+
+Scope safety check:
+
+- Stayed within M3 WeChat subscription-message demo configuration.
+- Did not change API contracts, database schema, frontend behavior, deployment, monitoring, admin, SMS, package files, or lockfiles.
+
+Remaining risks:
+
+- If the template also uses a different time keyword, WeChat may next report another `data.<keyword>.value is empty`; set `WECHAT_UNLOCK_REMINDER_TIME_KEY` accordingly.
+- The current local script uses `thing3` based on the user's uploaded log; other templates may need different keyword indexes.
+
+### 2026-06-16 Codex (M3 Subscription Template Library Follow-up)
+
+Task:
+
+- Record user-side WeChat manual verification result after accepting subscription authorization.
+- Clarify subscription-message template selection constraints for M3.
+
+Evidence:
+
+- User accepted subscription authorization.
+- Backend log shows WeChat rejected the send with `errcode=47003` and `errmsg=argument invalid! data.thing5.value is empty`.
+- This indicates the selected public template requires another keyword `thing5` that the current M3 payload does not provide.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Recorded the latest manual WeChat verification result and current diagnosis.
+
+Verification:
+
+- Manual evidence provided by user from backend log.
+
+Skipped verification reason:
+
+- No code change in this note; real delivery remains pending template keyword alignment or a simpler public template selection.
+
+Scope safety check:
+
+- Stayed within M3 WeChat subscription-message manual verification evidence.
+- Did not change backend contracts, database schema, frontend behavior, deployment, monitoring, admin, SMS, package files, or lockfiles.
+
+Remaining risks:
+
+- Public template library templates may contain required keyword indexes that differ from the current backend payload.
+- M3 should avoid turning this into a production template-management system; prefer selecting a simple two-keyword public template or a small configuration mapping.
+
+### 2026-06-16 Codex (M3 Candidate Subscription Template Review)
+
+Task:
+
+- Review user-provided WeChat public template screenshot for M3 unlock reminder compatibility.
+
+Evidence:
+
+- Template title: `契约到期提醒`.
+- Template category: `备忘录`.
+- Dynamic detail fields shown:
+  - `温馨提示`: `{{thing3.DATA}}`
+  - `到期时间`: `{{time2.DATA}}`
+- Static detail field shown:
+  - `场景说明`: `过去的来信`
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Recorded that this candidate template matches the current M3 configurable backend payload keys `thing3` and `time2`.
+
+Verification:
+
+- Visual review of the provided template screenshot confirms only `thing3` and `time2` appear as dynamic data placeholders.
+
+Skipped verification reason:
+
+- Real delivery still requires configuring the actual template ID in backend and frontend, restarting backend, rebuilding the Mini Program, and completing a fresh WeChat Developer Tools manual flow.
+
+Scope safety check:
+
+- Stayed within M3 WeChat subscription-message manual verification evidence.
+- Did not change backend contracts, database schema, frontend behavior, deployment, monitoring, admin, SMS, package files, or lockfiles.
+
+Remaining risks:
+
+- The screenshot shows template library number `75399`, not necessarily the final `template_id` required by `requestSubscribeMessage` and subscribe-message send API.
+- User must use the actual selected template ID from the Mini Program subscription-message configuration, not the template library number, unless WeChat UI explicitly states they are the same for that selected template.
+
+## 2026-06-16 - M3 WeChat subscription success and local launch convenience
+
+Task:
+
+- Record successful manual WeChat subscription verification.
+- Make local WeChat verification startup easier while keeping sensitive values out of git.
+
+Manual verification evidence:
+
+- User reported that WeChat subscription delivery succeeded.
+- User reported that the subscription message was received in personal WeChat.
+- User reported that the Mini Program displayed send success.
+
+Modified files:
+
+- `.gitignore`
+- `backend/start-dev-wechat.local.ps1` (intentionally ignored by git)
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Kept WeChat AppID, AppSecret, template ID, page, and template data keys in the ignored backend local script.
+- Updated the ignored backend local script to generate `frontend/.env.local` with frontend compile-time WeChat verification values before starting backend.
+- Added `.gitignore` entries for frontend local env files so generated local verification config is not committed.
+
+Verification:
+
+- Passed: PowerShell parser check for `backend/start-dev-wechat.local.ps1`.
+- Passed: `git check-ignore -v backend/start-dev-wechat.local.ps1 frontend/.env.local frontend/.env.dev.local` confirms backend script and frontend local env files are ignored.
+- Passed: `git diff --check`.
+
+Skipped verification reason:
+
+- Did not rerun full backend tests in this documentation/local-script follow-up.
+- Did not rerun WeChat Developer Tools flow because user already reported successful real subscription delivery in this turn.
+
+Scope safety check:
+
+- Stayed within M3 WeChat login/subscription manual verification support.
+- Did not change backend API contracts, database schema, production deployment, monitoring, admin, SMS, package files, or lockfiles.
+
+Remaining risks:
+
+- `frontend/.env.local` is generated only when the local backend script is run; if the template ID changes, rerun the backend script before rebuilding the Mini Program.
+- Frontend still needs a rebuild after template ID changes because `VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID` is compile-time configuration.
+
+## 2026-06-16 - M3 closeout and merge readiness review
+
+Task:
+
+- Check current project code and M3 boundary.
+- Confirm whether M3 can be closed and whether the current branch can be merged.
+- Commit merge-ready changes if no blocking issue remains.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `.gitignore`
+- `backend/src/main/java/com/flashback/config/AppWechatProperties.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/main/java/com/flashback/wechat/WechatCode2SessionClient.java`
+- `backend/src/main/java/com/flashback/wechat/WechatSubscribeMessageHttpClient.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `frontend/project.config.json`
+- `frontend/src/components/common/DateTimeWheelPicker.vue`
+- `frontend/src/manifest.json`
+- `frontend/src/pages/record-editor/index.vue`
+- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
+
+What changed:
+
+- Confirmed M3 remains within demo core-flow hardening: real WeChat login, real unlock reminder delivery, reminder idempotency/non-blocking behavior, and Mini Program flow completion.
+- Updated the M3 task list to mark user-confirmed real WeChat login and real reminder delivery verification as complete.
+- Kept the full manual demo loop item pending because one combined manual pass covering AI organization, unlock, two later-reflection submissions, no-more-modify, and stage summary was not separately evidenced in this turn.
+- Fixed the record-editor datetime wheel sheet so taps inside the bottom sheet do not bubble to the overlay and accidentally close the picker.
+- Confirmed the ignored local backend script and generated frontend local env remain outside version control.
+
+Verification:
+
+- Passed: `mvn -q test` from `backend` using approved network/dependency access.
+- Passed: `.\node_modules\.bin\vue-tsc.cmd --noEmit` from `frontend` with bundled Node on PATH.
+- Passed: `.\node_modules\.bin\uni.cmd build -p mp-weixin` from `frontend` with bundled Node on PATH.
+- Passed: `git diff --check main`.
+- Passed: tracked-file secret scan for the known local WeChat AppSecret returned no matches.
+- Passed: visible-name regression scan `rg -n "我的档案|时间轴|回看页" frontend/src` returned no matches.
+- Manual: user reported real WeChat login succeeded.
+- Manual: user reported personal WeChat received the subscription message and the Mini Program displayed send success.
+
+Skipped verification reason:
+
+- Did not personally operate WeChat Developer Tools in this agent session; relied on user-reported real-device/manual verification for WeChat login and subscription delivery.
+- Did not mark the full end-to-end demo loop as complete because the current turn did not include explicit evidence for the combined later-reflection and stage-summary pass.
+
+`git diff --stat`:
+
+```text
+13 files changed, 931 insertions(+), 37 deletions(-)
+```
+
+Scope safety check:
+
+- Stayed within M3 demo core flow hardening and local verification support.
+- Did not add admin, production deployment, monitoring, alerting, SMS, notification center, campaign delivery, complex AI analytics, social feed, real MAP/IMAGE/VOICE, package files, or lockfiles.
+- Did not commit AppSecret or local template secrets; local script and frontend local env are ignored.
+
+Remaining risks:
+
+- The full combined manual demo loop should still be run once before any formal demo acceptance: create -> AI organize -> seal -> unlock -> reminder -> time review -> first/second `realityLater` submit -> no more modify action -> stage summary.
+- `frontend/project.config.json` and `frontend/src/manifest.json` now contain the real Mini Program AppID. This is required for the current verified Mini Program build but should be revisited if the repo later needs environment-specific public AppID handling.
+- The current branch also contains previously committed record-editor datetime wheel work relative to `main`; it is within M3 flow completion and passed frontend checks.

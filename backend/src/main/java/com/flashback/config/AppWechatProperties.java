@@ -18,6 +18,8 @@ public class AppWechatProperties {
     private long timeoutMillis = 5000;
     private String unlockReminderTemplateId;
     private String unlockReminderPage = "pages/record-detail/index";
+    private String unlockReminderThingKey = "thing1";
+    private String unlockReminderTimeKey = "time2";
 
     public String getAppId() {
         return appId;
@@ -81,6 +83,22 @@ public class AppWechatProperties {
 
     public void setUnlockReminderPage(String unlockReminderPage) {
         this.unlockReminderPage = unlockReminderPage;
+    }
+
+    public String getUnlockReminderThingKey() {
+        return unlockReminderThingKey;
+    }
+
+    public void setUnlockReminderThingKey(String unlockReminderThingKey) {
+        this.unlockReminderThingKey = unlockReminderThingKey;
+    }
+
+    public String getUnlockReminderTimeKey() {
+        return unlockReminderTimeKey;
+    }
+
+    public void setUnlockReminderTimeKey(String unlockReminderTimeKey) {
+        this.unlockReminderTimeKey = unlockReminderTimeKey;
     }
 
     public boolean isConfigured() {

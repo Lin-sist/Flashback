@@ -25,3 +25,8 @@ replay_pid*
 
 
 Docs/学习文档
+
+# Local M3 WeChat verification secrets
+/backend/start-dev-wechat.local.ps1
+/frontend/.env.local
+/frontend/.env.*.local

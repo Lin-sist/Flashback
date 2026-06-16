@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.config.AppWechatProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -21,6 +23,8 @@ import java.time.Duration;
  */
 @Component
 public class WechatCode2SessionClient implements WechatSessionClient {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(WechatCode2SessionClient.class);
 
     private final AppWechatProperties properties;
     private final ObjectMapper objectMapper;
@@ -47,10 +51,15 @@ public class WechatCode2SessionClient implements WechatSessionClient {
         try {
             HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                LOGGER.warn("WeChat code2session returned non-2xx status={}", response.statusCode());
                 throw unavailable("微信登录服务暂不可用");
             }
             JsonNode root = objectMapper.readTree(response.body());
             if (root.hasNonNull("errcode") && root.get("errcode").asInt() != 0) {
+                LOGGER.warn(
+                        "WeChat code2session rejected login code, errcode={}, errmsg={}",
+                        root.get("errcode").asInt(),
+                        text(root, "errmsg"));
                 throw unavailable("微信登录校验失败");
             }
             String openid = text(root, "openid");

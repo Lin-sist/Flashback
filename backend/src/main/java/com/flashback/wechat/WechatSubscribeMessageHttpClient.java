@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.config.AppWechatProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -27,6 +29,7 @@ import java.util.Map;
 public class WechatSubscribeMessageHttpClient implements WechatSubscribeMessageClient {
 
     private static final DateTimeFormatter REMINDER_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final Logger LOGGER = LoggerFactory.getLogger(WechatSubscribeMessageHttpClient.class);
 
     private final AppWechatProperties properties;
     private final ObjectMapper objectMapper;
@@ -104,10 +107,16 @@ public class WechatSubscribeMessageHttpClient implements WechatSubscribeMessageC
 
     private JsonNode parseWechatResponse(HttpResponse<String> response, String failureMessage) throws IOException {
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            LOGGER.warn("WeChat API returned non-2xx status={}, operation={}", response.statusCode(), failureMessage);
             throw unavailable(failureMessage);
         }
         JsonNode root = objectMapper.readTree(response.body());
         if (root.hasNonNull("errcode") && root.get("errcode").asInt() != 0) {
+            LOGGER.warn(
+                    "WeChat API rejected request, operation={}, errcode={}, errmsg={}",
+                    failureMessage,
+                    root.get("errcode").asInt(),
+                    text(root, "errmsg"));
             throw unavailable(failureMessage);
         }
         return root;
@@ -115,9 +124,18 @@ public class WechatSubscribeMessageHttpClient implements WechatSubscribeMessageC
 
     private Map<String, Object> buildUnlockReminderData(LocalDateTime unlockedAt) {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("thing1", Map.of("value", "有一条记录已经抵达"));
-        data.put("time2", Map.of("value", unlockedAt == null ? "" : unlockedAt.format(REMINDER_TIME_FORMATTER)));
+        data.put(
+                requiredTemplateDataKey(properties.getUnlockReminderThingKey(), "thing1"),
+                Map.of("value", "有一条记录已经抵达"));
+        data.put(
+                requiredTemplateDataKey(properties.getUnlockReminderTimeKey(), "time2"),
+                Map.of("value", unlockedAt == null ? "" : unlockedAt.format(REMINDER_TIME_FORMATTER)));
         return data;
+    }
+
+    private String requiredTemplateDataKey(String configuredKey, String fallbackKey) {
+        String key = normalize(configuredKey);
+        return key == null ? fallbackKey : key;
     }
 
     private String buildRecordDetailPage(Long recordId) {

@@ -42,3 +42,5 @@ app:
       timeout-millis: ${WECHAT_CODE2SESSION_TIMEOUT_MILLIS:5000}
       unlock-reminder-template-id: ${WECHAT_UNLOCK_REMINDER_TEMPLATE_ID:}
       unlock-reminder-page: ${WECHAT_UNLOCK_REMINDER_PAGE:pages/record-detail/index}
+      unlock-reminder-thing-key: ${WECHAT_UNLOCK_REMINDER_THING_KEY:thing1}
+      unlock-reminder-time-key: ${WECHAT_UNLOCK_REMINDER_TIME_KEY:time2}

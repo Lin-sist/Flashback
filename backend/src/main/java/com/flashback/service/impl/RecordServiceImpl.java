@@ -438,8 +438,12 @@ public class RecordServiceImpl implements RecordService {
             } else if (!appWechatProperties.hasUnlockReminderTemplate()) {
                 reminder.setReminderStatus(RecordReminderStatus.NOT_CONFIGURED);
                 reminder.setLastError(TEMPLATE_NOT_CONFIGURED_MESSAGE);
+            } else if (existing == null) {
+                reminder.setReminderStatus(RecordReminderStatus.REQUESTED);
+                reminder.setLastError(null);
             } else {
                 reminder.setReminderStatus(RecordReminderStatus.SEND_PENDING);
+                reminder.setLastError(null);
             }
 
             if (existing == null) {
@@ -660,8 +664,6 @@ public class RecordServiceImpl implements RecordService {
     private boolean shouldAttemptSendFromExistingReminder(RecordReminder existing) {
         RecordReminderStatus status = existing.getReminderStatus();
         return status == RecordReminderStatus.AUTHORIZED
-                || status == RecordReminderStatus.REQUESTED
-                || status == RecordReminderStatus.NOT_CONFIGURED
                 || status == RecordReminderStatus.SEND_FAILED;
     }
 

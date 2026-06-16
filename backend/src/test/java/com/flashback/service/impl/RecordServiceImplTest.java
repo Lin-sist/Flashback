@@ -635,7 +635,7 @@ class RecordServiceImplTest {
     }
 
     @Test
-    void shouldSendUnlockReminderWhenTemplateConfigured() {
+    void shouldRecordRequestedWhenTemplateConfiguredButAuthorizationMissing() {
         appWechatProperties.setUnlockReminderTemplateId("template-id");
 
         Record expired = mockRecord(RecordStatus.SEALED);
@@ -660,15 +660,9 @@ class RecordServiceImplTest {
                 reminder.getRecordId().equals(404L)
                         && reminder.getUserId().equals(34L)
                         && "UNLOCK_REMINDER".equals(reminder.getTemplateType())
-                        && reminder.getReminderStatus() == RecordReminderStatus.SEND_PENDING
+                        && reminder.getReminderStatus() == RecordReminderStatus.REQUESTED
                         && reminder.getLastError() == null));
-        verify(wechatSubscribeMessageClient).sendUnlockReminder(eq("openid-34"), eq(404L), any());
-        verify(recordReminderMapper).updateStatusById(
-                eq(9001L),
-                eq(RecordReminderStatus.SEND_SUCCESS),
-                org.mockito.ArgumentMatchers.isNull(),
-                any(),
-                any());
+        verify(wechatSubscribeMessageClient, never()).sendUnlockReminder(any(), any(), any());
     }
 
     @Test
@@ -741,23 +735,55 @@ class RecordServiceImplTest {
     }
 
     @Test
+    void shouldNotSendUnlockReminderWhenAuthorizationOnlyRequested() {
+        appWechatProperties.setUnlockReminderTemplateId("template-id");
+
+        Record expired = mockRecord(RecordStatus.SEALED);
+        expired.setId(408L);
+        expired.setUserId(38L);
+
+        RecordReminder existing = new RecordReminder();
+        existing.setId(9005L);
+        existing.setRecordId(408L);
+        existing.setUserId(38L);
+        existing.setTemplateType("UNLOCK_REMINDER");
+        existing.setReminderStatus(RecordReminderStatus.REQUESTED);
+
+        when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
+                .thenReturn(List.of(expired))
+                .thenReturn(List.of());
+        when(recordMapper.unlockSealedById(eq(408L), any(), any())).thenReturn(1);
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(408L, "UNLOCK_REMINDER")).thenReturn(existing);
+
+        int unlockedCount = recordService.runUnlockJob();
+
+        assertThat(unlockedCount).isEqualTo(1);
+        verify(userMapper, never()).selectById(any());
+        verify(recordReminderMapper, never()).insert(any());
+        verify(recordReminderMapper, never()).updateStatusById(any(), any(), any(), any(), any());
+        verify(wechatSubscribeMessageClient, never()).sendUnlockReminder(any(), any(), any());
+    }
+
+    @Test
     void shouldRecordSendFailedWithoutBlockingUnlockWhenWechatSendFails() {
         appWechatProperties.setUnlockReminderTemplateId("template-id");
 
         Record expired = mockRecord(RecordStatus.SEALED);
         expired.setId(405L);
         expired.setUserId(35L);
+        RecordReminder existing = new RecordReminder();
+        existing.setId(9002L);
+        existing.setRecordId(405L);
+        existing.setUserId(35L);
+        existing.setTemplateType("UNLOCK_REMINDER");
+        existing.setReminderStatus(RecordReminderStatus.AUTHORIZED);
 
         when(recordMapper.selectExpiredSealedRecords(any(), eq(100)))
                 .thenReturn(List.of(expired))
                 .thenReturn(List.of());
         when(recordMapper.unlockSealedById(eq(405L), any(), any())).thenReturn(1);
+        when(recordReminderMapper.selectByRecordIdAndTemplateType(405L, "UNLOCK_REMINDER")).thenReturn(existing);
         when(userMapper.selectById(35L)).thenReturn(mockUser(35L, "openid-35"));
-        when(recordReminderMapper.insert(any(RecordReminder.class))).thenAnswer(invocation -> {
-            RecordReminder reminder = invocation.getArgument(0);
-            reminder.setId(9002L);
-            return 1;
-        });
         doThrow(new RuntimeException("wechat unavailable"))
                 .when(wechatSubscribeMessageClient)
                 .sendUnlockReminder(eq("openid-35"), eq(405L), any());
