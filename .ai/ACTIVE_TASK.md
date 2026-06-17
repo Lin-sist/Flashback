@@ -2,11 +2,11 @@
 
 ## Task
 
-Current task: implement `m3-demo-core-flow-hardening` backend rectification.
+Current task: prepare and implement `m4-real-capability-completion`.
 
-M2 backend optimization has been archived after its backend-core constraints were promoted into `openspec/specs/backend-core/spec.md`. Do not treat `openspec/changes/archive/2026-06-07-m2-backend-optimization/` as the active implementation source.
+M3 demo core flow hardening is now historical baseline for M4. Do not treat M3 documents as the active implementation source unless M4 explicitly references them for inherited behavior.
 
-The current goal is to use `openspec/changes/m3-demo-core-flow-hardening/` as the active fact source before making backend code changes.
+The current goal is to use `openspec/changes/m4-real-capability-completion/` as the active fact source before making M4 code changes.
 
 ## Source Of Truth
 
@@ -16,77 +16,84 @@ The current goal is to use `openspec/changes/m3-demo-core-flow-hardening/` as th
 - `openspec/specs/miniapp-core/spec.md`
 - `openspec/specs/v2-product-scope/spec.md`
 - `openspec/specs/agent-collaboration/spec.md`
-- `openspec/changes/m3-demo-core-flow-hardening/proposal.md`
-- `openspec/changes/m3-demo-core-flow-hardening/design.md`
-- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
-- `openspec/changes/m3-demo-core-flow-hardening/specs/backend-core/spec.md`
-- `openspec/changes/m3-demo-core-flow-hardening/specs/miniapp-core/spec.md`
-- `openspec/changes/m3-demo-core-flow-hardening/specs/v2-product-scope/spec.md`
+- `openspec/changes/m4-real-capability-completion/proposal.md`
+- `openspec/changes/m4-real-capability-completion/design.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md`
+- `openspec/changes/m4-real-capability-completion/specs/backend-core/spec.md`
+- `openspec/changes/m4-real-capability-completion/specs/miniapp-core/spec.md`
+- `openspec/changes/m4-real-capability-completion/specs/v2-product-scope/spec.md`
 
-Old `Docs/**` files may be used only as non-conflicting historical context. They are not the M3 implementation fact source.
+Old `Docs/**` files may be used only as non-conflicting historical context. They are not the M4 implementation fact source.
 
-Archived M2 documents may be used only as historical rationale when they do not conflict with accepted specs or M3 documents.
+Archived M2 documents and inactive M3 documents may be used only as historical rationale when they do not conflict with accepted specs or M4 documents.
 
 ## Current Phase
 
-M3 backend rectification may now proceed only after establishing current backend facts and confirming any open backend API contract decisions with the user.
+M4 real capability completion may proceed only after establishing current code facts and following the accepted API/storage/provider contracts in `backend-contract-decisions.md`.
 
 Agents must first:
 
-- classify relevant backend capabilities as `confirmed`, `partial`, `planned`, `out of scope`, or `unknown`
-- compare actual backend behavior against accepted backend-core spec and M3 OpenSpec documents
+- classify relevant capabilities as `confirmed`, `partial`, `planned`, `out of scope`, or `unknown`
+- compare actual frontend/backend behavior against accepted specs and M4 OpenSpec documents
 - document gaps before implementation
-- ask the user before finalizing uncertain backend API contracts
-- implement only the smallest backend changes required by the current M3 task
+- follow `backend-contract-decisions.md` for accepted API contracts, DTO fields, enum names, storage key policies, provider behavior, and frontend-visible error/status semantics
+- ask the user only before changing accepted M4 contracts or when code facts make an accepted contract impossible or unsafe
+- implement the smallest changes required by the current M4 task
 
-## Primary M3 Backend Focus
+## Primary M4 Focus
 
-- preserve account/password login
-- add real WeChat Mini Program code login
-- never trust client-supplied OpenID as login proof
-- keep JWT response behavior aligned with the existing auth model where practical
-- add structured record reflection support for `你当时以为` and `后来其实`
-- ensure `你当时以为` is AI-organized without replacing user original content
-- ensure `后来其实` can only be written after `UNLOCKED`
-- add life node enum support with `OTHER` custom label
-- complete real unlock reminder delivery path for WeChat subscription messages
-- treat missing WeChat template ID as explicit `not_configured` behavior
-- ensure reminder send is idempotent and non-blocking for unlock processing
-- add user-manual stage summary generation
-- preserve M2 lifecycle, ownership, privacy, stable query, and AI fallback constraints
+- replace real-path mock AI behavior with real backend AI provider integration
+- keep AI API keys and provider secrets backend-side only
+- support domestic model direction, with DeepSeek or compatible OpenAI-style domestic endpoints as the current provider strategy
+- preserve AI failure as explicit unavailable/failed behavior instead of fake success
+- implement real record location with current location, map picker, and manual input
+- implement real image and voice attachments backed by private Qiniu object storage
+- issue upload tokens from backend and verify uploaded Qiniu objects before persisting available attachments
+- support max 9 images, max 9 voice files, max 40 MB per file, and max 300 MB total attachments per record
+- compress images by default before upload
+- store voice as raw audio only; do not add transcription in M4
+- support image preview and voice playback
+- support draft-only voice preview, re-record, and delete behavior
+- support cover selection only from the same record's image attachments
+- show covers on timeline/home cards where applicable
+- show location in time review after unlock
+- freeze location, attachments, and cover after record seal
+- keep preview mode available but isolated from authenticated real user paths
+- make home review cards and time review surfaces backend-backed in real mode
 
-## Explicit M3 Decisions
+## Explicit M4 Decisions
 
-- M3 is demo core flow hardening, not production launch.
-- Account/password login remains available.
-- Real WeChat login is required.
-- Real unlock reminders are required, but template IDs may be absent during implementation.
-- Template ID absence must be explicit and must not be recorded as fake send success.
-- Real reminder delivery must receive manual verification after template IDs are configured.
-- AI is limited to gentle prompts and content organization.
-- `你当时以为` is generated only when the user actively triggers AI organization.
-- `后来其实` is user-authored after unlock only and may be submitted at most 2 times.
-- Life nodes use fixed enum values first; `OTHER` allows user custom label.
-- Non-`OTHER` life node custom labels must fail validation.
-- Stage summary is triggered manually by the user, generated on demand, and not persisted in M3.
-- Demo database rebuild is allowed.
-- All implementation notes, verification evidence, skipped verification reasons, and manual WeChat verification results must be recorded in `.ai/AGENT_LOG.md`.
+- M4 is near-production usability for core Mini Program functions, not a local-only demo.
+- M4 is still not production deployment/release hardening.
+- Preview may remain, but it must not leak into authenticated real user behavior.
+- Qiniu object storage is the M4 storage provider.
+- Qiniu bucket is private.
+- Backend must verify object existence after upload.
+- Images are compressed by default.
+- Cover must come from image attachments already attached to the same record.
+- Sealed and unlocked records cannot delete or modify location, attachments, or cover.
+- Settings page work is deferred outside M4.
+- Voice transcription and voice AI analysis are outside M4.
 
 ## Out Of Scope
 
-Do not implement or expand the following in M3 unless a separate OpenSpec change explicitly says so:
+Do not implement or expand the following in M4 unless a separate OpenSpec change explicitly says so:
 
 - admin portal
-- production deployment
-- monitoring, alerting, or incident response
+- production deployment or release operations
+- monitoring, alerting, observability platform work, or incident response
+- settings page enhancements
 - SMS reminders
 - production notification center
 - admin template management
 - campaign delivery
-- complex retry orchestration
-- complex AI growth analysis, scoring, diagnosis, or dashboards
-- social feed or sharing features
-- real MAP / IMAGE / VOICE capability
+- social feed, sharing, or public record discovery
+- speech-to-text, voice transcription, transcript search, or voice AI analysis
+- complex AI growth analysis, scoring, diagnosis, psychological assessment, or dashboards
+- multi-cloud storage abstraction beyond the Qiniu implementation needed by M4
+- album management outside record attachments
+- standalone cover upload not tied to a record image attachment
 - H5/Web user-side acceptance target
 - major frontend visual reconstruction
 - broad backend rewrite
@@ -96,31 +103,38 @@ Do not implement or expand the following in M3 unless a separate OpenSpec change
 
 Do not perform a full repository scan by default.
 
-Before M3 backend implementation, read:
+Before M4 implementation, read:
 
 - `AGENTS.md`
 - `.ai/ACTIVE_TASK.md`
 - `openspec/project.md`
 - `openspec/specs/backend-core/spec.md`
-- `openspec/changes/m3-demo-core-flow-hardening/proposal.md`
-- `openspec/changes/m3-demo-core-flow-hardening/design.md`
-- `openspec/changes/m3-demo-core-flow-hardening/tasks.md`
-- relevant M3 spec deltas
+- `openspec/specs/miniapp-core/spec.md`
+- `openspec/specs/v2-product-scope/spec.md`
+- `openspec/specs/agent-collaboration/spec.md`
+- `openspec/changes/m4-real-capability-completion/proposal.md`
+- `openspec/changes/m4-real-capability-completion/design.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- relevant M4 spec deltas
+- `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md` before backend contract work
 
-After that, read only backend files directly required by the current M3 backend task. If extra files are needed, state the reason before reading them.
+After that, read only frontend/backend files directly required by the current M4 task. If extra files are needed, state the reason before reading them.
 
-## Contract Confirmation Rule
+## Contract Change Rule
 
-Backend API contracts that are not already explicit in M3 OpenSpec must be confirmed with the user before implementation.
+API and integration contracts already explicit in M4 OpenSpec and `backend-contract-decisions.md` are accepted and should be implemented as written.
 
-This includes:
+The user must confirm only contract changes or newly discovered gaps. This includes changes to:
 
 - endpoint paths
 - request/response DTO fields
 - enum names
 - persistence model choices where more than one reasonable option exists
-- whether a capability is persisted or computed on demand
+- Qiniu object key policy
+- signed URL expiry behavior
+- provider names and AI configuration fields
 - frontend-visible error/status semantics
+- whether a capability is persisted or computed on demand
 
 ## Verification Required
 
@@ -131,11 +145,21 @@ For backend code changes:
 - document manual verification when automated tests are not practical
 - record backend work and evidence in `.ai/AGENT_LOG.md`
 
-For WeChat-specific behavior:
+For frontend code changes:
 
-- verify not-configured behavior without template IDs
-- verify real delivery manually after template IDs are configured
-- record manual WeChat Developer Tools verification evidence in `.ai/AGENT_LOG.md`
+- run focused frontend checks where practical
+- run type-check and Mini Program build when feasible
+- manually verify WeChat Mini Program behavior when location/media APIs cannot be automated
+- record frontend work and evidence in `.ai/AGENT_LOG.md`
+
+For integration-specific behavior:
+
+- verify real AI success when credentials are available
+- verify explicit AI unavailable/failure behavior
+- verify Qiniu upload token, object existence verification, signed URL/media access, image preview, and voice playback
+- verify attachment and location immutability after seal
+- verify preview mode remains isolated
+- record all manual verification evidence in `.ai/AGENT_LOG.md`
 
 For documentation-only changes:
 

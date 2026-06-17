@@ -28,6 +28,32 @@ Next:
 
 不要记录 API keys、账号、余额、模型额度或任何敏感信息。
 
+### 2026-06-16 Codex (M4 Exploration Kickoff)
+
+Task:
+
+- Confirm current code state for proposed M4 engineering optimization and discuss scope before creating a new OpenSpec change.
+
+Modified:
+
+- `.ai/AGENT_LOG.md`
+
+Verification:
+
+- Read `.ai/ACTIVE_TASK.md`, M3 OpenSpec proposal/design/tasks/spec deltas, accepted backend/miniapp/product specs, and M3 backend contract decisions.
+- Confirmed `openspec` CLI is not available in the current PowerShell environment, so OpenSpec files were read directly.
+- Targeted searches found backend AI still defaults to `mock`/fallback, frontend preview mode still has local preview data paths, the record editor's 地点/图片/语音 entries currently show "后续版本开放", and record schemas/DTO/VO types do not yet include real location/image/voice fields.
+- Confirmed homepage summary card is backend-backed for latest draft/sealed/unlocked records, but its arrival countdown copy still contains static `3 天` / `72 小时` display text.
+
+Risks:
+
+- M3 full combined manual demo-loop verification remains a closeout risk before formal M3 archival.
+- M4 will require new OpenSpec scope and contract decisions before implementation, especially for AI provider/API-key handling and media/location persistence.
+
+Next:
+
+- Discuss and confirm M4 product/technical boundaries, then create an M4 OpenSpec proposal/design/tasks/spec delta if the direction is accepted.
+
 ### 2026-05-28 Antigravity
 
 Task:
@@ -2281,3 +2307,152 @@ Remaining risks:
 - The full combined manual demo loop should still be run once before any formal demo acceptance: create -> AI organize -> seal -> unlock -> reminder -> time review -> first/second `realityLater` submit -> no more modify action -> stage summary.
 - `frontend/project.config.json` and `frontend/src/manifest.json` now contain the real Mini Program AppID. This is required for the current verified Mini Program build but should be revisited if the repo later needs environment-specific public AppID handling.
 - The current branch also contains previously committed record-editor datetime wheel work relative to `main`; it is within M3 flow completion and passed frontend checks.
+
+## 2026-06-16 - M4 OpenSpec kickoff and active task switch
+
+Task:
+
+- Update project documentation so M4 has a clear active boundary, goals, non-goals, implementation order, and verification expectations.
+- Ensure future agents do not continue treating M3 as the active engineering source.
+
+Modified files:
+
+- `.ai/ACTIVE_TASK.md`
+- `.ai/AGENT_LOG.md`
+- `AGENTS.md`
+- `openspec/changes/m4-real-capability-completion/proposal.md`
+- `openspec/changes/m4-real-capability-completion/design.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `openspec/changes/m4-real-capability-completion/specs/backend-core/spec.md`
+- `openspec/changes/m4-real-capability-completion/specs/miniapp-core/spec.md`
+- `openspec/changes/m4-real-capability-completion/specs/v2-product-scope/spec.md`
+
+What changed:
+
+- Created M4 OpenSpec artifacts for real capability completion.
+- Defined M4 as near-production usability for core Mini Program functions, not production deployment/release hardening.
+- Captured user-confirmed M4 decisions: real AI provider, Qiniu private bucket, backend upload verification, location modes, image/voice limits, cover-from-image-only, draft-only media mutation, sealed immutability, and settings page deferral.
+- Added backend-core, miniapp-core, and v2-product-scope spec deltas for real AI, Qiniu media, location, cover, mock boundary, timeline/home cover display, and time review media/location display.
+- Switched `.ai/ACTIVE_TASK.md` and `AGENTS.md` from M3 active source to M4 active source.
+
+Verification:
+
+- Verified M4 files exist with `rg --files openspec\changes\m4-real-capability-completion`.
+- Verified `AGENTS.md`, `.ai/ACTIVE_TASK.md`, and M4 docs reference `m4-real-capability-completion` and no longer treat M3 as active implementation source.
+- Verified `openspec` CLI remains unavailable in the current PowerShell environment, so artifacts were created manually in the repository's existing Markdown OpenSpec style.
+- No code tests were run because this was a documentation-only change.
+
+Skipped verification reason:
+
+- Backend/frontend automated tests were skipped because no application code changed.
+- OpenSpec CLI validation was skipped because `openspec` is not installed or not on PATH in this environment.
+
+Scope safety check:
+
+- Stayed within documentation, OpenSpec, and agent-task boundary updates.
+- Did not modify backend code, frontend code, schema, package files, lockfiles, deployment, monitoring, admin, SMS, notification center, settings page, or production release behavior.
+
+Remaining risks:
+
+- M3 has not been physically archived in `openspec/changes/archive/` in this change; it is treated as inactive historical baseline by `.ai/ACTIVE_TASK.md` and `AGENTS.md`.
+- The M3 full combined manual demo-loop task remains historically pending and should not be represented as completed unless separate evidence is recorded.
+- M4 implementation still needs contract confirmation for exact endpoint paths, DTO fields, Qiniu key policy, signed URL expiry, AI provider config names, and frontend-visible error/status semantics before code changes.
+
+## 2026-06-17 - M4 backend contract readiness review
+
+Task:
+
+- Check whether current M4 documents are sufficient to guide backend optimization without scope drift.
+- Add more concrete endpoint, DTO, provider, key-policy, and configuration guidance because the user cannot directly provide low-level contract answers.
+
+Modified files:
+
+- `.ai/ACTIVE_TASK.md`
+- `.ai/AGENT_LOG.md`
+- `AGENTS.md`
+- `openspec/changes/m4-real-capability-completion/proposal.md`
+- `openspec/changes/m4-real-capability-completion/design.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md`
+
+What changed:
+
+- Reviewed M4 proposal/design/tasks/spec deltas and confirmed they constrain scope well but were not concrete enough for backend implementation contracts.
+- Added `backend-contract-decisions.md` as the M4 backend contract decision layer.
+- Proposed default backend contracts for AI provider config, DeepSeek/OpenAI-compatible adapter strategy, Qiniu upload-token flow, Qiniu object verification, private signed media URLs, attachment commit/delete/access endpoints, cover endpoint, location endpoints, response extensions, and error semantics.
+- Updated `AGENTS.md`, `.ai/ACTIVE_TASK.md`, proposal, design, and tasks to require reading `backend-contract-decisions.md` before backend contract work.
+- Used official DeepSeek and Qiniu documentation as current external reference baseline for provider/storage contract guidance.
+
+Verification:
+
+- Verified `backend-contract-decisions.md` exists and contains recommended defaults plus remaining confirmation questions.
+- Verified `.ai/ACTIVE_TASK.md`, `AGENTS.md`, proposal, design, and tasks reference `backend-contract-decisions.md`.
+- Passed `git diff --check`.
+- No backend/frontend tests were run because this was a documentation-only change.
+
+Skipped verification reason:
+
+- Application tests were skipped because no application code changed.
+- OpenSpec CLI validation was not run because `openspec` remains unavailable in the current PowerShell environment.
+
+Scope safety check:
+
+- Stayed within OpenSpec and coordination documentation.
+- Did not modify backend code, frontend code, schema, package files, lockfiles, deployment, monitoring, admin, SMS, notification center, settings page, or production release behavior.
+
+Remaining risks:
+
+- M4 implementation still needs code-level fact finding before edits, especially current mapper/schema conventions and frontend service expectations.
+- DeepSeek and Qiniu API details should be rechecked against official docs immediately before coding because provider/storage docs can change.
+- The recommended defaults are ready for implementation unless the user objects, but they are still product/engineering decisions rather than code evidence.
+
+## 2026-06-17 - M4 contract acceptance and documentation closeout
+
+Task:
+
+- Record the user's acceptance of all M4 backend contract assumptions.
+- Close M4 documentation so implementation agents can proceed without reopening accepted endpoint, DTO, provider, Qiniu key, signed URL, location, cover, and error-semantics questions.
+- Commit the documentation checkpoint with a Chinese message.
+
+Modified files:
+
+- `.ai/ACTIVE_TASK.md`
+- `.ai/AGENT_LOG.md`
+- `AGENTS.md`
+- `openspec/changes/m4-real-capability-completion/proposal.md`
+- `openspec/changes/m4-real-capability-completion/design.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md`
+- `openspec/changes/m4-real-capability-completion/specs/backend-core/spec.md`
+- `openspec/changes/m4-real-capability-completion/specs/miniapp-core/spec.md`
+- `openspec/changes/m4-real-capability-completion/specs/v2-product-scope/spec.md`
+
+What changed:
+
+- Converted M4 backend contract decisions from recommended assumptions into accepted implementation contracts after user confirmation.
+- Recorded that the accepted defaults are: `/api/records/{recordId}` REST subresources, one OpenAI-compatible adapter first, no dedicated NVIDIA NIM adapter in M4, stateless upload-token issuance, persist attachments only after Qiniu verification, Qiniu delete before draft metadata removal, 600-second signed URL default, no backend geocoding in M4, and separate endpoints for location/media/cover.
+- Updated proposal, design, tasks, and active-task wording so agents implement accepted contracts and ask the user only when changing them or when code facts make them impossible or unsafe.
+- Verified no residual "remaining questions" or "confirm/update" language remains in the M4 implementation path.
+
+Verification:
+
+- Passed `git diff --check`.
+- Verified no residual contract-confirmation wording with `Select-String` across M4 docs, `.ai/ACTIVE_TASK.md`, and `AGENTS.md`.
+- No backend/frontend tests were run because this was a documentation-only change.
+
+Skipped verification reason:
+
+- Application tests were skipped because no application code changed.
+- OpenSpec CLI validation was not run because `openspec` remains unavailable in the current PowerShell environment.
+
+Scope safety check:
+
+- Stayed within OpenSpec and coordination documentation.
+- Did not modify backend code, frontend code, schema, package files, lockfiles, deployment, monitoring, admin, SMS, notification center, settings page, or production release behavior.
+- Did not stage or modify the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- M4 implementation must still begin with code-level fact finding before edits.
+- Provider/storage implementation details should be rechecked against official DeepSeek and Qiniu docs immediately before coding.
+- The accepted contracts are now binding for M4 unless future code facts require an explicit OpenSpec update.
