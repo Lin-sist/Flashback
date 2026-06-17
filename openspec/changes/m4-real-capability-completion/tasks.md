@@ -40,7 +40,7 @@
 
 - [x] Use `backend-contract-decisions.md` accepted defaults unless the user changes them.
 - [x] Implement accepted AI provider configuration keys, provider enum values, and model selection behavior.
-- [ ] Implement the accepted single OpenAI-compatible adapter strategy.
+- [x] Implement the accepted single OpenAI-compatible adapter strategy.
 - [ ] Implement accepted location API paths and DTO fields.
 - [ ] Implement accepted attachment upload-token API path and request/response DTO.
 - [ ] Implement accepted attachment commit/verify API path and request/response DTO.
@@ -54,14 +54,14 @@
 
 - [x] Add configuration for real AI provider, base URL, API key, model, and timeout.
 - [x] Keep AI API keys backend-side only.
-- [ ] Implement DeepSeek or compatible domestic model provider path.
-- [ ] Support OpenAI-compatible request/response shape where practical.
+- [x] Implement DeepSeek or compatible domestic model provider path.
+- [x] Support OpenAI-compatible request/response shape where practical.
 - [ ] Keep mock provider available only for tests or explicit preview/development mode.
-- [ ] Ensure missing AI configuration returns explicit unavailable behavior.
-- [ ] Ensure provider failure returns explicit failed/unavailable behavior.
-- [ ] Ensure AI output never replaces original user content.
-- [ ] Ensure AI failure does not block record save/seal when AI is not required.
-- [ ] Add focused backend tests or documented manual verification for success, missing config, provider failure, and privacy-safe logging.
+- [x] Ensure missing AI configuration returns explicit unavailable behavior.
+- [x] Ensure provider failure returns explicit failed/unavailable behavior.
+- [x] Ensure AI output never replaces original user content.
+- [x] Ensure AI failure does not block record save/seal when AI is not required.
+- [x] Add focused backend tests or documented manual verification for success, missing config, provider failure, and privacy-safe logging.
 
 ## 4. Backend Phase: Qiniu Storage Foundation
 

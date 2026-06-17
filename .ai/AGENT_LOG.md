@@ -28,6 +28,67 @@ Next:
 
 不要记录 API keys、账号、余额、模型额度或任何敏感信息。
 
+## 2026-06-17 - M4 OpenAI-compatible AI adapter
+
+Task:
+
+- Implement the next M4 backend AI task: single OpenAI-compatible adapter, DeepSeek-compatible path, and explicit unavailable/failed status behavior.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/service/impl/AiServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/AiSummaryVO.java`
+- `backend/src/main/java/com/flashback/vo/AiWritingPromptsVO.java`
+- `backend/src/test/java/com/flashback/service/impl/AiServiceImplTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added a backend OpenAI-compatible chat-completions adapter using Java `HttpClient`.
+- Real providers `deepseek` and `openai-compatible` now call `{baseUrl}/chat/completions` with Bearer API key, non-streaming JSON request, `model`, `messages`, and `response_format: json_object`.
+- Added `status` and `message` fields to AI response VOs.
+- Missing real-provider config returns `UNAVAILABLE` without mock success.
+- Provider HTTP errors, missing response content, or invalid model JSON return `FAILED` without mock success.
+- Mock provider still uses the local generator/fallback path for current development/test behavior.
+- AI output remains auxiliary response data only and does not mutate original record content; record save/seal paths still do not depend on AI.
+
+Verification:
+
+- Checked official DeepSeek docs before implementation: OpenAI-compatible base URL is `https://api.deepseek.com`; chat API is `POST /chat/completions`; request uses `model` and `messages`; non-stream responses expose `choices[0].message.content`; JSON output uses `response_format: {"type":"json_object"}` when the prompt also asks for JSON.
+- Passed: `mvn -q '-Dtest=AiServiceImplTest,AppAiPropertiesTest,AiControllerAuthIntegrationTest' test` from `backend`.
+- Passed: `mvn -q test` from `backend`.
+- The first full backend test run exposed a Spring constructor ambiguity after adding a test-only constructor; fixed by marking the production constructor with `@Autowired`, then reran focused and full tests successfully.
+
+Skipped verification reason:
+
+- Real DeepSeek success was not exercised because no API key is available in this tracked workspace and secrets must not be committed.
+- Frontend behavior was not verified because this task only changed backend response fields; frontend visible handling is a later M4 task.
+
+`git diff --stat`:
+
+```text
+ .ai/AGENT_LOG.md                                   |  61 +++++
+ .../com/flashback/service/impl/AiServiceImpl.java  | 275 +++++++++++++++++++--
+ .../main/java/com/flashback/vo/AiSummaryVO.java    |  18 ++
+ .../java/com/flashback/vo/AiWritingPromptsVO.java  |  18 ++
+ .../flashback/service/impl/AiServiceImplTest.java  | 132 +++++++++-
+ .../changes/m4-real-capability-completion/tasks.md |  16 +-
+ 6 files changed, 489 insertions(+), 31 deletions(-)
+```
+
+Scope safety check:
+
+- Stayed within backend AI provider integration.
+- Did not modify package files, lockfiles, Qiniu, location, attachments, cover, frontend UI, admin, deployment, monitoring, SMS, notification center, campaign, settings, social, or H5/Web scope.
+- No API key or secret value was added to tracked files.
+- Did not touch unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Frontend still needs to read and render `status/message` so authenticated real mode does not show a success toast for unavailable/failed AI.
+- Real provider success should be manually verified later with backend-side credentials in local secret configuration.
+
 ## 2026-06-17 - M4 AI provider config contract
 
 Task:

@@ -9,6 +9,8 @@ public class AiWritingPromptsVO {
 
     private List<String> prompts;
     private String source;
+    private String status;
+    private String message;
 
     public List<String> getPrompts() {
         return prompts;
@@ -24,5 +26,21 @@ public class AiWritingPromptsVO {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }
