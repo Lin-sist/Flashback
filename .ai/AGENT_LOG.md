@@ -28,6 +28,67 @@ Next:
 
 不要记录 API keys、账号、余额、模型额度或任何敏感信息。
 
+## 2026-06-17 - M4 current code facts
+
+Task:
+
+- Complete M4 task 1: establish current code facts before implementation.
+- Read required M4 OpenSpec fact sources and classify AI, record location, attachments, cover, data surfaces, preview boundary, and upload/storage state.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Marked M4 guardrail preflight and current-code-facts task items complete.
+- Recorded current capability classification before implementation.
+
+Fact findings:
+
+- `confirmed`: record lifecycle, ownership-scoped record detail/list/timeline, DRAFT-only record content update/delete/seal, UNLOCKED later reflection, and backend-backed authenticated `recordService` calls exist.
+- `confirmed`: preview data boundary is explicit in services: preview data is used only when there is no token and `hasPreviewSession()` is true.
+- `partial`: home cards use backend record list/unlocked endpoints in authenticated mode, but response contracts do not include cover/location media metadata yet.
+- `partial`: time review/detail uses backend `getRecordDetail` in authenticated mode and has a display hook for a string-like `location`, but backend/types do not provide M4 `RecordLocationVO`, attachments, or cover.
+- `planned`: real AI provider integration. Current `AppAiProperties` only has `provider`, `timeoutMillis`, and fallback text; `AiServiceImpl` supports `mock` and returns fallback when provider is unsupported or errors.
+- `planned`: record location persistence/API. Current record entity, create/update DTOs, detail/list/timeline VOs, mapper, and schema do not include location fields or `record_location`.
+- `planned`: image/voice attachments and cover. Current schema and backend Java sources have no Qiniu/storage/attachment/cover controller, service, mapper, VO, or dependency; record editor 地点/图片/语音 buttons still show "功能将在后续版本开放".
+- `planned`: upload/storage dependencies. No Qiniu dependency/config was found in `backend/pom.xml` or application YAML files; no upload API exists.
+- `out of scope`: speech-to-text, voice transcription, voice AI analysis, admin, deployment, monitoring, settings, SMS, notification center, campaign, social feed, and H5/Web user acceptance were not touched.
+- `unknown`: real WeChat Developer Tools behavior for future location/media flows remains unknown because this task was audit/documentation only.
+
+Verification:
+
+- Read `AGENTS.md`, `.ai/ACTIVE_TASK.md`, accepted specs, M4 proposal/design/tasks/backend-contract-decisions, and M4 spec deltas.
+- Confirmed `openspec` CLI is not available in current PowerShell PATH; files were read directly.
+- Targeted code reads covered backend AI config/controller/service, stage summary, record controller/service/domain/DTO/VO/mapper/schema, frontend record/AI services, preview session, record types, record store, and home/timeline/record-detail/record-editor page evidence.
+- Ran targeted PowerShell searches for Qiniu/storage/upload/location/attachment/cover and Mini Program media/location APIs; no current implementation was found.
+
+Skipped verification reason:
+
+- Backend tests, frontend type-check, Mini Program build, and WeChat manual verification were skipped because this task changed only OpenSpec task status and agent log documentation.
+
+`git diff --stat`:
+
+```text
+ .ai/AGENT_LOG.md                                   | 61 ++++++++++++++++++++++
+ .../changes/m4-real-capability-completion/tasks.md | 60 ++++++++++-----------
+ 2 files changed, 91 insertions(+), 30 deletions(-)
+```
+
+Scope safety check:
+
+- Stayed within M4 task 1 fact finding and required evidence.
+- Did not change backend implementation, frontend implementation, schemas, package files, lockfiles, deployment, monitoring, admin, SMS, notification center, campaign, settings, social, or H5/Web scope.
+- Did not touch unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- The next implementation task should start with accepted contract gate and likely AI provider configuration/adapter work.
+- DeepSeek and Qiniu official docs should be rechecked immediately before provider/storage code changes.
+- `openspec` CLI remains unavailable, so OpenSpec validation is manual until the CLI is installed or added to PATH.
+
 ### 2026-06-16 Codex (M4 Exploration Kickoff)
 
 Task:

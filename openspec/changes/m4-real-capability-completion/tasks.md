@@ -2,39 +2,39 @@
 
 ## 0. Guardrails
 
-- [ ] Read `AGENTS.md`.
-- [ ] Read `.ai/ACTIVE_TASK.md`.
-- [ ] Read `openspec/project.md`.
-- [ ] Read `openspec/specs/backend-core/spec.md`.
-- [ ] Read `openspec/specs/miniapp-core/spec.md`.
-- [ ] Read `openspec/specs/v2-product-scope/spec.md`.
-- [ ] Read `openspec/specs/agent-collaboration/spec.md`.
-- [ ] Read this M4 OpenSpec change before implementation.
-- [ ] Read `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md` before backend contract work.
-- [ ] Do not implement admin portal.
-- [ ] Do not implement production deployment, monitoring, alerting, incident response, or release operations.
-- [ ] Do not implement settings page enhancements in M4.
-- [ ] Do not implement SMS reminders, production notification center, admin template management, or campaign delivery.
-- [ ] Do not implement speech-to-text, voice transcription, voice AI analysis, complex AI scoring, diagnosis, or dashboards.
-- [ ] Do not implement social feed, sharing, public discovery, or H5/Web user-side acceptance.
-- [ ] Do not perform broad backend rewrite.
-- [ ] Do not perform major frontend visual reconstruction.
-- [ ] Do not modify package or lockfile files unless required and explicitly justified.
-- [ ] State a reason before reading extra files outside the current task's direct scope.
-- [ ] Record all implementation notes, verification evidence, skipped verification reasons, and manual WeChat verification results in `.ai/AGENT_LOG.md`.
+- [x] Read `AGENTS.md`.
+- [x] Read `.ai/ACTIVE_TASK.md`.
+- [x] Read `openspec/project.md`.
+- [x] Read `openspec/specs/backend-core/spec.md`.
+- [x] Read `openspec/specs/miniapp-core/spec.md`.
+- [x] Read `openspec/specs/v2-product-scope/spec.md`.
+- [x] Read `openspec/specs/agent-collaboration/spec.md`.
+- [x] Read this M4 OpenSpec change before implementation.
+- [x] Read `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md` before backend contract work.
+- [x] Do not implement admin portal.
+- [x] Do not implement production deployment, monitoring, alerting, incident response, or release operations.
+- [x] Do not implement settings page enhancements in M4.
+- [x] Do not implement SMS reminders, production notification center, admin template management, or campaign delivery.
+- [x] Do not implement speech-to-text, voice transcription, voice AI analysis, complex AI scoring, diagnosis, or dashboards.
+- [x] Do not implement social feed, sharing, public discovery, or H5/Web user-side acceptance.
+- [x] Do not perform broad backend rewrite.
+- [x] Do not perform major frontend visual reconstruction.
+- [x] Do not modify package or lockfile files unless required and explicitly justified.
+- [x] State a reason before reading extra files outside the current task's direct scope.
+- [x] Record all implementation notes, verification evidence, skipped verification reasons, and manual WeChat verification results in `.ai/AGENT_LOG.md`.
 
 ## 1. Establish M4 Current Code Facts
 
-- [ ] Confirm current AI provider/configuration behavior.
-- [ ] Confirm all AI call sites and whether each uses mock, fallback, or real provider logic.
-- [ ] Confirm current record entity/DTO/VO fields for location, attachments, and cover.
-- [ ] Confirm current record editor location/image/voice entry points.
-- [ ] Confirm current home card and timeline data sources.
-- [ ] Confirm current time review detail data source.
-- [ ] Confirm current preview mode entry and preview-data boundary.
-- [ ] Confirm current upload/storage dependencies, if any.
-- [ ] Classify relevant capabilities as `confirmed`, `partial`, `planned`, `out of scope`, or `unknown`.
-- [ ] Write fact findings to `.ai/AGENT_LOG.md` before implementation.
+- [x] Confirm current AI provider/configuration behavior.
+- [x] Confirm all AI call sites and whether each uses mock, fallback, or real provider logic.
+- [x] Confirm current record entity/DTO/VO fields for location, attachments, and cover.
+- [x] Confirm current record editor location/image/voice entry points.
+- [x] Confirm current home card and timeline data sources.
+- [x] Confirm current time review detail data source.
+- [x] Confirm current preview mode entry and preview-data boundary.
+- [x] Confirm current upload/storage dependencies, if any.
+- [x] Classify relevant capabilities as `confirmed`, `partial`, `planned`, `out of scope`, or `unknown`.
+- [x] Write fact findings to `.ai/AGENT_LOG.md` before implementation.
 
 ## 2. Accepted Contract Gate
 
