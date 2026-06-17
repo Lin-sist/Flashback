@@ -15,7 +15,7 @@ import java.util.Locale;
 /**
  * AI 服务默认实现。
  *
- * 当前阶段默认使用 mock 生成；当 provider 非 mock 或出现异常时回落到兜底结果。
+ * 当前阶段默认使用 mock 生成；真实 provider adapter 在 M4 后续任务中接入。
  */
 @Service
 public class AiServiceImpl implements AiService {
@@ -65,7 +65,7 @@ public class AiServiceImpl implements AiService {
     }
 
     private List<String> invokeWritingPromptsModel(AiWritingPromptsRequest request) {
-        if (!"mock".equalsIgnoreCase(resolveProvider())) {
+        if (appAiProperties.getProviderType() != AppAiProperties.Provider.MOCK) {
             throw new IllegalStateException("provider not supported in current stage");
         }
 
@@ -90,7 +90,7 @@ public class AiServiceImpl implements AiService {
     }
 
     private AiSummaryVO invokeSummaryModel(AiSummarizeRecordRequest request) {
-        if (!"mock".equalsIgnoreCase(resolveProvider())) {
+        if (appAiProperties.getProviderType() != AppAiProperties.Provider.MOCK) {
             throw new IllegalStateException("provider not supported in current stage");
         }
 
@@ -177,9 +177,7 @@ public class AiServiceImpl implements AiService {
     }
 
     private String resolveProvider() {
-        return normalizeOptional(appAiProperties.getProvider()) == null
-                ? "mock"
-                : appAiProperties.getProvider().trim();
+        return appAiProperties.getProviderType().getConfigValue();
     }
 
     private boolean isBlank(String value) {

@@ -38,8 +38,8 @@
 
 ## 2. Accepted Contract Gate
 
-- [ ] Use `backend-contract-decisions.md` accepted defaults unless the user changes them.
-- [ ] Implement accepted AI provider configuration keys, provider enum values, and model selection behavior.
+- [x] Use `backend-contract-decisions.md` accepted defaults unless the user changes them.
+- [x] Implement accepted AI provider configuration keys, provider enum values, and model selection behavior.
 - [ ] Implement the accepted single OpenAI-compatible adapter strategy.
 - [ ] Implement accepted location API paths and DTO fields.
 - [ ] Implement accepted attachment upload-token API path and request/response DTO.
@@ -52,8 +52,8 @@
 
 ## 3. Backend Phase: Real AI Provider
 
-- [ ] Add configuration for real AI provider, base URL, API key, model, and timeout.
-- [ ] Keep AI API keys backend-side only.
+- [x] Add configuration for real AI provider, base URL, API key, model, and timeout.
+- [x] Keep AI API keys backend-side only.
 - [ ] Implement DeepSeek or compatible domestic model provider path.
 - [ ] Support OpenAI-compatible request/response shape where practical.
 - [ ] Keep mock provider available only for tests or explicit preview/development mode.

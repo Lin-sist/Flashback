@@ -26,5 +26,9 @@ app:
   time:
     zone-id: ${APP_TIME_ZONE_ID:Asia/Shanghai}
   ai:
-    provider: ${APP_AI_PROVIDER:mock}
-    timeout-millis: ${APP_AI_TIMEOUT_MILLIS:5000}
+    provider: ${AI_PROVIDER:mock}
+    base-url: ${AI_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:deepseek-v4-pro}
+    timeout-millis: ${AI_TIMEOUT_MILLIS:10000}
+    real-mode-mock-enabled: ${AI_REAL_MODE_MOCK_ENABLED:false}

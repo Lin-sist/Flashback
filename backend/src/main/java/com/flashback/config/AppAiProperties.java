@@ -22,8 +22,18 @@ public class AppAiProperties {
     @NotBlank
     private String provider = "mock";
 
+    @NotBlank
+    private String baseUrl = "https://api.deepseek.com";
+
+    private String apiKey = "";
+
+    @NotBlank
+    private String model = "deepseek-v4-pro";
+
     @Positive
-    private long timeoutMillis = 5000;
+    private long timeoutMillis = 10000;
+
+    private boolean realModeMockEnabled = false;
 
     @Valid
     private Fallback fallback = new Fallback();
@@ -36,6 +46,34 @@ public class AppAiProperties {
         this.provider = provider;
     }
 
+    public Provider getProviderType() {
+        return Provider.fromConfigValue(provider);
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
     public long getTimeoutMillis() {
         return timeoutMillis;
     }
@@ -44,12 +82,50 @@ public class AppAiProperties {
         this.timeoutMillis = timeoutMillis;
     }
 
+    public boolean isRealModeMockEnabled() {
+        return realModeMockEnabled;
+    }
+
+    public void setRealModeMockEnabled(boolean realModeMockEnabled) {
+        this.realModeMockEnabled = realModeMockEnabled;
+    }
+
     public Fallback getFallback() {
         return fallback;
     }
 
     public void setFallback(Fallback fallback) {
         this.fallback = fallback;
+    }
+
+    public enum Provider {
+        MOCK("mock"),
+        DEEPSEEK("deepseek"),
+        OPENAI_COMPATIBLE("openai-compatible");
+
+        private final String configValue;
+
+        Provider(String configValue) {
+            this.configValue = configValue;
+        }
+
+        public String getConfigValue() {
+            return configValue;
+        }
+
+        public static Provider fromConfigValue(String value) {
+            if (value == null || value.trim().isEmpty()) {
+                return MOCK;
+            }
+            String normalized = value.trim();
+            for (Provider provider : values()) {
+                if (provider.configValue.equalsIgnoreCase(normalized)
+                        || provider.name().equalsIgnoreCase(normalized.replace('-', '_'))) {
+                    return provider;
+                }
+            }
+            throw new IllegalArgumentException("Unsupported AI provider: " + value);
+        }
     }
 
     public static class Fallback {

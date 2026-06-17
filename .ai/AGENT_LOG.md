@@ -28,6 +28,68 @@ Next:
 
 不要记录 API keys、账号、余额、模型额度或任何敏感信息。
 
+## 2026-06-17 - M4 AI provider config contract
+
+Task:
+
+- Implement the next M4 task: accepted AI provider configuration keys, provider enum values, and default model selection behavior.
+
+Modified files:
+
+- `backend/src/main/java/com/flashback/config/AppAiProperties.java`
+- `backend/src/main/java/com/flashback/service/impl/AiServiceImpl.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/resources/application-dev.yml`
+- `backend/src/main/resources/application-prod.yml`
+- `backend/src/test/java/com/flashback/config/AppAiPropertiesTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added backend-side AI config fields: `provider`, `base-url`, `api-key`, `model`, `timeout-millis`, and `real-mode-mock-enabled`.
+- Added accepted provider enum values `mock`, `deepseek`, and `openai-compatible`, including underscore/case-tolerant parsing for config use.
+- Updated default AI model to `deepseek-v4-pro`, default base URL to `https://api.deepseek.com`, and default timeout to `10000`.
+- Switched application YAML env bindings to accepted backend-only `AI_*` variables instead of the old `APP_AI_*` names.
+- Kept AI service behavior otherwise unchanged: non-mock providers still fall back until the adapter task is implemented.
+
+Verification:
+
+- Passed: `mvn -q '-Dtest=AppAiPropertiesTest,AiServiceImplTest' test` from `backend` after non-sandbox rerun.
+- Passed: `mvn -q test` from `backend` after non-sandbox rerun.
+- Initial sandboxed Maven attempts failed because Maven Central dependency access was denied; reran with approved elevated permissions.
+
+Skipped verification reason:
+
+- Did not verify real DeepSeek success or failure paths because this task only adds configuration/model/provider enum support, not the OpenAI-compatible adapter.
+- Did not run frontend checks because no frontend code changed.
+
+`git diff --stat`:
+
+```text
+ .ai/AGENT_LOG.md                                   | 54 +++++++++++++++
+ .../java/com/flashback/config/AppAiProperties.java | 78 +++++++++++++++++++++-
+ .../com/flashback/service/impl/AiServiceImpl.java  | 10 ++-
+ backend/src/main/resources/application-dev.yml     |  8 ++-
+ backend/src/main/resources/application-prod.yml    |  8 ++-
+ backend/src/main/resources/application.yml         | 10 ++-
+ .../com/flashback/config/AppAiPropertiesTest.java  | 33 +++++++++
+ .../changes/m4-real-capability-completion/tasks.md |  8 +--
+ 8 files changed, 199 insertions(+), 18 deletions(-)
+```
+
+Scope safety check:
+
+- Stayed within M4 AI backend configuration contract.
+- Did not implement adapter HTTP calls, Qiniu, location, attachments, cover, frontend UI, admin, deployment, monitoring, SMS, notification center, campaign, settings, social, H5/Web, package files, or lockfiles.
+- AI API key is referenced only as backend-side environment/config placeholder; no secret value was added.
+- Did not touch unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Next AI task still needs the accepted single OpenAI-compatible adapter and explicit unavailable/failed semantics for real mode.
+- Provider/storage docs should still be rechecked immediately before HTTP adapter or Qiniu implementation.
+
 ## 2026-06-17 - M4 current code facts
 
 Task:

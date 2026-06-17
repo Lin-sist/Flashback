@@ -19,9 +19,13 @@ app:
     # 业务时区，避免依赖部署机默认时区导致解锁与时间轴偏移
     zone-id: Asia/Shanghai
   ai:
-    # 第一阶段固定默认走 mock，可通过环境变量切换 provider。
-    provider: mock
-    timeout-millis: 5000
+    # M4 accepted provider contract. Secrets are injected backend-side only.
+    provider: ${AI_PROVIDER:mock}
+    base-url: ${AI_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:deepseek-v4-pro}
+    timeout-millis: ${AI_TIMEOUT_MILLIS:10000}
+    real-mode-mock-enabled: ${AI_REAL_MODE_MOCK_ENABLED:false}
     fallback:
       writing-prompts:
         - 你此刻最担心的是什么？
