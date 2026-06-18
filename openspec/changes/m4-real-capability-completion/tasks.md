@@ -45,7 +45,7 @@
 - [x] Implement accepted attachment upload-token API path and request/response DTO.
 - [x] Implement accepted attachment commit/verify API path and request/response DTO.
 - [ ] Implement accepted attachment delete behavior.
-- [ ] Implement accepted media signed URL expiry policy.
+- [x] Implement accepted media signed URL expiry policy.
 - [ ] Implement accepted cover update API path and DTO.
 - [ ] Implement accepted frontend-visible upload, verification, and media error states.
 - [ ] Record any decision changes in `backend-contract-decisions.md` before implementation.
@@ -71,8 +71,8 @@
 - [x] Scope upload tokens by user, record, media type, size policy, and generated/approved object key.
 - [x] Implement backend object existence verification after upload.
 - [x] Verify object size and MIME type where Qiniu metadata supports it.
-- [ ] Implement private signed URL generation or equivalent private access flow.
-- [ ] Add focused backend tests or documented manual verification for token creation, object verification, missing object, and signed URL behavior.
+- [x] Implement private signed URL generation or equivalent private access flow.
+- [x] Add focused backend tests or documented manual verification for token creation, object verification, missing object, and signed URL behavior.
 
 ## 5. Backend Phase: Attachments
 
@@ -86,7 +86,7 @@
 - [x] Enforce max 300 MB total attachments per record.
 - [ ] Allow attachment add/delete only for DRAFT records.
 - [ ] Reject attachment mutation for SEALED and UNLOCKED records.
-- [ ] Ensure attachment reads and signed URLs are owner-scoped.
+- [x] Ensure attachment reads and signed URLs are owner-scoped.
 - [ ] Keep voice storage as raw voice file only; do not add transcription.
 - [ ] Update test schema consistently if schema changes.
 - [ ] Add focused backend tests for ownership, limits, draft delete, sealed/unlocked rejection, and Qiniu verification.

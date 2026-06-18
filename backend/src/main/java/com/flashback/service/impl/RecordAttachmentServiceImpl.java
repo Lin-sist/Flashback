@@ -20,6 +20,7 @@ import com.flashback.service.RecordAttachmentService;
 import com.flashback.storage.qiniu.QiniuObjectMetadata;
 import com.flashback.storage.qiniu.QiniuStorageClient;
 import com.flashback.storage.qiniu.QiniuStorageException;
+import com.flashback.vo.AttachmentAccessUrlVO;
 import com.flashback.vo.AttachmentUploadTokenVO;
 import com.flashback.vo.RecordAttachmentVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,6 +181,30 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         return toVO(attachment);
     }
 
+    @Override
+    public AttachmentAccessUrlVO createAccessUrl(Long userId, Long recordId, Long attachmentId) {
+        requireOwnedRecord(recordId, userId);
+        AppStorageProperties.Qiniu qiniu = requireQiniuConfigured();
+        RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
+                attachmentId,
+                recordId,
+                userId);
+        if (attachment == null || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE) {
+            throw new NotFoundException("附件不存在");
+        }
+
+        Instant expiresAtInstant = clock.instant().plusSeconds(qiniu.getDownloadUrlTtlSeconds());
+        long deadline = expiresAtInstant.getEpochSecond();
+        String urlWithDeadline = unsignedPrivateUrl(qiniu.getPrivateDomain(), attachment.getStorageKey(), deadline);
+        String token = privateDownloadToken(qiniu, urlWithDeadline);
+
+        AttachmentAccessUrlVO vo = new AttachmentAccessUrlVO();
+        vo.setAttachmentId(attachmentId);
+        vo.setUrl(urlWithDeadline + "&token=" + token);
+        vo.setExpiresAt(LocalDateTime.ofInstant(expiresAtInstant, clock.getZone()));
+        return vo;
+    }
+
     private Record requireOwnedRecord(Long recordId, Long userId) {
         Record record = recordMapper.selectByIdAndUserId(recordId, userId);
         if (record == null) {
@@ -216,7 +241,10 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         if (normalized.isEmpty()) {
             throw badRequest("key不能为空");
         }
-        if (normalized.contains("..") || normalized.startsWith("/")) {
+        if (normalized.contains("..")
+                || normalized.startsWith("/")
+                || normalized.contains("?")
+                || normalized.contains("#")) {
             throw badRequest("附件key不合法");
         }
         return normalized;
@@ -354,6 +382,26 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             return qiniu.getAccessKey().trim() + ":" + encodedSign + ":" + encodedPolicy;
         } catch (Exception ex) {
             throw serviceUnavailable("上传凭证生成失败");
+        }
+    }
+
+    private String unsignedPrivateUrl(String privateDomain, String key, long deadline) {
+        String domain = privateDomain == null ? "" : privateDomain.trim();
+        if (domain.isEmpty()) {
+            throw serviceUnavailable("媒体访问地址未配置");
+        }
+        while (domain.endsWith("/")) {
+            domain = domain.substring(0, domain.length() - 1);
+        }
+        return domain + "/" + key + "?e=" + deadline;
+    }
+
+    private String privateDownloadToken(AppStorageProperties.Qiniu qiniu, String urlWithDeadline) {
+        try {
+            String encodedSign = hmacSha1(qiniu.getSecretKey().trim(), urlWithDeadline);
+            return qiniu.getAccessKey().trim() + ":" + encodedSign;
+        } catch (Exception ex) {
+            throw serviceUnavailable("媒体访问地址生成失败");
         }
     }
 

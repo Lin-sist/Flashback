@@ -7,6 +7,8 @@ import com.flashback.config.AppMediaProperties;
 import com.flashback.config.AppStorageProperties;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordAttachmentType;
+import com.flashback.domain.RecordAttachment;
+import com.flashback.domain.RecordAttachmentStatus;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import com.flashback.dto.CommitRecordAttachmentRequest;
@@ -299,6 +301,30 @@ class RecordAttachmentServiceImplTest {
         verify(recordAttachmentMapper, never()).insert(org.mockito.ArgumentMatchers.any());
     }
 
+    @Test
+    void shouldCreatePrivateAccessUrlForOwnedAvailableAttachment() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.UNLOCKED));
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L))
+                .thenReturn(attachment(99L, 10L, 1L, "flashback/users/1/records/10/image/a.jpg"));
+
+        var result = service.createAccessUrl(1L, 10L, 99L);
+
+        assertThat(result.getAttachmentId()).isEqualTo(99L);
+        assertThat(result.getExpiresAt()).isEqualTo(LocalDateTime.of(2026, 6, 18, 10, 10, 0));
+        assertThat(result.getUrl()).startsWith(
+                "https://media.example.com/flashback/users/1/records/10/image/a.jpg?e=1781748600&token=test-ak:");
+    }
+
+    @Test
+    void shouldRejectAccessUrlWhenAttachmentNotOwned() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.UNLOCKED));
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.createAccessUrl(1L, 10L, 99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("附件不存在");
+    }
+
     private CreateAttachmentUploadTokenRequest request(
             RecordAttachmentType type,
             String fileName,
@@ -338,6 +364,17 @@ class RecordAttachmentServiceImplTest {
         record.setCreatedAt(LocalDateTime.of(2026, 6, 18, 10, 0, 0));
         record.setUpdatedAt(LocalDateTime.of(2026, 6, 18, 10, 0, 0));
         return record;
+    }
+
+    private RecordAttachment attachment(Long id, Long recordId, Long userId, String key) {
+        RecordAttachment attachment = new RecordAttachment();
+        attachment.setId(id);
+        attachment.setRecordId(recordId);
+        attachment.setUserId(userId);
+        attachment.setType(RecordAttachmentType.IMAGE);
+        attachment.setStatus(RecordAttachmentStatus.AVAILABLE);
+        attachment.setStorageKey(key);
+        return attachment;
     }
 
     private static class StubQiniuStorageClient implements QiniuStorageClient {

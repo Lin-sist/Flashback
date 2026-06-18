@@ -7,6 +7,7 @@ import com.flashback.security.auth.AuthRole;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
 import com.flashback.service.RecordAttachmentService;
+import com.flashback.vo.AttachmentAccessUrlVO;
 import com.flashback.vo.AttachmentUploadTokenVO;
 import com.flashback.vo.RecordAttachmentVO;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -131,6 +133,21 @@ class RecordAttachmentControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("AVAILABLE"));
     }
 
+    @Test
+    void shouldCreateAttachmentAccessUrlWhenAuthorized() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+        when(recordAttachmentService.createAccessUrl(5001L, 9001L, 7001L))
+                .thenReturn(accessUrlVO());
+
+        mockMvc.perform(get("/api/records/9001/attachments/7001/access-url")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.attachmentId").value(7001))
+                .andExpect(jsonPath("$.data.url").value("https://media.example.com/a.jpg?e=1781748600&token=test"));
+    }
+
     private User enabledUser() {
         User user = new User();
         user.setId(5001L);
@@ -164,6 +181,14 @@ class RecordAttachmentControllerAuthIntegrationTest {
         vo.setSortOrder(0);
         vo.setCreatedAt(LocalDateTime.of(2026, 6, 18, 10, 0, 0));
         vo.setAccessUrl(null);
+        return vo;
+    }
+
+    private AttachmentAccessUrlVO accessUrlVO() {
+        AttachmentAccessUrlVO vo = new AttachmentAccessUrlVO();
+        vo.setAttachmentId(7001L);
+        vo.setUrl("https://media.example.com/a.jpg?e=1781748600&token=test");
+        vo.setExpiresAt(LocalDateTime.of(2026, 6, 18, 10, 10, 0));
         return vo;
     }
 }

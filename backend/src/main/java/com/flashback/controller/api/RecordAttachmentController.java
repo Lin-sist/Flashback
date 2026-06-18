@@ -6,10 +6,12 @@ import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.auth.CurrentUser;
 import com.flashback.service.RecordAttachmentService;
+import com.flashback.vo.AttachmentAccessUrlVO;
 import com.flashback.vo.AttachmentUploadTokenVO;
 import com.flashback.vo.RecordAttachmentVO;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,5 +46,16 @@ public class RecordAttachmentController {
             @PathVariable("recordId") Long recordId,
             @Valid @RequestBody CommitRecordAttachmentRequest request) {
         return ApiResponse.success(recordAttachmentService.commitAttachment(authUser.getUserId(), recordId, request));
+    }
+
+    @GetMapping("/{attachmentId}/access-url")
+    public ApiResponse<AttachmentAccessUrlVO> createAccessUrl(
+            @CurrentUser AuthUser authUser,
+            @PathVariable("recordId") Long recordId,
+            @PathVariable("attachmentId") Long attachmentId) {
+        return ApiResponse.success(recordAttachmentService.createAccessUrl(
+                authUser.getUserId(),
+                recordId,
+                attachmentId));
     }
 }

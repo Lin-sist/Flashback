@@ -2960,3 +2960,70 @@ Remaining risks:
 - The default Qiniu stat client uses the documented Kodo stat API shape but still needs real-credential verification.
 - Attachment delete and signed media access are still pending; media preview/playback cannot be completed until signed access URLs exist.
 - Commit-time limit checks reduce stateless token race risk, but concurrent commits can still race without database-level aggregate constraints.
+
+## 2026-06-18 11:21 M4 attachment private access URL
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Implement accepted private media access URL endpoint for record attachments.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/controller/api/RecordAttachmentController.java`
+- `backend/src/main/java/com/flashback/service/RecordAttachmentService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordAttachmentServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/AttachmentAccessUrlVO.java`
+- `backend/src/test/java/com/flashback/controller/api/RecordAttachmentControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordAttachmentServiceImplTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added `GET /api/records/{recordId}/attachments/{attachmentId}/access-url`.
+- Added `AttachmentAccessUrlVO` with `attachmentId`, short-lived signed `url`, and `expiresAt`.
+- Implemented owner-scoped lookup using record ownership and attachment id/record id/user id.
+- Only `AVAILABLE` attachments can receive signed media URLs; missing or cross-owner attachments return safe not-found.
+- Generated Qiniu private download URLs on demand using configured `privateDomain`, `downloadUrlTtlSeconds`, access key, and secret key.
+- Kept signed URL as computed response data only; no permanent URL is persisted.
+- Tightened committed storage key normalization to reject `?` and `#` characters before URL signing.
+- Updated M4 task checkboxes for signed URL expiry policy, private access flow, owner-scoped signed URL reads, and focused signed URL tests.
+
+Verification:
+
+- Passed focused backend tests:
+  - `mvn -q "-Dtest=RecordAttachmentServiceImplTest,RecordAttachmentControllerAuthIntegrationTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Focused tests cover:
+  - deterministic private signed URL generation with configured 600 second TTL
+  - owner-scoped available attachment access
+  - safe not-found when attachment is not owned or unavailable
+  - authenticated controller route for `/api/records/{recordId}/attachments/{attachmentId}/access-url`
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result found only environment-variable placeholders, documentation/log mentions, and dummy test values `test-ak` / `test-sk`; no concrete real AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+- `git diff --check` passed when rerun outside the sandbox; the first sandbox run failed on a Windows ACL read issue for the user git ignore file.
+- `git diff --stat` before staging showed:
+  - 6 tracked files changed, 131 insertions, 5 deletions, plus new `AttachmentAccessUrlVO.java`.
+
+Skipped verification reason:
+
+- Real Qiniu private media access was not verified because no backend-side Qiniu credentials/domain are available in tracked config, and secrets must not be committed.
+- Attachment delete, cover mutation, frontend image preview, and voice playback remain pending M4 tasks and were not claimed complete in this step.
+- Manual WeChat Mini Program verification was not run because no frontend media flow changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend attachment private access scope and accepted `backend-contract-decisions.md`.
+- Did not implement frontend media UI, cover, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- The Qiniu private URL algorithm is covered by deterministic unit tests, but still needs real private-bucket verification with actual credentials.
+- Signed URLs are intentionally short-lived; frontend callers must refresh them for long preview/playback sessions.
+- Attachment delete and cover clearing behavior are still pending, so end-to-end media lifecycle remains incomplete.
