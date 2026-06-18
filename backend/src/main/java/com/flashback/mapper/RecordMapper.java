@@ -55,6 +55,18 @@ public interface RecordMapper {
                         @Param("realityLater") String realityLater,
                         @Param("updatedAt") LocalDateTime updatedAt);
 
+        int updateCoverAttachmentByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("coverAttachmentId") Long coverAttachmentId,
+                        @Param("updatedAt") LocalDateTime updatedAt);
+
+        int clearCoverAttachmentIfMatches(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("coverAttachmentId") Long coverAttachmentId,
+                        @Param("updatedAt") LocalDateTime updatedAt);
+
         long countByUserAndCondition(
                         @Param("userId") Long userId,
                         @Param("status") RecordStatus status,

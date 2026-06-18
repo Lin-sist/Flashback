@@ -22,6 +22,7 @@
         <result property="realityLaterSubmitCount" column="reality_later_submit_count"/>
         <result property="lifeNodeType" column="life_node_type" javaType="com.flashback.domain.LifeNodeType"/>
         <result property="lifeNodeCustomLabel" column="life_node_custom_label"/>
+        <result property="coverAttachmentId" column="cover_attachment_id"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -44,6 +45,7 @@
         reality_later_submit_count,
         life_node_type,
         life_node_custom_label,
+        cover_attachment_id,
         created_at,
         updated_at
     </sql>
@@ -66,6 +68,7 @@
             reality_later_submit_count,
             life_node_type,
             life_node_custom_label,
+            cover_attachment_id,
             created_at,
             updated_at
         ) VALUES (
@@ -85,6 +88,7 @@
             COALESCE(#{realityLaterSubmitCount}, 0),
             #{lifeNodeType},
             #{lifeNodeCustomLabel},
+            #{coverAttachmentId},
             #{createdAt},
             #{updatedAt}
         )
@@ -167,6 +171,26 @@
           AND user_id = #{userId}
           AND status = 'UNLOCKED'
           AND COALESCE(reality_later_submit_count, 0) &lt; 2
+    </update>
+
+    <update id="updateCoverAttachmentByIdAndUserId">
+        UPDATE `record`
+        SET
+            cover_attachment_id = #{coverAttachmentId},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+    </update>
+
+    <update id="clearCoverAttachmentIfMatches">
+        UPDATE `record`
+        SET
+            cover_attachment_id = NULL,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND cover_attachment_id = #{coverAttachmentId}
     </update>
 
     <select id="countByUserAndCondition" resultType="long">

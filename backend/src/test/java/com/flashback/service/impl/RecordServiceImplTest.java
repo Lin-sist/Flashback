@@ -6,6 +6,9 @@ import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordAttachment;
+import com.flashback.domain.RecordAttachmentStatus;
+import com.flashback.domain.RecordAttachmentType;
 import com.flashback.domain.RecordLocation;
 import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.RecordReminder;
@@ -16,10 +19,12 @@ import com.flashback.domain.User;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
+import com.flashback.dto.UpdateRecordCoverRequest;
 import com.flashback.dto.UpdateRecordLocationRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.mapper.RecordLocationMapper;
+import com.flashback.mapper.RecordAttachmentMapper;
 import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
@@ -77,6 +82,9 @@ class RecordServiceImplTest {
     private RecordLocationMapper recordLocationMapper;
 
     @Mock
+    private RecordAttachmentMapper recordAttachmentMapper;
+
+    @Mock
     private ReplyMapper replyMapper;
 
     @Mock
@@ -95,6 +103,7 @@ class RecordServiceImplTest {
                 tagMapper,
                 recordTagMapper,
                 recordLocationMapper,
+                recordAttachmentMapper,
                 replyMapper,
                 unlockNoticeLogMapper,
                 recordReminderMapper,
@@ -234,6 +243,84 @@ class RecordServiceImplTest {
         recordService.deleteLocation(1L, 100L);
 
         verify(recordLocationMapper).deleteByRecordIdAndUserId(100L, 1L);
+    }
+
+    @Test
+    void shouldSetImageAttachmentAsCoverForDraftRecord() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        Record updated = mockRecord(RecordStatus.DRAFT);
+        updated.setCoverAttachmentId(77L);
+        RecordAttachment cover = attachment(77L, RecordAttachmentType.IMAGE);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, updated);
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(77L, 100L, 1L)).thenReturn(cover, cover);
+        when(recordMapper.updateCoverAttachmentByIdAndUserId(
+                eq(100L),
+                eq(1L),
+                eq(77L),
+                any())).thenReturn(1);
+
+        UpdateRecordCoverRequest request = new UpdateRecordCoverRequest();
+        request.setAttachmentId(77L);
+
+        var result = recordService.updateCover(1L, 100L, request);
+
+        verify(recordMapper).updateCoverAttachmentByIdAndUserId(eq(100L), eq(1L), eq(77L), any());
+        assertThat(result.getCover()).isNotNull();
+        assertThat(result.getCover().getId()).isEqualTo(77L);
+        assertThat(result.getCover().getType()).isEqualTo(RecordAttachmentType.IMAGE);
+    }
+
+    @Test
+    void shouldClearCoverForDraftRecord() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        Record updated = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, updated);
+        when(recordMapper.updateCoverAttachmentByIdAndUserId(
+                eq(100L),
+                eq(1L),
+                org.mockito.ArgumentMatchers.isNull(),
+                any())).thenReturn(1);
+
+        UpdateRecordCoverRequest request = new UpdateRecordCoverRequest();
+
+        var result = recordService.updateCover(1L, 100L, request);
+
+        verify(recordMapper).updateCoverAttachmentByIdAndUserId(
+                eq(100L),
+                eq(1L),
+                org.mockito.ArgumentMatchers.isNull(),
+                any());
+        assertThat(result.getCover()).isNull();
+    }
+
+    @Test
+    void shouldRejectVoiceAttachmentAsCover() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft);
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(88L, 100L, 1L))
+                .thenReturn(attachment(88L, RecordAttachmentType.VOICE));
+
+        UpdateRecordCoverRequest request = new UpdateRecordCoverRequest();
+        request.setAttachmentId(88L);
+
+        assertThatThrownBy(() -> recordService.updateCover(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("封面必须选择图片附件");
+        verify(recordMapper, never()).updateCoverAttachmentByIdAndUserId(any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectCoverMutationWhenRecordIsSealed() {
+        Record sealed = mockRecord(RecordStatus.SEALED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(sealed);
+
+        UpdateRecordCoverRequest request = new UpdateRecordCoverRequest();
+        request.setAttachmentId(77L);
+
+        assertThatThrownBy(() -> recordService.updateCover(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("仅DRAFT状态允许设置封面");
+        verify(recordAttachmentMapper, never()).selectByIdAndRecordIdAndUserId(any(), any(), any());
     }
 
     @Test
@@ -948,6 +1035,21 @@ class RecordServiceImplTest {
         record.setCreatedAt(LocalDateTime.of(2026, 3, 26, 10, 0, 0));
         record.setUpdatedAt(LocalDateTime.of(2026, 3, 26, 10, 0, 0));
         return record;
+    }
+
+    private RecordAttachment attachment(Long id, RecordAttachmentType type) {
+        RecordAttachment attachment = new RecordAttachment();
+        attachment.setId(id);
+        attachment.setRecordId(100L);
+        attachment.setUserId(1L);
+        attachment.setType(type);
+        attachment.setStatus(RecordAttachmentStatus.AVAILABLE);
+        attachment.setFileName(type == RecordAttachmentType.IMAGE ? "cover.jpg" : "voice.mp3");
+        attachment.setMimeType(type == RecordAttachmentType.IMAGE ? "image/jpeg" : "audio/mpeg");
+        attachment.setSizeBytes(123456L);
+        attachment.setSortOrder(0);
+        attachment.setCreatedAt(LocalDateTime.of(2026, 3, 26, 10, 5, 0));
+        return attachment;
     }
 
     private Record sealedRecord() {

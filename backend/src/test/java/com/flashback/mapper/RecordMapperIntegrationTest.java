@@ -1,11 +1,15 @@
 package com.flashback.mapper;
 
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordAttachment;
+import com.flashback.domain.RecordAttachmentStatus;
+import com.flashback.domain.RecordAttachmentType;
 import com.flashback.domain.RecordLocation;
 import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
+import com.flashback.domain.StorageProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +33,9 @@ class RecordMapperIntegrationTest {
 
         @Autowired
         private RecordLocationMapper recordLocationMapper;
+
+        @Autowired
+        private RecordAttachmentMapper recordAttachmentMapper;
 
         @Autowired
         private JdbcTemplate jdbcTemplate;
@@ -138,6 +145,42 @@ class RecordMapperIntegrationTest {
                 assertThat(updatedRecord.getLifeNodeCustomLabel()).isEqualTo("自定义节点");
                 assertThat(updatedRecord.getUnlockAt()).isEqualTo(unlockAt);
                 assertThat(updatedRecord.getUpdatedAt()).isEqualTo(updatedAt);
+        }
+
+        @Test
+        void updateCoverAttachmentByIdAndUserIdShouldOnlyAffectDraft() {
+                Record draft = newRecord(1007L, "cover-draft", RecordStatus.DRAFT, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 2, 7, 10, 0, 0));
+                recordMapper.insert(draft);
+                Record sealed = newRecord(1007L, "cover-sealed", RecordStatus.SEALED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 2, 7, 11, 0, 0));
+                recordMapper.insert(sealed);
+                RecordAttachment cover = attachment(draft.getId(), 1007L, "cover.jpg");
+                recordAttachmentMapper.insert(cover);
+
+                LocalDateTime updatedAt = LocalDateTime.of(2026, 2, 7, 12, 0, 0);
+                int updatedDraft = recordMapper.updateCoverAttachmentByIdAndUserId(
+                                draft.getId(),
+                                1007L,
+                                cover.getId(),
+                                updatedAt);
+                int updatedSealed = recordMapper.updateCoverAttachmentByIdAndUserId(
+                                sealed.getId(),
+                                1007L,
+                                cover.getId(),
+                                updatedAt);
+                Record updatedRecord = recordMapper.selectByIdAndUserId(draft.getId(), 1007L);
+                int cleared = recordMapper.clearCoverAttachmentIfMatches(
+                                draft.getId(),
+                                1007L,
+                                cover.getId(),
+                                updatedAt.plusMinutes(1));
+
+                assertThat(updatedDraft).isEqualTo(1);
+                assertThat(updatedSealed).isEqualTo(0);
+                assertThat(updatedRecord.getCoverAttachmentId()).isEqualTo(cover.getId());
+                assertThat(cleared).isEqualTo(1);
+                assertThat(recordMapper.selectByIdAndUserId(draft.getId(), 1007L).getCoverAttachmentId()).isNull();
         }
 
         @Test
@@ -512,6 +555,26 @@ class RecordMapperIntegrationTest {
                 record.setCreatedAt(createdAt);
                 record.setUpdatedAt(createdAt);
                 return record;
+        }
+
+        private RecordAttachment attachment(Long recordId, Long userId, String key) {
+                RecordAttachment attachment = new RecordAttachment();
+                attachment.setRecordId(recordId);
+                attachment.setUserId(userId);
+                attachment.setType(RecordAttachmentType.IMAGE);
+                attachment.setStorageProvider(StorageProvider.QINIU);
+                attachment.setBucket("flashback-private");
+                attachment.setStorageKey("flashback/users/" + userId + "/records/" + recordId + "/image/" + key);
+                attachment.setFileName(key);
+                attachment.setMimeType("image/jpeg");
+                attachment.setSizeBytes(123456L);
+                attachment.setWidth(1200);
+                attachment.setHeight(800);
+                attachment.setSortOrder(0);
+                attachment.setStatus(RecordAttachmentStatus.AVAILABLE);
+                attachment.setCreatedAt(LocalDateTime.of(2026, 2, 7, 10, 1, 0));
+                attachment.setUpdatedAt(LocalDateTime.of(2026, 2, 7, 10, 1, 0));
+                return attachment;
         }
 
         private void ensureUser(Long userId) {

@@ -31,6 +31,8 @@ public class RecordDetailVO {
     private String lifeNodeCustomLabel;
     private String lifeNodeLabel;
     private RecordLocationVO location;
+    private List<RecordAttachmentVO> attachments;
+    private RecordAttachmentVO cover;
     private RecordReminderStatus unlockReminderStatus;
     private List<RecordTagVO> tags;
     private Boolean canReply;
@@ -180,6 +182,22 @@ public class RecordDetailVO {
 
     public void setLocation(RecordLocationVO location) {
         this.location = location;
+    }
+
+    public List<RecordAttachmentVO> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<RecordAttachmentVO> attachments) {
+        this.attachments = attachments;
+    }
+
+    public RecordAttachmentVO getCover() {
+        return cover;
+    }
+
+    public void setCover(RecordAttachmentVO cover) {
+        this.cover = cover;
     }
 
     public RecordReminderStatus getUnlockReminderStatus() {

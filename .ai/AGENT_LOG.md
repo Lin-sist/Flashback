@@ -3103,3 +3103,78 @@ Remaining risks:
 - Qiniu delete is covered by unit tests around client behavior and service error handling, but real private bucket credentials are still required for integration verification.
 - Cover clearing after deleting the current cover image remains pending until the cover reference is implemented.
 - Concurrent delete/access requests may race around short-lived signed URLs; frontend should handle media 403/expired/not-found by refreshing or removing stale media state.
+
+## 2026-06-18 11:38 M4 record cover backend
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Implement the accepted record cover backend contract using same-record image attachments.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/main/java/com/flashback/controller/api/RecordController.java`
+- `backend/src/main/java/com/flashback/domain/Record.java`
+- `backend/src/main/java/com/flashback/dto/UpdateRecordCoverRequest.java`
+- `backend/src/main/java/com/flashback/mapper/RecordMapper.java`
+- `backend/src/main/java/com/flashback/service/RecordService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordAttachmentServiceImpl.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/RecordDetailVO.java`
+- `backend/src/main/java/com/flashback/vo/RecordListItemVO.java`
+- `backend/src/main/java/com/flashback/vo/TimelineItemVO.java`
+- `backend/src/main/resources/mapper/RecordMapper.xml`
+- `backend/src/test/java/com/flashback/controller/api/RecordControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordAttachmentServiceImplTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `backend/src/test/resources/schema.sql`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added nullable `record.cover_attachment_id` to MySQL and test schemas.
+- Added `UpdateRecordCoverRequest` with accepted nullable `attachmentId`.
+- Added `PUT /api/records/{id}/cover`.
+- Added `RecordService.updateCover`.
+- Validates owner-scoped DRAFT record before cover mutation.
+- Allows clearing cover with `attachmentId: null`.
+- Validates selected cover attachment belongs to the same record and user, is `AVAILABLE`, and has type `IMAGE`.
+- Rejects voice attachments as cover.
+- Adds cover metadata to record detail, list item, and timeline item responses without embedding permanent signed URLs.
+- Adds available attachment metadata to record detail for frontend cover selection/read-only display.
+- Clears `cover_attachment_id` when deleting the current draft cover image.
+- Updated M4 task checkboxes for the cover backend contract.
+
+Verification:
+
+- `git diff --check` passed.
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result found only environment-variable placeholders, documentation/log mentions, and dummy test values `test-ak` / `test-sk`; no concrete real AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+- Static code lookup checked cover wiring points:
+  - `rg -n "RecordServiceImpl\\(|updateCover\\(|coverAttachmentId|clearCoverAttachmentIfMatches|UpdateRecordCoverRequest" backend\src\main backend\src\test`
+- `git diff --stat` before staging showed:
+  - 17 files changed, 400 insertions, 13 deletions.
+
+Skipped verification reason:
+
+- Maven focused tests and full backend tests were not run for this step because the required sandbox-escalated Maven test execution was rejected by the environment usage limit.
+- No real Qiniu/media integration verification was run because this step only adds cover metadata/reference behavior, and no backend-side Qiniu credentials are available in tracked config.
+- Manual WeChat Mini Program verification was not run because no frontend cover UI changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend cover and attachment-cover cleanup scope and accepted `backend-contract-decisions.md`.
+- Did not implement frontend cover UI, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- The cover backend step is not Maven-verified in this run because of the environment usage limit; focused tests were added but still need execution when the limit resets.
+- List/timeline cover responses currently return metadata only; frontend must call the media access endpoint for short-lived display URLs.
+- Home-card cover display may need additional frontend/service wiring in later M4 frontend real-data work.

@@ -18,6 +18,7 @@ public class RecordListItemVO {
     private RecordStatus status;
     private String lifeNodeLabel;
     private LocalDateTime unlockAt;
+    private RecordAttachmentVO cover;
     private LocalDateTime createdAt;
     private List<String> tagNames;
 
@@ -75,6 +76,14 @@ public class RecordListItemVO {
 
     public void setUnlockAt(LocalDateTime unlockAt) {
         this.unlockAt = unlockAt;
+    }
+
+    public RecordAttachmentVO getCover() {
+        return cover;
+    }
+
+    public void setCover(RecordAttachmentVO cover) {
+        this.cover = cover;
     }
 
     public LocalDateTime getCreatedAt() {

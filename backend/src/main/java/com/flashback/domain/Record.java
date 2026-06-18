@@ -24,6 +24,7 @@ public class Record {
     private Integer realityLaterSubmitCount;
     private LifeNodeType lifeNodeType;
     private String lifeNodeCustomLabel;
+    private Long coverAttachmentId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -161,6 +162,14 @@ public class Record {
 
     public void setLifeNodeCustomLabel(String lifeNodeCustomLabel) {
         this.lifeNodeCustomLabel = lifeNodeCustomLabel;
+    }
+
+    public Long getCoverAttachmentId() {
+        return coverAttachmentId;
+    }
+
+    public void setCoverAttachmentId(Long coverAttachmentId) {
+        this.coverAttachmentId = coverAttachmentId;
     }
 
     public LocalDateTime getCreatedAt() {

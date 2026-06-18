@@ -227,14 +227,20 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             }
         }
 
+        LocalDateTime now = LocalDateTime.now(clock);
         int updated = recordAttachmentMapper.markDeletedByIdAndRecordIdAndUserId(
                 attachmentId,
                 recordId,
                 userId,
-                LocalDateTime.now(clock));
+                now);
         if (updated == 0) {
             throw new NotFoundException("附件不存在");
         }
+        recordMapper.clearCoverAttachmentIfMatches(
+                recordId,
+                userId,
+                attachmentId,
+                now);
     }
 
     private Record requireOwnedRecord(Long recordId, Long userId) {

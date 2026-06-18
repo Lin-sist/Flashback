@@ -10,6 +10,9 @@ import com.flashback.common.page.PageResult;
 import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordAttachment;
+import com.flashback.domain.RecordAttachmentStatus;
+import com.flashback.domain.RecordAttachmentType;
 import com.flashback.domain.RecordLocation;
 import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.RecordReminder;
@@ -24,10 +27,12 @@ import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
+import com.flashback.dto.UpdateRecordCoverRequest;
 import com.flashback.dto.UpdateRecordLocationRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.mapper.RecordLocationMapper;
+import com.flashback.mapper.RecordAttachmentMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
 import com.flashback.mapper.ReplyMapper;
@@ -37,6 +42,7 @@ import com.flashback.mapper.UserMapper;
 import com.flashback.service.RecordService;
 import com.flashback.wechat.WechatSubscribeMessageClient;
 import com.flashback.vo.RecordDetailVO;
+import com.flashback.vo.RecordAttachmentVO;
 import com.flashback.vo.RecordListItemVO;
 import com.flashback.vo.RecordLocationVO;
 import com.flashback.vo.RecordTagVO;
@@ -79,6 +85,7 @@ public class RecordServiceImpl implements RecordService {
     private final TagMapper tagMapper;
     private final RecordTagMapper recordTagMapper;
     private final RecordLocationMapper recordLocationMapper;
+    private final RecordAttachmentMapper recordAttachmentMapper;
     private final ReplyMapper replyMapper;
     private final UnlockNoticeLogMapper unlockNoticeLogMapper;
     private final RecordReminderMapper recordReminderMapper;
@@ -93,6 +100,7 @@ public class RecordServiceImpl implements RecordService {
             TagMapper tagMapper,
             RecordTagMapper recordTagMapper,
             RecordLocationMapper recordLocationMapper,
+            RecordAttachmentMapper recordAttachmentMapper,
             ReplyMapper replyMapper,
             UnlockNoticeLogMapper unlockNoticeLogMapper,
             RecordReminderMapper recordReminderMapper,
@@ -105,6 +113,7 @@ public class RecordServiceImpl implements RecordService {
         this.tagMapper = tagMapper;
         this.recordTagMapper = recordTagMapper;
         this.recordLocationMapper = recordLocationMapper;
+        this.recordAttachmentMapper = recordAttachmentMapper;
         this.replyMapper = replyMapper;
         this.unlockNoticeLogMapper = unlockNoticeLogMapper;
         this.recordReminderMapper = recordReminderMapper;
@@ -220,6 +229,37 @@ public class RecordServiceImpl implements RecordService {
         ensureDraft(current, "仅DRAFT状态允许删除位置");
 
         recordLocationMapper.deleteByRecordIdAndUserId(id, userId);
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO updateCover(Long userId, Long id, UpdateRecordCoverRequest request) {
+        Record current = requireOwnedRecord(id, userId);
+        ensureDraft(current, "仅DRAFT状态允许设置封面");
+
+        Long attachmentId = request == null ? null : request.getAttachmentId();
+        if (attachmentId != null) {
+            RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
+                    attachmentId,
+                    id,
+                    userId);
+            if (attachment == null || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE) {
+                throw new NotFoundException("封面附件不存在");
+            }
+            if (attachment.getType() != RecordAttachmentType.IMAGE) {
+                throw badRequest("封面必须选择图片附件");
+            }
+        }
+
+        int affected = recordMapper.updateCoverAttachmentByIdAndUserId(
+                id,
+                userId,
+                attachmentId,
+                LocalDateTime.now(clock));
+        if (affected == 0) {
+            throw badRequest("记录状态已变更，请刷新后重试");
+        }
         return toDetailVO(requireOwnedRecord(id, userId));
     }
 
@@ -647,6 +687,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setStatus(record.getStatus());
         vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
         vo.setUnlockAt(record.getUnlockAt());
+        vo.setCover(toCoverVO(record));
         vo.setCreatedAt(record.getCreatedAt());
         vo.setTagNames(tagNames);
         return vo;
@@ -659,6 +700,7 @@ public class RecordServiceImpl implements RecordService {
         item.setStatus(record.getStatus());
         item.setRecordType(record.getRecordType());
         item.setLifeNodeLabel(resolveLifeNodeLabel(record));
+        item.setCover(toCoverVO(record));
         item.setCreatedAt(record.getCreatedAt());
         item.setTagNames(tagNames);
         return item;
@@ -695,6 +737,9 @@ public class RecordServiceImpl implements RecordService {
         vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
         vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
         vo.setLocation(toLocationVO(recordLocationMapper.selectByRecordIdAndUserId(record.getId(), record.getUserId())));
+        List<RecordAttachmentVO> attachments = loadAvailableAttachments(record.getId(), record.getUserId());
+        vo.setAttachments(attachments);
+        vo.setCover(toCoverVO(record));
         vo.setUnlockReminderStatus(resolveUnlockReminderStatus(record.getId()));
         vo.setTags(loadRecordTags(record.getId()));
         boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
@@ -703,6 +748,49 @@ public class RecordServiceImpl implements RecordService {
         vo.setCanReply(record.getStatus() == RecordStatus.UNLOCKED && !hasReply);
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
+        return vo;
+    }
+
+    private List<RecordAttachmentVO> loadAvailableAttachments(Long recordId, Long userId) {
+        List<RecordAttachment> attachments = recordAttachmentMapper.selectAvailableByRecordIdAndUserId(recordId, userId);
+        if (attachments == null || attachments.isEmpty()) {
+            return List.of();
+        }
+        return attachments.stream().map(this::toAttachmentVO).toList();
+    }
+
+    private RecordAttachmentVO toCoverVO(Record record) {
+        Long coverAttachmentId = record.getCoverAttachmentId();
+        if (coverAttachmentId == null) {
+            return null;
+        }
+        RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
+                coverAttachmentId,
+                record.getId(),
+                record.getUserId());
+        if (attachment == null
+                || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE
+                || attachment.getType() != RecordAttachmentType.IMAGE) {
+            return null;
+        }
+        return toAttachmentVO(attachment);
+    }
+
+    private RecordAttachmentVO toAttachmentVO(RecordAttachment attachment) {
+        RecordAttachmentVO vo = new RecordAttachmentVO();
+        vo.setId(attachment.getId());
+        vo.setRecordId(attachment.getRecordId());
+        vo.setType(attachment.getType());
+        vo.setStatus(attachment.getStatus());
+        vo.setFileName(attachment.getFileName());
+        vo.setMimeType(attachment.getMimeType());
+        vo.setSizeBytes(attachment.getSizeBytes());
+        vo.setWidth(attachment.getWidth());
+        vo.setHeight(attachment.getHeight());
+        vo.setDurationSeconds(attachment.getDurationSeconds());
+        vo.setSortOrder(attachment.getSortOrder());
+        vo.setCreatedAt(attachment.getCreatedAt());
+        vo.setAccessUrl(null);
         return vo;
     }
 

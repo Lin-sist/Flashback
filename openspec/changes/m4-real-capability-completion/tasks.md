@@ -46,7 +46,7 @@
 - [x] Implement accepted attachment commit/verify API path and request/response DTO.
 - [x] Implement accepted attachment delete behavior.
 - [x] Implement accepted media signed URL expiry policy.
-- [ ] Implement accepted cover update API path and DTO.
+- [x] Implement accepted cover update API path and DTO.
 - [ ] Implement accepted frontend-visible upload, verification, and media error states.
 - [ ] Record any decision changes in `backend-contract-decisions.md` before implementation.
 
@@ -93,17 +93,17 @@
 
 ## 6. Backend Phase: Cover
 
-- [ ] Add cover reference to record persistence or equivalent.
-- [ ] Ensure cover is optional.
-- [ ] Ensure cover must reference an IMAGE attachment.
-- [ ] Ensure cover attachment belongs to the same record and same owner.
-- [ ] Reject voice attachments as cover.
-- [ ] Reject another record's or another user's attachment as cover.
-- [ ] Allow cover selection/change only for DRAFT records.
-- [ ] Reject cover mutation for SEALED and UNLOCKED records.
-- [ ] Define draft behavior when deleting the current cover image.
-- [ ] Include cover metadata or cover URL in list/timeline/home detail contracts where required.
-- [ ] Add focused backend tests for cover validation and immutability.
+- [x] Add cover reference to record persistence or equivalent.
+- [x] Ensure cover is optional.
+- [x] Ensure cover must reference an IMAGE attachment.
+- [x] Ensure cover attachment belongs to the same record and same owner.
+- [x] Reject voice attachments as cover.
+- [x] Reject another record's or another user's attachment as cover.
+- [x] Allow cover selection/change only for DRAFT records.
+- [x] Reject cover mutation for SEALED and UNLOCKED records.
+- [x] Define draft behavior when deleting the current cover image.
+- [x] Include cover metadata or cover URL in list/timeline/home detail contracts where required.
+- [x] Add focused backend tests for cover validation and immutability.
 
 ## 7. Backend Phase: Location
 

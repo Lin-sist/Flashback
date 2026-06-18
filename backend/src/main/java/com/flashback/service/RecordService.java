@@ -5,6 +5,7 @@ import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
+import com.flashback.dto.UpdateRecordCoverRequest;
 import com.flashback.dto.UpdateRecordLocationRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
@@ -28,6 +29,8 @@ public interface RecordService {
     RecordDetailVO updateLocation(Long userId, Long id, UpdateRecordLocationRequest request);
 
     RecordDetailVO deleteLocation(Long userId, Long id);
+
+    RecordDetailVO updateCover(Long userId, Long id, UpdateRecordCoverRequest request);
 
     RecordDetailVO seal(Long userId, Long id);
 

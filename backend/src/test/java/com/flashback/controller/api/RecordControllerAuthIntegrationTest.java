@@ -306,6 +306,32 @@ class RecordControllerAuthIntegrationTest {
         }
 
         @Test
+        void shouldUpdateRecordCoverWhenAuthorized() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+                when(recordService.updateCover(org.mockito.ArgumentMatchers.eq(5001L),
+                                org.mockito.ArgumentMatchers.eq(9001L),
+                                org.mockito.ArgumentMatchers.any()))
+                                .thenReturn(mockDetail());
+
+                mockMvc.perform(put("/api/records/9001/cover")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType("application/json")
+                                .content("""
+                                                {
+                                                  "attachmentId": 7001
+                                                }
+                                                """))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(0));
+
+                verify(recordService).updateCover(org.mockito.ArgumentMatchers.eq(5001L),
+                                org.mockito.ArgumentMatchers.eq(9001L),
+                                org.mockito.ArgumentMatchers.argThat(request ->
+                                                request.getAttachmentId().equals(7001L)));
+        }
+
+        @Test
         void shouldReturnNotFoundWhenAccessOthersRecord() throws Exception {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
                 when(userMapper.selectById(anyLong())).thenReturn(enabledUser());

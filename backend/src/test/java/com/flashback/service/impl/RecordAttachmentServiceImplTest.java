@@ -345,6 +345,11 @@ class RecordAttachmentServiceImplTest {
                 10L,
                 1L,
                 LocalDateTime.of(2026, 6, 18, 10, 0, 0));
+        verify(recordMapper).clearCoverAttachmentIfMatches(
+                10L,
+                1L,
+                99L,
+                LocalDateTime.of(2026, 6, 18, 10, 0, 0));
     }
 
     @Test

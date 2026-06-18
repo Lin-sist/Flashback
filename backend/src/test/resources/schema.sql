@@ -42,6 +42,7 @@ CREATE TABLE `record` (
   `reality_later_submit_count` INT NOT NULL DEFAULT 0,
   `life_node_type` VARCHAR(30) DEFAULT NULL,
   `life_node_custom_label` VARCHAR(50) DEFAULT NULL,
+  `cover_attachment_id` BIGINT DEFAULT NULL,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`),
@@ -50,6 +51,7 @@ CREATE TABLE `record` (
   KEY `idx_record_unlock_at` (`unlock_at`),
   KEY `idx_record_user_status_created` (`user_id`, `status`, `created_at`),
   KEY `idx_record_status_unlock_at` (`status`, `unlock_at`),
+  KEY `idx_record_cover_attachment_id` (`cover_attachment_id`),
   CONSTRAINT `fk_record_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );
 
