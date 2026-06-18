@@ -64,6 +64,34 @@ CREATE TABLE `record_location` (
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `record_attachment` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `type` VARCHAR(20) NOT NULL,
+  `storage_provider` VARCHAR(20) NOT NULL,
+  `bucket` VARCHAR(100) NOT NULL,
+  `storage_key` VARCHAR(512) NOT NULL,
+  `file_name` VARCHAR(255) NOT NULL,
+  `mime_type` VARCHAR(100) NOT NULL,
+  `size_bytes` BIGINT NOT NULL,
+  `duration_seconds` INT DEFAULT NULL,
+  `width` INT DEFAULT NULL,
+  `height` INT DEFAULT NULL,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_attachment_storage_key` (`storage_provider`, `bucket`, `storage_key`),
+  KEY `idx_record_attachment_record_status` (`record_id`, `status`, `sort_order`),
+  KEY `idx_record_attachment_user_id` (`user_id`),
+  CONSTRAINT `fk_record_attachment_record_id`
+    FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_record_attachment_user_id`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `tag` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(50) NOT NULL,

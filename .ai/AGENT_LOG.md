@@ -2789,3 +2789,89 @@ Remaining risks:
 - The next Qiniu backend step still needs an implementation choice for token generation, object stat, delete, and private signed URL generation.
 - If an SDK is introduced later, package changes must be explicitly justified by the implementation task.
 - Real Qiniu success paths remain unverified until credentials and storage implementation are available.
+
+## 2026-06-18 - M4 backend attachment upload-token foundation
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Implement the accepted attachment upload-token endpoint and DTO, plus attachment metadata persistence foundation needed by later commit/verify/delete/access-url steps.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/main/java/com/flashback/controller/api/RecordAttachmentController.java`
+- `backend/src/main/java/com/flashback/domain/RecordAttachment.java`
+- `backend/src/main/java/com/flashback/domain/RecordAttachmentStatus.java`
+- `backend/src/main/java/com/flashback/domain/RecordAttachmentType.java`
+- `backend/src/main/java/com/flashback/domain/StorageProvider.java`
+- `backend/src/main/java/com/flashback/dto/CreateAttachmentUploadTokenRequest.java`
+- `backend/src/main/java/com/flashback/mapper/RecordAttachmentMapper.java`
+- `backend/src/main/java/com/flashback/service/RecordAttachmentService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordAttachmentServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/AttachmentUploadTokenVO.java`
+- `backend/src/main/resources/mapper/RecordAttachmentMapper.xml`
+- `backend/src/test/java/com/flashback/controller/api/RecordAttachmentControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordAttachmentMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordAttachmentServiceImplTest.java`
+- `backend/src/test/resources/schema.sql`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added `POST /api/records/{recordId}/attachments/upload-token`.
+- Added `CreateAttachmentUploadTokenRequest` with accepted fields: `type`, `fileName`, `mimeType`, and `sizeBytes`.
+- Added `AttachmentUploadTokenVO` with accepted response fields: `provider`, `bucket`, `key`, `uploadToken`, `uploadUrl`, `expiresAt`, and `maxFileSizeBytes`.
+- Added `record_attachment` table to MySQL and test schema.
+- Added attachment domain/model fields for owner, record, type, storage provider, bucket, storage key, file name, MIME type, size, duration, image dimensions, sort order, status, and timestamps.
+- Added `RecordAttachmentMapper` for owner-scoped selection and committed-attachment count/size queries.
+- Implemented Qiniu upload-token generation without adding dependencies:
+  - backend-generated key format `{keyPrefix}/users/{userId}/records/{recordId}/{image|voice}/{uuid}.{extension}`
+  - MIME allowlist-derived extension
+  - upload scope `bucket:key`
+  - upload deadline from configured TTL
+  - HMAC-SHA1 + URL-safe Base64 Qiniu token format
+- Enforced upload-token prechecks:
+  - authenticated owner owns the record
+  - record is `DRAFT`
+  - Qiniu config is backend-side and complete
+  - media type is `IMAGE` or `VOICE`
+  - MIME type is allowlisted
+  - per-file max 40 MB
+  - committed image/voice count limits
+  - committed total size max 300 MB
+
+Verification:
+
+- Rechecked current Qiniu official documentation before coding:
+  - upload token: `https://developer.qiniu.com/kodo/1208/upload-token`
+  - private download: `https://developer.qiniu.com/kodo/1656/download-private`
+  - object stat: `https://developer.qiniu.com/kodo/1308/stat`
+- Passed focused backend tests:
+  - `mvn -q "-Dtest=RecordAttachmentServiceImplTest,RecordAttachmentControllerAuthIntegrationTest,RecordAttachmentMapperIntegrationTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result found only environment-variable placeholders, documentation/log mentions, and dummy test values `test-ak` / `test-sk`; no concrete real AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+
+Skipped verification reason:
+
+- Real Qiniu upload success was not verified because no backend-side Qiniu credentials are available in tracked config, and secrets must not be committed.
+- Qiniu object stat verification, object delete, private signed access URL, and attachment commit persistence are still pending M4 tasks and were not claimed complete in this step.
+- Manual WeChat Mini Program verification was not run because no frontend upload flow changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend attachment upload-token and metadata-foundation scope.
+- Did not implement frontend media UI, cover, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Upload-token issuance is stateless per accepted contract, so multiple in-flight tokens can still race until commit-time verification also enforces limits.
+- Attachment commit/verify, Qiniu object stat, object delete, signed media access URL, and cover selection remain pending.
+- The upload URL currently uses the common Qiniu upload host; region-specific upload hosts can be revisited only if real Qiniu verification shows this is required.

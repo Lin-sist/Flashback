@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `unlock_notice_log`;
 DROP TABLE IF EXISTS `record_reminder`;
 DROP TABLE IF EXISTS `reply`;
 DROP TABLE IF EXISTS `record_tag`;
+DROP TABLE IF EXISTS `record_attachment`;
 DROP TABLE IF EXISTS `record_location`;
 DROP TABLE IF EXISTS `tag`;
 DROP TABLE IF EXISTS `record`;
@@ -68,6 +69,32 @@ CREATE TABLE `record_location` (
   KEY `idx_record_location_user_id` (`user_id`),
   CONSTRAINT `fk_record_location_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_record_location_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `record_attachment` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `type` VARCHAR(20) NOT NULL,
+  `storage_provider` VARCHAR(20) NOT NULL,
+  `bucket` VARCHAR(100) NOT NULL,
+  `storage_key` VARCHAR(512) NOT NULL,
+  `file_name` VARCHAR(255) NOT NULL,
+  `mime_type` VARCHAR(100) NOT NULL,
+  `size_bytes` BIGINT NOT NULL,
+  `duration_seconds` INT DEFAULT NULL,
+  `width` INT DEFAULT NULL,
+  `height` INT DEFAULT NULL,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_attachment_storage_key` (`storage_provider`, `bucket`, `storage_key`),
+  KEY `idx_record_attachment_record_status` (`record_id`, `status`, `sort_order`),
+  KEY `idx_record_attachment_user_id` (`user_id`),
+  CONSTRAINT `fk_record_attachment_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_record_attachment_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `tag` (

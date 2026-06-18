@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.RecordAttachmentMapper">
+
+    <resultMap id="RecordAttachmentResultMap" type="com.flashback.domain.RecordAttachment">
+        <id property="id" column="id"/>
+        <result property="recordId" column="record_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type" javaType="com.flashback.domain.RecordAttachmentType"/>
+        <result property="storageProvider" column="storage_provider" javaType="com.flashback.domain.StorageProvider"/>
+        <result property="bucket" column="bucket"/>
+        <result property="storageKey" column="storage_key"/>
+        <result property="fileName" column="file_name"/>
+        <result property="mimeType" column="mime_type"/>
+        <result property="sizeBytes" column="size_bytes"/>
+        <result property="durationSeconds" column="duration_seconds"/>
+        <result property="width" column="width"/>
+        <result property="height" column="height"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="status" column="status" javaType="com.flashback.domain.RecordAttachmentStatus"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id,
+        record_id,
+        user_id,
+        type,
+        storage_provider,
+        bucket,
+        storage_key,
+        file_name,
+        mime_type,
+        size_bytes,
+        duration_seconds,
+        width,
+        height,
+        sort_order,
+        status,
+        created_at,
+        updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.RecordAttachment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO record_attachment (
+            record_id,
+            user_id,
+            type,
+            storage_provider,
+            bucket,
+            storage_key,
+            file_name,
+            mime_type,
+            size_bytes,
+            duration_seconds,
+            width,
+            height,
+            sort_order,
+            status,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{recordId},
+            #{userId},
+            #{type},
+            #{storageProvider},
+            #{bucket},
+            #{storageKey},
+            #{fileName},
+            #{mimeType},
+            #{sizeBytes},
+            #{durationSeconds},
+            #{width},
+            #{height},
+            #{sortOrder},
+            #{status},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <select id="selectByIdAndRecordIdAndUserId" resultMap="RecordAttachmentResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM record_attachment
+        WHERE id = #{id}
+          AND record_id = #{recordId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectAvailableByRecordIdAndUserId" resultMap="RecordAttachmentResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM record_attachment
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+          AND status = 'AVAILABLE'
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="countAvailableByRecordIdAndUserIdAndType" resultType="int">
+        SELECT COUNT(1)
+        FROM record_attachment
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+          AND type = #{type}
+          AND status = 'AVAILABLE'
+    </select>
+
+    <select id="sumAvailableSizeByRecordIdAndUserId" resultType="long">
+        SELECT COALESCE(SUM(size_bytes), 0)
+        FROM record_attachment
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+          AND status = 'AVAILABLE'
+    </select>
+</mapper>

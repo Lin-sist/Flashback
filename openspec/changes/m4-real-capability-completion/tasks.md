@@ -42,7 +42,7 @@
 - [x] Implement accepted AI provider configuration keys, provider enum values, and model selection behavior.
 - [x] Implement the accepted single OpenAI-compatible adapter strategy.
 - [x] Implement accepted location API paths and DTO fields.
-- [ ] Implement accepted attachment upload-token API path and request/response DTO.
+- [x] Implement accepted attachment upload-token API path and request/response DTO.
 - [ ] Implement accepted attachment commit/verify API path and request/response DTO.
 - [ ] Implement accepted attachment delete behavior.
 - [ ] Implement accepted media signed URL expiry policy.
@@ -67,8 +67,8 @@
 
 - [x] Add backend-only Qiniu configuration for access key, secret key, bucket, domain/base URL, region/zone if needed, and URL expiry.
 - [x] Ensure Qiniu secrets are not present in frontend code or tracked files.
-- [ ] Implement authenticated upload-token creation.
-- [ ] Scope upload tokens by user, record, media type, size policy, and generated/approved object key.
+- [x] Implement authenticated upload-token creation.
+- [x] Scope upload tokens by user, record, media type, size policy, and generated/approved object key.
 - [ ] Implement backend object existence verification after upload.
 - [ ] Verify object size and MIME type where Qiniu metadata supports it.
 - [ ] Implement private signed URL generation or equivalent private access flow.
@@ -76,10 +76,10 @@
 
 ## 5. Backend Phase: Attachments
 
-- [ ] Add persistence for record attachments using separate table/model or equivalent.
-- [ ] Track attachment owner, record, type, storage provider, bucket, storage key, MIME type, size, status, sort order, and timestamps.
-- [ ] Track voice duration where available.
-- [ ] Track image width/height where available.
+- [x] Add persistence for record attachments using separate table/model or equivalent.
+- [x] Track attachment owner, record, type, storage provider, bucket, storage key, MIME type, size, status, sort order, and timestamps.
+- [x] Track voice duration where available.
+- [x] Track image width/height where available.
 - [ ] Enforce max 9 images per record.
 - [ ] Enforce max 9 voice files per record.
 - [ ] Enforce max 40 MB per file.
