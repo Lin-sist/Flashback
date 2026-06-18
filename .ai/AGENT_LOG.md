@@ -2875,3 +2875,88 @@ Remaining risks:
 - Upload-token issuance is stateless per accepted contract, so multiple in-flight tokens can still race until commit-time verification also enforces limits.
 - Attachment commit/verify, Qiniu object stat, object delete, signed media access URL, and cover selection remain pending.
 - The upload URL currently uses the common Qiniu upload host; region-specific upload hosts can be revisited only if real Qiniu verification shows this is required.
+
+## 2026-06-18 - M4 backend attachment commit and Qiniu stat verification
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Implement the accepted attachment commit/verify endpoint so metadata is persisted only after backend Qiniu stat verification succeeds.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/controller/api/RecordAttachmentController.java`
+- `backend/src/main/java/com/flashback/dto/CommitRecordAttachmentRequest.java`
+- `backend/src/main/java/com/flashback/mapper/RecordAttachmentMapper.java`
+- `backend/src/main/java/com/flashback/service/RecordAttachmentService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordAttachmentServiceImpl.java`
+- `backend/src/main/java/com/flashback/storage/qiniu/QiniuHttpStorageClient.java`
+- `backend/src/main/java/com/flashback/storage/qiniu/QiniuObjectMetadata.java`
+- `backend/src/main/java/com/flashback/storage/qiniu/QiniuStorageClient.java`
+- `backend/src/main/java/com/flashback/storage/qiniu/QiniuStorageException.java`
+- `backend/src/main/java/com/flashback/vo/RecordAttachmentVO.java`
+- `backend/src/main/resources/mapper/RecordAttachmentMapper.xml`
+- `backend/src/test/java/com/flashback/controller/api/RecordAttachmentControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordAttachmentMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordAttachmentServiceImplTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added `POST /api/records/{recordId}/attachments/commit`.
+- Added `CommitRecordAttachmentRequest` with accepted fields: `type`, `key`, `fileName`, `mimeType`, `sizeBytes`, `width`, `height`, and `durationSeconds`.
+- Added `RecordAttachmentVO` matching accepted response fields, with `accessUrl` left null because signed media access is a separate pending endpoint.
+- Added a minimal `QiniuStorageClient` abstraction and `QiniuHttpStorageClient` implementation for object stat verification.
+- Added backend verification before persistence:
+  - owner-scoped record lookup
+  - DRAFT-only mutation
+  - backend Qiniu config check
+  - MIME allowlist validation
+  - per-file, per-type-count, and total-size validation
+  - generated-key namespace validation for the authenticated user, record, and media type
+  - Qiniu stat object existence verification
+  - Qiniu-reported size verification
+  - Qiniu-reported MIME verification when available
+- Persisted attachment metadata only after stat verification succeeds, with `AVAILABLE` status and next `sortOrder`.
+
+Verification:
+
+- Rechecked current Qiniu official documentation before coding:
+  - upload token: `https://developer.qiniu.com/kodo/1208/upload-token`
+  - private download: `https://developer.qiniu.com/kodo/1656/download-private`
+  - object stat: `https://developer.qiniu.com/kodo/1308/stat`
+- Passed focused backend tests:
+  - `mvn -q "-Dtest=RecordAttachmentServiceImplTest,RecordAttachmentControllerAuthIntegrationTest,RecordAttachmentMapperIntegrationTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Focused tests cover:
+  - commit success after stubbed Qiniu stat metadata
+  - key namespace rejection
+  - Qiniu object missing rejection
+  - Qiniu size mismatch rejection
+  - controller authenticated commit path
+  - mapper available-count helper
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result found only environment-variable placeholders, documentation/log mentions, and dummy test values `test-ak` / `test-sk`; no concrete real AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+
+Skipped verification reason:
+
+- Real Qiniu stat success was not verified because no backend-side Qiniu credentials are available in tracked config, and secrets must not be committed.
+- Qiniu object delete, private signed access URL, frontend image/voice preview/playback, and cover selection remain pending M4 tasks and were not claimed complete in this step.
+- Manual WeChat Mini Program verification was not run because no frontend upload flow changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend attachment commit/verify scope and accepted `backend-contract-decisions.md`.
+- Did not implement frontend media UI, cover, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- The default Qiniu stat client uses the documented Kodo stat API shape but still needs real-credential verification.
+- Attachment delete and signed media access are still pending; media preview/playback cannot be completed until signed access URLs exist.
+- Commit-time limit checks reduce stateless token race risk, but concurrent commits can still race without database-level aggregate constraints.

@@ -43,7 +43,7 @@
 - [x] Implement the accepted single OpenAI-compatible adapter strategy.
 - [x] Implement accepted location API paths and DTO fields.
 - [x] Implement accepted attachment upload-token API path and request/response DTO.
-- [ ] Implement accepted attachment commit/verify API path and request/response DTO.
+- [x] Implement accepted attachment commit/verify API path and request/response DTO.
 - [ ] Implement accepted attachment delete behavior.
 - [ ] Implement accepted media signed URL expiry policy.
 - [ ] Implement accepted cover update API path and DTO.
@@ -69,8 +69,8 @@
 - [x] Ensure Qiniu secrets are not present in frontend code or tracked files.
 - [x] Implement authenticated upload-token creation.
 - [x] Scope upload tokens by user, record, media type, size policy, and generated/approved object key.
-- [ ] Implement backend object existence verification after upload.
-- [ ] Verify object size and MIME type where Qiniu metadata supports it.
+- [x] Implement backend object existence verification after upload.
+- [x] Verify object size and MIME type where Qiniu metadata supports it.
 - [ ] Implement private signed URL generation or equivalent private access flow.
 - [ ] Add focused backend tests or documented manual verification for token creation, object verification, missing object, and signed URL behavior.
 
@@ -80,10 +80,10 @@
 - [x] Track attachment owner, record, type, storage provider, bucket, storage key, MIME type, size, status, sort order, and timestamps.
 - [x] Track voice duration where available.
 - [x] Track image width/height where available.
-- [ ] Enforce max 9 images per record.
-- [ ] Enforce max 9 voice files per record.
-- [ ] Enforce max 40 MB per file.
-- [ ] Enforce max 300 MB total attachments per record.
+- [x] Enforce max 9 images per record.
+- [x] Enforce max 9 voice files per record.
+- [x] Enforce max 40 MB per file.
+- [x] Enforce max 300 MB total attachments per record.
 - [ ] Allow attachment add/delete only for DRAFT records.
 - [ ] Reject attachment mutation for SEALED and UNLOCKED records.
 - [ ] Ensure attachment reads and signed URLs are owner-scoped.

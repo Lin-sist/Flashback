@@ -8,6 +8,7 @@ import com.flashback.security.auth.AuthUser;
 import com.flashback.security.jwt.JwtTokenProvider;
 import com.flashback.service.RecordAttachmentService;
 import com.flashback.vo.AttachmentUploadTokenVO;
+import com.flashback.vo.RecordAttachmentVO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -100,6 +101,36 @@ class RecordAttachmentControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.code").value(40000));
     }
 
+    @Test
+    void shouldCommitAttachmentWhenAuthorized() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+        when(recordAttachmentService.commitAttachment(eq(5001L), eq(9001L), any()))
+                .thenReturn(recordAttachmentVO());
+
+        mockMvc.perform(post("/api/records/9001/attachments/commit")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type": "IMAGE",
+                          "key": "flashback/users/5001/records/9001/image/token.jpg",
+                          "fileName": "example.jpg",
+                          "mimeType": "image/jpeg",
+                          "sizeBytes": 123456,
+                          "width": 1200,
+                          "height": 800,
+                          "durationSeconds": null
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.id").value(7001))
+                .andExpect(jsonPath("$.data.recordId").value(9001))
+                .andExpect(jsonPath("$.data.type").value("IMAGE"))
+                .andExpect(jsonPath("$.data.status").value("AVAILABLE"));
+    }
+
     private User enabledUser() {
         User user = new User();
         user.setId(5001L);
@@ -116,6 +147,23 @@ class RecordAttachmentControllerAuthIntegrationTest {
         vo.setUploadUrl("https://upload.qiniup.com");
         vo.setExpiresAt(LocalDateTime.of(2026, 6, 18, 10, 10, 0));
         vo.setMaxFileSizeBytes(41943040L);
+        return vo;
+    }
+
+    private RecordAttachmentVO recordAttachmentVO() {
+        RecordAttachmentVO vo = new RecordAttachmentVO();
+        vo.setId(7001L);
+        vo.setRecordId(9001L);
+        vo.setType(com.flashback.domain.RecordAttachmentType.IMAGE);
+        vo.setStatus(com.flashback.domain.RecordAttachmentStatus.AVAILABLE);
+        vo.setFileName("example.jpg");
+        vo.setMimeType("image/jpeg");
+        vo.setSizeBytes(123456L);
+        vo.setWidth(1200);
+        vo.setHeight(800);
+        vo.setSortOrder(0);
+        vo.setCreatedAt(LocalDateTime.of(2026, 6, 18, 10, 0, 0));
+        vo.setAccessUrl(null);
         return vo;
     }
 }

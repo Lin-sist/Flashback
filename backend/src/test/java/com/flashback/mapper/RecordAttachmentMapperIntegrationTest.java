@@ -53,12 +53,14 @@ class RecordAttachmentMapperIntegrationTest {
 
         int imageCount = recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(
                 mine.getId(), 1201L, RecordAttachmentType.IMAGE);
+        int availableCount = recordAttachmentMapper.countAvailableByRecordIdAndUserId(mine.getId(), 1201L);
         Long totalSize = recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(mine.getId(), 1201L);
         List<RecordAttachment> available = recordAttachmentMapper.selectAvailableByRecordIdAndUserId(mine.getId(), 1201L);
         RecordAttachment selected = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(first.getId(), mine.getId(), 1201L);
         RecordAttachment crossUser = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(otherUser.getId(), mine.getId(), 1201L);
 
         assertThat(imageCount).isEqualTo(1);
+        assertThat(availableCount).isEqualTo(2);
         assertThat(totalSize).isEqualTo(300L);
         assertThat(available).extracting(RecordAttachment::getStorageKey).containsExactly("a.jpg", "b.mp3");
         assertThat(selected).isNotNull();

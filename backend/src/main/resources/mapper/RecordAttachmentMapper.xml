@@ -111,6 +111,14 @@
           AND status = 'AVAILABLE'
     </select>
 
+    <select id="countAvailableByRecordIdAndUserId" resultType="int">
+        SELECT COUNT(1)
+        FROM record_attachment
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+          AND status = 'AVAILABLE'
+    </select>
+
     <select id="sumAvailableSizeByRecordIdAndUserId" resultType="long">
         SELECT COALESCE(SUM(size_bytes), 0)
         FROM record_attachment

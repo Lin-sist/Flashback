@@ -7,13 +7,21 @@ import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppMediaProperties;
 import com.flashback.config.AppStorageProperties;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordAttachment;
+import com.flashback.domain.RecordAttachmentStatus;
 import com.flashback.domain.RecordAttachmentType;
 import com.flashback.domain.RecordStatus;
+import com.flashback.domain.StorageProvider;
 import com.flashback.mapper.RecordAttachmentMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.service.RecordAttachmentService;
+import com.flashback.storage.qiniu.QiniuObjectMetadata;
+import com.flashback.storage.qiniu.QiniuStorageClient;
+import com.flashback.storage.qiniu.QiniuStorageException;
 import com.flashback.vo.AttachmentUploadTokenVO;
+import com.flashback.vo.RecordAttachmentVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -58,6 +66,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     private final RecordAttachmentMapper recordAttachmentMapper;
     private final AppStorageProperties appStorageProperties;
     private final AppMediaProperties appMediaProperties;
+    private final QiniuStorageClient qiniuStorageClient;
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final Supplier<UUID> uuidSupplier;
@@ -68,12 +77,14 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             RecordAttachmentMapper recordAttachmentMapper,
             AppStorageProperties appStorageProperties,
             AppMediaProperties appMediaProperties,
+            QiniuStorageClient qiniuStorageClient,
             Clock clock) {
         this(
                 recordMapper,
                 recordAttachmentMapper,
                 appStorageProperties,
                 appMediaProperties,
+                qiniuStorageClient,
                 new ObjectMapper(),
                 clock,
                 UUID::randomUUID);
@@ -84,6 +95,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             RecordAttachmentMapper recordAttachmentMapper,
             AppStorageProperties appStorageProperties,
             AppMediaProperties appMediaProperties,
+            QiniuStorageClient qiniuStorageClient,
             ObjectMapper objectMapper,
             Clock clock,
             Supplier<UUID> uuidSupplier) {
@@ -91,6 +103,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         this.recordAttachmentMapper = recordAttachmentMapper;
         this.appStorageProperties = appStorageProperties;
         this.appMediaProperties = appMediaProperties;
+        this.qiniuStorageClient = qiniuStorageClient;
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.uuidSupplier = uuidSupplier;
@@ -127,6 +140,46 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         return vo;
     }
 
+    @Override
+    public RecordAttachmentVO commitAttachment(
+            Long userId,
+            Long recordId,
+            CommitRecordAttachmentRequest request) {
+        Record record = requireOwnedRecord(recordId, userId);
+        ensureDraft(record);
+        AppStorageProperties.Qiniu qiniu = requireQiniuConfigured();
+
+        String mimeType = normalizeMimeType(request.getMimeType());
+        extensionFor(request.getType(), mimeType);
+        validateSize(request.getSizeBytes());
+        validateCount(recordId, userId, request.getType());
+        validateTotalSize(recordId, userId, request.getSizeBytes());
+        String key = normalizeStorageKey(request.getKey());
+        validateKeyNamespace(qiniu.getKeyPrefix(), key, userId, recordId, request.getType());
+        verifyUploadedObject(qiniu.getBucket().trim(), key, request.getSizeBytes(), mimeType);
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        RecordAttachment attachment = new RecordAttachment();
+        attachment.setRecordId(recordId);
+        attachment.setUserId(userId);
+        attachment.setType(request.getType());
+        attachment.setStorageProvider(StorageProvider.QINIU);
+        attachment.setBucket(qiniu.getBucket().trim());
+        attachment.setStorageKey(key);
+        attachment.setFileName(normalizeRequired(request.getFileName(), "fileName不能为空"));
+        attachment.setMimeType(mimeType);
+        attachment.setSizeBytes(request.getSizeBytes());
+        attachment.setWidth(request.getWidth());
+        attachment.setHeight(request.getHeight());
+        attachment.setDurationSeconds(request.getDurationSeconds());
+        attachment.setSortOrder(recordAttachmentMapper.countAvailableByRecordIdAndUserId(recordId, userId));
+        attachment.setStatus(RecordAttachmentStatus.AVAILABLE);
+        attachment.setCreatedAt(now);
+        attachment.setUpdatedAt(now);
+        recordAttachmentMapper.insert(attachment);
+        return toVO(attachment);
+    }
+
     private Record requireOwnedRecord(Long recordId, Long userId) {
         Record record = recordMapper.selectByIdAndUserId(recordId, userId);
         if (record == null) {
@@ -156,6 +209,17 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
 
     private String normalizeMimeType(String mimeType) {
         return mimeType == null ? "" : mimeType.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeStorageKey(String key) {
+        String normalized = key == null ? "" : key.trim();
+        if (normalized.isEmpty()) {
+            throw badRequest("key不能为空");
+        }
+        if (normalized.contains("..") || normalized.startsWith("/")) {
+            throw badRequest("附件key不合法");
+        }
+        return normalized;
     }
 
     private String extensionFor(RecordAttachmentType type, String mimeType) {
@@ -235,6 +299,45 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         return normalized.isEmpty() ? "flashback" : normalized;
     }
 
+    private void validateKeyNamespace(
+            String keyPrefix,
+            String key,
+            Long userId,
+            Long recordId,
+            RecordAttachmentType type) {
+        String typePath = type == RecordAttachmentType.IMAGE ? "image" : "voice";
+        String expectedPrefix = "%s/users/%d/records/%d/%s/".formatted(
+                normalizeKeyPrefix(keyPrefix),
+                userId,
+                recordId,
+                typePath);
+        if (!key.startsWith(expectedPrefix)) {
+            throw badRequest("附件key不属于当前记录");
+        }
+    }
+
+    private void verifyUploadedObject(String bucket, String key, Long expectedSizeBytes, String expectedMimeType) {
+        QiniuObjectMetadata metadata;
+        try {
+            metadata = qiniuStorageClient.statObject(bucket, key);
+        } catch (QiniuStorageException ex) {
+            if (ex.isNotFound()) {
+                throw badRequest("上传文件验证失败");
+            }
+            throw serviceUnavailable("对象存储暂不可用");
+        }
+        if (metadata == null || metadata.getSizeBytes() == null) {
+            throw badRequest("上传文件验证失败");
+        }
+        if (!metadata.getSizeBytes().equals(expectedSizeBytes)) {
+            throw badRequest("上传文件大小不一致");
+        }
+        String actualMimeType = normalizeMimeType(metadata.getMimeType());
+        if (!actualMimeType.isEmpty() && !actualMimeType.equals(expectedMimeType)) {
+            throw badRequest("上传文件类型不一致");
+        }
+    }
+
     private String buildUploadToken(
             AppStorageProperties.Qiniu qiniu,
             String key,
@@ -262,6 +365,32 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
 
     private String urlSafeBase64(byte[] value) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
+    }
+
+    private String normalizeRequired(String value, String message) {
+        String normalized = value == null ? null : value.trim();
+        if (normalized == null || normalized.isEmpty()) {
+            throw badRequest(message);
+        }
+        return normalized;
+    }
+
+    private RecordAttachmentVO toVO(RecordAttachment attachment) {
+        RecordAttachmentVO vo = new RecordAttachmentVO();
+        vo.setId(attachment.getId());
+        vo.setRecordId(attachment.getRecordId());
+        vo.setType(attachment.getType());
+        vo.setStatus(attachment.getStatus());
+        vo.setFileName(attachment.getFileName());
+        vo.setMimeType(attachment.getMimeType());
+        vo.setSizeBytes(attachment.getSizeBytes());
+        vo.setWidth(attachment.getWidth());
+        vo.setHeight(attachment.getHeight());
+        vo.setDurationSeconds(attachment.getDurationSeconds());
+        vo.setSortOrder(attachment.getSortOrder());
+        vo.setCreatedAt(attachment.getCreatedAt());
+        vo.setAccessUrl(null);
+        return vo;
     }
 
     private BizException badRequest(String message) {

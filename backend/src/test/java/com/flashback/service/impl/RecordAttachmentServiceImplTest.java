@@ -9,9 +9,13 @@ import com.flashback.domain.Record;
 import com.flashback.domain.RecordAttachmentType;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
+import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.mapper.RecordAttachmentMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.storage.qiniu.QiniuObjectMetadata;
+import com.flashback.storage.qiniu.QiniuStorageClient;
+import com.flashback.storage.qiniu.QiniuStorageException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +46,7 @@ class RecordAttachmentServiceImplTest {
 
     private AppStorageProperties storageProperties;
     private AppMediaProperties mediaProperties;
+    private StubQiniuStorageClient qiniuStorageClient;
     private RecordAttachmentServiceImpl service;
 
     @BeforeEach
@@ -53,11 +58,13 @@ class RecordAttachmentServiceImplTest {
         storageProperties.getQiniu().setBucket("flashback-private");
         storageProperties.getQiniu().setPrivateDomain("https://media.example.com");
         mediaProperties = new AppMediaProperties();
+        qiniuStorageClient = new StubQiniuStorageClient();
         service = new RecordAttachmentServiceImpl(
                 recordMapper,
                 recordAttachmentMapper,
                 storageProperties,
                 mediaProperties,
+                qiniuStorageClient,
                 new ObjectMapper(),
                 clock,
                 () -> UUID.fromString("11111111-1111-1111-1111-111111111111"));
@@ -181,6 +188,117 @@ class RecordAttachmentServiceImplTest {
                 .hasMessage("单条记录附件总大小不能超过300MB");
     }
 
+    @Test
+    void shouldCommitAttachmentAfterQiniuStatVerification() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
+                .thenReturn(2);
+        when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(1024L);
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserId(10L, 1L)).thenReturn(3);
+        when(recordAttachmentMapper.insert(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
+            com.flashback.domain.RecordAttachment attachment = invocation.getArgument(0);
+            attachment.setId(99L);
+            return 1;
+        });
+        QiniuObjectMetadata metadata = new QiniuObjectMetadata();
+        metadata.setSizeBytes(123456L);
+        metadata.setMimeType("image/jpeg");
+        qiniuStorageClient.metadata = metadata;
+
+        CommitRecordAttachmentRequest request = commitRequest(
+                RecordAttachmentType.IMAGE,
+                "flashback/users/1/records/10/image/11111111-1111-1111-1111-111111111111.jpg",
+                "example.jpg",
+                "image/jpeg",
+                123456L);
+        request.setWidth(1200);
+        request.setHeight(800);
+
+        var result = service.commitAttachment(1L, 10L, request);
+
+        verify(recordAttachmentMapper).insert(org.mockito.ArgumentMatchers.argThat(attachment ->
+                attachment.getRecordId().equals(10L)
+                        && attachment.getUserId().equals(1L)
+                        && attachment.getType() == RecordAttachmentType.IMAGE
+                        && attachment.getStorageProvider() == com.flashback.domain.StorageProvider.QINIU
+                        && "flashback-private".equals(attachment.getBucket())
+                        && request.getKey().equals(attachment.getStorageKey())
+                        && "image/jpeg".equals(attachment.getMimeType())
+                        && attachment.getSortOrder().equals(3)
+                        && attachment.getStatus() == com.flashback.domain.RecordAttachmentStatus.AVAILABLE));
+        assertThat(result.getId()).isEqualTo(99L);
+        assertThat(result.getRecordId()).isEqualTo(10L);
+        assertThat(result.getStatus()).isEqualTo(com.flashback.domain.RecordAttachmentStatus.AVAILABLE);
+        assertThat(result.getAccessUrl()).isNull();
+    }
+
+    @Test
+    void shouldRejectCommitWhenKeyDoesNotBelongToRecord() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
+                .thenReturn(0);
+        when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(0L);
+
+        CommitRecordAttachmentRequest request = commitRequest(
+                RecordAttachmentType.IMAGE,
+                "flashback/users/2/records/10/image/wrong.jpg",
+                "example.jpg",
+                "image/jpeg",
+                123456L);
+
+        assertThatThrownBy(() -> service.commitAttachment(1L, 10L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("附件key不属于当前记录");
+        verify(recordAttachmentMapper, never()).insert(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldRejectCommitWhenQiniuObjectMissing() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
+                .thenReturn(0);
+        when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(0L);
+        qiniuStorageClient.exception = new QiniuStorageException("missing", true);
+
+        assertThatThrownBy(() -> service.commitAttachment(
+                1L,
+                10L,
+                commitRequest(
+                        RecordAttachmentType.IMAGE,
+                        "flashback/users/1/records/10/image/missing.jpg",
+                        "example.jpg",
+                        "image/jpeg",
+                        123456L)))
+                .isInstanceOf(BizException.class)
+                .hasMessage("上传文件验证失败");
+        verify(recordAttachmentMapper, never()).insert(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldRejectCommitWhenQiniuSizeDiffers() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
+                .thenReturn(0);
+        when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(0L);
+        QiniuObjectMetadata metadata = new QiniuObjectMetadata();
+        metadata.setSizeBytes(123L);
+        metadata.setMimeType("image/jpeg");
+        qiniuStorageClient.metadata = metadata;
+
+        assertThatThrownBy(() -> service.commitAttachment(
+                1L,
+                10L,
+                commitRequest(
+                        RecordAttachmentType.IMAGE,
+                        "flashback/users/1/records/10/image/mismatch.jpg",
+                        "example.jpg",
+                        "image/jpeg",
+                        123456L)))
+                .isInstanceOf(BizException.class)
+                .hasMessage("上传文件大小不一致");
+        verify(recordAttachmentMapper, never()).insert(org.mockito.ArgumentMatchers.any());
+    }
+
     private CreateAttachmentUploadTokenRequest request(
             RecordAttachmentType type,
             String fileName,
@@ -188,6 +306,21 @@ class RecordAttachmentServiceImplTest {
             long sizeBytes) {
         CreateAttachmentUploadTokenRequest request = new CreateAttachmentUploadTokenRequest();
         request.setType(type);
+        request.setFileName(fileName);
+        request.setMimeType(mimeType);
+        request.setSizeBytes(sizeBytes);
+        return request;
+    }
+
+    private CommitRecordAttachmentRequest commitRequest(
+            RecordAttachmentType type,
+            String key,
+            String fileName,
+            String mimeType,
+            long sizeBytes) {
+        CommitRecordAttachmentRequest request = new CommitRecordAttachmentRequest();
+        request.setType(type);
+        request.setKey(key);
         request.setFileName(fileName);
         request.setMimeType(mimeType);
         request.setSizeBytes(sizeBytes);
@@ -205,5 +338,19 @@ class RecordAttachmentServiceImplTest {
         record.setCreatedAt(LocalDateTime.of(2026, 6, 18, 10, 0, 0));
         record.setUpdatedAt(LocalDateTime.of(2026, 6, 18, 10, 0, 0));
         return record;
+    }
+
+    private static class StubQiniuStorageClient implements QiniuStorageClient {
+
+        private QiniuObjectMetadata metadata;
+        private QiniuStorageException exception;
+
+        @Override
+        public QiniuObjectMetadata statObject(String bucket, String key) {
+            if (exception != null) {
+                throw exception;
+            }
+            return metadata;
+        }
     }
 }

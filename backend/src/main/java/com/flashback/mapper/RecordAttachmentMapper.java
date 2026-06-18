@@ -26,6 +26,10 @@ public interface RecordAttachmentMapper {
             @Param("userId") Long userId,
             @Param("type") RecordAttachmentType type);
 
+    int countAvailableByRecordIdAndUserId(
+            @Param("recordId") Long recordId,
+            @Param("userId") Long userId);
+
     Long sumAvailableSizeByRecordIdAndUserId(
             @Param("recordId") Long recordId,
             @Param("userId") Long userId);
