@@ -36,6 +36,22 @@ app:
       emotion: 待整理
       core-question: 暂无
       desired-outcome: 暂无
+  storage:
+    provider: ${STORAGE_PROVIDER:qiniu}
+    qiniu:
+      access-key: ${QINIU_ACCESS_KEY:}
+      secret-key: ${QINIU_SECRET_KEY:}
+      bucket: ${QINIU_BUCKET:}
+      region: ${QINIU_REGION:}
+      private-domain: ${QINIU_PRIVATE_DOMAIN:}
+      upload-token-ttl-seconds: ${QINIU_UPLOAD_TOKEN_TTL_SECONDS:600}
+      download-url-ttl-seconds: ${QINIU_DOWNLOAD_URL_TTL_SECONDS:600}
+      key-prefix: ${QINIU_KEY_PREFIX:flashback}
+  media:
+    max-image-count-per-record: 9
+    max-voice-count-per-record: 9
+    max-file-size-bytes: 41943040
+    max-total-size-bytes-per-record: 314572800
   wechat:
     mini-program:
       app-id: ${WECHAT_MINI_PROGRAM_APP_ID:}

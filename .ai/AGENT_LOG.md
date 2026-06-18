@@ -2721,3 +2721,71 @@ Remaining risks:
 - Existing deployments will need the new `record_location` schema applied before the location endpoints can work outside tests.
 - Frontend location controls and Mini Program permission/map/manual flows are still pending.
 - Location does not yet appear in list/timeline compact labels; M4 only requires full location in detail/time review, while compact labels remain optional.
+
+## 2026-06-18 - M4 backend Qiniu storage and media config boundary
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Add backend-side Qiniu storage configuration and M4 media limit configuration without implementing upload-token/stat/signed-url behavior yet.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/config/AppMediaProperties.java`
+- `backend/src/main/java/com/flashback/config/AppStorageProperties.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/test/java/com/flashback/config/AppMediaPropertiesTest.java`
+- `backend/src/test/java/com/flashback/config/AppStoragePropertiesTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added `AppStorageProperties` under `app.storage` with accepted M4 defaults:
+  - `provider=qiniu`
+  - `qiniu.access-key`
+  - `qiniu.secret-key`
+  - `qiniu.bucket`
+  - `qiniu.region`
+  - `qiniu.private-domain`
+  - `qiniu.upload-token-ttl-seconds=600`
+  - `qiniu.download-url-ttl-seconds=600`
+  - `qiniu.key-prefix=flashback`
+- Added `StorageProvider.QINIU` config-value parsing and `qiniu.isConfigured()` helper.
+- Added `AppMediaProperties` under `app.media` with accepted M4 limits:
+  - max 9 images per record
+  - max 9 voice files per record
+  - max 40 MB per file
+  - max 300 MB per record
+- Added corresponding `application.yml` environment-variable placeholders. No real Qiniu AK/SK or bucket/domain values were written to tracked files.
+- Added focused tests for storage provider defaults and media limits.
+- Marked Qiniu backend config and secret-boundary tasks complete in M4 tasks.
+
+Verification:
+
+- Passed focused backend config tests:
+  - `mvn -q "-Dtest=AppStoragePropertiesTest,AppMediaPropertiesTest,AppAiPropertiesTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result only found environment-variable placeholders and documentation/log mentions; no concrete AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+
+Skipped verification reason:
+
+- Qiniu upload token, object stat verification, object delete, and signed private download URL behavior were not tested because this step intentionally added only configuration and media-limit properties.
+- Manual WeChat Mini Program verification was not run because no frontend behavior changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend storage configuration scope and accepted `backend-contract-decisions.md`.
+- Did not implement upload-token issuance, attachment persistence, media access URL generation, cover, frontend media UI, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- The next Qiniu backend step still needs an implementation choice for token generation, object stat, delete, and private signed URL generation.
+- If an SDK is introduced later, package changes must be explicitly justified by the implementation task.
+- Real Qiniu success paths remain unverified until credentials and storage implementation are available.

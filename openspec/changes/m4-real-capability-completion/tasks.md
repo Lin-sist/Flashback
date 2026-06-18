@@ -65,8 +65,8 @@
 
 ## 4. Backend Phase: Qiniu Storage Foundation
 
-- [ ] Add backend-only Qiniu configuration for access key, secret key, bucket, domain/base URL, region/zone if needed, and URL expiry.
-- [ ] Ensure Qiniu secrets are not present in frontend code or tracked files.
+- [x] Add backend-only Qiniu configuration for access key, secret key, bucket, domain/base URL, region/zone if needed, and URL expiry.
+- [x] Ensure Qiniu secrets are not present in frontend code or tracked files.
 - [ ] Implement authenticated upload-token creation.
 - [ ] Scope upload tokens by user, record, media type, size policy, and generated/approved object key.
 - [ ] Implement backend object existence verification after upload.
