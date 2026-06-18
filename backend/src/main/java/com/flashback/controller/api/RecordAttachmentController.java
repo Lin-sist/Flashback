@@ -11,6 +11,7 @@ import com.flashback.vo.AttachmentUploadTokenVO;
 import com.flashback.vo.RecordAttachmentVO;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,5 +58,14 @@ public class RecordAttachmentController {
                 authUser.getUserId(),
                 recordId,
                 attachmentId));
+    }
+
+    @DeleteMapping("/{attachmentId}")
+    public ApiResponse<Void> deleteAttachment(
+            @CurrentUser AuthUser authUser,
+            @PathVariable("recordId") Long recordId,
+            @PathVariable("attachmentId") Long attachmentId) {
+        recordAttachmentService.deleteAttachment(authUser.getUserId(), recordId, attachmentId);
+        return ApiResponse.success(null);
     }
 }

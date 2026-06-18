@@ -44,7 +44,7 @@
 - [x] Implement accepted location API paths and DTO fields.
 - [x] Implement accepted attachment upload-token API path and request/response DTO.
 - [x] Implement accepted attachment commit/verify API path and request/response DTO.
-- [ ] Implement accepted attachment delete behavior.
+- [x] Implement accepted attachment delete behavior.
 - [x] Implement accepted media signed URL expiry policy.
 - [ ] Implement accepted cover update API path and DTO.
 - [ ] Implement accepted frontend-visible upload, verification, and media error states.
@@ -84,12 +84,12 @@
 - [x] Enforce max 9 voice files per record.
 - [x] Enforce max 40 MB per file.
 - [x] Enforce max 300 MB total attachments per record.
-- [ ] Allow attachment add/delete only for DRAFT records.
-- [ ] Reject attachment mutation for SEALED and UNLOCKED records.
+- [x] Allow attachment add/delete only for DRAFT records.
+- [x] Reject attachment mutation for SEALED and UNLOCKED records.
 - [x] Ensure attachment reads and signed URLs are owner-scoped.
-- [ ] Keep voice storage as raw voice file only; do not add transcription.
-- [ ] Update test schema consistently if schema changes.
-- [ ] Add focused backend tests for ownership, limits, draft delete, sealed/unlocked rejection, and Qiniu verification.
+- [x] Keep voice storage as raw voice file only; do not add transcription.
+- [x] Update test schema consistently if schema changes.
+- [x] Add focused backend tests for ownership, limits, draft delete, sealed/unlocked rejection, and Qiniu verification.
 
 ## 6. Backend Phase: Cover
 

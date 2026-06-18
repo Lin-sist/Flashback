@@ -205,6 +205,38 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         return vo;
     }
 
+    @Override
+    public void deleteAttachment(Long userId, Long recordId, Long attachmentId) {
+        Record record = requireOwnedRecord(recordId, userId);
+        ensureDraft(record);
+        requireQiniuConfigured();
+
+        RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
+                attachmentId,
+                recordId,
+                userId);
+        if (attachment == null || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE) {
+            throw new NotFoundException("附件不存在");
+        }
+
+        try {
+            qiniuStorageClient.deleteObject(attachment.getBucket(), attachment.getStorageKey());
+        } catch (QiniuStorageException ex) {
+            if (!ex.isNotFound()) {
+                throw serviceUnavailable("对象存储暂不可用");
+            }
+        }
+
+        int updated = recordAttachmentMapper.markDeletedByIdAndRecordIdAndUserId(
+                attachmentId,
+                recordId,
+                userId,
+                LocalDateTime.now(clock));
+        if (updated == 0) {
+            throw new NotFoundException("附件不存在");
+        }
+    }
+
     private Record requireOwnedRecord(Long recordId, Long userId) {
         Record record = recordMapper.selectByIdAndUserId(recordId, userId);
         if (record == null) {

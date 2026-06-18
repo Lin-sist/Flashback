@@ -33,4 +33,10 @@ public interface RecordAttachmentMapper {
     Long sumAvailableSizeByRecordIdAndUserId(
             @Param("recordId") Long recordId,
             @Param("userId") Long userId);
+
+    int markDeletedByIdAndRecordIdAndUserId(
+            @Param("id") Long id,
+            @Param("recordId") Long recordId,
+            @Param("userId") Long userId,
+            @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }

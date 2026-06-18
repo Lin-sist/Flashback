@@ -3027,3 +3027,79 @@ Remaining risks:
 - The Qiniu private URL algorithm is covered by deterministic unit tests, but still needs real private-bucket verification with actual credentials.
 - Signed URLs are intentionally short-lived; frontend callers must refresh them for long preview/playback sessions.
 - Attachment delete and cover clearing behavior are still pending, so end-to-end media lifecycle remains incomplete.
+
+## 2026-06-18 11:28 M4 attachment delete endpoint
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Implement accepted draft-only attachment delete behavior with remote Qiniu delete before local metadata removal.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/controller/api/RecordAttachmentController.java`
+- `backend/src/main/java/com/flashback/mapper/RecordAttachmentMapper.java`
+- `backend/src/main/java/com/flashback/service/RecordAttachmentService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordAttachmentServiceImpl.java`
+- `backend/src/main/java/com/flashback/storage/qiniu/QiniuHttpStorageClient.java`
+- `backend/src/main/java/com/flashback/storage/qiniu/QiniuStorageClient.java`
+- `backend/src/main/resources/mapper/RecordAttachmentMapper.xml`
+- `backend/src/test/java/com/flashback/controller/api/RecordAttachmentControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordAttachmentMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordAttachmentServiceImplTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added `DELETE /api/records/{recordId}/attachments/{attachmentId}`.
+- Added `RecordAttachmentService.deleteAttachment`.
+- Enforced owner-scoped record lookup and DRAFT-only deletion.
+- Looked up attachment by attachment id, record id, and user id; missing, cross-owner, or non-AVAILABLE attachments return safe not-found.
+- Added `QiniuStorageClient.deleteObject` and HTTP implementation using Qiniu management delete API.
+- Deletes remote Qiniu object before local metadata changes.
+- Treats Qiniu object-not-found as safe cleanup and marks local metadata `DELETED`.
+- Returns service unavailable and keeps metadata unchanged when Qiniu delete fails for other reasons.
+- Added mapper update `markDeletedByIdAndRecordIdAndUserId`, scoped to `AVAILABLE` attachments only.
+- Updated M4 task checkboxes for attachment delete, DRAFT-only mutation, SEALED/UNLOCKED rejection, raw voice storage boundary, schema consistency, and focused backend tests.
+
+Verification:
+
+- Passed focused backend tests:
+  - `mvn -q "-Dtest=RecordAttachmentServiceImplTest,RecordAttachmentControllerAuthIntegrationTest,RecordAttachmentMapperIntegrationTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Focused tests cover:
+  - draft delete after successful Qiniu delete
+  - local metadata cleanup when Qiniu object is already missing
+  - Qiniu delete failure preserving metadata
+  - SEALED and UNLOCKED records rejecting attachment delete
+  - authenticated controller DELETE route
+  - mapper `AVAILABLE -> DELETED` update excluding deleted rows from count/select/sum helpers
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result found only environment-variable placeholders, documentation/log mentions, and dummy test values `test-ak` / `test-sk`; no concrete real AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+- `git diff --check` passed outside the sandbox; the sandbox still cannot read the user git ignore file because of Windows ACLs.
+- `git diff --stat` before staging showed:
+  - 11 files changed, 231 insertions, 8 deletions.
+
+Skipped verification reason:
+
+- Real Qiniu delete success and object-not-found behavior were not verified because no backend-side Qiniu credentials are available in tracked config, and secrets must not be committed.
+- Current-cover clearing on attachment delete is deferred to the pending cover model/API step; there is not yet a persisted cover reference in this codebase.
+- Frontend image/voice delete, preview, and playback behavior remain pending M4 frontend tasks.
+- Manual WeChat Mini Program verification was not run because no frontend media flow changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend attachment delete scope and accepted `backend-contract-decisions.md`.
+- Did not implement frontend media UI, cover API/model, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Qiniu delete is covered by unit tests around client behavior and service error handling, but real private bucket credentials are still required for integration verification.
+- Cover clearing after deleting the current cover image remains pending until the cover reference is implemented.
+- Concurrent delete/access requests may race around short-lived signed URLs; frontend should handle media 403/expired/not-found by refreshing or removing stale media state.

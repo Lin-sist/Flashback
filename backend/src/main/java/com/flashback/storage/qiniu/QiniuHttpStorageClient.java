@@ -46,8 +46,7 @@ public class QiniuHttpStorageClient implements QiniuStorageClient {
     @Override
     public QiniuObjectMetadata statObject(String bucket, String key) {
         AppStorageProperties.Qiniu qiniu = appStorageProperties.getQiniu();
-        String encodedEntryUri = urlSafeBase64((bucket + ":" + key).getBytes(StandardCharsets.UTF_8));
-        String path = "/stat/" + encodedEntryUri;
+        String path = "/stat/" + encodedEntryUri(bucket, key);
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(RS_HOST + path))
@@ -81,6 +80,38 @@ public class QiniuHttpStorageClient implements QiniuStorageClient {
             Thread.currentThread().interrupt();
             throw new QiniuStorageException("qiniu stat interrupted", ex);
         }
+    }
+
+    @Override
+    public void deleteObject(String bucket, String key) {
+        AppStorageProperties.Qiniu qiniu = appStorageProperties.getQiniu();
+        String path = "/delete/" + encodedEntryUri(bucket, key);
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(RS_HOST + path))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Authorization", "QBox " + managementToken(qiniu, path))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 612) {
+                throw new QiniuStorageException("qiniu object not found", true);
+            }
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new QiniuStorageException("qiniu delete failed: HTTP " + response.statusCode());
+            }
+        } catch (QiniuStorageException ex) {
+            throw ex;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new QiniuStorageException("qiniu delete interrupted", ex);
+        } catch (IOException ex) {
+            throw new QiniuStorageException("qiniu delete failed", ex);
+        }
+    }
+
+    private String encodedEntryUri(String bucket, String key) {
+        return urlSafeBase64((bucket + ":" + key).getBytes(StandardCharsets.UTF_8));
     }
 
     private String managementToken(AppStorageProperties.Qiniu qiniu, String path) {

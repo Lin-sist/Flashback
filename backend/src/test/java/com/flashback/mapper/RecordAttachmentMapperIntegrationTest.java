@@ -66,6 +66,20 @@ class RecordAttachmentMapperIntegrationTest {
         assertThat(selected).isNotNull();
         assertThat(selected.getMimeType()).isEqualTo("image/jpeg");
         assertThat(crossUser).isNull();
+
+        int updated = recordAttachmentMapper.markDeletedByIdAndRecordIdAndUserId(
+                first.getId(),
+                mine.getId(),
+                1201L,
+                LocalDateTime.of(2026, 6, 18, 12, 0, 0));
+        List<RecordAttachment> afterDelete = recordAttachmentMapper.selectAvailableByRecordIdAndUserId(
+                mine.getId(),
+                1201L);
+
+        assertThat(updated).isEqualTo(1);
+        assertThat(afterDelete).extracting(RecordAttachment::getStorageKey).containsExactly("b.mp3");
+        assertThat(recordAttachmentMapper.countAvailableByRecordIdAndUserId(mine.getId(), 1201L)).isEqualTo(1);
+        assertThat(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(mine.getId(), 1201L)).isEqualTo(200L);
     }
 
     private RecordAttachment attachment(

@@ -19,4 +19,6 @@ public interface RecordAttachmentService {
             CommitRecordAttachmentRequest request);
 
     AttachmentAccessUrlVO createAccessUrl(Long userId, Long recordId, Long attachmentId);
+
+    void deleteAttachment(Long userId, Long recordId, Long attachmentId);
 }

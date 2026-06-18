@@ -325,6 +325,94 @@ class RecordAttachmentServiceImplTest {
                 .hasMessage("附件不存在");
     }
 
+    @Test
+    void shouldDeleteDraftAttachmentAfterQiniuDeleteSucceeds() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L))
+                .thenReturn(attachment(99L, 10L, 1L, "flashback/users/1/records/10/image/a.jpg"));
+        when(recordAttachmentMapper.markDeletedByIdAndRecordIdAndUserId(
+                99L,
+                10L,
+                1L,
+                LocalDateTime.of(2026, 6, 18, 10, 0, 0))).thenReturn(1);
+
+        service.deleteAttachment(1L, 10L, 99L);
+
+        assertThat(qiniuStorageClient.deletedBucket).isEqualTo("flashback-private");
+        assertThat(qiniuStorageClient.deletedKey).isEqualTo("flashback/users/1/records/10/image/a.jpg");
+        verify(recordAttachmentMapper).markDeletedByIdAndRecordIdAndUserId(
+                99L,
+                10L,
+                1L,
+                LocalDateTime.of(2026, 6, 18, 10, 0, 0));
+    }
+
+    @Test
+    void shouldDeleteLocalMetadataWhenQiniuObjectAlreadyMissing() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L))
+                .thenReturn(attachment(99L, 10L, 1L, "flashback/users/1/records/10/image/missing.jpg"));
+        when(recordAttachmentMapper.markDeletedByIdAndRecordIdAndUserId(
+                99L,
+                10L,
+                1L,
+                LocalDateTime.of(2026, 6, 18, 10, 0, 0))).thenReturn(1);
+        qiniuStorageClient.deleteException = new QiniuStorageException("missing", true);
+
+        service.deleteAttachment(1L, 10L, 99L);
+
+        verify(recordAttachmentMapper).markDeletedByIdAndRecordIdAndUserId(
+                99L,
+                10L,
+                1L,
+                LocalDateTime.of(2026, 6, 18, 10, 0, 0));
+    }
+
+    @Test
+    void shouldRejectDeleteWhenRecordIsNotDraft() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.SEALED));
+
+        assertThatThrownBy(() -> service.deleteAttachment(1L, 10L, 99L))
+                .isInstanceOf(BizException.class)
+                .hasMessage("记录已封存，不能修改附件");
+        verify(recordAttachmentMapper, never()).selectByIdAndRecordIdAndUserId(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldRejectDeleteWhenRecordIsUnlocked() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.UNLOCKED));
+
+        assertThatThrownBy(() -> service.deleteAttachment(1L, 10L, 99L))
+                .isInstanceOf(BizException.class)
+                .hasMessage("记录已封存，不能修改附件");
+        verify(recordAttachmentMapper, never()).selectByIdAndRecordIdAndUserId(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldKeepMetadataWhenQiniuDeleteFails() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L))
+                .thenReturn(attachment(99L, 10L, 1L, "flashback/users/1/records/10/image/a.jpg"));
+        qiniuStorageClient.deleteException = new QiniuStorageException("unavailable");
+
+        assertThatThrownBy(() -> service.deleteAttachment(1L, 10L, 99L))
+                .isInstanceOfSatisfying(BizException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                    assertThat(ex.getMessage()).isEqualTo("对象存储暂不可用");
+                });
+        verify(recordAttachmentMapper, never()).markDeletedByIdAndRecordIdAndUserId(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
     private CreateAttachmentUploadTokenRequest request(
             RecordAttachmentType type,
             String fileName,
@@ -373,6 +461,7 @@ class RecordAttachmentServiceImplTest {
         attachment.setUserId(userId);
         attachment.setType(RecordAttachmentType.IMAGE);
         attachment.setStatus(RecordAttachmentStatus.AVAILABLE);
+        attachment.setBucket("flashback-private");
         attachment.setStorageKey(key);
         return attachment;
     }
@@ -381,6 +470,9 @@ class RecordAttachmentServiceImplTest {
 
         private QiniuObjectMetadata metadata;
         private QiniuStorageException exception;
+        private QiniuStorageException deleteException;
+        private String deletedBucket;
+        private String deletedKey;
 
         @Override
         public QiniuObjectMetadata statObject(String bucket, String key) {
@@ -388,6 +480,15 @@ class RecordAttachmentServiceImplTest {
                 throw exception;
             }
             return metadata;
+        }
+
+        @Override
+        public void deleteObject(String bucket, String key) {
+            deletedBucket = bucket;
+            deletedKey = key;
+            if (deleteException != null) {
+                throw deleteException;
+            }
         }
     }
 }

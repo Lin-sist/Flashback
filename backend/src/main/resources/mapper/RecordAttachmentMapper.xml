@@ -126,4 +126,14 @@
           AND user_id = #{userId}
           AND status = 'AVAILABLE'
     </select>
+
+    <update id="markDeletedByIdAndRecordIdAndUserId">
+        UPDATE record_attachment
+        SET status = 'DELETED',
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND record_id = #{recordId}
+          AND user_id = #{userId}
+          AND status = 'AVAILABLE'
+    </update>
 </mapper>
