@@ -41,7 +41,7 @@
 - [x] Use `backend-contract-decisions.md` accepted defaults unless the user changes them.
 - [x] Implement accepted AI provider configuration keys, provider enum values, and model selection behavior.
 - [x] Implement the accepted single OpenAI-compatible adapter strategy.
-- [ ] Implement accepted location API paths and DTO fields.
+- [x] Implement accepted location API paths and DTO fields.
 - [ ] Implement accepted attachment upload-token API path and request/response DTO.
 - [ ] Implement accepted attachment commit/verify API path and request/response DTO.
 - [ ] Implement accepted attachment delete behavior.
@@ -107,16 +107,16 @@
 
 ## 7. Backend Phase: Location
 
-- [ ] Add persistence for record location using separate table/model or equivalent.
-- [ ] Support source values `CURRENT_LOCATION`, `MAP_PICKER`, and `MANUAL`.
-- [ ] Support location name/address fields.
-- [ ] Support latitude/longitude for current location and map picker where available.
-- [ ] Allow manual input without coordinates.
-- [ ] Allow location create/update/delete only for DRAFT records.
-- [ ] Reject location mutation for SEALED and UNLOCKED records.
-- [ ] Ensure location reads are owner-scoped.
-- [ ] Include location in unlocked detail/time review response.
-- [ ] Add focused backend tests for source validation, ownership, draft mutation, sealed/unlocked rejection, and unlocked detail display.
+- [x] Add persistence for record location using separate table/model or equivalent.
+- [x] Support source values `CURRENT_LOCATION`, `MAP_PICKER`, and `MANUAL`.
+- [x] Support location name/address fields.
+- [x] Support latitude/longitude for current location and map picker where available.
+- [x] Allow manual input without coordinates.
+- [x] Allow location create/update/delete only for DRAFT records.
+- [x] Reject location mutation for SEALED and UNLOCKED records.
+- [x] Ensure location reads are owner-scoped.
+- [x] Include location in unlocked detail/time review response.
+- [x] Add focused backend tests for source validation, ownership, draft mutation, sealed/unlocked rejection, and unlocked detail display.
 
 ## 8. Frontend Phase: Real AI Connection
 

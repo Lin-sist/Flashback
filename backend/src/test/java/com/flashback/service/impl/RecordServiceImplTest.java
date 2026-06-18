@@ -6,6 +6,8 @@ import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordLocation;
+import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.RecordReminder;
 import com.flashback.domain.RecordReminderStatus;
 import com.flashback.domain.RecordStatus;
@@ -14,8 +16,10 @@ import com.flashback.domain.User;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
+import com.flashback.dto.UpdateRecordLocationRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
+import com.flashback.mapper.RecordLocationMapper;
 import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
@@ -34,6 +38,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,6 +74,9 @@ class RecordServiceImplTest {
     private RecordTagMapper recordTagMapper;
 
     @Mock
+    private RecordLocationMapper recordLocationMapper;
+
+    @Mock
     private ReplyMapper replyMapper;
 
     @Mock
@@ -86,6 +94,7 @@ class RecordServiceImplTest {
                 recordMapper,
                 tagMapper,
                 recordTagMapper,
+                recordLocationMapper,
                 replyMapper,
                 unlockNoticeLogMapper,
                 recordReminderMapper,
@@ -142,6 +151,89 @@ class RecordServiceImplTest {
         recordService.delete(1L, 101L);
 
         verify(recordTagMapper).deleteByRecordId(101L);
+    }
+
+    @Test
+    void shouldSaveManualLocationForDraftRecord() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        RecordLocation saved = new RecordLocation();
+        saved.setSource(RecordLocationSource.MANUAL);
+        saved.setName("人民公园");
+        saved.setAddress("上海市黄浦区南京西路");
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
+        when(recordLocationMapper.selectByRecordIdAndUserId(100L, 1L)).thenReturn(saved);
+
+        UpdateRecordLocationRequest request = new UpdateRecordLocationRequest();
+        request.setSource(RecordLocationSource.MANUAL);
+        request.setName(" 人民公园 ");
+        request.setAddress(" 上海市黄浦区南京西路 ");
+
+        var result = recordService.updateLocation(1L, 100L, request);
+
+        verify(recordLocationMapper).upsert(org.mockito.ArgumentMatchers.argThat(location ->
+                location.getRecordId().equals(100L)
+                        && location.getUserId().equals(1L)
+                        && location.getSource() == RecordLocationSource.MANUAL
+                        && "人民公园".equals(location.getName())
+                        && "上海市黄浦区南京西路".equals(location.getAddress())));
+        assertThat(result.getLocation()).isNotNull();
+        assertThat(result.getLocation().getSource()).isEqualTo(RecordLocationSource.MANUAL);
+        assertThat(result.getLocation().getName()).isEqualTo("人民公园");
+    }
+
+    @Test
+    void shouldRejectMapPickerLocationWithoutCoordinates() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft);
+
+        UpdateRecordLocationRequest request = new UpdateRecordLocationRequest();
+        request.setSource(RecordLocationSource.MAP_PICKER);
+        request.setName("人民公园");
+
+        assertThatThrownBy(() -> recordService.updateLocation(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("CURRENT_LOCATION和MAP_PICKER位置必须包含latitude和longitude");
+        verify(recordLocationMapper, never()).upsert(any());
+    }
+
+    @Test
+    void shouldRejectManualLocationWithoutNameOrAddress() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft);
+
+        UpdateRecordLocationRequest request = new UpdateRecordLocationRequest();
+        request.setSource(RecordLocationSource.MANUAL);
+
+        assertThatThrownBy(() -> recordService.updateLocation(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("MANUAL位置必须填写name或address");
+        verify(recordLocationMapper, never()).upsert(any());
+    }
+
+    @Test
+    void shouldRejectLocationMutationWhenRecordIsSealed() {
+        Record sealed = mockRecord(RecordStatus.SEALED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(sealed);
+
+        UpdateRecordLocationRequest request = new UpdateRecordLocationRequest();
+        request.setSource(RecordLocationSource.CURRENT_LOCATION);
+        request.setLatitude(BigDecimal.valueOf(31.2317));
+        request.setLongitude(BigDecimal.valueOf(121.4746));
+
+        assertThatThrownBy(() -> recordService.updateLocation(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("仅DRAFT状态允许编辑位置");
+        verify(recordLocationMapper, never()).upsert(any());
+    }
+
+    @Test
+    void shouldDeleteLocationForDraftRecord() {
+        Record draft = mockRecord(RecordStatus.DRAFT);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
+
+        recordService.deleteLocation(1L, 100L);
+
+        verify(recordLocationMapper).deleteByRecordIdAndUserId(100L, 1L);
     }
 
     @Test

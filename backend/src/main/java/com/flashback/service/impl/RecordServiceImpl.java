@@ -10,6 +10,8 @@ import com.flashback.common.page.PageResult;
 import com.flashback.config.AppWechatProperties;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordLocation;
+import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.RecordReminder;
 import com.flashback.domain.RecordReminderStatus;
 import com.flashback.domain.RecordTagName;
@@ -22,8 +24,10 @@ import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
+import com.flashback.dto.UpdateRecordLocationRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
+import com.flashback.mapper.RecordLocationMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.mapper.RecordMapper;
 import com.flashback.mapper.ReplyMapper;
@@ -34,6 +38,7 @@ import com.flashback.service.RecordService;
 import com.flashback.wechat.WechatSubscribeMessageClient;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
+import com.flashback.vo.RecordLocationVO;
 import com.flashback.vo.RecordTagVO;
 import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
@@ -41,6 +46,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
@@ -72,6 +78,7 @@ public class RecordServiceImpl implements RecordService {
     private final RecordMapper recordMapper;
     private final TagMapper tagMapper;
     private final RecordTagMapper recordTagMapper;
+    private final RecordLocationMapper recordLocationMapper;
     private final ReplyMapper replyMapper;
     private final UnlockNoticeLogMapper unlockNoticeLogMapper;
     private final RecordReminderMapper recordReminderMapper;
@@ -85,6 +92,7 @@ public class RecordServiceImpl implements RecordService {
             RecordMapper recordMapper,
             TagMapper tagMapper,
             RecordTagMapper recordTagMapper,
+            RecordLocationMapper recordLocationMapper,
             ReplyMapper replyMapper,
             UnlockNoticeLogMapper unlockNoticeLogMapper,
             RecordReminderMapper recordReminderMapper,
@@ -96,6 +104,7 @@ public class RecordServiceImpl implements RecordService {
         this.recordMapper = recordMapper;
         this.tagMapper = tagMapper;
         this.recordTagMapper = recordTagMapper;
+        this.recordLocationMapper = recordLocationMapper;
         this.replyMapper = replyMapper;
         this.unlockNoticeLogMapper = unlockNoticeLogMapper;
         this.recordReminderMapper = recordReminderMapper;
@@ -179,6 +188,39 @@ public class RecordServiceImpl implements RecordService {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
         recordTagMapper.deleteByRecordId(id);
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO updateLocation(Long userId, Long id, UpdateRecordLocationRequest request) {
+        Record current = requireOwnedRecord(id, userId);
+        ensureDraft(current, "仅DRAFT状态允许编辑位置");
+        validateLocation(request);
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        RecordLocation location = new RecordLocation();
+        location.setRecordId(id);
+        location.setUserId(userId);
+        location.setSource(request.getSource());
+        location.setName(normalizeOptional(request.getName()));
+        location.setAddress(normalizeOptional(request.getAddress()));
+        location.setLatitude(request.getLatitude());
+        location.setLongitude(request.getLongitude());
+        location.setCreatedAt(now);
+        location.setUpdatedAt(now);
+        recordLocationMapper.upsert(location);
+
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO deleteLocation(Long userId, Long id) {
+        Record current = requireOwnedRecord(id, userId);
+        ensureDraft(current, "仅DRAFT状态允许删除位置");
+
+        recordLocationMapper.deleteByRecordIdAndUserId(id, userId);
+        return toDetailVO(requireOwnedRecord(id, userId));
     }
 
     @Override
@@ -392,6 +434,36 @@ public class RecordServiceImpl implements RecordService {
 
     private BizException badRequest(String message) {
         return new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, message);
+    }
+
+    private void validateLocation(UpdateRecordLocationRequest request) {
+        if (request.getSource() == RecordLocationSource.CURRENT_LOCATION
+                || request.getSource() == RecordLocationSource.MAP_PICKER) {
+            if (request.getLatitude() == null || request.getLongitude() == null) {
+                throw badRequest("CURRENT_LOCATION和MAP_PICKER位置必须包含latitude和longitude");
+            }
+            validateCoordinate(request.getLatitude(), BigDecimal.valueOf(-90), BigDecimal.valueOf(90), "latitude");
+            validateCoordinate(request.getLongitude(), BigDecimal.valueOf(-180), BigDecimal.valueOf(180), "longitude");
+            return;
+        }
+
+        String name = normalizeOptional(request.getName());
+        String address = normalizeOptional(request.getAddress());
+        if (name == null && address == null) {
+            throw badRequest("MANUAL位置必须填写name或address");
+        }
+        if (request.getLatitude() != null) {
+            validateCoordinate(request.getLatitude(), BigDecimal.valueOf(-90), BigDecimal.valueOf(90), "latitude");
+        }
+        if (request.getLongitude() != null) {
+            validateCoordinate(request.getLongitude(), BigDecimal.valueOf(-180), BigDecimal.valueOf(180), "longitude");
+        }
+    }
+
+    private void validateCoordinate(BigDecimal value, BigDecimal min, BigDecimal max, String fieldName) {
+        if (value.compareTo(min) < 0 || value.compareTo(max) > 0) {
+            throw badRequest(fieldName + "超出有效范围");
+        }
     }
 
     private String validateLifeNodeCustomLabel(LifeNodeType lifeNodeType, String customLabel) {
@@ -622,6 +694,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setLifeNodeType(record.getLifeNodeType());
         vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
         vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
+        vo.setLocation(toLocationVO(recordLocationMapper.selectByRecordIdAndUserId(record.getId(), record.getUserId())));
         vo.setUnlockReminderStatus(resolveUnlockReminderStatus(record.getId()));
         vo.setTags(loadRecordTags(record.getId()));
         boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
@@ -630,6 +703,19 @@ public class RecordServiceImpl implements RecordService {
         vo.setCanReply(record.getStatus() == RecordStatus.UNLOCKED && !hasReply);
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
+        return vo;
+    }
+
+    private RecordLocationVO toLocationVO(RecordLocation location) {
+        if (location == null) {
+            return null;
+        }
+        RecordLocationVO vo = new RecordLocationVO();
+        vo.setSource(location.getSource());
+        vo.setName(location.getName());
+        vo.setAddress(location.getAddress());
+        vo.setLatitude(location.getLatitude());
+        vo.setLongitude(location.getLongitude());
         return vo;
     }
 

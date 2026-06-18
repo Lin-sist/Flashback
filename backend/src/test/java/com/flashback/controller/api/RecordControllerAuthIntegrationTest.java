@@ -1,6 +1,7 @@
 package com.flashback.controller.api;
 
 import com.flashback.common.page.PageResult;
+import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import com.flashback.domain.User;
@@ -14,6 +15,7 @@ import com.flashback.security.jwt.JwtTokenProvider;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
+import com.flashback.vo.RecordLocationVO;
 import com.flashback.vo.RecordTagVO;
 import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
@@ -32,7 +34,9 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -252,6 +256,53 @@ class RecordControllerAuthIntegrationTest {
                                 .andExpect(jsonPath("$.data.canReply").value(true))
                                 .andExpect(jsonPath("$.data.hasReply").value(false))
                                 .andExpect(jsonPath("$.data.tags[0].name").value("焦虑"));
+        }
+
+        @Test
+        void shouldUpdateRecordLocationWhenAuthorized() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+                RecordDetailVO detail = mockDetail();
+                RecordLocationVO location = new RecordLocationVO();
+                location.setSource(RecordLocationSource.MAP_PICKER);
+                location.setName("人民公园");
+                location.setAddress("上海市黄浦区南京西路");
+                detail.setLocation(location);
+                when(recordService.updateLocation(org.mockito.ArgumentMatchers.eq(5001L),
+                                org.mockito.ArgumentMatchers.eq(9001L),
+                                org.mockito.ArgumentMatchers.any()))
+                                .thenReturn(detail);
+
+                mockMvc.perform(put("/api/records/9001/location")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType("application/json")
+                                .content("""
+                                                {
+                                                  "source": "MAP_PICKER",
+                                                  "name": "人民公园",
+                                                  "address": "上海市黄浦区南京西路",
+                                                  "latitude": 31.2317,
+                                                  "longitude": 121.4746
+                                                }
+                                                """))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(0))
+                                .andExpect(jsonPath("$.data.location.source").value("MAP_PICKER"))
+                                .andExpect(jsonPath("$.data.location.name").value("人民公园"));
+        }
+
+        @Test
+        void shouldDeleteRecordLocationWhenAuthorized() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+                when(recordService.deleteLocation(5001L, 9001L)).thenReturn(mockDetail());
+
+                mockMvc.perform(delete("/api/records/9001/location")
+                                .header("Authorization", "Bearer " + token))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(0));
+
+                verify(recordService).deleteLocation(5001L, 9001L);
         }
 
         @Test

@@ -6,6 +6,7 @@ import com.flashback.dto.CreateRecordRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
+import com.flashback.dto.UpdateRecordLocationRequest;
 import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.security.auth.AuthUser;
@@ -60,6 +61,19 @@ public class RecordController {
     public ApiResponse<Void> delete(@CurrentUser AuthUser authUser, @PathVariable("id") Long id) {
         recordService.delete(authUser.getUserId(), id);
         return ApiResponse.success(null);
+    }
+
+    @PutMapping("/{id}/location")
+    public ApiResponse<RecordDetailVO> updateLocation(
+            @CurrentUser AuthUser authUser,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody UpdateRecordLocationRequest request) {
+        return ApiResponse.success(recordService.updateLocation(authUser.getUserId(), id, request));
+    }
+
+    @DeleteMapping("/{id}/location")
+    public ApiResponse<RecordDetailVO> deleteLocation(@CurrentUser AuthUser authUser, @PathVariable("id") Long id) {
+        return ApiResponse.success(recordService.deleteLocation(authUser.getUserId(), id));
     }
 
     @PostMapping("/{id}/seal")

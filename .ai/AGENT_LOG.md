@@ -2640,3 +2640,84 @@ Remaining risks:
 - M4 implementation must still begin with code-level fact finding before edits.
 - Provider/storage implementation details should be rechecked against official DeepSeek and Qiniu docs immediately before coding.
 - The accepted contracts are now binding for M4 unless future code facts require an explicit OpenSpec update.
+
+## 2026-06-18 - M4 backend record location API implementation
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Implement the accepted record location backend contract:
+  - `PUT /api/records/{recordId}/location`
+  - `DELETE /api/records/{recordId}/location`
+  - `RecordDetailVO.location`
+  - separate `record_location` persistence.
+
+Modified files:
+
+- `backend/sql/mysql/schema.mysql.sql`
+- `backend/src/main/java/com/flashback/controller/api/RecordController.java`
+- `backend/src/main/java/com/flashback/domain/RecordLocation.java`
+- `backend/src/main/java/com/flashback/domain/RecordLocationSource.java`
+- `backend/src/main/java/com/flashback/dto/UpdateRecordLocationRequest.java`
+- `backend/src/main/java/com/flashback/mapper/RecordLocationMapper.java`
+- `backend/src/main/java/com/flashback/service/RecordService.java`
+- `backend/src/main/java/com/flashback/service/impl/RecordServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/RecordDetailVO.java`
+- `backend/src/main/java/com/flashback/vo/RecordLocationVO.java`
+- `backend/src/main/resources/mapper/RecordLocationMapper.xml`
+- `backend/src/test/java/com/flashback/controller/api/RecordControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/mapper/RecordMapperIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/RecordServiceImplTest.java`
+- `backend/src/test/resources/schema.sql`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- Added `record_location` as a separate record-owned and user-owned persistence model in both MySQL schema and test schema.
+- Added `RecordLocationSource` with accepted M4 values `CURRENT_LOCATION`, `MAP_PICKER`, and `MANUAL`.
+- Added `UpdateRecordLocationRequest` and `RecordLocationVO` matching the accepted M4 location DTO shape.
+- Added `RecordLocationMapper` and XML mapper for owner-scoped select, upsert, and delete.
+- Added `PUT /api/records/{id}/location` and `DELETE /api/records/{id}/location` to `RecordController`.
+- Added `RecordService.updateLocation` and `RecordService.deleteLocation`.
+- Enforced draft-only location create/update/delete; SEALED and UNLOCKED records are rejected through existing lifecycle checks.
+- Enforced location validation:
+  - `CURRENT_LOCATION` and `MAP_PICKER` require latitude and longitude.
+  - `MANUAL` requires at least one of name or address.
+  - Manual location may omit coordinates.
+  - Coordinate ranges are validated when coordinates are supplied.
+- Added `location` to `RecordDetailVO`, loaded through owner-scoped `recordLocationMapper.selectByRecordIdAndUserId`.
+- Marked completed M4 location backend tasks in `tasks.md`.
+
+Verification:
+
+- Passed focused backend tests:
+  - `mvn -q "-Dtest=RecordServiceImplTest,RecordControllerAuthIntegrationTest,RecordMapperIntegrationTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Focused tests cover:
+  - manual location save for draft records
+  - map-picker coordinate validation
+  - manual location name/address validation
+  - sealed-record mutation rejection
+  - draft location delete
+  - controller authenticated update/delete paths
+  - mapper owner-scoped select, upsert, and delete behavior
+
+Skipped verification reason:
+
+- Manual WeChat Mini Program verification was not run because this step only implemented backend location endpoints and persistence; frontend location controls are still pending in M4 tasks.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend location scope and accepted `backend-contract-decisions.md`.
+- Did not implement Qiniu, attachments, cover, frontend media/location UI, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Existing deployments will need the new `record_location` schema applied before the location endpoints can work outside tests.
+- Frontend location controls and Mini Program permission/map/manual flows are still pending.
+- Location does not yet appear in list/timeline compact labels; M4 only requires full location in detail/time review, while compact labels remain optional.

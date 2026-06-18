@@ -44,6 +44,26 @@ CREATE TABLE `record` (
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `record_location` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `source` VARCHAR(30) NOT NULL,
+  `name` VARCHAR(100) DEFAULT NULL,
+  `address` VARCHAR(255) DEFAULT NULL,
+  `latitude` DECIMAL(10,7) DEFAULT NULL,
+  `longitude` DECIMAL(10,7) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_location_record` (`record_id`),
+  KEY `idx_record_location_user_id` (`user_id`),
+  CONSTRAINT `fk_record_location_record_id`
+    FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_record_location_user_id`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `tag` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(50) NOT NULL,

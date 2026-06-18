@@ -30,6 +30,7 @@ public class RecordDetailVO {
     private LifeNodeType lifeNodeType;
     private String lifeNodeCustomLabel;
     private String lifeNodeLabel;
+    private RecordLocationVO location;
     private RecordReminderStatus unlockReminderStatus;
     private List<RecordTagVO> tags;
     private Boolean canReply;
@@ -171,6 +172,14 @@ public class RecordDetailVO {
 
     public void setLifeNodeLabel(String lifeNodeLabel) {
         this.lifeNodeLabel = lifeNodeLabel;
+    }
+
+    public RecordLocationVO getLocation() {
+        return location;
+    }
+
+    public void setLocation(RecordLocationVO location) {
+        this.location = location;
     }
 
     public RecordReminderStatus getUnlockReminderStatus() {

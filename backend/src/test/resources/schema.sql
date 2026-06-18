@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `unlock_notice_log`;
 DROP TABLE IF EXISTS `record_reminder`;
 DROP TABLE IF EXISTS `reply`;
 DROP TABLE IF EXISTS `record_tag`;
+DROP TABLE IF EXISTS `record_location`;
 DROP TABLE IF EXISTS `tag`;
 DROP TABLE IF EXISTS `record`;
 DROP TABLE IF EXISTS `user`;
@@ -49,6 +50,24 @@ CREATE TABLE `record` (
   KEY `idx_record_user_status_created` (`user_id`, `status`, `created_at`),
   KEY `idx_record_status_unlock_at` (`status`, `unlock_at`),
   CONSTRAINT `fk_record_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `record_location` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `record_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `source` VARCHAR(30) NOT NULL,
+  `name` VARCHAR(100) DEFAULT NULL,
+  `address` VARCHAR(255) DEFAULT NULL,
+  `latitude` DECIMAL(10,7) DEFAULT NULL,
+  `longitude` DECIMAL(10,7) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_location_record` (`record_id`),
+  KEY `idx_record_location_user_id` (`user_id`),
+  CONSTRAINT `fk_record_location_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_record_location_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `tag` (

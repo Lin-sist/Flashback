@@ -1,6 +1,8 @@
 package com.flashback.mapper;
 
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordLocation;
+import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
@@ -12,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +26,9 @@ class RecordMapperIntegrationTest {
 
         @Autowired
         private RecordMapper recordMapper;
+
+        @Autowired
+        private RecordLocationMapper recordLocationMapper;
 
         @Autowired
         private JdbcTemplate jdbcTemplate;
@@ -45,6 +51,51 @@ class RecordMapperIntegrationTest {
 
                 Record notFound = recordMapper.selectByIdAndUserId(draft.getId(), 9999L);
                 assertThat(notFound).isNull();
+        }
+
+        @Test
+        void recordLocationMapperShouldUpsertSelectAndDeleteByOwnerScope() {
+                Record draft = newRecord(1101L, "location-draft", RecordStatus.DRAFT, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 2, 1, 10, 0, 0));
+                recordMapper.insert(draft);
+
+                RecordLocation location = new RecordLocation();
+                location.setRecordId(draft.getId());
+                location.setUserId(1101L);
+                location.setSource(RecordLocationSource.MAP_PICKER);
+                location.setName("人民公园");
+                location.setAddress("上海市黄浦区南京西路");
+                location.setLatitude(BigDecimal.valueOf(31.2317));
+                location.setLongitude(BigDecimal.valueOf(121.4746));
+                location.setCreatedAt(LocalDateTime.of(2026, 2, 1, 10, 1, 0));
+                location.setUpdatedAt(LocalDateTime.of(2026, 2, 1, 10, 1, 0));
+
+                int inserted = recordLocationMapper.upsert(location);
+                RecordLocation found = recordLocationMapper.selectByRecordIdAndUserId(draft.getId(), 1101L);
+                RecordLocation otherUser = recordLocationMapper.selectByRecordIdAndUserId(draft.getId(), 9901L);
+
+                location.setSource(RecordLocationSource.MANUAL);
+                location.setName("手动地点");
+                location.setAddress(null);
+                location.setLatitude(null);
+                location.setLongitude(null);
+                location.setUpdatedAt(LocalDateTime.of(2026, 2, 1, 10, 2, 0));
+                int updated = recordLocationMapper.upsert(location);
+                RecordLocation updatedLocation = recordLocationMapper.selectByRecordIdAndUserId(draft.getId(), 1101L);
+                int deleted = recordLocationMapper.deleteByRecordIdAndUserId(draft.getId(), 1101L);
+
+                assertThat(inserted).isEqualTo(1);
+                assertThat(found).isNotNull();
+                assertThat(found.getSource()).isEqualTo(RecordLocationSource.MAP_PICKER);
+                assertThat(found.getName()).isEqualTo("人民公园");
+                assertThat(found.getLatitude()).isEqualByComparingTo("31.2317000");
+                assertThat(otherUser).isNull();
+                assertThat(updated).isEqualTo(2);
+                assertThat(updatedLocation.getSource()).isEqualTo(RecordLocationSource.MANUAL);
+                assertThat(updatedLocation.getName()).isEqualTo("手动地点");
+                assertThat(updatedLocation.getLatitude()).isNull();
+                assertThat(deleted).isEqualTo(1);
+                assertThat(recordLocationMapper.selectByRecordIdAndUserId(draft.getId(), 1101L)).isNull();
         }
 
         @Test

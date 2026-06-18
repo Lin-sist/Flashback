@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.RecordLocationMapper">
+
+    <resultMap id="RecordLocationResultMap" type="com.flashback.domain.RecordLocation">
+        <id property="id" column="id"/>
+        <result property="recordId" column="record_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="source" column="source" javaType="com.flashback.domain.RecordLocationSource"/>
+        <result property="name" column="name"/>
+        <result property="address" column="address"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        id,
+        record_id,
+        user_id,
+        source,
+        name,
+        address,
+        latitude,
+        longitude,
+        created_at,
+        updated_at
+    </sql>
+
+    <select id="selectByRecordIdAndUserId" resultMap="RecordLocationResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM record_location
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <insert id="upsert" parameterType="com.flashback.domain.RecordLocation">
+        INSERT INTO record_location (
+            record_id,
+            user_id,
+            source,
+            name,
+            address,
+            latitude,
+            longitude,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{recordId},
+            #{userId},
+            #{source},
+            #{name},
+            #{address},
+            #{latitude},
+            #{longitude},
+            #{createdAt},
+            #{updatedAt}
+        )
+        ON DUPLICATE KEY UPDATE
+            source = VALUES(source),
+            name = VALUES(name),
+            address = VALUES(address),
+            latitude = VALUES(latitude),
+            longitude = VALUES(longitude),
+            updated_at = VALUES(updated_at)
+    </insert>
+
+    <delete id="deleteByRecordIdAndUserId">
+        DELETE FROM record_location
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+    </delete>
+</mapper>
