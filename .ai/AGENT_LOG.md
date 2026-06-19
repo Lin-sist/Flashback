@@ -3274,3 +3274,53 @@ Remaining risks:
 
 - Real DeepSeek/openai-compatible success still requires credential-backed integration verification.
 - Frontend still needs explicit unavailable/failed-state handling in M4 frontend work.
+
+## 2026-06-19 22:20 M4 attachment frontend-visible error semantics
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Verify and lock the accepted frontend-visible upload, verification, media access, and sealed-mutation error states for attachment APIs.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/test/java/com/flashback/controller/api/RecordAttachmentControllerAuthIntegrationTest.java`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added controller integration tests proving attachment API errors are returned through `ApiResponse` with frontend-visible HTTP status, `code`, and `message`.
+- Covered storage/upload-token unavailable, object verification failure, media access URL unavailable, and sealed-record attachment mutation rejection.
+- Marked `Implement accepted frontend-visible upload, verification, and media error states` complete in the M4 task list.
+
+Verification:
+
+- Initial sandbox run failed because Maven could not resolve Spring Boot parent POM under restricted network/cache permissions:
+  - `mvn -q "-Dtest=RecordAttachmentControllerAuthIntegrationTest,RecordAttachmentServiceImplTest" test`
+- Passed focused backend tests outside the sandbox:
+  - `mvn -q "-Dtest=RecordAttachmentControllerAuthIntegrationTest,RecordAttachmentServiceImplTest" test`
+- Passed full backend test suite outside the sandbox:
+  - `mvn -q test`
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before staging showed:
+  - 3 files changed, 134 insertions, 1 deletion.
+
+Skipped verification reason:
+
+- Real Qiniu upload/object-stat/signed-media access was not run because no backend-side Qiniu credentials are available in tracked config, and secrets must not be committed.
+- Manual WeChat Mini Program verification was not run because this step only added backend/controller verification for error semantics.
+- OpenSpec CLI validation was attempted and skipped because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend attachment/media error-semantics scope and reused the accepted `ApiResponse` + HTTP status + current `ErrorCode` contract.
+- Did not add new global error codes or change accepted endpoint paths/DTO fields.
+- Did not implement settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real Qiniu credential-backed upload/stat/delete/private-media behavior still needs integration verification.
+- Frontend still needs to consume these error states in the M4 media/location UI work.

@@ -47,7 +47,7 @@
 - [x] Implement accepted attachment delete behavior.
 - [x] Implement accepted media signed URL expiry policy.
 - [x] Implement accepted cover update API path and DTO.
-- [ ] Implement accepted frontend-visible upload, verification, and media error states.
+- [x] Implement accepted frontend-visible upload, verification, and media error states.
 - [ ] Record any decision changes in `backend-contract-decisions.md` before implementation.
 
 ## 3. Backend Phase: Real AI Provider

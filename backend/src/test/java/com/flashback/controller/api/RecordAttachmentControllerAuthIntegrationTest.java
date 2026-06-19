@@ -1,5 +1,7 @@
 package com.flashback.controller.api;
 
+import com.flashback.common.error.ErrorCode;
+import com.flashback.common.exception.BizException;
 import com.flashback.domain.User;
 import com.flashback.domain.UserStatus;
 import com.flashback.mapper.UserMapper;
@@ -16,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -24,6 +27,7 @@ import java.time.LocalDateTime;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -106,6 +110,29 @@ class RecordAttachmentControllerAuthIntegrationTest {
     }
 
     @Test
+    void shouldExposeUploadTokenUnavailableMessage() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+        when(recordAttachmentService.createUploadToken(eq(5001L), eq(9001L), any()))
+                .thenThrow(serviceUnavailable("存储服务未配置"));
+
+        mockMvc.perform(post("/api/records/9001/attachments/upload-token")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type": "IMAGE",
+                          "fileName": "example.jpg",
+                          "mimeType": "image/jpeg",
+                          "sizeBytes": 123456
+                        }
+                        """))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value(50000))
+                .andExpect(jsonPath("$.message").value("存储服务未配置"));
+    }
+
+    @Test
     void shouldCommitAttachmentWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
         when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
@@ -136,6 +163,30 @@ class RecordAttachmentControllerAuthIntegrationTest {
     }
 
     @Test
+    void shouldExposeObjectVerificationFailureMessage() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+        when(recordAttachmentService.commitAttachment(eq(5001L), eq(9001L), any()))
+                .thenThrow(new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "上传文件验证失败"));
+
+        mockMvc.perform(post("/api/records/9001/attachments/commit")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type": "IMAGE",
+                          "key": "flashback/users/5001/records/9001/image/token.jpg",
+                          "fileName": "example.jpg",
+                          "mimeType": "image/jpeg",
+                          "sizeBytes": 123456
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000))
+                .andExpect(jsonPath("$.message").value("上传文件验证失败"));
+    }
+
+    @Test
     void shouldCreateAttachmentAccessUrlWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
         when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
@@ -151,6 +202,20 @@ class RecordAttachmentControllerAuthIntegrationTest {
     }
 
     @Test
+    void shouldExposeMediaAccessUnavailableMessage() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+        when(recordAttachmentService.createAccessUrl(5001L, 9001L, 7001L))
+                .thenThrow(serviceUnavailable("媒体访问地址未配置"));
+
+        mockMvc.perform(get("/api/records/9001/attachments/7001/access-url")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value(50000))
+                .andExpect(jsonPath("$.message").value("媒体访问地址未配置"));
+    }
+
+    @Test
     void shouldDeleteAttachmentWhenAuthorized() throws Exception {
         String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
         when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
@@ -161,6 +226,20 @@ class RecordAttachmentControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.code").value(0));
 
         verify(recordAttachmentService).deleteAttachment(5001L, 9001L, 7001L);
+    }
+
+    @Test
+    void shouldExposeSealedAttachmentMutationMessage() throws Exception {
+        String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+        when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+        doThrow(new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "记录已封存，不能修改附件"))
+                .when(recordAttachmentService).deleteAttachment(5001L, 9001L, 7001L);
+
+        mockMvc.perform(delete("/api/records/9001/attachments/7001")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000))
+                .andExpect(jsonPath("$.message").value("记录已封存，不能修改附件"));
     }
 
     private User enabledUser() {
@@ -205,5 +284,9 @@ class RecordAttachmentControllerAuthIntegrationTest {
         vo.setUrl("https://media.example.com/a.jpg?e=1781748600&token=test");
         vo.setExpiresAt(LocalDateTime.of(2026, 6, 18, 10, 10, 0));
         return vo;
+    }
+
+    private BizException serviceUnavailable(String message) {
+        return new BizException(ErrorCode.INTERNAL_ERROR, HttpStatus.SERVICE_UNAVAILABLE, message);
     }
 }
