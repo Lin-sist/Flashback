@@ -3607,3 +3607,55 @@ Remaining risks:
 
 - Real Mini Program visual verification with actual location data remains pending.
 - Image/voice/cover read-only review and the full media workflow remain open.
+
+## 2026-06-20 00:12 M4 frontend attachment service foundation
+
+Task:
+
+- Continue frontend phase 10 of `m4-real-capability-completion` with the shared real attachment transport boundary.
+- Add typed frontend support for backend upload-token, Qiniu direct upload, backend commit verification, signed access URL, and draft delete APIs before connecting image/voice UI.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/services/attachmentService.ts`
+- `frontend/src/services/index.ts`
+- `frontend/src/types/record.ts`
+
+What changed:
+
+- Added attachment, upload-token, commit, and signed-access frontend DTO/VO types matching the accepted M4 backend contract.
+- Extended record detail/list/timeline types with attachment and cover response fields already supplied by the backend.
+- Added `attachmentService` methods for upload-token issuance, direct Qiniu upload, backend commit verification, private access URL generation, and draft deletion.
+- Qiniu direct upload requires a successful 2xx response and the exact backend-authorized object key before the frontend proceeds to commit.
+- No Qiniu AK/SK, bucket secret, or long-lived credential was added to frontend code.
+- No user-facing image/voice task was marked complete in this foundation-only step.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before commit showed:
+  - 4 files changed, 191 insertions.
+
+Skipped verification reason:
+
+- Real Qiniu upload was not run because backend-side Qiniu credentials and a configured private bucket are unavailable in this environment.
+- No media UI/manual WeChat verification was claimed because this step only establishes the shared service boundary.
+- OpenSpec CLI validation remains unavailable because `openspec` is not in the current PowerShell PATH.
+
+Scope safety check:
+
+- Implemented only the accepted Qiniu attachment transport contract and response types.
+- Did not add storage secrets, package dependencies, package/lockfile changes, multi-cloud abstraction, transcription, or standalone cover upload.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, or H5/Web scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real Qiniu response behavior still needs credential-backed integration verification.
+- Image selection/compression/preview/delete, voice recording/playback, and cover selection UI remain to be connected.

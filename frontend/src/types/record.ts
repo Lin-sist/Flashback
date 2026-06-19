@@ -14,6 +14,55 @@ export interface RecordLocationVO {
 
 export interface UpdateRecordLocationDTO extends RecordLocationVO { }
 
+export type RecordAttachmentType = 'IMAGE' | 'VOICE'
+export type RecordAttachmentStatus = 'AVAILABLE' | 'DELETED'
+
+export interface RecordAttachmentVO {
+  id: number
+  recordId: number
+  type: RecordAttachmentType
+  status: RecordAttachmentStatus
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  width?: number | null
+  height?: number | null
+  durationSeconds?: number | null
+  sortOrder: number
+  createdAt: DateTimeValue
+  accessUrl?: string | null
+}
+
+export interface CreateAttachmentUploadTokenDTO {
+  type: RecordAttachmentType
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+}
+
+export interface AttachmentUploadTokenVO {
+  provider: 'QINIU'
+  bucket: string
+  key: string
+  uploadToken: string
+  uploadUrl: string
+  expiresAt: DateTimeValue
+  maxFileSizeBytes: number
+}
+
+export interface CommitRecordAttachmentDTO extends CreateAttachmentUploadTokenDTO {
+  key: string
+  width?: number | null
+  height?: number | null
+  durationSeconds?: number | null
+}
+
+export interface AttachmentAccessUrlVO {
+  attachmentId: number
+  url: string
+  expiresAt: DateTimeValue
+}
+
 export interface CreateRecordDTO {
   title?: string
   content: string
@@ -45,6 +94,7 @@ export interface RecordListItemVO {
   unlockAt?: DateTimeValue
   createdAt: DateTimeValue
   tagNames: string[]
+  cover?: RecordAttachmentVO | null
 }
 
 export interface RecordDetailVO {
@@ -67,6 +117,8 @@ export interface RecordDetailVO {
   lifeNodeLabel?: string
   unlockReminderStatus?: RecordReminderStatus
   location?: RecordLocationVO | null
+  attachments?: RecordAttachmentVO[]
+  cover?: RecordAttachmentVO | null
   tags: TagVO[]
   canReply: boolean
   hasReply: boolean
@@ -82,6 +134,7 @@ export interface TimelineItemVO {
   lifeNodeLabel?: string
   createdAt: DateTimeValue
   tagNames: string[]
+  cover?: RecordAttachmentVO | null
 }
 
 export interface TimelineGroupVO {
