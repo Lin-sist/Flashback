@@ -133,8 +133,8 @@
 - [x] Support map picker selection.
 - [x] Support manual input.
 - [x] Support draft edit/delete.
-- [ ] Show read-only location after seal/unlock where applicable.
-- [ ] Show location in time review after unlock.
+- [x] Show read-only location after seal/unlock where applicable.
+- [x] Show location in time review after unlock.
 - [x] Handle permission denial and unavailable location services without blocking record editing.
 - [ ] Verify Mini Program location behavior manually where automation is not practical.
 

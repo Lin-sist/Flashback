@@ -3553,3 +3553,57 @@ Remaining risks:
 
 - Real WeChat permission and map behavior still need manual Mini Program verification.
 - Sealed/unlocked detail and time-review location display remain pending frontend work.
+
+## 2026-06-20 00:03 M4 location read-only review display
+
+Task:
+
+- Continue frontend phase 9 of `m4-real-capability-completion` by completing sealed/unlocked location display.
+- Replace the record-detail page's obsolete string-location compatibility read with the accepted `RecordLocationVO` object contract.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/record-detail/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Record detail now derives location name, address, and coordinates from the backend-backed `RecordDetailVO.location` object.
+- SEALED records display a compact read-only location only when a real location exists; record titles are no longer presented as fake location labels.
+- UNLOCKED time review displays a full read-only `当时所在` section with name, address, and coordinates when available.
+- No location mutation controls were added to sealed or unlocked views.
+- Marked sealed/unlocked read-only location display and unlocked time-review location display tasks complete.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated `frontend/dist/build/mp-weixin/pages/record-detail/index.wxml` and confirmed:
+  - SEALED location is guarded by `wx:if`.
+  - UNLOCKED review contains the read-only `当时所在` section.
+  - No location mutation action is emitted in record-detail output.
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before staging showed:
+  - 3 files changed, 132 insertions, 11 deletions.
+
+Skipped verification reason:
+
+- WeChat Developer Tools visual/manual verification was not run; type-check, build, and generated WXML were used as automated evidence.
+- Real backend location data was not loaded in a running Mini Program because no authenticated runtime session was available.
+- OpenSpec CLI validation was attempted and skipped because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Limited changes to backend-backed location presentation on existing SEALED/UNLOCKED detail surfaces.
+- Did not add location mutation after seal, geocoding, package changes, settings work, or visual reconstruction.
+- Did not touch admin, deployment, monitoring, SMS, notification center, campaign, social, H5/Web, transcription, or AI dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real Mini Program visual verification with actual location data remains pending.
+- Image/voice/cover read-only review and the full media workflow remain open.

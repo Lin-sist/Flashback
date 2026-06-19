@@ -77,11 +77,29 @@ const archiveNoCN = computed(() => {
   return `存档第 ${cnId} 号`
 })
 
-// 位置（若记录有 location 字段则展示）
-const archiveLocation = computed(() => {
-  if (!detail.value) return ''
-  const d = detail.value as Record<string, unknown>
-  return typeof d.location === 'string' ? d.location : ''
+const archiveLocation = computed(() => detail.value?.location || null)
+
+const archiveLocationCoordinates = computed(() => {
+  const current = archiveLocation.value
+  if (!current || typeof current.latitude !== 'number' || typeof current.longitude !== 'number') {
+    return ''
+  }
+  return `${current.latitude.toFixed(6)}, ${current.longitude.toFixed(6)}`
+})
+
+const archiveLocationPrimary = computed(() => {
+  const current = archiveLocation.value
+  if (!current) return ''
+  return current.name?.trim()
+    || current.address?.trim()
+    || archiveLocationCoordinates.value
+    || '已保存地点'
+})
+
+const archiveLocationAddress = computed(() => {
+  const current = archiveLocation.value
+  if (!current?.address?.trim() || current.address.trim() === archiveLocationPrimary.value) return ''
+  return current.address.trim()
 })
 
 // "过去的你，写于X年前"
@@ -437,9 +455,9 @@ onLoad(async (query) => {
                 </view>
                 <text class="sealed-card__tag">过去的你</text>
               </view>
-              <view class="sealed-card__location">
+              <view v-if="archiveLocationPrimary" class="sealed-card__location">
                 <view class="sealed-card__loc-dot" />
-                <text class="sealed-card__loc-text">{{ archiveLocation || detail.title || '未命名档案' }}</text>
+                <text class="sealed-card__loc-text">{{ archiveLocationPrimary }}</text>
               </view>
             </view>
 
@@ -495,9 +513,9 @@ onLoad(async (query) => {
           <!-- 存档元信息行 -->
           <view class="unlock-archive">
             <text class="unlock-archive-no">{{ archiveNoCN }}</text>
-            <view v-if="archiveLocation" class="unlock-archive-loc">
+            <view v-if="archiveLocationPrimary" class="unlock-archive-loc">
               <view class="unlock-loc-dot" />
-              <text class="unlock-loc-text">{{ archiveLocation }}</text>
+              <text class="unlock-loc-text">{{ archiveLocationPrimary }}</text>
             </view>
           </view>
 
@@ -526,6 +544,16 @@ onLoad(async (query) => {
               <text class="unlock-card-text">{{ detail.content }}</text>
             </view>
             <text class="unlock-sparkle">✦</text>
+          </view>
+
+          <view v-if="archiveLocation" class="unlock-location">
+            <text class="unlock-location-label">当时所在</text>
+            <text class="unlock-location-name">{{ archiveLocationPrimary }}</text>
+            <text v-if="archiveLocationAddress" class="unlock-location-detail">{{ archiveLocationAddress }}</text>
+            <text
+              v-if="archiveLocationCoordinates && archiveLocationCoordinates !== archiveLocationPrimary"
+              class="unlock-location-coordinates"
+            >{{ archiveLocationCoordinates }}</text>
           </view>
 
           <view class="reflection-panel">
@@ -1322,6 +1350,45 @@ onLoad(async (query) => {
   text-align: right;
   opacity: 0.35;
   font-size: 36rpx;
+  color: var(--ink-faint);
+}
+
+.unlock-location {
+  margin-top: 32rpx;
+  padding: 28rpx 4rpx;
+  border-top: 1rpx solid rgba(188, 174, 152, 0.24);
+  border-bottom: 1rpx solid rgba(188, 174, 152, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.unlock-location-label {
+  font-family: var(--font-secondary);
+  font-size: 20rpx;
+  color: var(--ink-faint);
+  letter-spacing: 0.12em;
+}
+
+.unlock-location-name {
+  font-family: var(--font-reading);
+  font-size: 27rpx;
+  color: var(--ink-mid);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.unlock-location-detail,
+.unlock-location-coordinates {
+  font-family: var(--font-secondary);
+  font-size: 21rpx;
+  color: var(--ink-light);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.unlock-location-coordinates {
+  font-size: 19rpx;
   color: var(--ink-faint);
 }
 
