@@ -56,7 +56,7 @@
 - [x] Keep AI API keys backend-side only.
 - [x] Implement DeepSeek or compatible domestic model provider path.
 - [x] Support OpenAI-compatible request/response shape where practical.
-- [ ] Keep mock provider available only for tests or explicit preview/development mode.
+- [x] Keep mock provider available only for tests or explicit preview/development mode.
 - [x] Ensure missing AI configuration returns explicit unavailable behavior.
 - [x] Ensure provider failure returns explicit failed/unavailable behavior.
 - [x] Ensure AI output never replaces original user content.

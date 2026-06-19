@@ -17,6 +17,7 @@ class AiServiceImplTest {
     void shouldReturnMockWritingPromptsWhenProviderIsMock() {
         AppAiProperties properties = new AppAiProperties();
         properties.setProvider("mock");
+        properties.setRealModeMockEnabled(true);
         AiServiceImpl aiService = new AiServiceImpl(properties);
 
         AiWritingPromptsRequest request = new AiWritingPromptsRequest();
@@ -53,6 +54,7 @@ class AiServiceImplTest {
     void shouldReturnMockSummaryWhenProviderIsMock() {
         AppAiProperties properties = new AppAiProperties();
         properties.setProvider("mock");
+        properties.setRealModeMockEnabled(true);
         AiServiceImpl aiService = new AiServiceImpl(properties);
 
         AiSummarizeRecordRequest request = new AiSummarizeRecordRequest();
@@ -67,6 +69,24 @@ class AiServiceImplTest {
         assertThat(result.getCoreQuestion()).isEqualTo("我应该先做哪件事？");
         assertThat(result.getDesiredOutcome()).isNotBlank();
         assertThat(result.getBeliefThen()).contains("那时的我可能以为");
+    }
+
+    @Test
+    void shouldReturnUnavailableWhenMockProviderNotExplicitlyEnabled() {
+        AppAiProperties properties = new AppAiProperties();
+        properties.setProvider("mock");
+        properties.setRealModeMockEnabled(false);
+        AiServiceImpl aiService = new AiServiceImpl(properties);
+
+        AiWritingPromptsRequest request = new AiWritingPromptsRequest();
+        request.setContent("真实路径不应返回mock成功");
+
+        var result = aiService.generateWritingPrompts(5001L, request);
+
+        assertThat(result.getSource()).isEqualTo("mock");
+        assertThat(result.getStatus()).isEqualTo("UNAVAILABLE");
+        assertThat(result.getMessage()).isEqualTo("AI mock provider未启用");
+        assertThat(result.getPrompts()).isEmpty();
     }
 
     @Test

@@ -23,6 +23,7 @@ app:
   ai:
     provider: mock
     timeout-millis: 1000
+    real-mode-mock-enabled: true
   cors:
     allowed-origin-patterns:
       - http://frontend.test:5173

@@ -3220,3 +3220,57 @@ Remaining risks:
 
 - Real Qiniu upload/stat/delete/private-media behavior still needs credential-backed integration verification.
 - Frontend media/cover UI and home/time-review real-data surfaces remain pending M4 work.
+
+## 2026-06-19 22:08 M4 AI mock boundary tightening
+
+Task:
+
+- Continue `m4-real-capability-completion` backend work in a small OpenSpec-aligned step.
+- Ensure the mock AI provider is available only when explicitly enabled for tests or development, and does not return mock success on authenticated real paths by default.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/service/impl/AiServiceImpl.java`
+- `backend/src/test/java/com/flashback/service/impl/AiServiceImplTest.java`
+- `backend/src/test/resources/application-test.yml`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- `AiServiceImpl` now requires `app.ai.real-mode-mock-enabled=true` before provider `mock` can return `SUCCESS`.
+- When provider is `mock` but the explicit mock flag is false, writing prompts and summary return `UNAVAILABLE` with message `AI mock provider未启用`.
+- Test profile explicitly enables mock mode with `app.ai.real-mode-mock-enabled: true`.
+- Unit tests now cover the disabled mock provider path and explicitly enable mock for mock-success tests.
+- Marked the M4 backend AI mock-boundary task complete.
+
+Verification:
+
+- Passed focused backend tests:
+  - `mvn -q "-Dtest=AiServiceImplTest,AppAiPropertiesTest,AiControllerAuthIntegrationTest,StageSummaryServiceImplTest,StageSummaryControllerAuthIntegrationTest" test`
+- Passed full backend test suite:
+  - `mvn -q test`
+- Ran tracked/front-end secret boundary scan:
+  - `rg -n "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak|test-key)" frontend backend\src\main backend\src\test openspec .ai AGENTS.md`
+- Scan result found only environment-variable placeholders, documentation/log mentions, and dummy test values `test-ak` / `test-sk` / `test-key`; no concrete real AI or Qiniu secret value was found, and no frontend Qiniu/AI secret occurrence was found.
+- `git diff --check` passed.
+- `git diff --stat` before staging showed:
+  - 5 files changed, 82 insertions, 1 deletion.
+
+Skipped verification reason:
+
+- Real AI configured success path was not verified because no backend-side AI provider credentials are available in tracked config, and secrets must not be committed.
+- Manual WeChat Mini Program verification was not run because no frontend flow changed.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within M4 backend AI mock/real-mode boundary scope and accepted `backend-contract-decisions.md`.
+- Did not implement frontend AI UI, settings page, admin portal, deployment, monitoring, SMS, notification center, campaign delivery, social feed, H5/Web acceptance, voice transcription, or voice AI analysis.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real DeepSeek/openai-compatible success still requires credential-backed integration verification.
+- Frontend still needs explicit unavailable/failed-state handling in M4 frontend work.

@@ -59,6 +59,9 @@ public class AiServiceImpl implements AiService {
             return unavailablePrompts("AI provider配置不支持");
         }
         if (provider == AppAiProperties.Provider.MOCK) {
+            if (!appAiProperties.isRealModeMockEnabled()) {
+                return unavailablePrompts("AI mock provider未启用");
+            }
             try {
                 List<String> prompts = invokeWritingPromptsModel(request);
                 if (prompts == null || prompts.isEmpty()) {
@@ -102,6 +105,9 @@ public class AiServiceImpl implements AiService {
             return unavailableSummary("AI provider配置不支持");
         }
         if (provider == AppAiProperties.Provider.MOCK) {
+            if (!appAiProperties.isRealModeMockEnabled()) {
+                return unavailableSummary("AI mock provider未启用");
+            }
             try {
                 AiSummaryVO summary = invokeSummaryModel(request);
                 if (!isCompleteSummary(summary)) {
