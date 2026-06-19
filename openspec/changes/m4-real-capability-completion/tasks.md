@@ -172,16 +172,16 @@
 - [x] Run full backend test suite when feasible.
 - [ ] Run frontend type-check when feasible.
 - [ ] Run Mini Program build when feasible.
-- [ ] Verify no tracked AI or Qiniu secrets are committed.
+- [x] Verify no tracked AI or Qiniu secrets are committed.
 - [ ] Verify real AI configured success path where provider credentials are available.
-- [ ] Verify AI missing-config/failure path.
+- [x] Verify AI missing-config/failure path.
 - [ ] Verify Qiniu upload, object verification, signed URL, image preview, and voice playback.
-- [ ] Verify attachment limit errors and record total-size limit errors.
-- [ ] Verify sealed/unlocked records reject location, attachment, and cover mutation.
+- [x] Verify attachment limit errors and record total-size limit errors.
+- [x] Verify sealed/unlocked records reject location, attachment, and cover mutation.
 - [ ] Verify timeline/home cover display.
 - [ ] Verify unlocked time review displays location, image, voice, and M3 reflection data.
 - [ ] Verify preview mode remains explicitly isolated and functional.
-- [ ] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
+- [x] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
 
 ## 13. Final Review
 

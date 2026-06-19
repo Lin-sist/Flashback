@@ -3324,3 +3324,66 @@ Remaining risks:
 
 - Real Qiniu credential-backed upload/stat/delete/private-media behavior still needs integration verification.
 - Frontend still needs to consume these error states in the M4 media/location UI work.
+
+## 2026-06-19 22:26 M4 backend verification checklist closeout
+
+Task:
+
+- Continue `m4-real-capability-completion` with a verification-only backend closeout step.
+- Mark only M4 integration checklist items backed by automated backend tests or tracked-file scans.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Marked tracked AI/Qiniu secret scan complete.
+- Marked AI missing-config/failure path verification complete.
+- Marked attachment limit and total-size error verification complete.
+- Marked sealed/unlocked rejection for location, attachment, and cover mutation complete.
+- Marked verification evidence recording complete.
+- No accepted contract decisions changed, so `backend-contract-decisions.md` was not modified.
+
+Verification:
+
+- Secret scan command:
+  - `git grep -n -E "(QINIU_ACCESS_KEY|QINIU_SECRET_KEY|QINIU_BUCKET|QINIU_PRIVATE_DOMAIN|AI_API_KEY|secret-key|access-key|api-key|test-sk|test-ak|test-key)" -- .`
+- Secret scan result found only backend environment-variable placeholders, OpenSpec/log mentions, and dummy test values `test-ak` / `test-sk` / `test-key`; no concrete real AI or Qiniu secret value was found, and no frontend secret occurrence was found.
+- Existing tests covering the marked checklist items were confirmed by test names and the full backend suite that passed in the previous M4 step:
+  - `AiServiceImplTest.shouldReturnUnavailableWhenRealProviderMissingApiKey`
+  - `AiServiceImplTest.shouldReturnFailedWhenRealProviderCallFails`
+  - `AiServiceImplTest.shouldReturnUnavailableWhenMockProviderNotExplicitlyEnabled`
+  - `RecordAttachmentServiceImplTest.shouldRejectFileLargerThanLimit`
+  - `RecordAttachmentServiceImplTest.shouldRejectWhenImageCountLimitExceeded`
+  - `RecordAttachmentServiceImplTest.shouldRejectWhenTotalSizeLimitExceeded`
+  - `RecordAttachmentServiceImplTest.shouldRejectDeleteWhenRecordIsNotDraft`
+  - `RecordAttachmentServiceImplTest.shouldRejectDeleteWhenRecordIsUnlocked`
+  - `RecordServiceImplTest.shouldRejectLocationMutationWhenRecordIsSealed`
+  - `RecordServiceImplTest.shouldRejectCoverMutationWhenRecordIsSealed`
+  - `RecordMapperIntegrationTest.updateCoverAttachmentByIdAndUserIdShouldOnlyAffectDraft`
+- Full backend test suite evidence from the immediately previous step:
+  - `mvn -q test` passed.
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before staging showed:
+  - 2 files changed, 68 insertions, 5 deletions.
+
+Skipped verification reason:
+
+- Real AI configured success path remains unchecked because no backend-side AI provider credentials are available in tracked config.
+- Real Qiniu upload/object-stat/signed-media/image-preview/voice-playback verification remains unchecked because no backend-side Qiniu credentials or Mini Program media flow were available.
+- Frontend type-check, Mini Program build, timeline/home cover display, time review media display, and preview-mode functional verification remain unchecked because this step did not enter frontend scope.
+- OpenSpec CLI validation remains skipped because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Verification-only OpenSpec/task-log update; no application code changed.
+- Did not mark external-provider, Qiniu-live, frontend-build, Mini Program manual, timeline/home display, time-review display, or preview functional items complete without direct evidence.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- M4 frontend phases 8-11 remain open.
+- Real provider credentials are still required to verify AI success and Qiniu media flows end-to-end.
