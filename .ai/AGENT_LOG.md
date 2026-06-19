@@ -3178,3 +3178,45 @@ Remaining risks:
 - The cover backend step is not Maven-verified in this run because of the environment usage limit; focused tests were added but still need execution when the limit resets.
 - List/timeline cover responses currently return metadata only; frontend must call the media access endpoint for short-lived display URLs.
 - Home-card cover display may need additional frontend/service wiring in later M4 frontend real-data work.
+
+## 2026-06-19 22:03 M4 cover backend verification follow-up
+
+Task:
+
+- Continue `m4-real-capability-completion`.
+- Close the verification gap left by the previous cover backend step after the environment usage limit reset.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Recorded successful Maven verification for the M4 cover backend step.
+- Marked backend focused and full backend test tasks complete in the M4 integration checklist.
+
+Verification:
+
+- Initial sandbox run failed as expected because Maven could not resolve Spring Boot parent POM under restricted network/cache permissions:
+  - `mvn -q "-Dtest=RecordServiceImplTest,RecordControllerAuthIntegrationTest,RecordMapperIntegrationTest,RecordAttachmentServiceImplTest" test`
+- Passed focused backend tests outside the sandbox:
+  - `mvn -q "-Dtest=RecordServiceImplTest,RecordControllerAuthIntegrationTest,RecordMapperIntegrationTest,RecordAttachmentServiceImplTest" test`
+- Passed full backend test suite outside the sandbox:
+  - `mvn -q test`
+
+Skipped verification reason:
+
+- Real Qiniu/media integration verification was not run because no backend-side Qiniu credentials are available in tracked config, and secrets must not be committed.
+- Manual WeChat Mini Program verification was not run because no frontend flow changed in this verification-only step.
+- OpenSpec CLI validation was not run because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Verification-only step; no backend business code changed.
+- Did not touch package/lockfile files or the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real Qiniu upload/stat/delete/private-media behavior still needs credential-backed integration verification.
+- Frontend media/cover UI and home/time-review real-data surfaces remain pending M4 work.

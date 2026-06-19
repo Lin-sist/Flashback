@@ -168,8 +168,8 @@
 
 ## 12. Integration and Verification
 
-- [ ] Run focused backend tests where practical.
-- [ ] Run full backend test suite when feasible.
+- [x] Run focused backend tests where practical.
+- [x] Run full backend test suite when feasible.
 - [ ] Run frontend type-check when feasible.
 - [ ] Run Mini Program build when feasible.
 - [ ] Verify no tracked AI or Qiniu secrets are committed.
