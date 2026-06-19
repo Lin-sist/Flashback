@@ -9,6 +9,8 @@ public class StageSummaryVO {
 
     private String summary;
     private String source;
+    private String status;
+    private String message;
     private long recordCount;
     private long unlockedCount;
     private long lifeNodeCount;
@@ -28,6 +30,22 @@ public class StageSummaryVO {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public long getRecordCount() {

@@ -60,7 +60,9 @@ class StageSummaryControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.summary").value("这一阶段你留下了 3 条记录"))
                 .andExpect(jsonPath("$.data.recordCount").value(3))
-                .andExpect(jsonPath("$.data.source").value("fallback"));
+                .andExpect(jsonPath("$.data.source").value("fallback"))
+                .andExpect(jsonPath("$.data.status").value("FALLBACK"))
+                .andExpect(jsonPath("$.data.message").value("AI服务未配置"));
     }
 
     private User enabledUser() {
@@ -74,6 +76,8 @@ class StageSummaryControllerAuthIntegrationTest {
         StageSummaryVO vo = new StageSummaryVO();
         vo.setSummary("这一阶段你留下了 3 条记录");
         vo.setSource("fallback");
+        vo.setStatus("FALLBACK");
+        vo.setMessage("AI服务未配置");
         vo.setRecordCount(3);
         vo.setUnlockedCount(1);
         vo.setLifeNodeCount(2);

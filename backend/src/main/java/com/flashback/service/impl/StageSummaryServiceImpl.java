@@ -3,8 +3,11 @@ package com.flashback.service.impl;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
+import com.flashback.dto.AiSummarizeRecordRequest;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.service.AiService;
 import com.flashback.service.StageSummaryService;
+import com.flashback.vo.AiSummaryVO;
 import com.flashback.vo.StageSummaryVO;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +22,15 @@ import java.util.List;
 public class StageSummaryServiceImpl implements StageSummaryService {
 
     private static final int RECENT_RECORD_LIMIT = 20;
+    private static final int AI_CONTEXT_LIMIT = 5000;
 
     private final RecordMapper recordMapper;
+    private final AiService aiService;
     private final Clock clock;
 
-    public StageSummaryServiceImpl(RecordMapper recordMapper, Clock clock) {
+    public StageSummaryServiceImpl(RecordMapper recordMapper, AiService aiService, Clock clock) {
         this.recordMapper = recordMapper;
+        this.aiService = aiService;
         this.clock = clock;
     }
 
@@ -47,9 +53,67 @@ public class StageSummaryServiceImpl implements StageSummaryService {
         vo.setUnlockedCount(unlockedCount);
         vo.setLifeNodeCount(lifeNodeCount);
         vo.setGeneratedAt(LocalDateTime.now(clock));
-        vo.setSource("fallback");
-        vo.setSummary(buildSummary(recordCount, unlockedCount, lifeNodeCount, recentRecords));
+        applyAiOrFallbackSummary(vo, userId, recordCount, unlockedCount, lifeNodeCount, recentRecords);
         return vo;
+    }
+
+    private void applyAiOrFallbackSummary(
+            StageSummaryVO vo,
+            Long userId,
+            long recordCount,
+            long unlockedCount,
+            long lifeNodeCount,
+            List<Record> recentRecords) {
+        AiSummarizeRecordRequest request = new AiSummarizeRecordRequest();
+        request.setCoreQuestion("请整理这一阶段的记录与抵达，帮助用户理解当时的自己");
+        request.setContent(buildAiContext(recordCount, unlockedCount, lifeNodeCount, recentRecords));
+
+        AiSummaryVO aiSummary = aiService.summarizeRecord(userId, request);
+        if (aiSummary != null && "SUCCESS".equals(aiSummary.getStatus()) && hasText(aiSummary.getSummary())) {
+            vo.setSummary(aiSummary.getSummary());
+            vo.setSource(aiSummary.getSource());
+            vo.setStatus("SUCCESS");
+            return;
+        }
+
+        vo.setSource("fallback");
+        vo.setStatus("FALLBACK");
+        vo.setMessage(aiSummary == null || !hasText(aiSummary.getMessage())
+                ? "AI暂不可用，已使用本地总结"
+                : aiSummary.getMessage());
+        vo.setSummary(buildSummary(recordCount, unlockedCount, lifeNodeCount, recentRecords));
+    }
+
+    private String buildAiContext(
+            long recordCount,
+            long unlockedCount,
+            long lifeNodeCount,
+            List<Record> recentRecords) {
+        StringBuilder context = new StringBuilder();
+        context.append("记录总数：").append(recordCount)
+                .append("；已抵达：").append(unlockedCount)
+                .append("；人生节点：").append(lifeNodeCount).append("。\n");
+        if (recentRecords != null) {
+            for (Record record : recentRecords) {
+                appendRecordContext(context, record);
+                if (context.length() >= AI_CONTEXT_LIMIT) {
+                    break;
+                }
+            }
+        }
+        return context.substring(0, Math.min(context.length(), AI_CONTEXT_LIMIT));
+    }
+
+    private void appendRecordContext(StringBuilder context, Record record) {
+        context.append("记录：")
+                .append(preview(firstPresent(record.getTitle(), record.getContent()), 80));
+        if (hasText(record.getBeliefThen())) {
+            context.append("；那时以为：").append(preview(record.getBeliefThen(), 120));
+        }
+        if (hasText(record.getRealityLater())) {
+            context.append("；后来其实：").append(preview(record.getRealityLater(), 120));
+        }
+        context.append("。\n");
     }
 
     private String buildSummary(long recordCount, long unlockedCount, long lifeNodeCount, List<Record> recentRecords) {

@@ -3387,3 +3387,54 @@ Remaining risks:
 
 - M4 frontend phases 8-11 remain open.
 - Real provider credentials are still required to verify AI success and Qiniu media flows end-to-end.
+
+## 2026-06-19 23:23 M4 stage summary real AI path
+
+Task:
+
+- Continue `m4-real-capability-completion` by auditing the remaining real AI consumers.
+- Replace the stage-summary endpoint's fallback-only implementation with the existing backend real-provider path while retaining an explicit local fallback.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/src/main/java/com/flashback/service/impl/StageSummaryServiceImpl.java`
+- `backend/src/main/java/com/flashback/vo/StageSummaryVO.java`
+- `backend/src/test/java/com/flashback/controller/api/StageSummaryControllerAuthIntegrationTest.java`
+- `backend/src/test/java/com/flashback/service/impl/StageSummaryServiceImplTest.java`
+
+What changed:
+
+- `StageSummaryServiceImpl` now sends a bounded, user-scoped summary context through the existing `AiService` OpenAI-compatible provider path.
+- A provider result is accepted only when its status is `SUCCESS` and its summary is nonblank; otherwise the endpoint returns the deterministic local summary with `source=fallback` and `status=FALLBACK`.
+- `StageSummaryVO` now exposes `status` and `message`, so clients can distinguish provider-backed output from an unavailable-provider fallback.
+- Added service tests for provider success, explicit unavailable fallback, and null-provider-result fallback, plus controller JSON assertions for the frontend-visible fallback fields.
+
+Verification:
+
+- Initial sandbox focused test run failed because Maven could not access the cached Spring Boot parent POM under sandbox permissions.
+- Passed focused backend tests outside the sandbox:
+  - `mvn -q "-Dtest=StageSummaryServiceImplTest,StageSummaryControllerAuthIntegrationTest,AiServiceImplTest" test`
+- Passed full backend test suite outside the sandbox:
+  - `mvn -q test`
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before staging showed:
+  - 5 files changed, 180 insertions, 4 deletions.
+
+Skipped verification reason:
+
+- Real DeepSeek/openai-compatible stage-summary output was not called because no backend-side AI provider credentials are available; the provider-backed success branch is covered with a focused mocked-provider service test.
+- Frontend consumption and Mini Program behavior are intentionally deferred to the next small commit.
+- OpenSpec CLI status/apply validation was attempted and skipped because `openspec` is not available in the current PowerShell PATH.
+
+Scope safety check:
+
+- Reused the accepted M4 AI endpoint and existing OpenAI-compatible adapter; no external endpoint, provider enum, configuration key, or accepted error semantic changed.
+- Did not modify settings, admin, deployment, monitoring, SMS, notifications, campaign, social, H5/Web, voice transcription, or AI diagnosis/dashboard scope.
+- Did not modify package or lockfile files.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real credential-backed stage-summary success remains unverified.
+- Frontend must consume `status/message` and avoid treating fallback or unavailable AI results as provider success.
