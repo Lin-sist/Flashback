@@ -1,8 +1,11 @@
 import { httpRequest } from './httpClient'
+import type { AiResultStatus } from './aiService'
 
 export interface StageSummaryVO {
   summary: string
   source: string
+  status: AiResultStatus
+  message?: string | null
   recordCount: number
   unlockedCount: number
   lifeNodeCount: number

@@ -73,6 +73,9 @@ const displayArchiveDays = computed(() => String(archiveDays.value))
 const showInitialLoading = computed(() => centerLoading.value && !profileReady.value)
 const showInitialFailure = computed(() => centerLoadFailed.value && !profileReady.value)
 const showStaleNotice = computed(() => centerLoadFailed.value && profileReady.value)
+const stageSummarySourceLabel = computed(() =>
+  stageSummary.value?.status === 'SUCCESS' ? 'AI 整理' : '本地整理',
+)
 
 const ensureLogin = () => {
   if (!hasAuthenticatedSession()) {
@@ -108,6 +111,12 @@ const generateStageSummary = async () => {
   summaryLoading.value = true
   try {
     stageSummary.value = await stageSummaryService.generate()
+    if (stageSummary.value.status !== 'SUCCESS') {
+      uni.showToast({
+        title: stageSummary.value.message || 'AI暂不可用，已使用本地总结',
+        icon: 'none',
+      })
+    }
   } catch {
     uni.showToast({ title: '阶段总结暂时没有生成出来', icon: 'none' })
   } finally {
@@ -223,7 +232,7 @@ onShow(() => {
           <view v-if="stageSummary" class="stage-summary-body">
             <view class="stage-summary-text">{{ stageSummary.summary }}</view>
             <view class="stage-summary-meta">
-              {{ stageSummary.recordCount }} 条记录 · {{ stageSummary.unlockedCount }} 次抵达 · {{ stageSummary.lifeNodeCount }} 个节点
+              {{ stageSummary.recordCount }} 条记录 · {{ stageSummary.unlockedCount }} 次抵达 · {{ stageSummary.lifeNodeCount }} 个节点 · {{ stageSummarySourceLabel }}
             </view>
           </view>
         </view>

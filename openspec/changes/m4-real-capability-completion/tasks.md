@@ -120,10 +120,10 @@
 
 ## 8. Frontend Phase: Real AI Connection
 
-- [ ] Update AI service calls to use backend real-provider contract.
-- [ ] Show explicit unavailable/failed state when AI is not configured or provider call fails.
-- [ ] Do not show mock AI output in authenticated real mode.
-- [ ] Keep original content visible and unchanged after AI organization.
+- [x] Update AI service calls to use backend real-provider contract.
+- [x] Show explicit unavailable/failed state when AI is not configured or provider call fails.
+- [x] Do not show mock AI output in authenticated real mode.
+- [x] Keep original content visible and unchanged after AI organization.
 - [ ] Verify real AI flow with configured provider where available.
 
 ## 9. Frontend Phase: Location
@@ -170,8 +170,8 @@
 
 - [x] Run focused backend tests where practical.
 - [x] Run full backend test suite when feasible.
-- [ ] Run frontend type-check when feasible.
-- [ ] Run Mini Program build when feasible.
+- [x] Run frontend type-check when feasible.
+- [x] Run Mini Program build when feasible.
 - [x] Verify no tracked AI or Qiniu secrets are committed.
 - [ ] Verify real AI configured success path where provider credentials are available.
 - [x] Verify AI missing-config/failure path.

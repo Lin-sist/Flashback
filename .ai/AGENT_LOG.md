@@ -3438,3 +3438,58 @@ Remaining risks:
 
 - Real credential-backed stage-summary success remains unverified.
 - Frontend must consume `status/message` and avoid treating fallback or unavailable AI results as provider success.
+
+## 2026-06-19 23:29 M4 frontend AI status consumption
+
+Task:
+
+- Continue frontend phase 8 of `m4-real-capability-completion` after the backend stage-summary provider path was completed.
+- Ensure authenticated real-mode AI consumers distinguish provider success from unavailable, failed, or fallback responses.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/record-editor/index.vue`
+- `frontend/src/pages/user-center/index.vue`
+- `frontend/src/services/aiService.ts`
+- `frontend/src/services/stageSummaryService.ts`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added the accepted `SUCCESS`, `UNAVAILABLE`, `FAILED`, and `FALLBACK` status contract plus optional `message` to frontend AI response types.
+- Record editor now updates `aiSummary` and `beliefThen` only for `SUCCESS`; other statuses preserve the existing AI fields and original record content while showing the backend-provided message.
+- User-center stage summaries now display whether the result is `AI 整理` or `本地整理`, and fallback/unavailable results show an explicit explanatory toast.
+- Marked the first four frontend real-AI tasks complete, along with frontend type-check and Mini Program build verification tasks.
+
+Verification:
+
+- Initial direct type-check command failed because `node` was not available in the shell PATH:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Loaded the bundled workspace Node runtime and passed type-check:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build with the bundled Node runtime:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Confirmed build output remained ignored and did not add tracked changes under `frontend/dist`.
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before staging showed:
+  - 6 files changed, 84 insertions, 7 deletions.
+
+Skipped verification reason:
+
+- Real DeepSeek/openai-compatible success was not manually verified because no backend-side provider credentials are available.
+- WeChat Developer Tools interaction was not run; this step verified compile/build output but not device-level toast rendering or network behavior.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH.
+
+Scope safety check:
+
+- Limited changes to M4 AI response consumption and a compact source label; no visual reconstruction or unrelated user-center/settings work was added.
+- Did not add frontend secrets, package dependencies, or package/lockfile changes.
+- Did not touch admin, deployment, monitoring, SMS, notifications, campaign, social, H5/Web, voice transcription, or AI diagnosis/dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Credential-backed provider success and real WeChat runtime behavior still require manual integration verification.
+- M4 frontend location, media/cover, and real-data surface phases remain open.

@@ -352,6 +352,10 @@ const organizeBeliefThen = async () => {
       content: form.content,
       coreQuestion: form.coreQuestion || undefined,
     })
+    if (result.status !== 'SUCCESS') {
+      uni.showToast({ title: result.message || 'AI整理暂时不可用', icon: 'none' })
+      return
+    }
     form.aiSummary = result.summary || form.aiSummary
     form.beliefThen = result.beliefThen || result.coreQuestion || result.summary || ''
     uni.showToast({ title: '已整理你当时以为', icon: 'success' })

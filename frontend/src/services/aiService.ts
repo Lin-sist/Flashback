@@ -1,6 +1,8 @@
 import { httpRequest } from './httpClient'
 import type { RecordType } from '../types'
 
+export type AiResultStatus = 'SUCCESS' | 'UNAVAILABLE' | 'FAILED' | 'FALLBACK'
+
 export interface WritingPromptsPayload {
   content?: string
   recordType?: RecordType
@@ -15,6 +17,8 @@ export interface SummarizeRecordPayload {
 export interface WritingPromptsResponse {
   prompts: string[]
   source: string
+  status: AiResultStatus
+  message?: string | null
 }
 
 export interface SummarizeRecordResponse {
@@ -25,6 +29,8 @@ export interface SummarizeRecordResponse {
   beliefThen?: string
   desiredOutcome?: string
   source: string
+  status: AiResultStatus
+  message?: string | null
 }
 
 export const aiService = {
