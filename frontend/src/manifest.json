@@ -10,6 +10,15 @@
     "setting": {
       "urlCheck": false
     },
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于为记录保存你主动选择的地点"
+      }
+    },
+    "requiredPrivateInfos": [
+      "getLocation",
+      "chooseLocation"
+    ],
     "usingComponents": true
   }
 }

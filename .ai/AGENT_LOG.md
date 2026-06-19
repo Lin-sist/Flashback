@@ -3493,3 +3493,63 @@ Remaining risks:
 
 - Credential-backed provider success and real WeChat runtime behavior still require manual integration verification.
 - M4 frontend location, media/cover, and real-data surface phases remain open.
+
+## 2026-06-19 23:43 M4 record editor real location
+
+Task:
+
+- Continue frontend phase 9 of `m4-real-capability-completion` with a real draft-location workflow.
+- Replace the record editor location placeholder with current-location, map-picker, manual-input, update, and delete behavior backed by the accepted record location endpoints.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/manifest.json`
+- `frontend/src/pages/record-editor/index.vue`
+- `frontend/src/services/recordService.ts`
+- `frontend/src/types/record.ts`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added frontend `RecordLocationSource`, location DTO/VO fields, and real `PUT/DELETE /api/records/{id}/location` service methods.
+- Record editor now supports `uni.getLocation` with GCJ-02 coordinates, `uni.chooseLocation`, and manual name/address entry.
+- A new record with valid content is persisted as a real draft before location is saved, so subresource calls always use a backend-issued record ID.
+- Location changes update the UI only after backend success; draft deletion uses confirmation and backend success before clearing local state.
+- Permission denial or map cancellation leaves manual entry available and does not block record editing.
+- Preview sessions remain read-only for location changes.
+- Added Mini Program location permission description and `getLocation` / `chooseLocation` private API declarations.
+- Marked only the implemented editor and permission-fallback location tasks complete; read-only time-review display and manual WeChat verification remain open.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated `frontend/dist/build/mp-weixin/app.json` and confirmed it contains:
+  - `permission.scope.userLocation.desc`
+  - `requiredPrivateInfos` entries `getLocation` and `chooseLocation`
+- Confirmed `frontend/dist` remained ignored and no generated build files became tracked changes.
+- `git diff --check` passed with line-ending warnings only.
+- `git diff --stat` before staging showed:
+  - 6 files changed, 389 insertions, 10 deletions.
+
+Skipped verification reason:
+
+- WeChat Developer Tools/device permission, current-location accuracy, map-picker UI, and real backend request behavior were not manually run in this environment.
+- Official location-manifest documentation lookup was attempted but the web search endpoint returned HTTP 403; implementation was checked against installed UniApp type definitions and generated Mini Program `app.json` instead.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH.
+
+Scope safety check:
+
+- Stayed within accepted M4 location endpoints, source enums, validation shape, draft-only mutation, and preview isolation.
+- Did not add backend geocoding/reverse geocoding, package dependencies, package/lockfile changes, or broad visual reconstruction.
+- Did not touch settings behavior, admin, deployment, monitoring, SMS, notifications, campaign, social, H5/Web, voice transcription, or AI diagnosis/dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real WeChat permission and map behavior still need manual Mini Program verification.
+- Sealed/unlocked detail and time-review location display remain pending frontend work.

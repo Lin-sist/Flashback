@@ -2,6 +2,17 @@ import type { LifeNodeType, RecordReminderStatus, RecordStatus, RecordType } fro
 import type { TagVO } from './tag'
 
 export type DateTimeValue = string | number
+export type RecordLocationSource = 'CURRENT_LOCATION' | 'MAP_PICKER' | 'MANUAL'
+
+export interface RecordLocationVO {
+  source: RecordLocationSource
+  name?: string | null
+  address?: string | null
+  latitude?: number | null
+  longitude?: number | null
+}
+
+export interface UpdateRecordLocationDTO extends RecordLocationVO { }
 
 export interface CreateRecordDTO {
   title?: string
@@ -55,6 +66,7 @@ export interface RecordDetailVO {
   lifeNodeCustomLabel?: string
   lifeNodeLabel?: string
   unlockReminderStatus?: RecordReminderStatus
+  location?: RecordLocationVO | null
   tags: TagVO[]
   canReply: boolean
   hasReply: boolean

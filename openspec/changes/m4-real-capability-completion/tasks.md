@@ -128,14 +128,14 @@
 
 ## 9. Frontend Phase: Location
 
-- [ ] Replace location placeholder/toast with real location controls.
-- [ ] Support current location selection.
-- [ ] Support map picker selection.
-- [ ] Support manual input.
-- [ ] Support draft edit/delete.
+- [x] Replace location placeholder/toast with real location controls.
+- [x] Support current location selection.
+- [x] Support map picker selection.
+- [x] Support manual input.
+- [x] Support draft edit/delete.
 - [ ] Show read-only location after seal/unlock where applicable.
 - [ ] Show location in time review after unlock.
-- [ ] Handle permission denial and unavailable location services without blocking record editing.
+- [x] Handle permission denial and unavailable location services without blocking record editing.
 - [ ] Verify Mini Program location behavior manually where automation is not practical.
 
 ## 10. Frontend Phase: Images, Voice, and Cover

@@ -4,9 +4,15 @@ import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
-import { aiService } from '../../services'
+import { aiService, recordService } from '../../services'
 import { useRecordStore, useTagStore } from '../../stores'
-import { LifeNodeType, RecordReminderStatus, RecordType } from '../../types'
+import {
+  LifeNodeType,
+  RecordReminderStatus,
+  RecordType,
+  type RecordLocationVO,
+  type UpdateRecordLocationDTO,
+} from '../../types'
 import {
   formatDateTime,
   getToken,
@@ -31,6 +37,10 @@ const initErrorMessage = ref('')
 const latestQuery = ref<Record<string, unknown>>({})
 const aiOrganizing = ref(false)
 const showUnlockPicker = ref(false)
+const showLocationPanel = ref(false)
+const locationSaving = ref(false)
+const location = ref<RecordLocationVO | null>(null)
+const manualLocation = reactive({ name: '', address: '' })
 const unlockReminderTemplateId = import.meta.env.VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID || ''
 
 interface EditorSnapshot {
@@ -84,6 +94,15 @@ const lifeNodeOptions = [
 const isLifeNodeRecord = computed(() => form.recordType === RecordType.NODE_RECORD)
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
+const locationLabel = computed(() => {
+  if (!location.value) return ''
+  const textLabel = location.value.name?.trim() || location.value.address?.trim()
+  if (textLabel) return textLabel
+  if (typeof location.value.latitude === 'number' && typeof location.value.longitude === 'number') {
+    return `${location.value.latitude.toFixed(6)}, ${location.value.longitude.toFixed(6)}`
+  }
+  return '已保存地点'
+})
 
 const unlockDisplayText = computed(() => {
   if (!form.unlockAtInput) return ''
@@ -245,6 +264,9 @@ const fillByDetail = async (id: number) => {
   form.lifeNodeCustomLabel = detail.lifeNodeCustomLabel || ''
   form.tagIds = detail.tags.map((tag) => Number(tag.id))
   form.unlockAtInput = detail.unlockAt ? formatDateTime(detail.unlockAt) : ''
+  location.value = detail.location || null
+  manualLocation.name = detail.location?.name || ''
+  manualLocation.address = detail.location?.address || ''
 }
 
 const resolveRecordId = (value: unknown) => {
@@ -366,6 +388,121 @@ const organizeBeliefThen = async () => {
   }
 }
 
+const ensureDraftForLocation = async () => {
+  if (recordId.value) return recordId.value
+  if (!validateRecordContent(form.content)) {
+    throw new Error('先写下正文，再添加地点')
+  }
+  const draft = await persistDraft()
+  markSnapshot()
+  return draft.id
+}
+
+const saveLocation = async (payload: UpdateRecordLocationDTO) => {
+  if (locationSaving.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+
+  locationSaving.value = true
+  try {
+    const id = await ensureDraftForLocation()
+    const detail = await recordService.updateLocation(id, payload)
+    location.value = detail.location || payload
+    manualLocation.name = location.value.name || ''
+    manualLocation.address = location.value.address || ''
+    recordStore.detail = detail
+    showLocationPanel.value = false
+    uni.showToast({ title: '地点已保存', icon: 'success' })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    locationSaving.value = false
+  }
+}
+
+const useCurrentLocation = () => {
+  if (locationSaving.value) return
+  uni.getLocation({
+    type: 'gcj02',
+    isHighAccuracy: true,
+    success: (result) => {
+      saveLocation({
+        source: 'CURRENT_LOCATION',
+        latitude: result.latitude,
+        longitude: result.longitude,
+      })
+    },
+    fail: () => {
+      uni.showToast({ title: '定位未授权，可选择地图或手动填写', icon: 'none' })
+    },
+  })
+}
+
+const chooseMapLocation = () => {
+  if (locationSaving.value) return
+  uni.chooseLocation({
+    latitude: location.value?.latitude || undefined,
+    longitude: location.value?.longitude || undefined,
+    success: (result) => {
+      saveLocation({
+        source: 'MAP_PICKER',
+        name: result.name || null,
+        address: result.address || null,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      })
+    },
+    fail: () => {
+      uni.showToast({ title: '未选择地点，也可以手动填写', icon: 'none' })
+    },
+  })
+}
+
+const saveManualLocation = () => {
+  const name = manualLocation.name.trim()
+  const address = manualLocation.address.trim()
+  if (!name && !address) {
+    uni.showToast({ title: '请填写地点名称或地址', icon: 'none' })
+    return
+  }
+  saveLocation({
+    source: 'MANUAL',
+    name: name || null,
+    address: address || null,
+  })
+}
+
+const deleteLocation = () => {
+  if (!recordId.value || !location.value || locationSaving.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  uni.showModal({
+    title: '移除地点？',
+    content: '只会移除这条草稿关联的地点。',
+    confirmText: '移除',
+    success: async (result) => {
+      if (!result.confirm || !recordId.value) return
+      locationSaving.value = true
+      try {
+        const detail = await recordService.deleteLocation(recordId.value)
+        location.value = null
+        manualLocation.name = ''
+        manualLocation.address = ''
+        recordStore.detail = detail
+        uni.showToast({ title: '地点已移除', icon: 'success' })
+      } catch (error) {
+        uni.showToast({ title: toUserMessage(error), icon: 'none' })
+      } finally {
+        locationSaving.value = false
+      }
+    },
+  })
+}
+
 const requestUnlockReminderAuthorization = () => new Promise<'accepted' | 'rejected' | 'skipped'>((resolve) => {
   if (!unlockReminderTemplateId || typeof uni.requestSubscribeMessage !== 'function') {
     resolve('skipped')
@@ -463,6 +600,14 @@ const sealRecord = async () => {
 }
 
 const onAuxTap = (name: '地点' | '图片' | '语音') => {
+  if (name === '地点') {
+    if (!getToken() && hasPreviewSession()) {
+      showPreviewReadonlyToast()
+      return
+    }
+    showLocationPanel.value = !showLocationPanel.value
+    return
+  }
   uni.showToast({ title: `${name} 功能将在后续版本开放`, icon: 'none' })
 }
 
@@ -617,11 +762,44 @@ onLoad(async (query) => {
               </view>
             </view>
 
+            <view v-if="location" class="location-summary">
+              <view class="location-summary-text">
+                <text class="location-summary-label">已选地点</text>
+                <text class="location-summary-value">{{ locationLabel }}</text>
+              </view>
+              <view class="location-remove" @tap="deleteLocation">移除</view>
+            </view>
+
+            <view v-if="showLocationPanel" class="location-panel">
+              <view class="location-modes">
+                <view class="location-mode" @tap="useCurrentLocation">当前位置</view>
+                <view class="location-mode" @tap="chooseMapLocation">地图选择</view>
+                <view class="location-mode location-mode--active">手动填写</view>
+              </view>
+              <input
+                v-model="manualLocation.name"
+                class="location-input"
+                maxlength="100"
+                placeholder="地点名称"
+                placeholder-class="location-placeholder"
+              />
+              <input
+                v-model="manualLocation.address"
+                class="location-input"
+                maxlength="255"
+                placeholder="详细地址（可选）"
+                placeholder-class="location-placeholder"
+              />
+              <view class="location-save" :class="{ 'location-save--disabled': locationSaving }" @tap="saveManualLocation">
+                {{ locationSaving ? '保存中...' : '保存手动地点' }}
+              </view>
+            </view>
+
             <!-- 附件栏 MAP / IMAGE / VOICE -->
             <view class="attach-bar">
-              <view class="attach-item" @tap="onAuxTap('地点')">
+              <view class="attach-item" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
                 <view class="attach-icon attach-icon--map" aria-hidden="true" />
-                <text class="attach-label">地点</text>
+                <text class="attach-label">{{ location ? '已选地点' : '地点' }}</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
               <view class="attach-item" @tap="onAuxTap('图片')">
@@ -997,6 +1175,100 @@ onLoad(async (query) => {
   line-height: 1;
 }
 
+.location-summary {
+  padding: 20rpx 40rpx;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.location-summary-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.location-summary-label {
+  font-size: 19rpx;
+  color: #9e9890;
+}
+
+.location-summary-value {
+  font-size: 23rpx;
+  line-height: 1.5;
+  color: #5f5850;
+  word-break: break-all;
+}
+
+.location-remove {
+  flex-shrink: 0;
+  padding: 10rpx 0 10rpx 20rpx;
+  font-size: 21rpx;
+  color: #9a332a;
+}
+
+.location-panel {
+  padding: 22rpx 40rpx 26rpx;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+}
+
+.location-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1rpx solid rgba(166, 150, 124, 0.36);
+}
+
+.location-mode {
+  min-width: 0;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21rpx;
+  color: #6b6257;
+  border-right: 1rpx solid rgba(166, 150, 124, 0.28);
+}
+
+.location-mode:last-child {
+  border-right: 0;
+}
+
+.location-mode--active {
+  color: #9a332a;
+  background: rgba(181, 53, 42, 0.06);
+}
+
+.location-input {
+  height: 64rpx;
+  margin-top: 14rpx;
+  padding: 0 14rpx;
+  border-bottom: 1rpx solid rgba(166, 150, 124, 0.34);
+  font-size: 23rpx;
+  color: #4a4640;
+}
+
+:deep(.location-placeholder) {
+  color: rgba(180, 170, 155, 0.76);
+}
+
+.location-save {
+  height: 60rpx;
+  margin-top: 20rpx;
+  border: 1rpx solid rgba(181, 53, 42, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  color: #9a332a;
+}
+
+.location-save--disabled {
+  opacity: 0.6;
+}
+
 /* 正文 textarea */
 .editor-field {
   width: 100%;
@@ -1032,6 +1304,10 @@ onLoad(async (query) => {
   align-items: center;
   gap: 10rpx;
   padding: 6rpx 0;
+}
+
+.attach-item--active .attach-label {
+  color: #9a332a;
 }
 
 .attach-icon {

@@ -12,6 +12,7 @@ import type {
   RecordStatus,
   TimelineGroupVO,
   TimelineQuery,
+  UpdateRecordLocationDTO,
   UpdateRecordDTO,
 } from '../types'
 import {
@@ -72,6 +73,27 @@ export const recordService = {
       url: `/api/records/${id}`,
       method: 'PUT',
       data: toDraftPayload(payload),
+    })
+  },
+  updateLocation(id: string | number, payload: UpdateRecordLocationDTO) {
+    if (shouldUsePreviewData()) {
+      return Promise.reject(new Error('Preview mode is read-only'))
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/location`,
+      method: 'PUT',
+      data: payload,
+    })
+  },
+  deleteLocation(id: string | number) {
+    if (shouldUsePreviewData()) {
+      return Promise.reject(new Error('Preview mode is read-only'))
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/location`,
+      method: 'DELETE',
     })
   },
   deleteDraft(id: string | number) {
