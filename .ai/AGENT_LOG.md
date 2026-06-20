@@ -4082,3 +4082,51 @@ Remaining risks:
 
 - Explicit preview mode still requires real Mini Program interaction verification before its functional checkbox can be closed.
 - Global safe failure-state closeout and credential-backed AI/Qiniu integration verification remain open M4 work.
+
+## 2026-06-20 12:04 M4 real-mode safe state closeout
+
+Task:
+
+- Audit loading, empty, and failure states across M4 real-data pages and close the remaining home summary gap.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/home/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Confirmed record list, timeline, record detail, record editor, and user center already expose explicit loading, empty, failure/retry, or stale-data states appropriate to their real-data requests.
+- Added a dedicated loading state for the home page's sealed-record summary instead of temporarily showing an empty-state call to action while the backend request is pending.
+- Added a dedicated retryable error state for the same summary so a real backend failure is visible and never appears as a successful empty response.
+- Preserved the existing backend-backed latest-unlocked loading/error/empty states and existing empty-record creation action.
+- Marked the M4 safe empty/loading/error state task complete.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\node_modules\.bin\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\node_modules\.bin\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated `dist/build/mp-weixin/pages/home/index.wxml`; both `正在同步即将抵达的记录...` and retryable `即将抵达暂未同步 · 轻触重试` branches are present.
+- `git diff --check` passed before this log update.
+- OpenSpec task progress advanced from 133/155 to 134/155.
+
+Skipped verification reason:
+
+- Loading and request-failure branches were not manually forced in WeChat Developer Tools because no authenticated runtime backend dataset is available in this environment.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Limited the code change to status rendering in the existing home page; no API, persistence, package, or lockfile changes were made.
+- Did not add a mock fallback or convert backend failures into apparent success.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, H5/Web, transcription, or AI dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Authenticated Mini Program runtime verification remains required for real loading/error transitions.
+- Credential-backed AI/Qiniu integration and explicit preview interaction verification remain open M4 work.

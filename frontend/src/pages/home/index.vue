@@ -254,8 +254,16 @@ onUnmounted(() => {
           </view>
         </view>
 
+        <view v-else-if="sealedState === 'loading'" class="arrival-wrap">
+          <view class="arrival-state">正在同步即将抵达的记录...</view>
+        </view>
+
+        <view v-else-if="sealedState === 'error'" class="arrival-wrap" @tap="retryHomeSummary">
+          <view class="arrival-state arrival-state--action">即将抵达暂未同步 · 轻触重试</view>
+        </view>
+
         <!-- empty state when no sealed records -->
-        <view v-else-if="sealedState === 'ready' && sealedCount === 0" class="arrival-wrap" @tap="goEditor">
+        <view v-else-if="sealedCount === 0" class="arrival-wrap" @tap="goEditor">
           <view class="arrival-card">
             <view class="arrival-meta">
               <view class="seal seal-empty"><text class="seal-char">写</text></view>
@@ -536,6 +544,20 @@ onUnmounted(() => {
     0 4rpx 24rpx rgba(140, 120, 90, 0.08),
     0 2rpx 8rpx rgba(140, 120, 90, 0.05);
   overflow: hidden;
+}
+
+.arrival-state {
+  padding: 28rpx;
+  border-top: 1rpx solid rgba(188, 174, 152, 0.22);
+  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
+  text-align: center;
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  color: var(--fb-ink-light);
+}
+
+.arrival-state--action {
+  color: var(--fb-vermilion);
 }
 
 /* right-top corner fold */

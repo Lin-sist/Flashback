@@ -163,7 +163,7 @@
 - [x] Ensure authenticated real users use backend-backed record, review, cover, location, and attachment data.
 - [x] Replace hard-coded home review countdown/card data with backend-backed real-mode data.
 - [x] Ensure time review uses backend-backed detail, attachments, location, and cover in real mode.
-- [ ] Add safe empty/loading/error states for real-mode data failures.
+- [x] Add safe empty/loading/error states for real-mode data failures.
 - [ ] Verify preview mode still works after mock-boundary changes.
 
 ## 12. Integration and Verification
