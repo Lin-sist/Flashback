@@ -185,14 +185,14 @@
 
 ## 13. Final Review
 
-- [ ] Confirm M4 did not implement settings page work.
-- [ ] Confirm M4 did not add admin, production deployment, monitoring, SMS, notification center, campaign delivery, social feed, or H5/Web acceptance scope.
-- [ ] Confirm AI is real-provider-backed in authenticated real mode.
-- [ ] Confirm missing real integrations fail explicitly and do not fake success.
-- [ ] Confirm Qiniu bucket usage assumes private access and backend-signed URLs.
-- [ ] Confirm Qiniu AK/SK and AI keys are backend-only and not tracked.
-- [ ] Confirm location, attachments, and cover are immutable after seal.
-- [ ] Confirm cover comes only from same-record image attachments.
-- [ ] Confirm voice is stored as raw audio only with no transcription.
-- [ ] Confirm V2.0 visible naming remains "我的记录", "时光轴", and "时间回看".
+- [x] Confirm M4 did not implement settings page work.
+- [x] Confirm M4 did not add admin, production deployment, monitoring, SMS, notification center, campaign delivery, social feed, or H5/Web acceptance scope.
+- [x] Confirm AI is real-provider-backed in authenticated real mode.
+- [x] Confirm missing real integrations fail explicitly and do not fake success.
+- [x] Confirm Qiniu bucket usage assumes private access and backend-signed URLs.
+- [x] Confirm Qiniu AK/SK and AI keys are backend-only and not tracked.
+- [x] Confirm location, attachments, and cover are immutable after seal.
+- [x] Confirm cover comes only from same-record image attachments.
+- [x] Confirm voice is stored as raw audio only with no transcription.
+- [x] Confirm V2.0 visible naming remains "我的记录", "时光轴", and "时间回看".
 - [ ] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.

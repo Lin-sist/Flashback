@@ -4130,3 +4130,63 @@ Remaining risks:
 
 - Authenticated Mini Program runtime verification remains required for real loading/error transitions.
 - Credential-backed AI/Qiniu integration and explicit preview interaction verification remain open M4 work.
+
+## 2026-06-20 12:16 M4 automated final review
+
+Task:
+
+- Perform the M4 code-level final review for scope boundaries, real integration behavior, secrets, immutability, media semantics, and visible naming.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Confirmed the cumulative M4 diff from baseline `9ee190c` contains no settings page, admin, deployment, monitoring, SMS, production notification center, campaign delivery, social feed, H5/Web acceptance, package, or lockfile implementation.
+- Confirmed authenticated AI service branches use the configured OpenAI-compatible provider endpoint and return `UNAVAILABLE` or `FAILED` when provider configuration, response content, or transport fails; mock success remains behind the explicit disabled-by-default `real-mode-mock-enabled` switch.
+- Confirmed Qiniu upload and management credentials are read only from backend configuration, private object access URLs are signed by the backend with an expiry, and no frontend or tracked secret value was found.
+- Confirmed location update/delete, attachment upload/commit/delete, and cover mutation require a `DRAFT` record.
+- Confirmed cover selection queries an available attachment by `attachmentId + recordId + userId` and accepts only `IMAGE` attachments.
+- Confirmed voice is recorded and committed as raw audio attachments and no speech recognition, transcription, or voice AI path exists.
+- Confirmed the V2.0 visible names `我的记录`, `时光轴`, and `时间回看` remain in current user-facing surfaces; no old visible naming match was found in the audited frontend paths.
+- Marked the ten code-level Final Review confirmations complete. Credential-backed and WeChat runtime verification tasks remain open.
+
+Verification:
+
+- Passed backend full test suite offline against the existing local Maven cache:
+  - `mvn "-Dmaven.repo.local=C:\\Users\\Lin\\.m2\\repository" -o -s C:\\Users\\Lin\\.m2\\settings.xml -q test`
+  - Surefire summary: `25` suites, `192` tests, `0` failures, `0` errors, `0` skipped.
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\node_modules\.bin\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\node_modules\.bin\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected the cumulative changed-file list from `9ee190c..HEAD`; forbidden scope and package/lockfile path count is zero.
+- Searched backend/frontend source for transcription and speech-to-text terms; no implementation match was found.
+- Searched audited frontend paths for legacy visible names; no legacy name match was found, while the three canonical names are present.
+- Searched tracked configuration/source for AI and Qiniu key assignments; only backend environment-variable placeholders were found.
+- Inspected AI provider branches, Qiniu signed URL construction, draft guards, same-record cover lookup, image-only cover validation, and raw recorder/upload settings.
+- `git diff --check` passed before this log update.
+- Cumulative M4 `git diff --stat 9ee190c..HEAD`: `84 files changed, 11276 insertions(+), 439 deletions(-)`.
+- OpenSpec task progress advanced from 134/155 to 144/155.
+
+Skipped verification reason:
+
+- Real AI provider success was not invoked because no approved runtime API credential is available in this environment.
+- Real Qiniu upload, object verification, signed URL access, image preview, and voice playback were not invoked because no approved bucket credential/private object dataset is available.
+- Preview, location, cover, media, and unlocked time-review flows were not manually exercised in WeChat Developer Tools; compile/build and generated-code checks do not replace interactive verification.
+- The first sandboxed Maven attempt could not resolve the parent POM because the sandbox uses an isolated Maven repository. The final offline command explicitly selected the existing read-only local repository and passed.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- This step changed only the task checklist and evidence log; no product code, configuration, dependency, schema, or contract mapping was altered.
+- Code review covered the full M4 diff while preserving the accepted OpenSpec scope and canonical mappings.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Eleven OpenSpec items remain open: one conditional decision-log item, nine credential/manual integration checks, and the eventual final handoff item.
+- Real provider behavior, private Qiniu media behavior, preview isolation, location UX, cover rendering, and unlocked time-review composition still require authenticated WeChat runtime evidence.
