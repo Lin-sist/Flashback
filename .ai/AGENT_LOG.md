@@ -3843,3 +3843,64 @@ Remaining risks:
 
 - Credential-backed cover persistence and current-cover delete behavior still require real Mini Program integration verification.
 - Timeline/home cover display, sealed/unlocked read-only media, preview/mock cleanup, and full media integration verification remain open M4 work.
+
+## 2026-06-20 11:45 M4 timeline and home real cover display
+
+Task:
+
+- Continue frontend phase 10 of `m4-real-capability-completion` by displaying backend-provided record covers on home and timeline cards.
+- Resolve private cover media through owner-scoped short-lived access URLs while keeping preview and failure fallbacks honest.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/composables/useRecordCoverUrls.ts`
+- `frontend/src/pages/home/index.vue`
+- `frontend/src/pages/timeline/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Confirmed backend list and timeline responses already include same-record cover metadata while intentionally leaving `cover.accessUrl` null.
+- Added a focused `useRecordCoverUrls` composable that resolves authenticated covers through `GET /api/records/{recordId}/attachments/{attachmentId}/access-url`.
+- The composable accepts an explicit embedded `cover.accessUrl` for preview data but does not issue real storage requests when no auth token exists, preserving preview isolation.
+- Added per-record request versions, stale-record cleanup, stale-URL clearing before refresh, and image-load failure state so changing/filtering cards cannot show an old or unrelated cover.
+- Home's existing backend-backed latest SEALED arrival card now shows its selected cover when present; no-cover behavior retains the existing paper card rather than injecting preview media.
+- Timeline DRAFT, SEALED, and UNLOCKED cards show their selected covers when present; unlocked cards retain the neutral image placeholder when no cover exists.
+- Signed URL or image loading failure shows a restrained `封面暂不可用` fallback and never substitutes curated preview imagery.
+- Marked only the timeline/home cover implementation task complete; credential-backed visual verification remains open.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated home WXML and confirmed real cover image, load-error fallback, and no-cover-preserving conditional structure are emitted on the arrival card.
+- Inspected generated timeline WXML and confirmed DRAFT, SEALED, and UNLOCKED cover image/fallback branches are emitted.
+- Inspected generated `composables/useRecordCoverUrls.js` and confirmed embedded URL handling occurs before the `getToken()` gate, and `createAccessUrl` is called only after a real token exists.
+- Searched frontend source and generated Mini Program output for `QINIU_ACCESS_KEY`, `QINIU_SECRET_KEY`, and `AI_API_KEY`; no matches were found.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 126/155 to 127/155.
+- Combined tracked diff plus the new composable before staging showed:
+  - 5 files changed, 282 insertions, 3 deletions.
+
+Skipped verification reason:
+
+- Real private cover download and visual rendering were not manually exercised because backend-side Qiniu credentials/private bucket data and an authenticated WeChat Developer Tools runtime are unavailable in this environment.
+- The integration checkbox for real timeline/home cover display remains open; generated WXML/JS is implementation evidence, not credential-backed end-to-end acceptance.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Limited changes to existing home/timeline cards and a shared private-cover URL helper; no new page or major visual reconstruction was added.
+- Did not weaken private bucket access, embed permanent/public URLs, expose secrets, or change package/lockfiles.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, H5/Web, transcription, or AI dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Credential-backed signed cover access and real Mini Program rendering still require manual integration verification.
+- Home arrival countdown remains hard-coded and is tracked separately in phase 11; this cover step did not claim real home review timing completion.
+- Sealed/unlocked read-only media, time-review media, preview/mock cleanup, and full media integration verification remain open M4 work.

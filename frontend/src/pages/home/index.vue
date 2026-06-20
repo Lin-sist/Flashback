@@ -2,6 +2,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import { recordService } from '../../services'
+import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
 import { RecordStatus, type RecordListItemVO } from '../../types'
 import { hasAuthenticatedSession } from '../../utils'
 
@@ -19,6 +20,7 @@ const latestSealed = ref<RecordListItemVO | null>(null)
 const draftState = ref<SectionState>('idle')
 const sealedState = ref<SectionState>('idle')
 const unlockedState = ref<SectionState>('idle')
+const { coverUrls, coverErrors, loadCovers, markCoverFailed } = useRecordCoverUrls()
 
 const ensureLogin = () => {
   if (!hasAuthenticatedSession()) {
@@ -70,6 +72,10 @@ const loadHomeSummary = async () => {
     latestUnlocked.value = null
     unlockedState.value = 'error'
   }
+
+  void loadCovers(latestSealed.value?.cover
+    ? [{ recordId: latestSealed.value.id, cover: latestSealed.value.cover }]
+    : [])
 }
 
 const retryHomeSummary = () => {
@@ -183,6 +189,19 @@ onShow(() => {
         <!-- arrival card -->
         <view v-if="showArrivalCard" class="arrival-wrap" @tap="goLatestSealed">
           <view class="arrival-card">
+            <view v-if="latestSealed?.cover" class="arrival-cover">
+              <image
+                v-if="coverUrls[latestSealed.id]"
+                class="arrival-cover-image"
+                :src="coverUrls[latestSealed.id]"
+                mode="aspectFill"
+                @error="markCoverFailed(latestSealed.id)"
+              />
+              <view v-else class="arrival-cover-fallback">
+                <view class="arrival-cover-icon" aria-hidden="true" />
+                <text v-if="coverErrors[latestSealed.id]" class="arrival-cover-error">封面暂不可用</text>
+              </view>
+            </view>
             <view class="arrival-meta">
               <view class="seal"><text class="seal-char">待</text></view>
               <text class="arrival-tag">即将抵达</text>
@@ -478,6 +497,47 @@ onShow(() => {
     transparent
   );
   border-radius: 2rpx;
+}
+
+.arrival-cover {
+  position: relative;
+  width: calc(100% + 104rpx);
+  height: 220rpx;
+  margin: -44rpx -48rpx 30rpx -56rpx;
+  overflow: hidden;
+  background: #e8e0d5;
+}
+
+.arrival-cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.arrival-cover-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  background: linear-gradient(135deg, #e8e0d5 0%, #d0c7ba 100%);
+}
+
+.arrival-cover-icon {
+  width: 78rpx;
+  height: 58rpx;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 36' fill='none'><path d='M0 28L12 14L20 22L30 8L48 28' stroke='%239e9890' stroke-width='1' fill='none'/><ellipse cx='38' cy='8' rx='5' ry='5' stroke='%239e9890' stroke-width='1'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.3;
+}
+
+.arrival-cover-error {
+  font-size: 18rpx;
+  color: #7f756a;
 }
 
 .arrival-meta {

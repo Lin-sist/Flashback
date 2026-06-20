@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { recordService } from '../../services'
+import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
 import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
 import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
@@ -26,6 +27,7 @@ const appliedYear = ref('')
 const timelineLoadFailed = ref(false)
 const yearInputFocused = ref(false)
 const filterPanelVisible = ref(false)
+const { coverUrls, coverErrors, loadCovers, markCoverFailed } = useRecordCoverUrls()
 
 const flatCount = computed(() => timelineGroups.value.reduce((sum, g) => sum + g.items.length, 0))
 const hasAppliedYearFilter = computed(() => Boolean(appliedYear.value))
@@ -108,7 +110,7 @@ const decoratedGroups = computed(() =>
       statusText: resolveStatusText(item.status),
       tagText: resolveTagText(item.status),
       dateText: formatDateTime(item.createdAt),
-      hasImage: false,
+      hasImage: Boolean(item.cover),
       excerpt: '',
     })),
   }))
@@ -139,6 +141,9 @@ const loadTimeline = async () => {
     const result = await recordService.getTimeline(requested.payload)
     timelineGroups.value = result
     appliedYear.value = requested.yearText
+    void loadCovers(result.flatMap((group) => group.items
+      .filter((item) => Boolean(item.cover))
+      .map((item) => ({ recordId: item.id, cover: item.cover }))))
   } catch {
     timelineLoadFailed.value = true
   } finally {
@@ -255,6 +260,19 @@ onShow(() => {
                 </view>
                 <text class="tl-date">{{ item.dateText }}</text>
                 <view class="card-locked card-arriving">
+                  <view v-if="item.hasImage" class="card-img-placeholder card-img-placeholder--compact">
+                    <image
+                      v-if="coverUrls[item.id]"
+                      class="card-cover-image"
+                      :src="coverUrls[item.id]"
+                      mode="aspectFill"
+                      @error="markCoverFailed(item.id)"
+                    />
+                    <view v-else class="card-img-fallback">
+                      <view class="card-img-icon" />
+                      <text v-if="coverErrors[item.id]" class="card-img-error">封面暂不可用</text>
+                    </view>
+                  </view>
                   <view class="card-meta">
                     <view class="seal"><text class="seal-char">待</text></view>
                     <text class="card-tag">即将抵达</text>
@@ -275,7 +293,17 @@ onShow(() => {
                 <text class="tl-date">{{ item.dateText }}</text>
                 <view class="card">
                   <view class="card-img-placeholder">
-                    <view class="card-img-icon" />
+                    <image
+                      v-if="item.hasImage && coverUrls[item.id]"
+                      class="card-cover-image"
+                      :src="coverUrls[item.id]"
+                      mode="aspectFill"
+                      @error="markCoverFailed(item.id)"
+                    />
+                    <view v-else class="card-img-fallback">
+                      <view class="card-img-icon" />
+                      <text v-if="item.hasImage && coverErrors[item.id]" class="card-img-error">封面暂不可用</text>
+                    </view>
                   </view>
                   <view class="card-meta">
                     <view class="seal seal-open"><text class="seal-char seal-char-open">封</text></view>
@@ -295,6 +323,19 @@ onShow(() => {
                 </view>
                 <text class="tl-date">{{ item.dateText }}</text>
                 <view class="card-locked">
+                  <view v-if="item.hasImage" class="card-img-placeholder card-img-placeholder--compact">
+                    <image
+                      v-if="coverUrls[item.id]"
+                      class="card-cover-image"
+                      :src="coverUrls[item.id]"
+                      mode="aspectFill"
+                      @error="markCoverFailed(item.id)"
+                    />
+                    <view v-else class="card-img-fallback">
+                      <view class="card-img-icon" />
+                      <text v-if="coverErrors[item.id]" class="card-img-error">封面暂不可用</text>
+                    </view>
+                  </view>
                   <view class="card-locked-title">
                     <view class="lock-icon" />
                     <text>{{ item.title }}</text>
@@ -738,6 +779,33 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.card-img-placeholder--compact {
+  height: 180rpx;
+}
+
+.card-cover-image,
+.card-img-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.card-cover-image {
+  display: block;
+}
+
+.card-img-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+}
+
+.card-img-error {
+  font-size: 18rpx;
+  color: #7f756a;
 }
 
 .card-img-icon {
