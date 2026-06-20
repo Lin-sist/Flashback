@@ -3904,3 +3904,62 @@ Remaining risks:
 - Credential-backed signed cover access and real Mini Program rendering still require manual integration verification.
 - Home arrival countdown remains hard-coded and is tracked separately in phase 11; this cover step did not claim real home review timing completion.
 - Sealed/unlocked read-only media, time-review media, preview/mock cleanup, and full media integration verification remain open M4 work.
+
+## 2026-06-20 11:51 M4 sealed and unlocked read-only media
+
+Task:
+
+- Continue frontend phase 10/11 of `m4-real-capability-completion` by showing backend detail images and voices as read-only context for SEALED and UNLOCKED records.
+- Provide private signed image preview and voice playback without exposing attachment, cover, or location mutation controls after seal.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/record-detail/components/ReadOnlyRecordMedia.vue`
+- `frontend/src/pages/record-detail/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added a record-detail-local `ReadOnlyRecordMedia` component backed only by `RecordDetailVO.attachments` and `cover` metadata.
+- Mounted the same component on both SEALED detail and UNLOCKED 时间回看 surfaces; DRAFT detail remains routed to the editor.
+- Available images resolve owner-scoped signed access URLs, display in a stable three-column grid, support authorized multi-image preview, and identify the selected cover.
+- Image access or load failures remain visible as retryable `图片暂不可用` placeholders and do not substitute preview images.
+- Available voices resolve a fresh signed URL when played and use `InnerAudioContext` with loading, stop, ended, error, request-race, and unmount cleanup behavior.
+- No delete, re-record, upload, cover-change, or location-change control exists in the read-only component.
+- Authenticated mode calls the real media access endpoint; no-token preview mode can only consume an explicit attachment `accessUrl` and never calls the real storage endpoint.
+- Marked sealed/unlocked read-only attachments and backend-backed time-review detail/media/location/cover tasks complete. Real device media verification remains open.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated record-detail WXML and confirmed separate SEALED and UNLOCKED `read-only-record-media` component instances receive backend attachment/cover props.
+- Inspected generated `ReadOnlyRecordMedia.wxml` and confirmed image preview, cover marker, voice playback, duration, and failure states are emitted with no mutation controls.
+- Inspected generated component JS and confirmed `getToken`, `createAccessUrl`, `previewImage`, `createInnerAudioContext`, request cancellation, and unmount cleanup are emitted; no attachment delete, commit, or upload-token call exists.
+- Searched frontend source and generated Mini Program output for `QINIU_ACCESS_KEY`, `QINIU_SECRET_KEY`, and `AI_API_KEY`; no matches were found.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 127/155 to 129/155.
+- Combined tracked diff plus the new read-only media component before staging showed:
+  - 4 files changed, 450 insertions, 2 deletions.
+
+Skipped verification reason:
+
+- Real signed image access/preview and voice playback were not manually exercised because backend-side Qiniu credentials/private objects and an authenticated WeChat Developer Tools runtime are unavailable in this environment.
+- The integration checkbox for unlocked location/image/voice/reflection display remains open; generated component output proves implementation structure but not credential-backed end-to-end media behavior.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Limited changes to read-only media presentation on existing SEALED/UNLOCKED detail surfaces.
+- Did not permit post-seal mutation, add transcription/voice AI, weaken private media access, expose secrets, or change package/lockfiles.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, or H5/Web scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Credential-backed Qiniu preview/playback and real WeChat audio behavior still require manual integration verification.
+- Home countdown/mock cleanup, remaining real-mode preview audit, safe empty/error refinements, and full media integration verification remain open M4 work.

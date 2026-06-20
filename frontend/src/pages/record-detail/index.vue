@@ -5,6 +5,7 @@ import PaperContainer from '../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import EmptyState from '../../components/common/EmptyState.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
+import ReadOnlyRecordMedia from './components/ReadOnlyRecordMedia.vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { recordService, replyService } from '../../services'
 import { useRecordStore } from '../../stores'
@@ -476,6 +477,13 @@ onLoad(async (query) => {
             <view class="sealed-sparkle">✦</view>
           </view>
 
+          <ReadOnlyRecordMedia
+            :record-id="detail.id"
+            :attachments="detail.attachments || []"
+            :cover-id="detail.cover?.id || null"
+            variant="sealed"
+          />
+
           <!-- 倒计时区 -->
           <view class="sealed-lock">
             <view class="sealed-lock__live">
@@ -555,6 +563,13 @@ onLoad(async (query) => {
               class="unlock-location-coordinates"
             >{{ archiveLocationCoordinates }}</text>
           </view>
+
+          <ReadOnlyRecordMedia
+            :record-id="detail.id"
+            :attachments="detail.attachments || []"
+            :cover-id="detail.cover?.id || null"
+            variant="unlocked"
+          />
 
           <view class="reflection-panel">
             <view class="reflection-block">

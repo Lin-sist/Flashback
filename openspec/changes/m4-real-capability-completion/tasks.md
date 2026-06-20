@@ -153,7 +153,7 @@
 - [x] Add cover selection UI from current record image attachments.
 - [x] Prevent cover selection when no image attachment exists.
 - [x] Show cover on timeline/home cards when available.
-- [ ] Show attachments as read-only after seal/unlock.
+- [x] Show attachments as read-only after seal/unlock.
 - [ ] Verify media flow manually in WeChat Developer Tools where automation is not practical.
 
 ## 11. Frontend Phase: Mock Boundary and Real Data Surfaces
@@ -162,7 +162,7 @@
 - [ ] Keep preview data only behind explicit preview mode.
 - [ ] Ensure authenticated real users use backend-backed record, review, cover, location, and attachment data.
 - [ ] Replace hard-coded home review countdown/card data with backend-backed real-mode data.
-- [ ] Ensure time review uses backend-backed detail, attachments, location, and cover in real mode.
+- [x] Ensure time review uses backend-backed detail, attachments, location, and cover in real mode.
 - [ ] Add safe empty/loading/error states for real-mode data failures.
 - [ ] Verify preview mode still works after mock-boundary changes.
 
