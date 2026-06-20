@@ -14,6 +14,10 @@ export interface RecordLocationVO {
 
 export interface UpdateRecordLocationDTO extends RecordLocationVO { }
 
+export interface UpdateRecordCoverDTO {
+  attachmentId: number | null
+}
+
 export type RecordAttachmentType = 'IMAGE' | 'VOICE'
 export type RecordAttachmentStatus = 'AVAILABLE' | 'DELETED'
 

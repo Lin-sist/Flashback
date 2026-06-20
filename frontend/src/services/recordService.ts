@@ -12,6 +12,7 @@ import type {
   RecordStatus,
   TimelineGroupVO,
   TimelineQuery,
+  UpdateRecordCoverDTO,
   UpdateRecordLocationDTO,
   UpdateRecordDTO,
 } from '../types'
@@ -94,6 +95,17 @@ export const recordService = {
     return httpRequest<RecordDetailVO>({
       url: `/api/records/${id}/location`,
       method: 'DELETE',
+    })
+  },
+  updateCover(id: string | number, payload: UpdateRecordCoverDTO) {
+    if (shouldUsePreviewData()) {
+      return Promise.reject(new Error('Preview mode is read-only'))
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/cover`,
+      method: 'PUT',
+      data: payload,
     })
   },
   deleteDraft(id: string | number) {

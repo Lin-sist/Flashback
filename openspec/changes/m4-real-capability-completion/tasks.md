@@ -150,8 +150,8 @@
 - [x] Play uploaded voice files.
 - [x] Support draft voice re-record/delete.
 - [x] Enforce or pre-check max 9 images, max 9 voice files, 40 MB per file, and 300 MB per record.
-- [ ] Add cover selection UI from current record image attachments.
-- [ ] Prevent cover selection when no image attachment exists.
+- [x] Add cover selection UI from current record image attachments.
+- [x] Prevent cover selection when no image attachment exists.
 - [ ] Show cover on timeline/home cards when available.
 - [ ] Show attachments as read-only after seal/unlock.
 - [ ] Verify media flow manually in WeChat Developer Tools where automation is not practical.

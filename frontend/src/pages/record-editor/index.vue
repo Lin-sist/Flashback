@@ -39,8 +39,11 @@ const latestQuery = ref<Record<string, unknown>>({})
 const aiOrganizing = ref(false)
 const showUnlockPicker = ref(false)
 const showLocationPanel = ref(false)
+const showCoverPicker = ref(false)
 const locationSaving = ref(false)
+const coverSaving = ref(false)
 const location = ref<RecordLocationVO | null>(null)
+const cover = ref<RecordAttachmentVO | null>(null)
 const manualLocation = reactive({ name: '', address: '' })
 const attachments = ref<RecordAttachmentVO[]>([])
 const imageAccessUrls = reactive<Record<number, string>>({})
@@ -186,7 +189,8 @@ const mediaOperationActive = computed(() => imageUploading.value
   || voiceUploading.value
   || voiceStarting.value
   || voiceRecording.value
-  || voiceStopping.value)
+  || voiceStopping.value
+  || coverSaving.value)
 const locationLabel = computed(() => {
   if (!location.value) return ''
   const textLabel = location.value.name?.trim() || location.value.address?.trim()
@@ -363,6 +367,7 @@ const fillByDetail = async (id: number) => {
   form.tagIds = detail.tags.map((tag) => Number(tag.id))
   form.unlockAtInput = detail.unlockAt ? formatDateTime(detail.unlockAt) : ''
   location.value = detail.location || null
+  cover.value = detail.cover || null
   manualLocation.name = detail.location?.name || ''
   manualLocation.address = detail.location?.address || ''
   attachments.value = (detail.attachments || []).filter((attachment) => attachment.status === 'AVAILABLE')
@@ -704,13 +709,14 @@ const preparePendingImage = async (item: PendingImageUpload) => {
 }
 
 const syncDetailAttachments = (deletedAttachmentId?: number) => {
+  if (deletedAttachmentId && cover.value?.id === deletedAttachmentId) {
+    cover.value = null
+  }
   if (!recordStore.detail || recordStore.detail.id !== recordId.value) return
   recordStore.detail = {
     ...recordStore.detail,
     attachments: [...attachments.value],
-    cover: deletedAttachmentId && recordStore.detail.cover?.id === deletedAttachmentId
-      ? null
-      : recordStore.detail.cover,
+    cover: cover.value,
   }
 }
 
@@ -791,8 +797,8 @@ const processPendingImage = async (id: number, item: PendingImageUpload) => {
 
 const selectAndUploadImages = async () => {
   if (imageUploading.value) return
-  if (voiceUploading.value || voiceStarting.value || voiceRecording.value || voiceStopping.value) {
-    uni.showToast({ title: '请先结束当前语音操作', icon: 'none' })
+  if (voiceUploading.value || voiceStarting.value || voiceRecording.value || voiceStopping.value || coverSaving.value) {
+    uni.showToast({ title: '请先结束当前媒体操作', icon: 'none' })
     return
   }
   if (!getToken() && hasPreviewSession()) {
@@ -900,11 +906,73 @@ const deleteImage = (attachment: RecordAttachmentVO) => {
         delete imageAccessUrls[attachment.id]
         delete imageAccessErrors[attachment.id]
         syncDetailAttachments(attachment.id)
+        if (imageAttachments.value.length === 0) {
+          showCoverPicker.value = false
+        }
         uni.showToast({ title: '图片已删除', icon: 'success' })
       } catch (error) {
         uni.showToast({ title: toUserMessage(error), icon: 'none' })
       } finally {
         imageUploading.value = false
+      }
+    },
+  })
+}
+
+const saveCover = async (attachment: RecordAttachmentVO | null) => {
+  if (mediaOperationActive.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  if (!recordId.value) {
+    uni.showToast({ title: '先保存图片，再选择封面', icon: 'none' })
+    return
+  }
+  if (attachment && !imageAttachments.value.some((item) => item.id === attachment.id)) {
+    uni.showToast({ title: '封面只能选择这条记录的已上传图片', icon: 'none' })
+    return
+  }
+  if (cover.value?.id === attachment?.id) {
+    showCoverPicker.value = false
+    return
+  }
+
+  coverSaving.value = true
+  try {
+    const detail = await recordService.updateCover(recordId.value, {
+      attachmentId: attachment?.id || null,
+    })
+    cover.value = detail.cover === undefined ? attachment : detail.cover
+    recordStore.detail = {
+      ...detail,
+      attachments: detail.attachments || [...attachments.value],
+      cover: cover.value,
+    }
+    showCoverPicker.value = false
+    uni.showToast({ title: attachment ? '封面已设置' : '封面已清除', icon: 'success' })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    coverSaving.value = false
+  }
+}
+
+const toggleCoverPicker = () => {
+  if (mediaOperationActive.value) return
+  if (imageAttachments.value.length > 0) {
+    showCoverPicker.value = !showCoverPicker.value
+    return
+  }
+  uni.showModal({
+    title: '先添加图片',
+    content: '封面只能从这条记录已上传的图片中选择。',
+    confirmText: '添加图片',
+    success: async (result) => {
+      if (!result.confirm) return
+      await selectAndUploadImages()
+      if (imageAttachments.value.length > 0) {
+        showCoverPicker.value = true
       }
     },
   })
@@ -1591,7 +1659,16 @@ onUnload(() => {
                     <text>{{ imageAccessErrors[attachment.id] ? '加载失败' : '取图中' }}</text>
                     <text v-if="imageAccessErrors[attachment.id]" class="image-access-retry">点击重试</text>
                   </view>
+                  <view v-if="cover?.id === attachment.id" class="image-cover-badge">封面</view>
                   <view class="image-delete" aria-label="删除图片" @tap.stop="deleteImage(attachment)">×</view>
+                  <view
+                    v-if="showCoverPicker"
+                    class="image-cover-select"
+                    :class="{ 'image-cover-select--active': cover?.id === attachment.id }"
+                    @tap.stop="saveCover(attachment)"
+                  >
+                    {{ cover?.id === attachment.id ? '当前封面' : '设为封面' }}
+                  </view>
                 </view>
 
                 <view v-for="item in pendingImageUploads" :key="item.localId" class="image-tile">
@@ -1606,6 +1683,23 @@ onUnload(() => {
                 </view>
               </view>
               <text v-if="firstImageUploadError" class="image-upload-error">{{ firstImageUploadError }}</text>
+            </view>
+
+            <view
+              class="cover-bar"
+              :class="{ 'cover-bar--active': cover || showCoverPicker, 'cover-bar--disabled': coverSaving }"
+              @tap="toggleCoverPicker"
+            >
+              <view class="cover-bar-text">
+                <text class="cover-bar-title">记录封面</text>
+                <text class="cover-bar-value">
+                  {{ coverSaving ? '保存中' : cover ? '已选择图片封面' : '从已上传图片中选择' }}
+                </text>
+              </view>
+              <view class="cover-bar-actions">
+                <view v-if="cover" class="cover-clear" aria-label="清除封面" @tap.stop="saveCover(null)">×</view>
+                <text class="cover-arrow">›</text>
+              </view>
             </view>
 
             <view
@@ -2250,6 +2344,39 @@ onUnload(() => {
   background: rgba(45, 39, 34, 0.7);
 }
 
+.image-cover-badge {
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+  z-index: 2;
+  height: 34rpx;
+  padding: 0 10rpx;
+  display: flex;
+  align-items: center;
+  font-size: 17rpx;
+  color: #fff;
+  background: rgba(154, 51, 42, 0.86);
+}
+
+.image-cover-select {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 46rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  color: #fff;
+  background: rgba(45, 39, 34, 0.72);
+}
+
+.image-cover-select--active {
+  background: rgba(154, 51, 42, 0.9);
+}
+
 .image-pending-actions {
   position: absolute;
   inset: 0;
@@ -2280,6 +2407,69 @@ onUnload(() => {
   line-height: 1.5;
   color: #9a332a;
   word-break: break-all;
+}
+
+.cover-bar {
+  min-height: 82rpx;
+  padding: 16rpx 40rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+}
+
+.cover-bar--active .cover-bar-title,
+.cover-bar--active .cover-arrow {
+  color: #9a332a;
+}
+
+.cover-bar--disabled {
+  opacity: 0.6;
+}
+
+.cover-bar-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.cover-bar-title {
+  font-size: 21rpx;
+  color: #655e56;
+}
+
+.cover-bar-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18rpx;
+  color: #9e9890;
+}
+
+.cover-bar-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.cover-clear {
+  width: 38rpx;
+  height: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 29rpx;
+  line-height: 1;
+  color: #9a332a;
+}
+
+.cover-arrow {
+  font-size: 36rpx;
+  line-height: 1;
+  color: #aaa197;
 }
 
 .voice-panel {

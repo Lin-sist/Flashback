@@ -3784,3 +3784,62 @@ Remaining risks:
 - Credential-backed Qiniu and real WeChat microphone/audio verification remains required before voice integration can be accepted end to end.
 - The accepted re-record contract has no atomic replace endpoint; the UI explicitly deletes the old draft voice before recording the replacement, so cancelling or failing the new recording leaves the old voice deleted.
 - Cover selection, read-only media in time review, timeline/home cover display, real-path mock cleanup, and full media integration verification remain open M4 work.
+
+## 2026-06-20 11:40 M4 draft cover selection
+
+Task:
+
+- Continue frontend phase 10 of `m4-real-capability-completion` with draft cover selection from the current record's verified image attachments.
+- Prevent standalone/no-image cover selection and preserve preview and draft lifecycle boundaries.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/record-editor/index.vue`
+- `frontend/src/services/recordService.ts`
+- `frontend/src/types/record.ts`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added typed `UpdateRecordCoverDTO` and a preview-read-only `PUT /api/records/{id}/cover` frontend service method matching the accepted contract.
+- Record editor now loads the backend `cover` with draft detail and exposes a compact cover control without adding a standalone cover uploader.
+- Cover selection mode lists only the current record's committed `AVAILABLE IMAGE` attachments; current cover and selectable image states are visible on the existing image grid.
+- Selecting or clearing a cover updates the UI only after backend success and syncs the Pinia detail cache.
+- With no available image, the cover control shows a focused prompt that routes to the existing image upload flow; it never sends a cover request or uploads a separate file.
+- Preview sessions remain read-only for cover mutation.
+- Deleting the current cover image relies on the accepted backend clear-on-delete behavior and now also clears local cover state; deleting the final image exits cover-selection mode.
+- Cover saving participates in the shared media-operation guard, preventing concurrent upload/record/seal mutations.
+- Marked only draft cover selection and no-image prevention tasks complete; timeline/home cover display remains open.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated record-editor WXML and confirmed current-cover badge, `设为封面`, `当前封面`, cover clear `catchtap`, and cover control states are emitted.
+- Inspected generated record-editor JS and confirmed `recordService.updateCover`, same-record available-image pre-check, no-image add-image prompt, preview read-only branch, and backend-success-only local update are emitted.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 124/155 to 126/155.
+- `git diff --stat` before staging showed:
+  - 5 files changed, 273 insertions, 8 deletions.
+
+Skipped verification reason:
+
+- Real cover update/clear and backend clear-on-current-cover-image-delete were not manually exercised because no authenticated Mini Program runtime with Qiniu-backed image attachments is available in this environment.
+- WeChat Developer Tools visual interaction was not run; type-check, Mini Program build, and generated WXML/JS inspection are the current automated evidence.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Stayed within the accepted same-record `IMAGE` cover endpoint and draft-only mutation contract.
+- Did not add standalone cover upload, public media URLs, frontend secrets, package dependencies, package/lockfile changes, or broad visual reconstruction.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, H5/Web, transcription, or AI dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Credential-backed cover persistence and current-cover delete behavior still require real Mini Program integration verification.
+- Timeline/home cover display, sealed/unlocked read-only media, preview/mock cleanup, and full media integration verification remain open M4 work.
