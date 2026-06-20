@@ -4021,3 +4021,64 @@ Remaining risks:
 
 - Real home countdown/card and Qiniu cover behavior still require authenticated WeChat manual verification.
 - Preview/mock usage audit, global safe failure-state closeout, and full media integration verification remain open M4 work.
+
+## 2026-06-20 12:00 M4 preview and real-integration boundary audit
+
+Task:
+
+- Audit preview/mock usage across M4-touched services, record store, home, timeline, record editor, record detail, read-only media, cover helper, and stage-summary surface.
+- Ensure explicit preview cannot accidentally call real AI/Qiniu integrations while authenticated token paths remain backend-backed.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/user-center/index.vue`
+- `frontend/src/services/aiService.ts`
+- `frontend/src/services/attachmentService.ts`
+- `frontend/src/services/stageSummaryService.ts`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Confirmed `recordService` uses preview data only when both conditions hold: no real token and an explicit preview session.
+- Confirmed a real token takes precedence over preview session state for record list/detail, timeline, home review, location, cover, and reflection APIs.
+- Confirmed the record store does not introduce any independent mock fallback; it delegates to `recordService` and preserves backend failures.
+- Added defense-in-depth preview guards to writing prompts, record summary AI, stage summary, upload token, Qiniu upload, attachment commit, signed URL, and attachment delete service boundaries.
+- These guards reject only `!getToken() && hasPreviewSession()`; unauthenticated non-preview behavior and authenticated real behavior remain unchanged.
+- Added an explicit user-center stage-summary preview guard and read-only toast so preview does not make a hidden unauthenticated request or present a fake success.
+- Confirmed home/timeline cover access and record-detail read-only media use embedded preview URLs only without a token; they call real signed URL APIs only with a token.
+- Confirmed record editor location/image/voice/cover mutations already have explicit preview read-only guards; the service boundary now prevents accidental regressions if a page guard is missed later.
+- Marked preview/mock audit, explicit-preview-only data, and authenticated backend-backed core surface tasks complete. Runtime preview verification remains open.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated `aiService.js`, `stageSummaryService.js`, and `attachmentService.js`; each real integration is guarded by the exact `!getToken() && hasPreviewSession()` condition.
+- Inspected generated user-center JS and confirmed explicit preview stage-summary toast occurs before `stageSummaryService.generate()`.
+- Searched M4-touched pages/store/services for `getPreview` and `mock`; preview data imports remain confined to `recordService` and are gated by `shouldUsePreviewData`.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 130/155 to 133/155.
+- `git diff --stat` before staging showed:
+  - 6 files changed, 108 insertions, 4 deletions.
+
+Skipped verification reason:
+
+- Preview mode was not manually launched in WeChat Developer Tools; this step verifies compile-time and generated-branch isolation, not full interactive preview behavior.
+- Real authenticated API behavior was not exercised against a running backend in this environment; backend-backed routing is verified from service and generated code structure.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Changes are limited to integration boundary guards and one existing stage-summary action.
+- Did not add preview mock media, fake AI success, public storage URLs, secrets, dependencies, package/lockfile changes, or visual reconstruction.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, H5/Web, transcription, or AI dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Explicit preview mode still requires real Mini Program interaction verification before its functional checkbox can be closed.
+- Global safe failure-state closeout and credential-backed AI/Qiniu integration verification remain open M4 work.

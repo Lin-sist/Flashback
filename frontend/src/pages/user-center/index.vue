@@ -4,7 +4,8 @@ import { computed, ref } from 'vue'
 import { recordService, stageSummaryService, type StageSummaryVO } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
-import { hasAuthenticatedSession } from '../../utils'
+import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
+import { getToken, hasAuthenticatedSession } from '../../utils'
 
 type SettingKey = 'record' | 'appearance' | 'privacy' | 'backup' | 'about' | 'tag' | 'notify'
 
@@ -108,6 +109,10 @@ const goTimeline = () => {
 
 const generateStageSummary = async () => {
   if (summaryLoading.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast('演示模式不生成真实阶段总结')
+    return
+  }
   summaryLoading.value = true
   try {
     stageSummary.value = await stageSummaryService.generate()

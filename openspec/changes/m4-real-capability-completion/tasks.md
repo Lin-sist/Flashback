@@ -158,9 +158,9 @@
 
 ## 11. Frontend Phase: Mock Boundary and Real Data Surfaces
 
-- [ ] Audit preview/mock data usage in frontend services and pages touched by M4.
-- [ ] Keep preview data only behind explicit preview mode.
-- [ ] Ensure authenticated real users use backend-backed record, review, cover, location, and attachment data.
+- [x] Audit preview/mock data usage in frontend services and pages touched by M4.
+- [x] Keep preview data only behind explicit preview mode.
+- [x] Ensure authenticated real users use backend-backed record, review, cover, location, and attachment data.
 - [x] Replace hard-coded home review countdown/card data with backend-backed real-mode data.
 - [x] Ensure time review uses backend-backed detail, attachments, location, and cover in real mode.
 - [ ] Add safe empty/loading/error states for real-mode data failures.

@@ -1,4 +1,6 @@
 import { httpRequest } from './httpClient'
+import { hasPreviewSession } from '../features/preview/preview-session'
+import { getToken } from '../utils'
 import type {
   AttachmentAccessUrlVO,
   AttachmentUploadTokenVO,
@@ -20,8 +22,15 @@ const parseQiniuResponse = (data: string): QiniuUploadResponse => {
   }
 }
 
+const shouldBlockRealIntegrationInPreview = () => !getToken() && hasPreviewSession()
+
+const rejectPreviewMediaRequest = <T>() => Promise.reject<T>(new Error('演示模式不访问真实媒体服务'))
+
 export const attachmentService = {
   createUploadToken(recordId: string | number, payload: CreateAttachmentUploadTokenDTO) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewMediaRequest<AttachmentUploadTokenVO>()
+    }
     return httpRequest<AttachmentUploadTokenVO>({
       url: `/api/records/${recordId}/attachments/upload-token`,
       method: 'POST',
@@ -30,6 +39,9 @@ export const attachmentService = {
   },
 
   uploadToQiniu(filePath: string, authorization: AttachmentUploadTokenVO) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewMediaRequest<void>()
+    }
     return new Promise<void>((resolve, reject) => {
       uni.uploadFile({
         url: authorization.uploadUrl,
@@ -63,6 +75,9 @@ export const attachmentService = {
   },
 
   commit(recordId: string | number, payload: CommitRecordAttachmentDTO) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewMediaRequest<RecordAttachmentVO>()
+    }
     return httpRequest<RecordAttachmentVO>({
       url: `/api/records/${recordId}/attachments/commit`,
       method: 'POST',
@@ -71,12 +86,18 @@ export const attachmentService = {
   },
 
   createAccessUrl(recordId: string | number, attachmentId: string | number) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewMediaRequest<AttachmentAccessUrlVO>()
+    }
     return httpRequest<AttachmentAccessUrlVO>({
       url: `/api/records/${recordId}/attachments/${attachmentId}/access-url`,
     })
   },
 
   delete(recordId: string | number, attachmentId: string | number) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewMediaRequest<void>()
+    }
     return httpRequest<void>({
       url: `/api/records/${recordId}/attachments/${attachmentId}`,
       method: 'DELETE',

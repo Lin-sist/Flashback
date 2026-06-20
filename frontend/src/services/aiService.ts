@@ -1,5 +1,7 @@
 import { httpRequest } from './httpClient'
 import type { RecordType } from '../types'
+import { hasPreviewSession } from '../features/preview/preview-session'
+import { getToken } from '../utils'
 
 export type AiResultStatus = 'SUCCESS' | 'UNAVAILABLE' | 'FAILED' | 'FALLBACK'
 
@@ -33,8 +35,15 @@ export interface SummarizeRecordResponse {
   message?: string | null
 }
 
+const shouldBlockRealIntegrationInPreview = () => !getToken() && hasPreviewSession()
+
+const rejectPreviewAiRequest = <T>() => Promise.reject<T>(new Error('演示模式不访问真实 AI 服务'))
+
 export const aiService = {
   getWritingPrompts(payload: WritingPromptsPayload) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewAiRequest<WritingPromptsResponse>()
+    }
     return httpRequest<WritingPromptsResponse>({
       url: '/api/ai/writing-prompts',
       method: 'POST',
@@ -42,6 +51,9 @@ export const aiService = {
     })
   },
   summarizeRecord(payload: SummarizeRecordPayload) {
+    if (shouldBlockRealIntegrationInPreview()) {
+      return rejectPreviewAiRequest<SummarizeRecordResponse>()
+    }
     return httpRequest<SummarizeRecordResponse>({
       url: '/api/ai/summarize-record',
       method: 'POST',
