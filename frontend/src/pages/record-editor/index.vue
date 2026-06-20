@@ -4,12 +4,13 @@ import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
-import { aiService, recordService } from '../../services'
+import { aiService, attachmentService, recordService } from '../../services'
 import { useRecordStore, useTagStore } from '../../stores'
 import {
   LifeNodeType,
   RecordReminderStatus,
   RecordType,
+  type RecordAttachmentVO,
   type RecordLocationVO,
   type UpdateRecordLocationDTO,
 } from '../../types'
@@ -41,7 +42,35 @@ const showLocationPanel = ref(false)
 const locationSaving = ref(false)
 const location = ref<RecordLocationVO | null>(null)
 const manualLocation = reactive({ name: '', address: '' })
+const attachments = ref<RecordAttachmentVO[]>([])
+const imageAccessUrls = reactive<Record<number, string>>({})
+const imageAccessErrors = reactive<Record<number, string>>({})
+const imageUploading = ref(false)
 const unlockReminderTemplateId = import.meta.env.VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID || ''
+
+const MAX_IMAGE_COUNT = 9
+const MAX_FILE_SIZE_BYTES = 40 * 1024 * 1024
+const MAX_TOTAL_SIZE_BYTES = 300 * 1024 * 1024
+
+type ImageUploadStatus = 'compressing' | 'uploading' | 'verifying' | 'failed'
+
+interface PendingImageUpload {
+  localId: string
+  originalPath: string
+  filePath: string
+  fileName: string
+  mimeType: 'image/jpeg'
+  status: ImageUploadStatus
+  error: string
+  prepared: boolean
+  sizeBytes: number
+  width: number | null
+  height: number | null
+  uploadedKey?: string
+}
+
+const pendingImageUploads = ref<PendingImageUpload[]>([])
+let imageSequence = 0
 
 interface EditorSnapshot {
   title: string
@@ -94,6 +123,16 @@ const lifeNodeOptions = [
 const isLifeNodeRecord = computed(() => form.recordType === RecordType.NODE_RECORD)
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
+const imageAttachments = computed(() => attachments.value.filter(
+  (attachment) => attachment.type === 'IMAGE' && attachment.status === 'AVAILABLE'
+))
+const occupiedImageCount = computed(() => imageAttachments.value.length + pendingImageUploads.value.length)
+const availableAttachmentBytes = computed(() => attachments.value
+  .filter((attachment) => attachment.status === 'AVAILABLE')
+  .reduce((sum, attachment) => sum + attachment.sizeBytes, 0))
+const firstImageUploadError = computed(() => pendingImageUploads.value.find(
+  (item) => item.status === 'failed' && item.error
+)?.error || '')
 const locationLabel = computed(() => {
   if (!location.value) return ''
   const textLabel = location.value.name?.trim() || location.value.address?.trim()
@@ -214,6 +253,11 @@ const handleCloseWithAutoSave = async () => {
     return
   }
 
+  if (imageUploading.value) {
+    uni.showToast({ title: '图片正在上传，请稍候', icon: 'none' })
+    return
+  }
+
   if (!hasDirtyChanges()) {
     returnToSource()
     return
@@ -267,6 +311,10 @@ const fillByDetail = async (id: number) => {
   location.value = detail.location || null
   manualLocation.name = detail.location?.name || ''
   manualLocation.address = detail.location?.address || ''
+  attachments.value = (detail.attachments || []).filter((attachment) => attachment.status === 'AVAILABLE')
+  Object.keys(imageAccessUrls).forEach((key) => delete imageAccessUrls[Number(key)])
+  Object.keys(imageAccessErrors).forEach((key) => delete imageAccessErrors[Number(key)])
+  void loadImageAccessUrls(imageAttachments.value)
 }
 
 const resolveRecordId = (value: unknown) => {
@@ -388,10 +436,10 @@ const organizeBeliefThen = async () => {
   }
 }
 
-const ensureDraftForLocation = async () => {
+const ensureDraftForAuxiliaryEdit = async (subject: '地点' | '图片') => {
   if (recordId.value) return recordId.value
   if (!validateRecordContent(form.content)) {
-    throw new Error('先写下正文，再添加地点')
+    throw new Error(`先写下正文，再添加${subject}`)
   }
   const draft = await persistDraft()
   markSnapshot()
@@ -407,7 +455,7 @@ const saveLocation = async (payload: UpdateRecordLocationDTO) => {
 
   locationSaving.value = true
   try {
-    const id = await ensureDraftForLocation()
+    const id = await ensureDraftForAuxiliaryEdit('地点')
     const detail = await recordService.updateLocation(id, payload)
     location.value = detail.location || payload
     manualLocation.name = location.value.name || ''
@@ -503,6 +551,303 @@ const deleteLocation = () => {
   })
 }
 
+const chooseImagePaths = () => new Promise<string[]>((resolve, reject) => {
+  const remaining = MAX_IMAGE_COUNT - occupiedImageCount.value
+  uni.chooseImage({
+    count: remaining,
+    sizeType: ['original'],
+    sourceType: ['album', 'camera'],
+    success: (result) => resolve(Array.isArray(result.tempFilePaths) ? result.tempFilePaths : [result.tempFilePaths]),
+    fail: (error) => {
+      if (String(error.errMsg || '').includes('cancel')) {
+        resolve([])
+        return
+      }
+      reject(new Error('图片选择失败，请稍后重试'))
+    },
+  })
+})
+
+const compressImage = (filePath: string) => new Promise<string>((resolve, reject) => {
+  uni.compressImage({
+    src: filePath,
+    quality: 80,
+    success: (result) => resolve(result.tempFilePath),
+    fail: () => reject(new Error('图片压缩失败，请更换图片后重试')),
+  })
+})
+
+const getFileSize = (filePath: string) => new Promise<number>((resolve, reject) => {
+  uni.getFileInfo({
+    filePath,
+    success: (result) => resolve(result.size),
+    fail: () => reject(new Error('无法读取压缩后的图片大小')),
+  })
+})
+
+const getImageDimensions = (filePath: string) => new Promise<{ width: number; height: number }>((resolve, reject) => {
+  uni.getImageInfo({
+    src: filePath,
+    success: (result) => resolve({ width: result.width, height: result.height }),
+    fail: () => reject(new Error('无法读取压缩后的图片信息')),
+  })
+})
+
+const imageUploadStatusLabel = (status: ImageUploadStatus) => {
+  if (status === 'compressing') return '压缩中'
+  if (status === 'uploading') return '上传中'
+  if (status === 'verifying') return '校验中'
+  return '上传失败'
+}
+
+const createPendingImage = (filePath: string): PendingImageUpload => {
+  imageSequence += 1
+  const stamp = Date.now()
+  return {
+    localId: `${stamp}-${imageSequence}`,
+    originalPath: filePath,
+    filePath,
+    fileName: `image-${stamp}-${imageSequence}.jpg`,
+    mimeType: 'image/jpeg',
+    status: 'compressing',
+    error: '',
+    prepared: false,
+    sizeBytes: 0,
+    width: null,
+    height: null,
+  }
+}
+
+const reservedAttachmentBytes = (excludedLocalId?: string) => availableAttachmentBytes.value
+  + pendingImageUploads.value
+    .filter((item) => item.localId !== excludedLocalId)
+    .reduce((sum, item) => sum + item.sizeBytes, 0)
+
+const preparePendingImage = async (item: PendingImageUpload) => {
+  if (item.prepared) return
+  item.status = 'compressing'
+  item.error = ''
+  const compressedPath = await compressImage(item.originalPath)
+  const [sizeBytes, dimensions] = await Promise.all([
+    getFileSize(compressedPath),
+    getImageDimensions(compressedPath),
+  ])
+  if (sizeBytes > MAX_FILE_SIZE_BYTES) {
+    throw new Error('压缩后图片仍超过 40 MB，请更换图片')
+  }
+  if (reservedAttachmentBytes(item.localId) + sizeBytes > MAX_TOTAL_SIZE_BYTES) {
+    throw new Error('这条记录的附件总大小不能超过 300 MB')
+  }
+  item.filePath = compressedPath
+  item.sizeBytes = sizeBytes
+  item.width = dimensions.width
+  item.height = dimensions.height
+  item.prepared = true
+}
+
+const syncDetailAttachments = (deletedAttachmentId?: number) => {
+  if (!recordStore.detail || recordStore.detail.id !== recordId.value) return
+  recordStore.detail = {
+    ...recordStore.detail,
+    attachments: [...attachments.value],
+    cover: deletedAttachmentId && recordStore.detail.cover?.id === deletedAttachmentId
+      ? null
+      : recordStore.detail.cover,
+  }
+}
+
+const loadImageAccessUrl = async (attachment: RecordAttachmentVO, forceRefresh = false) => {
+  if (!forceRefresh && imageAccessUrls[attachment.id]) {
+    return imageAccessUrls[attachment.id]
+  }
+  if (!recordId.value) {
+    throw new Error('记录尚未保存，无法获取图片')
+  }
+  try {
+    const access = await attachmentService.createAccessUrl(recordId.value, attachment.id)
+    imageAccessUrls[attachment.id] = access.url
+    delete imageAccessErrors[attachment.id]
+    return access.url
+  } catch (error) {
+    delete imageAccessUrls[attachment.id]
+    imageAccessErrors[attachment.id] = toUserMessage(error)
+    throw error
+  }
+}
+
+const loadImageAccessUrls = async (items: RecordAttachmentVO[]) => {
+  await Promise.allSettled(items.map((attachment) => loadImageAccessUrl(attachment)))
+}
+
+const commitPendingImage = async (id: number, item: PendingImageUpload) => {
+  if (!item.uploadedKey) {
+    item.status = 'uploading'
+    const authorization = await attachmentService.createUploadToken(id, {
+      type: 'IMAGE',
+      fileName: item.fileName,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+    })
+    if (item.sizeBytes > authorization.maxFileSizeBytes) {
+      throw new Error('图片超过存储服务允许的大小')
+    }
+    await attachmentService.uploadToQiniu(item.filePath, authorization)
+    item.uploadedKey = authorization.key
+  }
+
+  item.status = 'verifying'
+  const attachment = await attachmentService.commit(id, {
+    type: 'IMAGE',
+    key: item.uploadedKey,
+    fileName: item.fileName,
+    mimeType: item.mimeType,
+    sizeBytes: item.sizeBytes,
+    width: item.width,
+    height: item.height,
+    durationSeconds: null,
+  })
+  if (attachment.status !== 'AVAILABLE') {
+    throw new Error('图片尚未通过存储校验')
+  }
+  attachments.value.push(attachment)
+  pendingImageUploads.value = pendingImageUploads.value.filter((pending) => pending.localId !== item.localId)
+  syncDetailAttachments()
+  try {
+    await loadImageAccessUrl(attachment, true)
+  } catch {
+    // Attachment is committed; the visible placeholder provides a retry path for signed URL failures.
+  }
+}
+
+const processPendingImage = async (id: number, item: PendingImageUpload) => {
+  try {
+    await preparePendingImage(item)
+    await commitPendingImage(id, item)
+    return true
+  } catch (error) {
+    item.status = 'failed'
+    item.error = toUserMessage(error)
+    return false
+  }
+}
+
+const selectAndUploadImages = async () => {
+  if (imageUploading.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  if (occupiedImageCount.value >= MAX_IMAGE_COUNT) {
+    uni.showToast({ title: '每条记录最多添加 9 张图片', icon: 'none' })
+    return
+  }
+  if (!validateRecordContent(form.content)) {
+    uni.showToast({ title: '先写下正文，再添加图片', icon: 'none' })
+    return
+  }
+
+  try {
+    const paths = await chooseImagePaths()
+    if (!paths.length) return
+    imageUploading.value = true
+    const id = await ensureDraftForAuxiliaryEdit('图片')
+    let successCount = 0
+    for (const path of paths) {
+      const pending = createPendingImage(path)
+      pendingImageUploads.value.push(pending)
+      if (await processPendingImage(id, pending)) {
+        successCount += 1
+      }
+    }
+    const failedCount = paths.length - successCount
+    if (failedCount > 0) {
+      uni.showToast({ title: `${failedCount} 张图片上传失败，可重试`, icon: 'none' })
+    } else {
+      uni.showToast({ title: `${successCount} 张图片已上传`, icon: 'success' })
+    }
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    imageUploading.value = false
+  }
+}
+
+const retryPendingImage = async (item: PendingImageUpload) => {
+  if (imageUploading.value || item.status !== 'failed') return
+  imageUploading.value = true
+  try {
+    const id = await ensureDraftForAuxiliaryEdit('图片')
+    if (await processPendingImage(id, item)) {
+      uni.showToast({ title: '图片已上传', icon: 'success' })
+      return
+    }
+    uni.showToast({ title: item.error || '图片上传失败', icon: 'none' })
+  } catch (error) {
+    item.status = 'failed'
+    item.error = toUserMessage(error)
+    uni.showToast({ title: item.error, icon: 'none' })
+  } finally {
+    imageUploading.value = false
+  }
+}
+
+const removePendingImage = (item: PendingImageUpload) => {
+  if (imageUploading.value) return
+  pendingImageUploads.value = pendingImageUploads.value.filter((pending) => pending.localId !== item.localId)
+}
+
+const previewImage = async (attachment: RecordAttachmentVO) => {
+  try {
+    const refreshed = await Promise.allSettled(imageAttachments.value.map(
+      (item) => loadImageAccessUrl(item, true)
+    ))
+    const urls = refreshed
+      .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
+      .map((result) => result.value)
+    const current = imageAccessUrls[attachment.id]
+    if (!current || !urls.includes(current)) {
+      throw new Error('图片访问地址暂不可用，请稍后重试')
+    }
+    uni.previewImage({ current, urls })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  }
+}
+
+const markImageLoadFailed = (attachmentId: number) => {
+  delete imageAccessUrls[attachmentId]
+  imageAccessErrors[attachmentId] = '图片加载失败，点击重试'
+}
+
+const deleteImage = (attachment: RecordAttachmentVO) => {
+  if (!recordId.value || imageUploading.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  uni.showModal({
+    title: '删除图片？',
+    content: '图片将从这条草稿中移除。',
+    confirmText: '删除',
+    success: async (result) => {
+      if (!result.confirm || !recordId.value) return
+      imageUploading.value = true
+      try {
+        await attachmentService.delete(recordId.value, attachment.id)
+        attachments.value = attachments.value.filter((item) => item.id !== attachment.id)
+        delete imageAccessUrls[attachment.id]
+        delete imageAccessErrors[attachment.id]
+        syncDetailAttachments(attachment.id)
+        uni.showToast({ title: '图片已删除', icon: 'success' })
+      } catch (error) {
+        uni.showToast({ title: toUserMessage(error), icon: 'none' })
+      } finally {
+        imageUploading.value = false
+      }
+    },
+  })
+}
+
 const requestUnlockReminderAuthorization = () => new Promise<'accepted' | 'rejected' | 'skipped'>((resolve) => {
   if (!unlockReminderTemplateId || typeof uni.requestSubscribeMessage !== 'function') {
     resolve('skipped')
@@ -569,6 +914,11 @@ const sealRecord = async () => {
     return
   }
 
+  if (imageUploading.value) {
+    uni.showToast({ title: '图片正在上传，请稍候再封存', icon: 'none' })
+    return
+  }
+
   if (!validateRecordContent(form.content)) {
     uni.showToast({ title: '请先写下正文内容', icon: 'none' })
     return
@@ -606,6 +956,10 @@ const onAuxTap = (name: '地点' | '图片' | '语音') => {
       return
     }
     showLocationPanel.value = !showLocationPanel.value
+    return
+  }
+  if (name === '图片') {
+    void selectAndUploadImages()
     return
   }
   uni.showToast({ title: `${name} 功能将在后续版本开放`, icon: 'none' })
@@ -795,6 +1149,42 @@ onLoad(async (query) => {
               </view>
             </view>
 
+            <view v-if="imageAttachments.length || pendingImageUploads.length" class="image-panel">
+              <view class="image-panel-head">
+                <text class="image-panel-title">图片附件</text>
+                <text class="image-panel-count">{{ occupiedImageCount }}/{{ MAX_IMAGE_COUNT }}</text>
+              </view>
+              <view class="image-grid">
+                <view v-for="attachment in imageAttachments" :key="attachment.id" class="image-tile">
+                  <image
+                    v-if="imageAccessUrls[attachment.id]"
+                    class="image-thumb"
+                    :src="imageAccessUrls[attachment.id]"
+                    mode="aspectFill"
+                    @tap="previewImage(attachment)"
+                    @error="markImageLoadFailed(attachment.id)"
+                  />
+                  <view v-else class="image-access-failed" @tap="previewImage(attachment)">
+                    <text>{{ imageAccessErrors[attachment.id] ? '加载失败' : '取图中' }}</text>
+                    <text v-if="imageAccessErrors[attachment.id]" class="image-access-retry">点击重试</text>
+                  </view>
+                  <view class="image-delete" aria-label="删除图片" @tap.stop="deleteImage(attachment)">×</view>
+                </view>
+
+                <view v-for="item in pendingImageUploads" :key="item.localId" class="image-tile">
+                  <image class="image-thumb" :src="item.filePath" mode="aspectFill" />
+                  <view class="image-upload-mask">
+                    <text>{{ imageUploadStatusLabel(item.status) }}</text>
+                  </view>
+                  <view v-if="item.status === 'failed'" class="image-pending-actions">
+                    <view class="image-retry" @tap.stop="retryPendingImage(item)">重试</view>
+                    <view class="image-pending-remove" aria-label="移除待上传图片" @tap.stop="removePendingImage(item)">×</view>
+                  </view>
+                </view>
+              </view>
+              <text v-if="firstImageUploadError" class="image-upload-error">{{ firstImageUploadError }}</text>
+            </view>
+
             <!-- 附件栏 MAP / IMAGE / VOICE -->
             <view class="attach-bar">
               <view class="attach-item" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
@@ -802,9 +1192,13 @@ onLoad(async (query) => {
                 <text class="attach-label">{{ location ? '已选地点' : '地点' }}</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
-              <view class="attach-item" @tap="onAuxTap('图片')">
+              <view
+                class="attach-item"
+                :class="{ 'attach-item--active': occupiedImageCount > 0, 'attach-item--disabled': imageUploading }"
+                @tap="onAuxTap('图片')"
+              >
                 <view class="attach-icon attach-icon--image" aria-hidden="true" />
-                <text class="attach-label">图片</text>
+                <text class="attach-label">{{ imageUploading ? '处理中' : occupiedImageCount ? `图片 ${occupiedImageCount}/9` : '图片' }}</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
               <view class="attach-item" @tap="onAuxTap('语音')">
@@ -1269,6 +1663,125 @@ onLoad(async (query) => {
   opacity: 0.6;
 }
 
+.image-panel {
+  padding: 22rpx 40rpx 26rpx;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+}
+
+.image-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.image-panel-title,
+.image-panel-count {
+  font-size: 20rpx;
+  color: #847b70;
+}
+
+.image-panel-count {
+  color: #a39a8e;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.image-tile {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 1rpx solid rgba(166, 150, 124, 0.3);
+  background: rgba(244, 239, 229, 0.8);
+}
+
+.image-thumb {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.image-access-failed,
+.image-upload-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  padding: 12rpx;
+  text-align: center;
+  font-size: 19rpx;
+  line-height: 1.4;
+  color: #746c62;
+  background: rgba(239, 233, 222, 0.92);
+}
+
+.image-upload-mask {
+  color: #f8f4ec;
+  background: rgba(48, 43, 38, 0.56);
+}
+
+.image-access-retry {
+  color: #9a332a;
+}
+
+.image-delete,
+.image-pending-remove {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  z-index: 2;
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 30rpx;
+  line-height: 1;
+  color: #fff;
+  background: rgba(45, 39, 34, 0.7);
+}
+
+.image-pending-actions {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 10rpx 12rpx;
+  background: rgba(48, 43, 38, 0.5);
+}
+
+.image-retry {
+  min-width: 76rpx;
+  height: 42rpx;
+  padding: 0 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255, 255, 255, 0.7);
+  font-size: 19rpx;
+  color: #fff;
+}
+
+.image-upload-error {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 19rpx;
+  line-height: 1.5;
+  color: #9a332a;
+  word-break: break-all;
+}
+
 /* 正文 textarea */
 .editor-field {
   width: 100%;
@@ -1308,6 +1821,10 @@ onLoad(async (query) => {
 
 .attach-item--active .attach-label {
   color: #9a332a;
+}
+
+.attach-item--disabled {
+  opacity: 0.58;
 }
 
 .attach-icon {

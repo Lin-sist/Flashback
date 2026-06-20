@@ -140,11 +140,11 @@
 
 ## 10. Frontend Phase: Images, Voice, and Cover
 
-- [ ] Replace image placeholder/toast with real image selection.
-- [ ] Compress images by default before upload.
-- [ ] Upload images through Qiniu token flow.
-- [ ] Preview uploaded images.
-- [ ] Delete draft images.
+- [x] Replace image placeholder/toast with real image selection.
+- [x] Compress images by default before upload.
+- [x] Upload images through Qiniu token flow.
+- [x] Preview uploaded images.
+- [x] Delete draft images.
 - [ ] Replace voice placeholder/toast with real voice recording.
 - [ ] Upload raw voice files through Qiniu token flow.
 - [ ] Play uploaded voice files.

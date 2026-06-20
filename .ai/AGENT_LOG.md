@@ -3659,3 +3659,64 @@ Remaining risks:
 
 - Real Qiniu response behavior still needs credential-backed integration verification.
 - Image selection/compression/preview/delete, voice recording/playback, and cover selection UI remain to be connected.
+
+## 2026-06-20 11:23 M4 record editor real image flow
+
+Task:
+
+- Continue frontend phase 10 of `m4-real-capability-completion` with the record editor image workflow.
+- Replace the image placeholder with real selection, default compression, Qiniu upload-token/direct-upload/backend-verification, private preview, retry, and draft delete behavior.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/record-editor/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Added real image selection with album/camera sources and a maximum of 9 occupied image slots.
+- Selected images are explicitly compressed at quality 80 before upload; the compressed file size and dimensions are read for the accepted attachment DTO.
+- Added frontend pre-checks for 40 MB per compressed image and 300 MB total available/reserved attachments before requesting upload authorization.
+- New records are persisted as real drafts only after the user selects images, so token and commit requests always use a backend-issued record ID.
+- Added the accepted upload sequence: backend upload token, direct Qiniu upload, exact key response validation, and backend commit/stat verification.
+- Images enter the available list only after commit returns `AVAILABLE`; compressing, uploading, verifying, and failed local states are shown separately.
+- Failed uploads remain visible with detailed error text plus retry/remove controls; a successful Qiniu upload retains its authorized key for commit retry.
+- Available images obtain short-lived owner-scoped access URLs from the backend, support multi-image `uni.previewImage`, and expose an understandable retry state when signed URL generation or loading fails.
+- Draft image deletion calls the backend first and updates attachments, cached access URLs, and current-cover state only after success.
+- Image upload/delete is preview-read-only, and navigation/sealing is blocked while an image operation is active to avoid sealing before attachment verification completes.
+- Marked only the five completed image-selection/compression/upload/preview/delete tasks complete. The combined image/voice limit task remains open until the voice flow implements its count pre-check.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated `frontend/dist/build/mp-weixin/pages/record-editor/index.wxml` and confirmed image grid, access failure retry, failed-upload retry/remove, delete `catchtap`, and occupied-count UI are emitted.
+- Inspected generated `frontend/dist/build/mp-weixin/pages/record-editor/index.js` and confirmed `compressImage`, upload-token/Qiniu upload/backend commit, signed preview, preview-read-only delete, and upload-before-seal guards are emitted.
+- Searched frontend source and generated Mini Program output for `QINIU_ACCESS_KEY`, `QINIU_SECRET_KEY`, and `AI_API_KEY`; no matches were found.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 114/155 to 119/155.
+- `git diff --stat` before staging showed:
+  - 3 files changed, 589 insertions, 11 deletions.
+
+Skipped verification reason:
+
+- Real Qiniu upload, object stat verification, signed URL retrieval, and private image loading were not run because backend-side Qiniu credentials/private bucket configuration and an authenticated Mini Program runtime are unavailable in this environment.
+- WeChat Developer Tools album/camera selection, compression behavior, upload UI, image preview, and deletion were not manually exercised; type-check, build, and generated Mini Program artifacts are the current automated evidence.
+- OpenSpec CLI status/apply validation was attempted and skipped because `openspec` is not available in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Stayed within the accepted M4 image attachment endpoints, private signed URL flow, limits, draft-only mutation, and preview isolation.
+- Did not add frontend storage secrets, public bucket URLs, package dependencies, package/lockfile changes, standalone cover upload, multi-cloud storage, or broad visual reconstruction.
+- Did not touch voice transcription/analysis, settings, admin, deployment, monitoring, SMS, notification center, campaign, social, or H5/Web scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Credential-backed Qiniu and real WeChat runtime verification remains required before the image integration can be accepted end to end.
+- An uploaded object can remain uncommitted if network delivery fails after Qiniu upload and before backend commit; the accepted stateless upload contract has no cleanup endpoint for such uncommitted objects.
+- Voice recording/playback, cover selection, read-only media in time review, timeline/home cover display, and real-path mock cleanup remain open M4 work.
