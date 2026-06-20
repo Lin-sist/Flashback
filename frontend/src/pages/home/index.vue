@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { onShow } from '@dcloudio/uni-app'
-import { computed, ref } from 'vue'
+import { onHide, onShow } from '@dcloudio/uni-app'
+import { computed, onUnmounted, ref } from 'vue'
 import { recordService } from '../../services'
 import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
 import { RecordStatus, type RecordListItemVO } from '../../types'
-import { hasAuthenticatedSession } from '../../utils'
+import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
 type SectionState = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -21,6 +21,8 @@ const draftState = ref<SectionState>('idle')
 const sealedState = ref<SectionState>('idle')
 const unlockedState = ref<SectionState>('idle')
 const { coverUrls, coverErrors, loadCovers, markCoverFailed } = useRecordCoverUrls()
+const homeClock = ref(Date.now())
+let homeClockTimer: ReturnType<typeof setInterval> | null = null
 
 const ensureLogin = () => {
   if (!hasAuthenticatedSession()) {
@@ -73,9 +75,10 @@ const loadHomeSummary = async () => {
     unlockedState.value = 'error'
   }
 
-  void loadCovers(latestSealed.value?.cover
-    ? [{ recordId: latestSealed.value.id, cover: latestSealed.value.cover }]
-    : [])
+  const coverSources = [latestSealed.value, latestUnlocked.value]
+    .filter((item): item is RecordListItemVO => Boolean(item?.cover))
+    .map((item) => ({ recordId: item.id, cover: item.cover }))
+  void loadCovers(coverSources)
 }
 
 const retryHomeSummary = () => {
@@ -138,13 +141,47 @@ const arrivalYear = computed(() => {
   return new Date().getFullYear()
 })
 
+const arrivalCountdownText = computed(() => {
+  const unlockAt = latestSealed.value?.unlockAt
+  if (!unlockAt) return '等待抵达时间同步'
+  const remaining = new Date(unlockAt).getTime() - homeClock.value
+  if (remaining <= 0) return '正在抵达'
+  const days = Math.floor(remaining / 86400000)
+  const hours = Math.floor((remaining % 86400000) / 3600000)
+  const minutes = Math.floor((remaining % 3600000) / 60000)
+  if (days > 0) return `${days} 天 ${hours} 小时后解封`
+  if (hours > 0) return `${hours} 小时 ${minutes} 分后解封`
+  return `${Math.max(1, minutes)} 分钟后解封`
+})
+
+const latestUnlockedDateText = computed(() => {
+  if (!latestUnlocked.value?.unlockAt) return '最近抵达'
+  return formatDateTime(latestUnlocked.value.unlockAt)
+})
+
 const showArrivalCard = computed(() =>
   sealedState.value === 'ready' && sealedCount.value > 0
 )
 
 onShow(() => {
   uni.hideTabBar({ animation: false })
+  homeClock.value = Date.now()
+  if (homeClockTimer) clearInterval(homeClockTimer)
+  homeClockTimer = setInterval(() => {
+    homeClock.value = Date.now()
+  }, 1000)
   loadHomeSummary()
+})
+
+onHide(() => {
+  if (homeClockTimer) {
+    clearInterval(homeClockTimer)
+    homeClockTimer = null
+  }
+})
+
+onUnmounted(() => {
+  if (homeClockTimer) clearInterval(homeClockTimer)
 })
 </script>
 
@@ -207,12 +244,12 @@ onShow(() => {
               <text class="arrival-tag">即将抵达</text>
             </view>
             <view class="arrival-text">
-              <text>一封封存于 <text class="arrival-em">{{ arrivalYear }} 年</text> 的信</text>
-              <text>正跨越最后 <text class="arrival-em">3 天</text>，向你奔来</text>
+              <text class="arrival-record-title">{{ arrivalTitle }}</text>
+              <text>封存于 <text class="arrival-em">{{ arrivalYear }} 年</text>，正沿着时间向你抵达</text>
             </view>
             <view class="countdown">
               <view class="pulse-dot" />
-              <text class="countdown-text">72 小时后解封</text>
+              <text class="countdown-text">{{ arrivalCountdownText }}</text>
             </view>
           </view>
         </view>
@@ -229,6 +266,44 @@ onShow(() => {
               <text>写下第一封，寄给未来的自己</text>
             </view>
           </view>
+        </view>
+
+        <view v-if="unlockedState === 'loading' && !latestUnlocked" class="review-wrap">
+          <view class="review-state">正在同步最近抵达...</view>
+        </view>
+
+        <view v-else-if="unlockedState === 'error'" class="review-wrap" @tap="retryHomeSummary">
+          <view class="review-state review-state--action">最近抵达暂未同步 · 轻触重试</view>
+        </view>
+
+        <view v-else-if="latestUnlocked" class="review-wrap" @tap="goLatestUnlocked">
+          <view class="review-card">
+            <view v-if="latestUnlocked.cover" class="review-cover">
+              <image
+                v-if="coverUrls[latestUnlocked.id]"
+                class="review-cover-image"
+                :src="coverUrls[latestUnlocked.id]"
+                mode="aspectFill"
+                @error="markCoverFailed(latestUnlocked.id)"
+              />
+              <view v-else class="review-cover-fallback">
+                <view class="arrival-cover-icon" aria-hidden="true" />
+                <text v-if="coverErrors[latestUnlocked.id]" class="arrival-cover-error">封面暂不可用</text>
+              </view>
+            </view>
+            <view class="review-content">
+              <view class="review-meta">
+                <text class="review-tag">最近抵达 · 时间回看</text>
+                <text class="review-date">{{ latestUnlockedDateText }}</text>
+              </view>
+              <text class="review-title">{{ latestUnlocked.title || '未命名片段' }}</text>
+              <text class="review-action">再次读一读 ›</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-else-if="unlockedState === 'ready' && unlockedCount === 0" class="review-wrap">
+          <view class="review-state">还没有抵达的记录</view>
         </view>
       </view>
 
@@ -594,6 +669,15 @@ onShow(() => {
   flex-direction: column;
 }
 
+.arrival-record-title {
+  margin-bottom: 4rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fb-ink);
+  font-size: 30rpx;
+}
+
 .arrival-em {
   color: var(--fb-ink);
   font-weight: 400;
@@ -627,6 +711,100 @@ onShow(() => {
   font-weight: 300;
   color: var(--fb-ink-light);
   letter-spacing: 0.06em;
+}
+
+.review-wrap {
+  width: 100%;
+  margin-top: 28rpx;
+}
+
+.review-card {
+  overflow: hidden;
+  border: 1rpx solid rgba(188, 174, 152, 0.24);
+  border-radius: 2rpx;
+  background: rgba(252, 249, 244, 0.62);
+}
+
+.review-cover {
+  width: 100%;
+  height: 200rpx;
+  background: #e8e0d5;
+}
+
+.review-cover-image,
+.review-cover-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.review-cover-image {
+  display: block;
+}
+
+.review-cover-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: linear-gradient(135deg, #e8e0d5 0%, #d0c7ba 100%);
+}
+
+.review-content {
+  padding: 28rpx 34rpx 30rpx;
+}
+
+.review-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 16rpx;
+}
+
+.review-tag,
+.review-date {
+  min-width: 0;
+  font-family: var(--fb-font-serif);
+  font-size: 18rpx;
+  color: var(--fb-ink-light);
+}
+
+.review-date {
+  flex-shrink: 0;
+  font-family: var(--fb-font-sans);
+}
+
+.review-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--fb-font-serif);
+  font-size: 28rpx;
+  color: var(--fb-ink);
+}
+
+.review-action {
+  display: block;
+  margin-top: 18rpx;
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  color: var(--fb-vermilion);
+}
+
+.review-state {
+  padding: 24rpx 28rpx;
+  border-top: 1rpx solid rgba(188, 174, 152, 0.22);
+  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
+  text-align: center;
+  font-family: var(--fb-font-serif);
+  font-size: 20rpx;
+  color: var(--fb-ink-light);
+}
+
+.review-state--action {
+  color: var(--fb-vermilion);
 }
 
 /* ── nav safe area ── */

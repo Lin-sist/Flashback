@@ -3963,3 +3963,61 @@ Remaining risks:
 
 - Credential-backed Qiniu preview/playback and real WeChat audio behavior still require manual integration verification.
 - Home countdown/mock cleanup, remaining real-mode preview audit, safe empty/error refinements, and full media integration verification remain open M4 work.
+
+## 2026-06-20 11:55 M4 backend-backed home arrival and review cards
+
+Task:
+
+- Continue frontend phase 11 of `m4-real-capability-completion` by removing hard-coded home countdown/review values.
+- Display a real latest-unlocked 时间回看 card from the already requested backend result, including private cover and section states.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/pages/home/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Replaced hard-coded `3 天` / `72 小时` copy with a live countdown computed from the latest SEALED record's backend `unlockAt` value.
+- Countdown output now distinguishes day/hour, hour/minute, imminent, missing-time, and already-due states.
+- The home clock starts on `onShow` and is cleared on `onHide`/unmount so background pages do not retain timers.
+- Arrival card now shows the real record title and creation year rather than a generic hard-coded journey claim.
+- Added a latest-unlocked 时间回看 card using the real `getUnlockedRecords(1, 1)` result that the page already fetched but previously did not render.
+- The review card displays backend title/unlock time and uses the existing authenticated private-cover URL flow.
+- Added explicit loading, failure/retry, empty, and ready states for the latest-unlocked section without falling back to preview content in a real session.
+- Extended home cover loading to the latest SEALED and latest UNLOCKED cards while preserving the composable's no-token preview boundary.
+- Marked only the hard-coded home review countdown/card replacement task complete.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Searched home source and generated Mini Program home output for `72 小时` and `最后 3 天`; no matches were found.
+- Inspected generated home WXML and confirmed arrival data bindings plus latest-unlocked loading, error/retry, empty, real card, and private-cover branches are emitted.
+- Inspected generated home JS and confirmed `getUnlockedRecords`, real `unlockAt - Date.now()` arithmetic, day/hour/minute formatting, and timer cleanup in `onHide`/unmount are emitted.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 129/155 to 130/155.
+- `git diff --stat` before staging showed:
+  - 3 files changed, 246 insertions, 10 deletions.
+
+Skipped verification reason:
+
+- Real countdown timing and latest-unlocked card rendering were not manually exercised in WeChat Developer Tools because no authenticated runtime dataset is available in this environment.
+- Real private cover rendering remains dependent on Qiniu credentials/private objects and is not claimed from build output alone.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Limited changes to the existing home page's backend-backed summary and current card visual language.
+- Did not add a new API, mock fallback, package dependency, package/lockfile change, or major visual reconstruction.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, H5/Web, transcription, or AI dashboard scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Real home countdown/card and Qiniu cover behavior still require authenticated WeChat manual verification.
+- Preview/mock usage audit, global safe failure-state closeout, and full media integration verification remain open M4 work.
