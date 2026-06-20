@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
@@ -46,13 +46,23 @@ const attachments = ref<RecordAttachmentVO[]>([])
 const imageAccessUrls = reactive<Record<number, string>>({})
 const imageAccessErrors = reactive<Record<number, string>>({})
 const imageUploading = ref(false)
+const voiceAccessErrors = reactive<Record<number, string>>({})
+const voiceUploading = ref(false)
+const voiceStarting = ref(false)
+const voiceRecording = ref(false)
+const voiceStopping = ref(false)
+const recordingSeconds = ref(0)
+const playingVoiceId = ref<number | null>(null)
+const voicePlaybackLoadingId = ref<number | null>(null)
 const unlockReminderTemplateId = import.meta.env.VITE_WECHAT_UNLOCK_REMINDER_TEMPLATE_ID || ''
 
 const MAX_IMAGE_COUNT = 9
+const MAX_VOICE_COUNT = 9
 const MAX_FILE_SIZE_BYTES = 40 * 1024 * 1024
 const MAX_TOTAL_SIZE_BYTES = 300 * 1024 * 1024
 
 type ImageUploadStatus = 'compressing' | 'uploading' | 'verifying' | 'failed'
+type VoiceUploadStatus = 'uploading' | 'verifying' | 'failed'
 
 interface PendingImageUpload {
   localId: string
@@ -71,6 +81,38 @@ interface PendingImageUpload {
 
 const pendingImageUploads = ref<PendingImageUpload[]>([])
 let imageSequence = 0
+
+interface PendingVoiceUpload {
+  localId: string
+  filePath: string
+  fileName: string
+  mimeType: 'audio/mpeg'
+  status: VoiceUploadStatus
+  error: string
+  sizeBytes: number
+  durationSeconds: number
+  uploadedKey?: string
+}
+
+interface RecorderStopResult {
+  tempFilePath?: string
+  duration?: number
+  fileSize?: number
+}
+
+interface RecorderManagerWithOff {
+  offStart?: (callback: (result: unknown) => void) => void
+  offStop?: (callback: (result: unknown) => void) => void
+  offError?: (callback: (result: unknown) => void) => void
+}
+
+const pendingVoiceUploads = ref<PendingVoiceUpload[]>([])
+const recorderManager = uni.getRecorderManager()
+let voiceSequence = 0
+let recordingTimer: ReturnType<typeof setInterval> | null = null
+let activeAudioContext: ReturnType<typeof uni.createInnerAudioContext> | null = null
+let voicePlaybackRequest = 0
+let pageActive = true
 
 interface EditorSnapshot {
   title: string
@@ -126,13 +168,25 @@ const wordCount = computed(() => form.content.replace(/\s/g, '').length)
 const imageAttachments = computed(() => attachments.value.filter(
   (attachment) => attachment.type === 'IMAGE' && attachment.status === 'AVAILABLE'
 ))
+const voiceAttachments = computed(() => attachments.value.filter(
+  (attachment) => attachment.type === 'VOICE' && attachment.status === 'AVAILABLE'
+))
 const occupiedImageCount = computed(() => imageAttachments.value.length + pendingImageUploads.value.length)
+const occupiedVoiceCount = computed(() => voiceAttachments.value.length + pendingVoiceUploads.value.length)
 const availableAttachmentBytes = computed(() => attachments.value
   .filter((attachment) => attachment.status === 'AVAILABLE')
   .reduce((sum, attachment) => sum + attachment.sizeBytes, 0))
 const firstImageUploadError = computed(() => pendingImageUploads.value.find(
   (item) => item.status === 'failed' && item.error
 )?.error || '')
+const firstVoiceUploadError = computed(() => pendingVoiceUploads.value.find(
+  (item) => item.status === 'failed' && item.error
+)?.error || '')
+const mediaOperationActive = computed(() => imageUploading.value
+  || voiceUploading.value
+  || voiceStarting.value
+  || voiceRecording.value
+  || voiceStopping.value)
 const locationLabel = computed(() => {
   if (!location.value) return ''
   const textLabel = location.value.name?.trim() || location.value.address?.trim()
@@ -253,8 +307,8 @@ const handleCloseWithAutoSave = async () => {
     return
   }
 
-  if (imageUploading.value) {
-    uni.showToast({ title: '图片正在上传，请稍候', icon: 'none' })
+  if (mediaOperationActive.value) {
+    uni.showToast({ title: '媒体正在处理，请稍候', icon: 'none' })
     return
   }
 
@@ -314,6 +368,7 @@ const fillByDetail = async (id: number) => {
   attachments.value = (detail.attachments || []).filter((attachment) => attachment.status === 'AVAILABLE')
   Object.keys(imageAccessUrls).forEach((key) => delete imageAccessUrls[Number(key)])
   Object.keys(imageAccessErrors).forEach((key) => delete imageAccessErrors[Number(key)])
+  Object.keys(voiceAccessErrors).forEach((key) => delete voiceAccessErrors[Number(key)])
   void loadImageAccessUrls(imageAttachments.value)
 }
 
@@ -436,7 +491,7 @@ const organizeBeliefThen = async () => {
   }
 }
 
-const ensureDraftForAuxiliaryEdit = async (subject: '地点' | '图片') => {
+const ensureDraftForAuxiliaryEdit = async (subject: '地点' | '图片' | '语音') => {
   if (recordId.value) return recordId.value
   if (!validateRecordContent(form.content)) {
     throw new Error(`先写下正文，再添加${subject}`)
@@ -622,6 +677,9 @@ const reservedAttachmentBytes = (excludedLocalId?: string) => availableAttachmen
   + pendingImageUploads.value
     .filter((item) => item.localId !== excludedLocalId)
     .reduce((sum, item) => sum + item.sizeBytes, 0)
+  + pendingVoiceUploads.value
+    .filter((item) => item.localId !== excludedLocalId)
+    .reduce((sum, item) => sum + item.sizeBytes, 0)
 
 const preparePendingImage = async (item: PendingImageUpload) => {
   if (item.prepared) return
@@ -733,6 +791,10 @@ const processPendingImage = async (id: number, item: PendingImageUpload) => {
 
 const selectAndUploadImages = async () => {
   if (imageUploading.value) return
+  if (voiceUploading.value || voiceStarting.value || voiceRecording.value || voiceStopping.value) {
+    uni.showToast({ title: '请先结束当前语音操作', icon: 'none' })
+    return
+  }
   if (!getToken() && hasPreviewSession()) {
     showPreviewReadonlyToast()
     return
@@ -773,7 +835,7 @@ const selectAndUploadImages = async () => {
 }
 
 const retryPendingImage = async (item: PendingImageUpload) => {
-  if (imageUploading.value || item.status !== 'failed') return
+  if (mediaOperationActive.value || item.status !== 'failed') return
   imageUploading.value = true
   try {
     const id = await ensureDraftForAuxiliaryEdit('图片')
@@ -820,7 +882,7 @@ const markImageLoadFailed = (attachmentId: number) => {
 }
 
 const deleteImage = (attachment: RecordAttachmentVO) => {
-  if (!recordId.value || imageUploading.value) return
+  if (!recordId.value || mediaOperationActive.value) return
   if (!getToken() && hasPreviewSession()) {
     showPreviewReadonlyToast()
     return
@@ -843,6 +905,342 @@ const deleteImage = (attachment: RecordAttachmentVO) => {
         uni.showToast({ title: toUserMessage(error), icon: 'none' })
       } finally {
         imageUploading.value = false
+      }
+    },
+  })
+}
+
+const voiceUploadStatusLabel = (status: VoiceUploadStatus) => {
+  if (status === 'uploading') return '上传中'
+  if (status === 'verifying') return '校验中'
+  return '上传失败'
+}
+
+const formatVoiceDuration = (durationSeconds?: number | null) => {
+  const total = Math.max(0, Math.round(durationSeconds || 0))
+  const minutes = Math.floor(total / 60)
+  const seconds = total % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+const clearRecordingTimer = () => {
+  if (recordingTimer) {
+    clearInterval(recordingTimer)
+    recordingTimer = null
+  }
+}
+
+const stopActiveAudio = () => {
+  voicePlaybackRequest += 1
+  voicePlaybackLoadingId.value = null
+  if (!activeAudioContext) return
+  const context = activeAudioContext
+  activeAudioContext = null
+  playingVoiceId.value = null
+  context.stop()
+  context.destroy()
+}
+
+const createPendingVoice = (
+  filePath: string,
+  sizeBytes: number,
+  durationSeconds: number
+): PendingVoiceUpload => {
+  voiceSequence += 1
+  const stamp = Date.now()
+  return {
+    localId: `voice-${stamp}-${voiceSequence}`,
+    filePath,
+    fileName: `voice-${stamp}-${voiceSequence}.mp3`,
+    mimeType: 'audio/mpeg',
+    status: 'uploading',
+    error: '',
+    sizeBytes,
+    durationSeconds,
+  }
+}
+
+const commitPendingVoice = async (id: number, item: PendingVoiceUpload) => {
+  if (!item.uploadedKey) {
+    item.status = 'uploading'
+    const authorization = await attachmentService.createUploadToken(id, {
+      type: 'VOICE',
+      fileName: item.fileName,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+    })
+    if (item.sizeBytes > authorization.maxFileSizeBytes) {
+      throw new Error('语音超过存储服务允许的大小')
+    }
+    await attachmentService.uploadToQiniu(item.filePath, authorization)
+    item.uploadedKey = authorization.key
+  }
+
+  item.status = 'verifying'
+  const attachment = await attachmentService.commit(id, {
+    type: 'VOICE',
+    key: item.uploadedKey,
+    fileName: item.fileName,
+    mimeType: item.mimeType,
+    sizeBytes: item.sizeBytes,
+    width: null,
+    height: null,
+    durationSeconds: item.durationSeconds,
+  })
+  if (attachment.status !== 'AVAILABLE') {
+    throw new Error('语音尚未通过存储校验')
+  }
+  attachments.value.push(attachment)
+  pendingVoiceUploads.value = pendingVoiceUploads.value.filter((pending) => pending.localId !== item.localId)
+  syncDetailAttachments()
+}
+
+const processPendingVoice = async (id: number, item: PendingVoiceUpload) => {
+  try {
+    await commitPendingVoice(id, item)
+    return true
+  } catch (error) {
+    item.status = 'failed'
+    item.error = toUserMessage(error)
+    return false
+  }
+}
+
+const uploadRecordedVoice = async (result: RecorderStopResult) => {
+  const filePath = result.tempFilePath || ''
+  if (!filePath) {
+    uni.showToast({ title: '没有取得录音文件，请重试', icon: 'none' })
+    return
+  }
+
+  voiceUploading.value = true
+  let pending: PendingVoiceUpload | null = null
+  try {
+    const sizeBytes = typeof result.fileSize === 'number' && result.fileSize > 0
+      ? result.fileSize
+      : await getFileSize(filePath)
+    if (sizeBytes > MAX_FILE_SIZE_BYTES) {
+      throw new Error('语音文件超过 40 MB，请缩短录音后重试')
+    }
+    if (reservedAttachmentBytes() + sizeBytes > MAX_TOTAL_SIZE_BYTES) {
+      throw new Error('这条记录的附件总大小不能超过 300 MB')
+    }
+    const durationSeconds = Math.max(1, Math.ceil((result.duration || recordingSeconds.value * 1000) / 1000))
+    pending = createPendingVoice(filePath, sizeBytes, durationSeconds)
+    pendingVoiceUploads.value.push(pending)
+    const id = await ensureDraftForAuxiliaryEdit('语音')
+    if (await processPendingVoice(id, pending)) {
+      uni.showToast({ title: '语音已上传', icon: 'success' })
+      return
+    }
+    uni.showToast({ title: pending.error || '语音上传失败，可重试', icon: 'none' })
+  } catch (error) {
+    if (pending) {
+      pending.status = 'failed'
+      pending.error = toUserMessage(error)
+    }
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    voiceUploading.value = false
+  }
+}
+
+const handleRecorderStart = (_result: unknown) => {
+  if (!pageActive) return
+  voiceStarting.value = false
+  voiceStopping.value = false
+  voiceRecording.value = true
+  recordingSeconds.value = 0
+  clearRecordingTimer()
+  recordingTimer = setInterval(() => {
+    recordingSeconds.value += 1
+  }, 1000)
+}
+
+const handleRecorderStop = (result: unknown) => {
+  clearRecordingTimer()
+  voiceStarting.value = false
+  voiceStopping.value = false
+  voiceRecording.value = false
+  if (!pageActive) return
+  void uploadRecordedVoice((result || {}) as RecorderStopResult)
+}
+
+const handleRecorderError = (result: unknown) => {
+  clearRecordingTimer()
+  voiceStarting.value = false
+  voiceStopping.value = false
+  voiceRecording.value = false
+  if (!pageActive) return
+  const message = String((result as { errMsg?: string } | null)?.errMsg || '')
+  const title = /auth|permission|authorize|denied/i.test(message)
+    ? '录音权限不可用，请在小程序设置中开启麦克风'
+    : '录音失败，请稍后重试'
+  uni.showToast({ title, icon: 'none' })
+}
+
+recorderManager.onStart(handleRecorderStart)
+recorderManager.onStop(handleRecorderStop)
+recorderManager.onError(handleRecorderError)
+
+const startVoiceRecording = () => {
+  if (mediaOperationActive.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  if (occupiedVoiceCount.value >= MAX_VOICE_COUNT) {
+    uni.showToast({ title: '每条记录最多添加 9 条语音', icon: 'none' })
+    return
+  }
+  if (!validateRecordContent(form.content)) {
+    uni.showToast({ title: '先写下正文，再添加语音', icon: 'none' })
+    return
+  }
+  stopActiveAudio()
+  voiceStarting.value = true
+  recorderManager.start({
+    duration: 600000,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    encodeBitRate: 64000,
+    format: 'mp3',
+  })
+}
+
+const stopVoiceRecording = () => {
+  if (!voiceRecording.value || voiceStopping.value) return
+  voiceStopping.value = true
+  recorderManager.stop()
+}
+
+const retryPendingVoice = async (item: PendingVoiceUpload) => {
+  if (mediaOperationActive.value || item.status !== 'failed') return
+  voiceUploading.value = true
+  try {
+    if (reservedAttachmentBytes(item.localId) + item.sizeBytes > MAX_TOTAL_SIZE_BYTES) {
+      throw new Error('这条记录的附件总大小不能超过 300 MB')
+    }
+    const id = await ensureDraftForAuxiliaryEdit('语音')
+    if (await processPendingVoice(id, item)) {
+      uni.showToast({ title: '语音已上传', icon: 'success' })
+      return
+    }
+    uni.showToast({ title: item.error || '语音上传失败', icon: 'none' })
+  } catch (error) {
+    item.status = 'failed'
+    item.error = toUserMessage(error)
+    uni.showToast({ title: item.error, icon: 'none' })
+  } finally {
+    voiceUploading.value = false
+  }
+}
+
+const removePendingVoice = (item: PendingVoiceUpload) => {
+  if (mediaOperationActive.value) return
+  pendingVoiceUploads.value = pendingVoiceUploads.value.filter((pending) => pending.localId !== item.localId)
+}
+
+const playVoice = async (attachment: RecordAttachmentVO) => {
+  if (mediaOperationActive.value) return
+  if (playingVoiceId.value === attachment.id && activeAudioContext) {
+    stopActiveAudio()
+    return
+  }
+
+  stopActiveAudio()
+  const requestId = ++voicePlaybackRequest
+  voicePlaybackLoadingId.value = attachment.id
+  try {
+    if (!recordId.value) {
+      throw new Error('记录尚未保存，无法播放语音')
+    }
+    const access = await attachmentService.createAccessUrl(recordId.value, attachment.id)
+    if (!pageActive || requestId !== voicePlaybackRequest) return
+    delete voiceAccessErrors[attachment.id]
+    const context = uni.createInnerAudioContext()
+    activeAudioContext = context
+    context.src = access.url
+    context.onPlay(() => {
+      voicePlaybackLoadingId.value = null
+      playingVoiceId.value = attachment.id
+    })
+    const release = () => {
+      if (activeAudioContext !== context) return
+      activeAudioContext = null
+      voicePlaybackLoadingId.value = null
+      playingVoiceId.value = null
+      context.destroy()
+    }
+    context.onEnded(release)
+    context.onStop(release)
+    context.onError(() => {
+      voiceAccessErrors[attachment.id] = '语音播放失败，请重试'
+      release()
+      uni.showToast({ title: '语音播放失败，请稍后重试', icon: 'none' })
+    })
+    context.play()
+  } catch (error) {
+    if (requestId !== voicePlaybackRequest) return
+    voicePlaybackLoadingId.value = null
+    voiceAccessErrors[attachment.id] = toUserMessage(error)
+    uni.showToast({ title: voiceAccessErrors[attachment.id], icon: 'none' })
+  }
+}
+
+const deleteVoiceAttachment = async (attachment: RecordAttachmentVO) => {
+  if (!recordId.value) return false
+  voiceUploading.value = true
+  try {
+    if (playingVoiceId.value === attachment.id) {
+      stopActiveAudio()
+    }
+    await attachmentService.delete(recordId.value, attachment.id)
+    attachments.value = attachments.value.filter((item) => item.id !== attachment.id)
+    delete voiceAccessErrors[attachment.id]
+    syncDetailAttachments(attachment.id)
+    return true
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+    return false
+  } finally {
+    voiceUploading.value = false
+  }
+}
+
+const deleteVoice = (attachment: RecordAttachmentVO) => {
+  if (mediaOperationActive.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  uni.showModal({
+    title: '删除语音？',
+    content: '语音将从这条草稿中移除。',
+    confirmText: '删除',
+    success: async (result) => {
+      if (!result.confirm) return
+      if (await deleteVoiceAttachment(attachment)) {
+        uni.showToast({ title: '语音已删除', icon: 'success' })
+      }
+    },
+  })
+}
+
+const reRecordVoice = (attachment: RecordAttachmentVO) => {
+  if (mediaOperationActive.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  uni.showModal({
+    title: '重新录制？',
+    content: '将先删除这条语音，删除成功后开始新录音。',
+    confirmText: '重新录制',
+    success: async (result) => {
+      if (!result.confirm) return
+      if (await deleteVoiceAttachment(attachment)) {
+        startVoiceRecording()
       }
     },
   })
@@ -914,8 +1312,13 @@ const sealRecord = async () => {
     return
   }
 
-  if (imageUploading.value) {
-    uni.showToast({ title: '图片正在上传，请稍候再封存', icon: 'none' })
+  if (mediaOperationActive.value) {
+    uni.showToast({ title: '请先结束录音或等待媒体上传完成', icon: 'none' })
+    return
+  }
+
+  if (pendingImageUploads.value.length || pendingVoiceUploads.value.length) {
+    uni.showToast({ title: '请先重试或移除未完成的媒体', icon: 'none' })
     return
   }
 
@@ -962,7 +1365,11 @@ const onAuxTap = (name: '地点' | '图片' | '语音') => {
     void selectAndUploadImages()
     return
   }
-  uni.showToast({ title: `${name} 功能将在后续版本开放`, icon: 'none' })
+  if (voiceRecording.value) {
+    stopVoiceRecording()
+    return
+  }
+  startVoiceRecording()
 }
 
 const onUnlockBarTap = () => {
@@ -982,6 +1389,22 @@ onLoad(async (query) => {
   source.value = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
   latestQuery.value = query as Record<string, unknown>
   await runInitialization(latestQuery.value)
+})
+
+onUnload(() => {
+  pageActive = false
+  const managerWithOff = recorderManager as unknown as RecorderManagerWithOff
+  managerWithOff.offStart?.(handleRecorderStart)
+  managerWithOff.offStop?.(handleRecorderStop)
+  managerWithOff.offError?.(handleRecorderError)
+  if (voiceStarting.value || voiceRecording.value || voiceStopping.value) {
+    recorderManager.stop()
+  }
+  clearRecordingTimer()
+  voiceStarting.value = false
+  voiceRecording.value = false
+  voiceStopping.value = false
+  stopActiveAudio()
 })
 </script>
 
@@ -1185,6 +1608,66 @@ onLoad(async (query) => {
               <text v-if="firstImageUploadError" class="image-upload-error">{{ firstImageUploadError }}</text>
             </view>
 
+            <view
+              v-if="voiceAttachments.length || pendingVoiceUploads.length || voiceStarting || voiceRecording || voiceStopping"
+              class="voice-panel"
+            >
+              <view class="voice-panel-head">
+                <text class="voice-panel-title">语音附件</text>
+                <text class="voice-panel-count">{{ occupiedVoiceCount }}/{{ MAX_VOICE_COUNT }}</text>
+              </view>
+
+              <view v-if="voiceStarting || voiceRecording || voiceStopping" class="voice-recording-row">
+                <view class="voice-recording-dot" aria-hidden="true" />
+                <text class="voice-recording-label">
+                  {{ voiceStarting ? '正在启动录音' : voiceStopping ? '正在结束录音' : '正在录音' }}
+                </text>
+                <text class="voice-recording-time">{{ formatVoiceDuration(recordingSeconds) }}</text>
+              </view>
+
+              <view v-for="(attachment, index) in voiceAttachments" :key="attachment.id" class="voice-row">
+                <view
+                  class="voice-play"
+                  :class="{
+                    'voice-play--active': playingVoiceId === attachment.id,
+                    'voice-play--loading': voicePlaybackLoadingId === attachment.id,
+                  }"
+                  :aria-label="playingVoiceId === attachment.id
+                    ? '停止播放'
+                    : voicePlaybackLoadingId === attachment.id
+                      ? '正在加载语音'
+                      : '播放语音'"
+                  @tap="playVoice(attachment)"
+                >
+                  {{ playingVoiceId === attachment.id ? '■' : voicePlaybackLoadingId === attachment.id ? '…' : '▶' }}
+                </view>
+                <view class="voice-info">
+                  <text class="voice-name">语音记录 {{ index + 1 }}</text>
+                  <text class="voice-meta">{{ formatVoiceDuration(attachment.durationSeconds) }}</text>
+                  <text v-if="voiceAccessErrors[attachment.id]" class="voice-error">
+                    {{ voiceAccessErrors[attachment.id] }}
+                  </text>
+                </view>
+                <view class="voice-actions">
+                  <view class="voice-action" @tap="reRecordVoice(attachment)">重录</view>
+                  <view class="voice-delete" aria-label="删除语音" @tap="deleteVoice(attachment)">×</view>
+                </view>
+              </view>
+
+              <view v-for="item in pendingVoiceUploads" :key="item.localId" class="voice-row voice-row--pending">
+                <view class="voice-play voice-play--disabled" aria-hidden="true">▶</view>
+                <view class="voice-info">
+                  <text class="voice-name">{{ voiceUploadStatusLabel(item.status) }}</text>
+                  <text class="voice-meta">{{ formatVoiceDuration(item.durationSeconds) }}</text>
+                </view>
+                <view v-if="item.status === 'failed'" class="voice-actions">
+                  <view class="voice-action" @tap="retryPendingVoice(item)">重试</view>
+                  <view class="voice-delete" aria-label="移除待上传语音" @tap="removePendingVoice(item)">×</view>
+                </view>
+              </view>
+              <text v-if="firstVoiceUploadError" class="voice-upload-error">{{ firstVoiceUploadError }}</text>
+            </view>
+
             <!-- 附件栏 MAP / IMAGE / VOICE -->
             <view class="attach-bar">
               <view class="attach-item" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
@@ -1201,9 +1684,26 @@ onLoad(async (query) => {
                 <text class="attach-label">{{ imageUploading ? '处理中' : occupiedImageCount ? `图片 ${occupiedImageCount}/9` : '图片' }}</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
-              <view class="attach-item" @tap="onAuxTap('语音')">
+              <view
+                class="attach-item"
+                :class="{
+                  'attach-item--active': occupiedVoiceCount > 0 || voiceStarting || voiceRecording,
+                  'attach-item--disabled': imageUploading || voiceUploading || voiceStarting || voiceStopping,
+                }"
+                @tap="onAuxTap('语音')"
+              >
                 <view class="attach-icon attach-icon--voice" aria-hidden="true" />
-                <text class="attach-label">语音</text>
+                <text class="attach-label">
+                  {{ voiceRecording
+                    ? `停止 ${formatVoiceDuration(recordingSeconds)}`
+                    : voiceStarting
+                      ? '启动录音'
+                      : voiceStopping || voiceUploading
+                        ? '处理中'
+                        : occupiedVoiceCount
+                          ? `语音 ${occupiedVoiceCount}/9`
+                          : '语音' }}
+                </text>
               </view>
             </view>
           </view>
@@ -1780,6 +2280,153 @@ onLoad(async (query) => {
   line-height: 1.5;
   color: #9a332a;
   word-break: break-all;
+}
+
+.voice-panel {
+  padding: 22rpx 40rpx 26rpx;
+  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+}
+
+.voice-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.voice-panel-title,
+.voice-panel-count {
+  font-size: 20rpx;
+  color: #847b70;
+}
+
+.voice-panel-count {
+  color: #a39a8e;
+}
+
+.voice-recording-row,
+.voice-row {
+  min-height: 78rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  border-top: 1rpx solid rgba(166, 150, 124, 0.2);
+}
+
+.voice-recording-row {
+  color: #9a332a;
+}
+
+.voice-recording-dot {
+  width: 14rpx;
+  height: 14rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #b5352a;
+}
+
+.voice-recording-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 21rpx;
+}
+
+.voice-recording-time {
+  flex-shrink: 0;
+  font-size: 21rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-play {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(154, 51, 42, 0.42);
+  border-radius: 50%;
+  font-size: 20rpx;
+  color: #9a332a;
+}
+
+.voice-play--active {
+  color: #fff;
+  background: #9a332a;
+}
+
+.voice-play--loading {
+  color: #7f756a;
+  border-color: rgba(127, 117, 106, 0.4);
+}
+
+.voice-play--disabled {
+  opacity: 0.42;
+}
+
+.voice-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  padding: 10rpx 0;
+}
+
+.voice-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 21rpx;
+  color: #5f5850;
+}
+
+.voice-meta {
+  font-size: 18rpx;
+  color: #9e9890;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-error,
+.voice-upload-error {
+  font-size: 18rpx;
+  line-height: 1.45;
+  color: #9a332a;
+  word-break: break-all;
+}
+
+.voice-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.voice-action {
+  padding: 10rpx 0;
+  font-size: 19rpx;
+  color: #8a625b;
+}
+
+.voice-delete {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  line-height: 1;
+  color: #9a332a;
+}
+
+.voice-row--pending {
+  opacity: 0.82;
+}
+
+.voice-upload-error {
+  display: block;
+  margin-top: 12rpx;
 }
 
 /* 正文 textarea */

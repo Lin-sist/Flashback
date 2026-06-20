@@ -13,6 +13,9 @@
     "permission": {
       "scope.userLocation": {
         "desc": "用于为记录保存你主动选择的地点"
+      },
+      "scope.record": {
+        "desc": "用于为记录添加你主动录制的语音"
       }
     },
     "requiredPrivateInfos": [

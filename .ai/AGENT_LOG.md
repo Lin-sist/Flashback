@@ -3720,3 +3720,67 @@ Remaining risks:
 - Credential-backed Qiniu and real WeChat runtime verification remains required before the image integration can be accepted end to end.
 - An uploaded object can remain uncommitted if network delivery fails after Qiniu upload and before backend commit; the accepted stateless upload contract has no cleanup endpoint for such uncommitted objects.
 - Voice recording/playback, cover selection, read-only media in time review, timeline/home cover display, and real-path mock cleanup remain open M4 work.
+
+## 2026-06-20 11:34 M4 record editor real voice flow
+
+Task:
+
+- Continue frontend phase 10 of `m4-real-capability-completion` with real raw-voice recording, upload, playback, re-record, and delete behavior.
+- Complete frontend pre-check coverage for the accepted image/voice count, per-file size, and per-record total-size limits.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `frontend/src/manifest.json`
+- `frontend/src/pages/record-editor/index.vue`
+- `openspec/changes/m4-real-capability-completion/tasks.md`
+
+What changed:
+
+- Replaced the voice placeholder with `RecorderManager` recording controls using 16 kHz mono MP3 at 64 kbps and a 10-minute maximum duration.
+- Added a Mini Program `scope.record` permission description for user-initiated record voice attachments.
+- Recorded MP3 files are kept as raw audio with no transcription or AI analysis and use the accepted backend upload-token, direct Qiniu upload, exact-key validation, and backend commit/stat verification flow.
+- Voice attachments become available only after commit returns `AVAILABLE`; uploading, verifying, and failed retry/remove states remain distinct in the editor.
+- Added max 9 voice pre-checks and combined image/voice reservation accounting for the 40 MB per-file and 300 MB per-record limits.
+- Added owner-scoped signed URL retrieval and `InnerAudioContext` playback with loading, stop, ended, error, and request-race cleanup states.
+- Added draft voice delete that updates local UI only after backend success.
+- Added an explicit re-record flow that deletes the selected draft voice through the supported endpoint before starting a new recording; no unaccepted replace endpoint was invented.
+- Added recorder event unbinding, recording stop, timer cleanup, and audio-context destruction during page unload.
+- Media operations are mutually guarded, and seal is blocked while recording/uploading or while failed pending image/voice items remain unresolved.
+- User-facing rows use `语音记录 N` instead of exposing generated storage filenames.
+- Marked real recording, raw upload, signed playback, re-record/delete, and complete frontend limit pre-check tasks complete.
+
+Verification:
+
+- Passed frontend type-check with the bundled workspace Node runtime:
+  - `.\\node_modules\\.bin\\vue-tsc.cmd --noEmit`
+- Passed WeChat Mini Program build:
+  - `.\\node_modules\\.bin\\uni.cmd build -p mp-weixin`
+  - Output: `DONE Build complete.`
+- Inspected generated `frontend/dist/build/mp-weixin/app.json` and confirmed `permission.scope.record.desc` is present alongside existing location permissions.
+- Inspected generated record-editor WXML and confirmed recording state, signed-play loading, upload failure retry/remove, re-record, delete, voice count, and duration UI are emitted.
+- Inspected generated record-editor JS and confirmed `getRecorderManager`, MP3 recording options, raw Qiniu token/upload/commit, `createInnerAudioContext`, signed access URL, pending-media seal guard, recorder `off*` cleanup, and playback request-race handling are emitted.
+- Searched frontend source and generated Mini Program output for `QINIU_ACCESS_KEY`, `QINIU_SECRET_KEY`, and `AI_API_KEY`; no matches were found.
+- `git diff --check` passed with line-ending warnings only.
+- OpenSpec task progress advanced from 119/155 to 124/155.
+- `git diff --stat` before staging showed:
+  - 4 files changed, 730 insertions, 16 deletions.
+
+Skipped verification reason:
+
+- Real microphone authorization, recording duration/file-size behavior, Qiniu upload/stat verification, private signed URL playback, deletion, and re-record were not manually exercised because an authenticated WeChat Developer Tools runtime and backend-side Qiniu private-bucket credentials are unavailable in this environment.
+- No real media integration success is claimed; type-check, Mini Program build, generated `app.json`/WXML/JS inspection, and secret scanning are the current automated evidence.
+- OpenSpec CLI status/apply validation remains unavailable because `openspec` is not in the current PowerShell PATH; checked-in OpenSpec artifacts were used as the fallback fact source.
+
+Scope safety check:
+
+- Stayed within accepted M4 raw voice attachment, private signed URL, draft-only mutation, limits, and preview-read-only boundaries.
+- Did not add transcription, speech-to-text, voice AI analysis, standalone media upload, public bucket URLs, package dependencies, package/lockfile changes, or broad visual reconstruction.
+- Did not touch settings, admin, deployment, monitoring, SMS, notification center, campaign, social, or H5/Web scope.
+- Did not touch the unrelated untracked `.claude/settings.local.json`.
+
+Remaining risks:
+
+- Credential-backed Qiniu and real WeChat microphone/audio verification remains required before voice integration can be accepted end to end.
+- The accepted re-record contract has no atomic replace endpoint; the UI explicitly deletes the old draft voice before recording the replacement, so cancelling or failing the new recording leaves the old voice deleted.
+- Cover selection, read-only media in time review, timeline/home cover display, real-path mock cleanup, and full media integration verification remain open M4 work.

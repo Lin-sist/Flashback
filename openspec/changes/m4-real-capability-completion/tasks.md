@@ -145,11 +145,11 @@
 - [x] Upload images through Qiniu token flow.
 - [x] Preview uploaded images.
 - [x] Delete draft images.
-- [ ] Replace voice placeholder/toast with real voice recording.
-- [ ] Upload raw voice files through Qiniu token flow.
-- [ ] Play uploaded voice files.
-- [ ] Support draft voice re-record/delete.
-- [ ] Enforce or pre-check max 9 images, max 9 voice files, 40 MB per file, and 300 MB per record.
+- [x] Replace voice placeholder/toast with real voice recording.
+- [x] Upload raw voice files through Qiniu token flow.
+- [x] Play uploaded voice files.
+- [x] Support draft voice re-record/delete.
+- [x] Enforce or pre-check max 9 images, max 9 voice files, 40 MB per file, and 300 MB per record.
 - [ ] Add cover selection UI from current record image attachments.
 - [ ] Prevent cover selection when no image attachment exists.
 - [ ] Show cover on timeline/home cards when available.
