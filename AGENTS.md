@@ -30,16 +30,16 @@
 - 保留三个一级 Tab： 首页、时光轴、个人中心。
 - V2.0 用户可见命名：我的记录、时光轴、时间回看。
 - M4 是核心功能准生产可用优化，不是生产部署或发布加固。
-- M4 范围内允许修改 backend、database/schema、business rules、AI provider、record location、Qiniu media attachments、cover、timeline/home/time-review real data 相关代码，但只能服务于 M4 OpenSpec。
+- M4 范围内允许修改 backend、database/schema、business rules、AI provider、record location、provider-neutral media attachments、cover、timeline/home/time-review real data 相关代码，但只能服务于 M4 OpenSpec。
 - 不改 deployment、monitoring、admin portal、SMS、production notification center、campaign delivery、settings page。
 - 不做 speech-to-text、voice transcription、voice AI analysis、complex AI scoring / diagnosis / dashboard。
 - Preview 可以保留，但必须与 authenticated real user path 隔离；真实路径不能用 mock success 冒充真实成功。
-- Qiniu AK/SK、AI API key 等 secret 只能存在于 backend-side config / local secret，不得进入 frontend 或 tracked files。
+- 对象存储 AK/SK、AI API key 等 secret 只能存在于 backend-side config / local secret，不得进入 frontend 或 tracked files。
 - 封存后禁止修改 location、attachments、cover。
 - 不做大规模 backend rewrite。
 - 不做 major frontend visual reconstruction。
 - 不改 package / lockfile，除非任务明确要求并说明原因。
-- 不确定的 backend API 契约、字段命名、持久化方式、枚举语义、Qiniu key policy、signed URL 过期策略、AI provider 配置、前端可见状态，必须先向用户确认，不要主观猜测。
+- 不确定的 backend API 契约、字段命名、持久化方式、枚举语义、object key policy、signed URL 过期策略、provider 配置、前端可见状态，必须先向用户确认，不要主观猜测。
 
 ## Context Budget Rules
 

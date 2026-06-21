@@ -33,20 +33,21 @@ M4 MAY retain one-click preview for demonstration, but preview MUST be separated
 - THEN the Mini Program SHALL use real backend-backed data and real integration states
 - AND mock success SHALL NOT be accepted as M4 completion
 
-### Requirement: M4 Storage Scope Is Qiniu Private Object Storage
+### Requirement: M4 Storage Scope Is Configurable Private Object Storage
 
-M4 SHALL use Qiniu object storage for record media.
+M4 SHALL use a provider-neutral backend contract for record media, with Qiniu and S3-compatible object storage as supported implementations.
 
 #### Scenario: Media storage is implemented
 
 - WHEN images, voice files, or covers are implemented
-- THEN they SHALL use Qiniu object storage with private bucket assumptions
+- THEN they SHALL use the configured object-storage provider with private bucket assumptions
 - AND backend-controlled upload authorization and private-access-safe media retrieval SHALL be used
 
-#### Scenario: Alternative storage abstraction is proposed
+#### Scenario: Active storage provider is changed
 
-- WHEN work suggests a broad multi-cloud storage abstraction or another object storage provider
-- THEN the Agent SHALL treat it as out of M4 scope unless the user updates the M4 decision
+- WHEN backend configuration selects Qiniu or an S3-compatible provider
+- THEN new uploads SHALL switch provider without changing the attachment APIs or Mini Program business flow
+- AND provider-specific features unrelated to record attachment storage SHALL remain out of M4 scope
 
 ### Requirement: M4 Voice Scope Is Raw Audio Storage Only
 

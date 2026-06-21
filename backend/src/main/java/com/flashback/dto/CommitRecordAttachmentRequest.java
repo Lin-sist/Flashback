@@ -1,6 +1,7 @@
 package com.flashback.dto;
 
 import com.flashback.domain.RecordAttachmentType;
+import com.flashback.domain.StorageProvider;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -8,9 +9,11 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 /**
- * M4 attachment commit request after direct Qiniu upload.
+ * M4 attachment commit request after direct provider upload.
  */
 public class CommitRecordAttachmentRequest {
+
+    private StorageProvider provider;
 
     @NotNull(message = "type不能为空")
     private RecordAttachmentType type;
@@ -39,6 +42,10 @@ public class CommitRecordAttachmentRequest {
 
     @PositiveOrZero(message = "durationSeconds不能小于0")
     private Integer durationSeconds;
+
+    public StorageProvider getProvider() { return provider; }
+
+    public void setProvider(StorageProvider provider) { this.provider = provider; }
 
     public RecordAttachmentType getType() {
         return type;

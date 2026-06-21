@@ -44,9 +44,22 @@ app:
       bucket: ${QINIU_BUCKET:}
       region: ${QINIU_REGION:}
       private-domain: ${QINIU_PRIVATE_DOMAIN:}
+      upload-url: ${QINIU_UPLOAD_URL:}
       upload-token-ttl-seconds: ${QINIU_UPLOAD_TOKEN_TTL_SECONDS:600}
       download-url-ttl-seconds: ${QINIU_DOWNLOAD_URL_TTL_SECONDS:600}
       key-prefix: ${QINIU_KEY_PREFIX:flashback}
+    # S3 Signature V4 compatibility path (AWS S3 / MinIO / compatible OSS or COS mode).
+    s3:
+      endpoint: ${S3_ENDPOINT:}
+      region: ${S3_REGION:}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      session-token: ${S3_SESSION_TOKEN:}
+      bucket: ${S3_BUCKET:}
+      path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+      upload-token-ttl-seconds: ${S3_UPLOAD_TOKEN_TTL_SECONDS:600}
+      download-url-ttl-seconds: ${S3_DOWNLOAD_URL_TTL_SECONDS:600}
+      key-prefix: ${S3_KEY_PREFIX:flashback}
   media:
     max-image-count-per-record: 9
     max-voice-count-per-record: 9

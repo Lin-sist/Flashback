@@ -1,5 +1,6 @@
 package com.flashback.config;
 
+import com.flashback.domain.StorageProvider;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -21,6 +22,9 @@ public class AppStorageProperties {
     @Valid
     private Qiniu qiniu = new Qiniu();
 
+    @Valid
+    private S3 s3 = new S3();
+
     public String getProvider() {
         return provider;
     }
@@ -41,32 +45,12 @@ public class AppStorageProperties {
         this.qiniu = qiniu;
     }
 
-    public enum StorageProvider {
-        QINIU("qiniu");
+    public S3 getS3() {
+        return s3;
+    }
 
-        private final String configValue;
-
-        StorageProvider(String configValue) {
-            this.configValue = configValue;
-        }
-
-        public String getConfigValue() {
-            return configValue;
-        }
-
-        public static StorageProvider fromConfigValue(String value) {
-            if (value == null || value.trim().isEmpty()) {
-                return QINIU;
-            }
-            String normalized = value.trim();
-            for (StorageProvider provider : values()) {
-                if (provider.configValue.equalsIgnoreCase(normalized)
-                        || provider.name().equalsIgnoreCase(normalized.replace('-', '_'))) {
-                    return provider;
-                }
-            }
-            throw new IllegalArgumentException("Unsupported storage provider: " + value);
-        }
+    public void setS3(S3 s3) {
+        this.s3 = s3;
     }
 
     public static class Qiniu {
@@ -76,6 +60,7 @@ public class AppStorageProperties {
         private String bucket = "";
         private String region = "";
         private String privateDomain = "";
+        private String uploadUrl = "";
 
         @Positive
         private long uploadTokenTtlSeconds = 600;
@@ -126,6 +111,14 @@ public class AppStorageProperties {
             this.privateDomain = privateDomain;
         }
 
+        public String getUploadUrl() {
+            return uploadUrl;
+        }
+
+        public void setUploadUrl(String uploadUrl) {
+            this.uploadUrl = uploadUrl;
+        }
+
         public long getUploadTokenTtlSeconds() {
             return uploadTokenTtlSeconds;
         }
@@ -152,6 +145,55 @@ public class AppStorageProperties {
 
         public boolean isConfigured() {
             return hasText(accessKey) && hasText(secretKey) && hasText(bucket) && hasText(privateDomain);
+        }
+
+        private boolean hasText(String value) {
+            return value != null && !value.trim().isEmpty();
+        }
+    }
+
+    public static class S3 {
+
+        private String endpoint = "";
+        private String region = "";
+        private String accessKey = "";
+        private String secretKey = "";
+        private String sessionToken = "";
+        private String bucket = "";
+        private boolean pathStyleAccess;
+
+        @Positive
+        private long uploadTokenTtlSeconds = 600;
+
+        @Positive
+        private long downloadUrlTtlSeconds = 600;
+
+        @NotBlank
+        private String keyPrefix = "flashback";
+
+        public String getEndpoint() { return endpoint; }
+        public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+        public String getRegion() { return region; }
+        public void setRegion(String region) { this.region = region; }
+        public String getAccessKey() { return accessKey; }
+        public void setAccessKey(String accessKey) { this.accessKey = accessKey; }
+        public String getSecretKey() { return secretKey; }
+        public void setSecretKey(String secretKey) { this.secretKey = secretKey; }
+        public String getSessionToken() { return sessionToken; }
+        public void setSessionToken(String sessionToken) { this.sessionToken = sessionToken; }
+        public String getBucket() { return bucket; }
+        public void setBucket(String bucket) { this.bucket = bucket; }
+        public boolean isPathStyleAccess() { return pathStyleAccess; }
+        public void setPathStyleAccess(boolean pathStyleAccess) { this.pathStyleAccess = pathStyleAccess; }
+        public long getUploadTokenTtlSeconds() { return uploadTokenTtlSeconds; }
+        public void setUploadTokenTtlSeconds(long uploadTokenTtlSeconds) { this.uploadTokenTtlSeconds = uploadTokenTtlSeconds; }
+        public long getDownloadUrlTtlSeconds() { return downloadUrlTtlSeconds; }
+        public void setDownloadUrlTtlSeconds(long downloadUrlTtlSeconds) { this.downloadUrlTtlSeconds = downloadUrlTtlSeconds; }
+        public String getKeyPrefix() { return keyPrefix; }
+        public void setKeyPrefix(String keyPrefix) { this.keyPrefix = keyPrefix; }
+
+        public boolean isConfigured() {
+            return hasText(endpoint) && hasText(region) && hasText(accessKey) && hasText(secretKey) && hasText(bucket);
         }
 
         private boolean hasText(String value) {

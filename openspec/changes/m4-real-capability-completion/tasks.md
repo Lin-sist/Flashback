@@ -63,7 +63,7 @@
 - [x] Ensure AI failure does not block record save/seal when AI is not required.
 - [x] Add focused backend tests or documented manual verification for success, missing config, provider failure, and privacy-safe logging.
 
-## 4. Backend Phase: Qiniu Storage Foundation
+## 4. Backend Phase: Configurable Object Storage Foundation
 
 - [x] Add backend-only Qiniu configuration for access key, secret key, bucket, domain/base URL, region/zone if needed, and URL expiry.
 - [x] Ensure Qiniu secrets are not present in frontend code or tracked files.
@@ -73,6 +73,12 @@
 - [x] Verify object size and MIME type where Qiniu metadata supports it.
 - [x] Implement private signed URL generation or equivalent private access flow.
 - [x] Add focused backend tests or documented manual verification for token creation, object verification, missing object, and signed URL behavior.
+- [x] Update the accepted contract from Qiniu-only to provider-neutral storage following the user's 2026-06-21 decision.
+- [x] Add a backend storage provider interface and route current uploads plus persisted attachments by provider.
+- [x] Add `S3_COMPATIBLE` configuration and implementation for presigned upload, object verification, delete, and private access URL.
+- [x] Make the upload authorization DTO/provider flow independent of Qiniu form fields.
+- [x] Preserve Qiniu as a supported provider and correct its management stat request method.
+- [x] Add focused provider-routing and S3-compatible configuration/authorization tests.
 
 ## 5. Backend Phase: Attachments
 
@@ -142,11 +148,11 @@
 
 - [x] Replace image placeholder/toast with real image selection.
 - [x] Compress images by default before upload.
-- [x] Upload images through Qiniu token flow.
+- [x] Upload images through the backend-provided storage authorization flow.
 - [x] Preview uploaded images.
 - [x] Delete draft images.
 - [x] Replace voice placeholder/toast with real voice recording.
-- [x] Upload raw voice files through Qiniu token flow.
+- [x] Upload raw voice files through the backend-provided storage authorization flow.
 - [x] Play uploaded voice files.
 - [x] Support draft voice re-record/delete.
 - [x] Enforce or pre-check max 9 images, max 9 voice files, 40 MB per file, and 300 MB per record.
@@ -172,10 +178,10 @@
 - [x] Run full backend test suite when feasible.
 - [x] Run frontend type-check when feasible.
 - [x] Run Mini Program build when feasible.
-- [x] Verify no tracked AI or Qiniu secrets are committed.
+- [x] Verify no tracked AI or object-storage secrets are committed.
 - [ ] Verify real AI configured success path where provider credentials are available.
 - [x] Verify AI missing-config/failure path.
-- [ ] Verify Qiniu upload, object verification, signed URL, image preview, and voice playback.
+- [ ] Verify configured-provider upload, object verification, signed URL, image preview, and voice playback.
 - [x] Verify attachment limit errors and record total-size limit errors.
 - [x] Verify sealed/unlocked records reject location, attachment, and cover mutation.
 - [ ] Verify timeline/home cover display.
@@ -189,8 +195,8 @@
 - [x] Confirm M4 did not add admin, production deployment, monitoring, SMS, notification center, campaign delivery, social feed, or H5/Web acceptance scope.
 - [x] Confirm AI is real-provider-backed in authenticated real mode.
 - [x] Confirm missing real integrations fail explicitly and do not fake success.
-- [x] Confirm Qiniu bucket usage assumes private access and backend-signed URLs.
-- [x] Confirm Qiniu AK/SK and AI keys are backend-only and not tracked.
+- [x] Confirm object-storage bucket usage assumes private access and backend-signed URLs.
+- [x] Confirm object-storage credentials and AI keys are backend-only and not tracked.
 - [x] Confirm location, attachments, and cover are immutable after seal.
 - [x] Confirm cover comes only from same-record image attachments.
 - [x] Confirm voice is stored as raw audio only with no transcription.

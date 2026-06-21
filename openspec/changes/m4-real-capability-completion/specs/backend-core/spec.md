@@ -47,22 +47,22 @@ The backend SHALL support real AI provider calls for M4 AI-supported features.
 - THEN API keys SHALL NOT appear in Mini Program code or tracked repository files
 - AND provider credentials SHALL be read from backend-side configuration or secret management only
 
-### Requirement: M4 Qiniu Storage Must Use Private Object Access
+### Requirement: M4 Configurable Object Storage Must Use Private Object Access
 
-The backend SHALL integrate Qiniu object storage for record media using a private bucket model.
+The backend SHALL integrate record media through a provider-neutral private object-storage contract. It SHALL support Qiniu and an S3-compatible provider selected by backend configuration.
 
 #### Scenario: Upload token is requested
 
 - GIVEN an authenticated user owns a DRAFT record
 - WHEN the user requests an upload token for an image or voice attachment
 - THEN the backend SHALL validate ownership, record state, media type, count limits, size policy, and key policy
-- AND it SHALL return a short-lived upload authorization without exposing Qiniu secret keys
+- AND it SHALL return a short-lived provider-neutral upload authorization without exposing provider secret keys
 
 #### Scenario: Uploaded object is committed
 
-- GIVEN the Mini Program reports an uploaded Qiniu object for a record
+- GIVEN the Mini Program reports an object uploaded to the configured provider for a record
 - WHEN the backend commits or verifies the attachment
-- THEN the backend SHALL verify that the object exists in Qiniu
+- THEN the backend SHALL verify that the object exists through the provider recorded for the attachment
 - AND it SHALL validate object key, size, type, record ownership, and record state before marking the attachment available
 
 #### Scenario: Media is accessed
@@ -70,7 +70,14 @@ The backend SHALL integrate Qiniu object storage for record media using a privat
 - GIVEN an authenticated user requests a record image or voice file
 - WHEN the user owns the record and attachment
 - THEN the backend SHALL provide a private-access-safe URL such as a signed short-lived URL
-- AND it SHALL NOT require the Qiniu bucket to be public
+- AND it SHALL NOT require the object-storage bucket to be public
+
+#### Scenario: Active provider is switched
+
+- GIVEN Qiniu and/or S3-compatible provider credentials are configured backend-side
+- WHEN `app.storage.provider` is changed
+- THEN new upload authorizations SHALL use the selected provider without frontend business-flow changes
+- AND existing attachments SHALL continue to route by their persisted `storageProvider` while that provider remains configured
 
 ### Requirement: M4 Attachments Must Respect Limits And Lifecycle
 

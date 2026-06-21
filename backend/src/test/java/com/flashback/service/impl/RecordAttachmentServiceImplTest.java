@@ -1,6 +1,5 @@
 package com.flashback.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppMediaProperties;
@@ -11,13 +10,16 @@ import com.flashback.domain.RecordAttachment;
 import com.flashback.domain.RecordAttachmentStatus;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
+import com.flashback.domain.StorageProvider;
 import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.mapper.RecordAttachmentMapper;
 import com.flashback.mapper.RecordMapper;
-import com.flashback.storage.qiniu.QiniuObjectMetadata;
-import com.flashback.storage.qiniu.QiniuStorageClient;
-import com.flashback.storage.qiniu.QiniuStorageException;
+import com.flashback.storage.ObjectStorageException;
+import com.flashback.storage.ObjectStorageMetadata;
+import com.flashback.storage.ObjectStorageProvider;
+import com.flashback.storage.ObjectStorageRegistry;
+import com.flashback.storage.ObjectStorageUploadAuthorization;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +32,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,7 +52,7 @@ class RecordAttachmentServiceImplTest {
 
     private AppStorageProperties storageProperties;
     private AppMediaProperties mediaProperties;
-    private StubQiniuStorageClient qiniuStorageClient;
+    private StubObjectStorageProvider storageProvider;
     private RecordAttachmentServiceImpl service;
 
     @BeforeEach
@@ -60,14 +64,13 @@ class RecordAttachmentServiceImplTest {
         storageProperties.getQiniu().setBucket("flashback-private");
         storageProperties.getQiniu().setPrivateDomain("https://media.example.com");
         mediaProperties = new AppMediaProperties();
-        qiniuStorageClient = new StubQiniuStorageClient();
+        storageProvider = new StubObjectStorageProvider();
+        ObjectStorageRegistry storageRegistry = new ObjectStorageRegistry(storageProperties, List.of(storageProvider));
         service = new RecordAttachmentServiceImpl(
                 recordMapper,
                 recordAttachmentMapper,
-                storageProperties,
                 mediaProperties,
-                qiniuStorageClient,
-                new ObjectMapper(),
+                storageRegistry,
                 clock,
                 () -> UUID.fromString("11111111-1111-1111-1111-111111111111"));
     }
@@ -87,11 +90,11 @@ class RecordAttachmentServiceImplTest {
         assertThat(result.getBucket()).isEqualTo("flashback-private");
         assertThat(result.getKey())
                 .isEqualTo("flashback/users/1/records/10/image/11111111-1111-1111-1111-111111111111.jpg");
-        assertThat(result.getUploadUrl()).isEqualTo("https://upload.qiniup.com");
+        assertThat(result.getUploadUrl()).isEqualTo("https://upload.example.com");
         assertThat(result.getExpiresAt()).isEqualTo(LocalDateTime.of(2026, 6, 18, 10, 10, 0));
         assertThat(result.getMaxFileSizeBytes()).isEqualTo(41943040L);
-        assertThat(result.getUploadToken()).startsWith("test-ak:");
-        assertThat(result.getUploadToken().split(":")).hasSize(3);
+        assertThat(result.getUploadMethod()).isEqualTo("POST_MULTIPART");
+        assertThat(result.getUploadFormData()).containsEntry("token", "test-upload-token");
     }
 
     @Test
@@ -124,7 +127,7 @@ class RecordAttachmentServiceImplTest {
 
     @Test
     void shouldReturnServiceUnavailableWhenQiniuIsNotConfigured() {
-        storageProperties.getQiniu().setSecretKey("");
+        storageProvider.configured = false;
         when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
 
         assertThatThrownBy(() -> service.createUploadToken(
@@ -202,10 +205,10 @@ class RecordAttachmentServiceImplTest {
             attachment.setId(99L);
             return 1;
         });
-        QiniuObjectMetadata metadata = new QiniuObjectMetadata();
+        ObjectStorageMetadata metadata = new ObjectStorageMetadata();
         metadata.setSizeBytes(123456L);
         metadata.setMimeType("image/jpeg");
-        qiniuStorageClient.metadata = metadata;
+        storageProvider.metadata = metadata;
 
         CommitRecordAttachmentRequest request = commitRequest(
                 RecordAttachmentType.IMAGE,
@@ -260,7 +263,7 @@ class RecordAttachmentServiceImplTest {
         when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
                 .thenReturn(0);
         when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(0L);
-        qiniuStorageClient.exception = new QiniuStorageException("missing", true);
+        storageProvider.exception = new ObjectStorageException("missing", true);
 
         assertThatThrownBy(() -> service.commitAttachment(
                 1L,
@@ -282,10 +285,10 @@ class RecordAttachmentServiceImplTest {
         when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
                 .thenReturn(0);
         when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(0L);
-        QiniuObjectMetadata metadata = new QiniuObjectMetadata();
+        ObjectStorageMetadata metadata = new ObjectStorageMetadata();
         metadata.setSizeBytes(123L);
         metadata.setMimeType("image/jpeg");
-        qiniuStorageClient.metadata = metadata;
+        storageProvider.metadata = metadata;
 
         assertThatThrownBy(() -> service.commitAttachment(
                 1L,
@@ -338,8 +341,8 @@ class RecordAttachmentServiceImplTest {
 
         service.deleteAttachment(1L, 10L, 99L);
 
-        assertThat(qiniuStorageClient.deletedBucket).isEqualTo("flashback-private");
-        assertThat(qiniuStorageClient.deletedKey).isEqualTo("flashback/users/1/records/10/image/a.jpg");
+        assertThat(storageProvider.deletedBucket).isEqualTo("flashback-private");
+        assertThat(storageProvider.deletedKey).isEqualTo("flashback/users/1/records/10/image/a.jpg");
         verify(recordAttachmentMapper).markDeletedByIdAndRecordIdAndUserId(
                 99L,
                 10L,
@@ -362,7 +365,7 @@ class RecordAttachmentServiceImplTest {
                 10L,
                 1L,
                 LocalDateTime.of(2026, 6, 18, 10, 0, 0))).thenReturn(1);
-        qiniuStorageClient.deleteException = new QiniuStorageException("missing", true);
+        storageProvider.deleteException = new ObjectStorageException("missing", true);
 
         service.deleteAttachment(1L, 10L, 99L);
 
@@ -404,7 +407,7 @@ class RecordAttachmentServiceImplTest {
         when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.DRAFT));
         when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L))
                 .thenReturn(attachment(99L, 10L, 1L, "flashback/users/1/records/10/image/a.jpg"));
-        qiniuStorageClient.deleteException = new QiniuStorageException("unavailable");
+        storageProvider.deleteException = new ObjectStorageException("unavailable");
 
         assertThatThrownBy(() -> service.deleteAttachment(1L, 10L, 99L))
                 .isInstanceOfSatisfying(BizException.class, ex -> {
@@ -466,21 +469,40 @@ class RecordAttachmentServiceImplTest {
         attachment.setUserId(userId);
         attachment.setType(RecordAttachmentType.IMAGE);
         attachment.setStatus(RecordAttachmentStatus.AVAILABLE);
+        attachment.setStorageProvider(StorageProvider.QINIU);
         attachment.setBucket("flashback-private");
         attachment.setStorageKey(key);
         return attachment;
     }
 
-    private static class StubQiniuStorageClient implements QiniuStorageClient {
+    private static class StubObjectStorageProvider implements ObjectStorageProvider {
 
-        private QiniuObjectMetadata metadata;
-        private QiniuStorageException exception;
-        private QiniuStorageException deleteException;
+        private boolean configured = true;
+        private ObjectStorageMetadata metadata;
+        private ObjectStorageException exception;
+        private ObjectStorageException deleteException;
         private String deletedBucket;
         private String deletedKey;
 
+        @Override public StorageProvider getProvider() { return StorageProvider.QINIU; }
+        @Override public boolean isConfigured() { return configured; }
+        @Override public String getBucket() { return "flashback-private"; }
+        @Override public String getKeyPrefix() { return "flashback"; }
+        @Override public long getUploadAuthorizationTtlSeconds() { return 600; }
+        @Override public long getDownloadUrlTtlSeconds() { return 600; }
+
         @Override
-        public QiniuObjectMetadata statObject(String bucket, String key) {
+        public ObjectStorageUploadAuthorization createUploadAuthorization(
+                String key, String mimeType, long sizeBytes, Instant expiresAt) {
+            ObjectStorageUploadAuthorization authorization = new ObjectStorageUploadAuthorization();
+            authorization.setMethod("POST_MULTIPART");
+            authorization.setUploadUrl("https://upload.example.com");
+            authorization.setFormData(Map.of("token", "test-upload-token", "key", key));
+            return authorization;
+        }
+
+        @Override
+        public ObjectStorageMetadata statObject(String bucket, String key) {
             if (exception != null) {
                 throw exception;
             }
@@ -494,6 +516,11 @@ class RecordAttachmentServiceImplTest {
             if (deleteException != null) {
                 throw deleteException;
             }
+        }
+
+        @Override
+        public String createPrivateAccessUrl(String bucket, String key, Instant expiresAt) {
+            return "https://media.example.com/" + key + "?e=" + expiresAt.getEpochSecond() + "&token=test-ak:test";
         }
     }
 }

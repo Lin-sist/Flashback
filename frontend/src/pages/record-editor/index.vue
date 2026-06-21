@@ -12,6 +12,7 @@ import {
   RecordType,
   type RecordAttachmentVO,
   type RecordLocationVO,
+  type StorageProvider,
   type UpdateRecordLocationDTO,
 } from '../../types'
 import {
@@ -80,6 +81,7 @@ interface PendingImageUpload {
   width: number | null
   height: number | null
   uploadedKey?: string
+  uploadedProvider?: StorageProvider
 }
 
 const pendingImageUploads = ref<PendingImageUpload[]>([])
@@ -95,6 +97,7 @@ interface PendingVoiceUpload {
   sizeBytes: number
   durationSeconds: number
   uploadedKey?: string
+  uploadedProvider?: StorageProvider
 }
 
 interface RecorderStopResult {
@@ -637,11 +640,11 @@ const compressImage = (filePath: string) => new Promise<string>((resolve, reject
   })
 })
 
-const getFileSize = (filePath: string) => new Promise<number>((resolve, reject) => {
+const getFileSize = (filePath: string, errorMsg = '无法读取文件大小') => new Promise<number>((resolve, reject) => {
   uni.getFileInfo({
     filePath,
     success: (result) => resolve(result.size),
-    fail: () => reject(new Error('无法读取压缩后的图片大小')),
+    fail: () => reject(new Error(errorMsg)),
   })
 })
 
@@ -692,7 +695,7 @@ const preparePendingImage = async (item: PendingImageUpload) => {
   item.error = ''
   const compressedPath = await compressImage(item.originalPath)
   const [sizeBytes, dimensions] = await Promise.all([
-    getFileSize(compressedPath),
+    getFileSize(compressedPath, '无法读取压缩后的图片大小'),
     getImageDimensions(compressedPath),
   ])
   if (sizeBytes > MAX_FILE_SIZE_BYTES) {
@@ -755,12 +758,14 @@ const commitPendingImage = async (id: number, item: PendingImageUpload) => {
     if (item.sizeBytes > authorization.maxFileSizeBytes) {
       throw new Error('图片超过存储服务允许的大小')
     }
-    await attachmentService.uploadToQiniu(item.filePath, authorization)
+    await attachmentService.upload(item.filePath, authorization)
     item.uploadedKey = authorization.key
+    item.uploadedProvider = authorization.provider
   }
 
   item.status = 'verifying'
   const attachment = await attachmentService.commit(id, {
+    provider: item.uploadedProvider!,
     type: 'IMAGE',
     key: item.uploadedKey,
     fileName: item.fileName,
@@ -1040,12 +1045,14 @@ const commitPendingVoice = async (id: number, item: PendingVoiceUpload) => {
     if (item.sizeBytes > authorization.maxFileSizeBytes) {
       throw new Error('语音超过存储服务允许的大小')
     }
-    await attachmentService.uploadToQiniu(item.filePath, authorization)
+    await attachmentService.upload(item.filePath, authorization)
     item.uploadedKey = authorization.key
+    item.uploadedProvider = authorization.provider
   }
 
   item.status = 'verifying'
   const attachment = await attachmentService.commit(id, {
+    provider: item.uploadedProvider!,
     type: 'VOICE',
     key: item.uploadedKey,
     fileName: item.fileName,
@@ -1084,9 +1091,7 @@ const uploadRecordedVoice = async (result: RecorderStopResult) => {
   voiceUploading.value = true
   let pending: PendingVoiceUpload | null = null
   try {
-    const sizeBytes = typeof result.fileSize === 'number' && result.fileSize > 0
-      ? result.fileSize
-      : await getFileSize(filePath)
+    const sizeBytes = await getFileSize(filePath, '无法读取录音文件大小')
     if (sizeBytes > MAX_FILE_SIZE_BYTES) {
       throw new Error('语音文件超过 40 MB，请缩短录音后重试')
     }

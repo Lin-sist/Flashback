@@ -55,7 +55,7 @@ Unlocked records remain immutable for the sealed content and supporting context,
 
 Record media belongs to the user and should not be public by default.
 
-Qiniu storage MUST use a private bucket. The Mini Program should access media through short-lived signed URLs or equivalent private-access-safe URLs returned by the backend.
+Every configured storage provider MUST use a private bucket. The Mini Program should access media through short-lived signed URLs or equivalent private-access-safe URLs returned by the backend.
 
 Backend logs and database records must not expose secrets, upload tokens, or unnecessary private content.
 
@@ -82,7 +82,7 @@ Implementation may use separate tables or equivalent persistence if the external
 
 Backend implementation MUST use `openspec/changes/m4-real-capability-completion/backend-contract-decisions.md` as the M4 contract decision layer.
 
-That file contains accepted defaults for endpoint paths, DTO shapes, AI provider configuration, Qiniu key policy, signed URL expiry, location rules, cover rules, and error semantics. Agents MUST implement those accepted defaults unless the user updates the decision file before implementation.
+That file contains accepted defaults for endpoint paths, DTO shapes, AI provider configuration, object key policy, signed URL expiry, location rules, cover rules, and error semantics. Agents MUST implement those accepted defaults unless the user updates the decision file before implementation.
 
 ### AI Provider
 
@@ -111,26 +111,35 @@ AI failure handling:
 - record save/seal should continue when AI is not required
 - original content is never replaced by AI output
 
-### Qiniu Storage
+### Configurable Object Storage
 
 Recommended upload flow:
 
 ```text
 Mini Program asks backend for upload token
   -> backend validates user, record ownership, draft status, media type, count, size policy
-  -> backend signs Qiniu upload token with backend-only AK/SK
-  -> Mini Program uploads directly to Qiniu
+  -> backend selects the active provider and returns its short-lived upload authorization
+  -> Mini Program uploads directly using the returned method, headers, and form fields
   -> Mini Program reports uploaded object metadata to backend
-  -> backend verifies object exists in Qiniu and checks size/type/key ownership
+  -> backend verifies object exists through that provider and checks size/type/key ownership
   -> backend persists attachment metadata
   -> backend returns attachment and private access URL when needed
 ```
 
 Secrets:
 
-- Qiniu AK/SK stay backend-side.
-- Upload tokens should be short-lived and scoped as narrowly as practical.
-- Frontend must not contain Qiniu secret keys.
+- All provider AK/SK credentials stay backend-side.
+- Upload authorizations should be short-lived and scoped as narrowly as practical.
+- Frontend must not contain provider secret keys.
+
+Provider strategy:
+
+- `QINIU` preserves the current private Kodo flow.
+- `S3_COMPATIBLE` uses Signature V4 and configurable endpoint/region/path-style settings. It is the compatibility path for AWS S3, MinIO, and S3-compatible modes offered by providers such as Alibaba Cloud OSS and Tencent Cloud COS.
+- The backend uses AWS SDK v2 S3 signing/client support rather than maintaining a custom Signature V4 implementation; this is the required and justified backend dependency change for the compatibility path.
+- Aliases such as `aliyun-oss`, `tencent-cos`, `aws-s3`, and `minio` resolve to `S3_COMPATIBLE`; endpoint and region still come from backend configuration.
+- For Alibaba Cloud OSS, follow its AWS SDK Java 2.x compatibility contract: use the `s3.oss-{region}.aliyuncs.com` endpoint, virtual-hosted access, and disable chunked encoding.
+- New uploads use `app.storage.provider`. Existing attachment reads/deletes route by persisted `storage_provider`, so old provider credentials must remain configured while old objects are still needed.
 
 Object key policy:
 
@@ -227,7 +236,7 @@ Recommended API groups:
 - AI organization/generation endpoints under existing AI or record APIs
 - record location update/delete under record ownership
 - attachment upload token creation
-- attachment commit/verify after Qiniu upload
+- attachment commit/verify after configured-provider upload
 - attachment delete for draft only
 - media signed URL retrieval
 - cover update for draft only
@@ -300,9 +309,9 @@ M4 implementation should verify:
 1. real AI provider success path with configured test key where available
 2. AI missing configuration path
 3. AI provider failure path
-4. no frontend/tracked-file secret leak for AI or Qiniu keys
-5. Qiniu upload token creation is authenticated and owner-scoped
-6. Qiniu object existence verification before attachment availability
+4. no frontend/tracked-file secret leak for AI or object-storage keys
+5. provider-neutral upload authorization creation is authenticated and owner-scoped
+6. configured-provider object existence verification before attachment availability
 7. image count, voice count, per-file size, and record total size limits
 8. draft attachment delete/re-record behavior
 9. sealed/unlocked attachment mutation rejection
@@ -327,7 +336,7 @@ M4 may be near production usable for core functions, but it must not become a de
 
 ### Fake Integration Success
 
-If AI, Qiniu, location, or media playback cannot complete, the system must expose a real unavailable/failed state. Silent mock success is out of scope and violates M4.
+If AI, configured object storage, location, or media playback cannot complete, the system must expose a real unavailable/failed state. Silent mock success is out of scope and violates M4.
 
 ### Media Privacy
 

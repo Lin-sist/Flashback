@@ -4190,3 +4190,312 @@ Remaining risks:
 
 - Eleven OpenSpec items remain open: one conditional decision-log item, nine credential/manual integration checks, and the eventual final handoff item.
 - Real provider behavior, private Qiniu media behavior, preview isolation, location UX, cover rendering, and unlocked time-review composition still require authenticated WeChat runtime evidence.
+
+## 2026-06-20 23:51 M4 real credential and backend live verification
+
+Task:
+
+- Audit the locally supplied AI, Qiniu, WeChat, database, and frontend API configuration without exposing secret values.
+- Start the real `dev` backend and execute automated plus credential-backed HTTP verification for M4 core paths.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+
+What changed:
+
+- No product code, package, lockfile, OpenSpec contract, or tracked schema file was changed by this verification step.
+- Added the missing M4 structures to the local MySQL `flashback` database from the canonical `schema.mysql.sql`: `record.cover_attachment_id`, `record_location`, and `record_attachment`.
+- Started the backend on port `8080` with process-scoped credentials through ignored runtime helpers under `backend/target/runtime`; secret values were not printed.
+- The existing ignored WeChat startup script generated `frontend/.env.local` with the local API base URL and configured subscription template ID.
+- Temporary live-test users and records were removed after verification; no successful Qiniu object was created.
+
+Verification:
+
+- Configuration audit:
+  - WeChat AppID, secret, and template ID are present in the ignored local script, and the AppID matches the Mini Program manifest.
+  - The user-supplied AI/Qiniu defaults are present in tracked `application.yml`; this is operationally readable but violates the secret-handling boundary and must not be committed.
+  - `application-dev.yml` overrides the AI provider to `mock` unless `AI_*` values are injected into the process; the first real request reproduced `UNAVAILABLE / AI mock provider未启用`.
+- Backend startup:
+  - `dev` profile started successfully on port `8080`.
+  - Runtime log contains zero `WARN`/`ERROR` entries after startup and live checks.
+- Automated backend suite:
+  - `mvn -q test` passed.
+  - Surefire summary: `25` suites, `192` tests, `0` failures, `0` errors, `0` skipped.
+- Real AI:
+  - Authenticated `POST /api/ai/writing-prompts` returned `SUCCESS`.
+  - A five-run authenticated `POST /api/ai/summarize-record` loop produced `4 SUCCESS` and `1 FAILED / AI返回内容无效`; provider connectivity works, but the selected model's six-field JSON output is not fully stable.
+- Real core HTTP flow:
+  - Registration/login and JWT authentication passed.
+  - Record creation and `MANUAL` location persistence/detail read passed.
+  - Record seal passed.
+  - Location mutation, attachment upload-token issuance, and cover mutation after seal were each rejected with HTTP `400`.
+- Qiniu credential verification:
+  - Both configured keys have plausible 40-character lengths and are not identical.
+  - Read-only Qiniu `stat` probes with the configured pair and with AK/SK swapped both returned HTTP `401`.
+  - Direct upload returned `401 BadToken`; the configured AK/SK are not an accepted pair or have been disabled/deleted.
+- Frontend checks:
+  - `vue-tsc --noEmit` passed.
+  - `uni build -p mp-weixin` passed with `DONE Build complete.`
+- `git diff --check` passed.
+
+Skipped verification reason:
+
+- Real Qiniu upload, backend stat commit, signed private download, image preview, voice playback, cover display, and media deletion could not complete because Qiniu rejected the supplied credential pair.
+- WeChat login, current-location/map-picker permission behavior, recorder behavior, preview isolation, and unlocked time-review composition were not manually exercised in WeChat Developer Tools in this backend-only run.
+- No production deployment, monitoring, admin, settings, SMS, notification-center, campaign, social, H5/Web, transcription, or voice-AI work was attempted.
+
+`git diff --stat` before this log update:
+
+- `backend/src/main/resources/application.yml | 16 ++++++++--------`
+- The tracked diff belongs to the user's local credential edit; the verification step did not alter it.
+
+Scope safety check:
+
+- All live calls used a generated local test account and generic non-private fixture text.
+- Test users/records were deleted after the run, and Qiniu rejected upload before object creation.
+- Secret values, JWTs, upload tokens, signed URLs, database passwords, and WeChat credentials were not written to the evidence log or command output.
+- Temporary helpers and logs are under ignored `backend/target/runtime`; `frontend/.env.local` is ignored.
+
+Remaining risks:
+
+- `application.yml` currently contains literal AI/Qiniu defaults inside environment placeholders. They are in a tracked file and must be migrated to an ignored local secret source or process environment before any commit.
+- `application-dev.yml` defaults AI back to `mock`; a durable local startup path must explicitly inject `AI_*` configuration.
+- The selected AI model returned incomplete JSON once in five runs. M4 needs either a more stable supported model, a scoped retry policy, or tolerant/repairing JSON handling before calling the real AI summary path stable.
+- Qiniu AK/SK must be regenerated or replaced with a valid matching pair from the same active account before media acceptance can resume.
+- The backend is intentionally left running on port `8080` for subsequent WeChat Developer Tools verification.
+
+## 2026-06-21 16:48 M4 local secret migration and regenerated Qiniu credential retest
+
+Task:
+
+- Validate the regenerated Qiniu AK/SK without exposing their values.
+- Move AI/Qiniu secret defaults out of tracked Spring configuration into the existing Git-ignored local startup script.
+- Restart with the migrated configuration and rerun real backend plus regression checks.
+
+Modified files:
+
+- `.ai/AGENT_LOG.md`
+- `backend/start-dev-wechat.local.ps1` (Git-ignored local secret file)
+
+What changed:
+
+- Migrated `AI_*`, `STORAGE_PROVIDER`, and all `QINIU_*` values from `application.yml` defaults into a marked process-environment block in the ignored `backend/start-dev-wechat.local.ps1`.
+- Normalized the local Qiniu private domain to include the required `https://` scheme.
+- Restored tracked `backend/src/main/resources/application.yml` to environment-variable-only placeholders; its content hash now matches `HEAD`.
+- Confirmed `application-dev.yml` content hash also matches `HEAD`; Git continues to report a Windows line-ending/stat warning, but `git diff` contains no application configuration changes.
+- Restarted the `dev` backend through the normal local startup script; it remains running on port `8080`.
+
+Verification:
+
+- Safe configuration audit:
+  - AI API key, Qiniu AK, and Qiniu SK are all present in the ignored local script.
+  - `git grep` found zero tracked occurrences of each secret value.
+  - Tracked `application.yml` contains only empty `${AI_API_KEY:}`, `${QINIU_ACCESS_KEY:}`, `${QINIU_SECRET_KEY:}`, `${QINIU_BUCKET:}`, and `${QINIU_PRIVATE_DOMAIN:}` defaults.
+- Regenerated Qiniu credential checks:
+  - AK and SK are both 40 characters, are not identical, and were read without trimming loss.
+  - Read-only management probes with the configured pair and the swapped pair both returned HTTP `401`.
+  - A direct upload-token probe generated from the configured pair returned `401 BadToken`; no object was created.
+  - The same result was reproduced through the real backend upload-token flow after the local-secret migration.
+  - Current conclusion: the supplied AK/SK are still not accepted as a valid active pair; the failure is independent of the config file location.
+- Migrated local startup verification:
+  - Backend started successfully with the `dev` profile on port `8080`, PID `19836`.
+  - Runtime log has zero `WARN`/`ERROR` entries.
+  - Real registration/login, AI writing prompts, AI summary, record creation, manual location persistence, seal, and sealed mutation rejection all passed.
+  - Location update, attachment upload-token request, and cover mutation after seal each returned HTTP `400` as expected.
+- Regression suite:
+  - `mvn -q test` passed.
+  - Surefire summary: `25` suites, `192` tests, `0` failures, `0` errors, `0` skipped.
+- Cleanup:
+  - All generated `m4_smoke_*`, `m4_core_*`, and `m4_ai_*` users/records were removed.
+  - Qiniu rejected upload before object creation, so no test object remains.
+- `git diff --check` passed.
+
+Skipped verification reason:
+
+- Qiniu object stat commit, private signed URL, image preview, voice playback, cover display, and object deletion cannot proceed until Qiniu accepts an active AK/SK pair.
+- WeChat Developer Tools interaction, real location permission prompts, recording UX, preview isolation, and unlocked time-review composition remain manual checks.
+
+`git diff --stat` before this log update:
+
+- `.ai/AGENT_LOG.md | 74 insertions`
+- No product/config/dependency/schema tracked diff was present; local secrets and runtime helpers remain ignored.
+
+Scope safety check:
+
+- No application code, package, lockfile, OpenSpec contract, deployment, monitoring, admin, settings, SMS, campaign, social, H5/Web, transcription, or voice-AI code was changed.
+- Secret values were neither printed nor stored in tracked files.
+- The migration only changed the existing ignored local startup file plus this required evidence log.
+
+Remaining risks:
+
+- The regenerated Qiniu pair must be copied again from the same enabled key row, or replaced with a Kodo-authorized sub-account key, before media testing can continue.
+- The Qiniu Bucket must belong to the same account/authorized sub-account as that key pair.
+- Real AI remains configured and passed this run, but the previously observed occasional incomplete JSON response remains a separate reliability risk.
+- The backend remains running for follow-up testing.
+
+## M4 Qiniu Region Adaptation & Diagnostic Log - 2026-06-21
+
+### What Changed
+
+- **后端七牛云多 Region 适配**：
+  - 修改了 `AppStorageProperties.java`，在七牛配置对象中添加了 `uploadUrl` 属性，并提供 Getter/Setter。
+  - 修改了 `RecordAttachmentServiceImpl.java`，实现了 `resolveUploadUrl(qiniu)` 辅助方法，根据 `region` 动态匹配七牛云官方直传域名；同时如果配置中指定了 `uploadUrl`，则优先使用该指定域名；生成 `uploadToken` 时替换了原先硬编码的华东直传域名。
+  - 修改了 `application.yml`，在 `app.storage.qiniu` 下暴露了 `upload-url: ${QINIU_UPLOAD_URL:}`。
+- **清除本地端口冲突**：
+  - 诊断出 8080 端口被残留的后台 Java 进程 (PID 19836) 占用，通过 `taskkill` 杀死了老进程，恢复了本地开发脚本的启动可用性。
+- **诊断七牛云 AK/SK 密钥失效**：
+  - 编写管理凭证签名测试程序请求七牛云全局 API，确认目前配置的 AK/SK 属于无效/停用密钥对，返回 `BadToken`。
+
+### Verification Results
+
+- 在 `backend` 下执行 `mvn clean test`，所有单元测试通过（192 tests run, 0 failures）。
+- 成功解除了 8080 端口的占用，启动脚本可以顺利执行启动。
+- 整理了详细的七牛云本地配置及排错指南。
+
+### Git Diff Stat
+
+```
+backend/src/main/java/com/flashback/config/AppStorageProperties.java |  9 +++++
+backend/src/main/java/com/flashback/service/impl/RecordAttachmentServiceImpl.java | 35 ++++++++++++++++++-
+backend/src/main/resources/application.yml         |  1 +
+```
+
+### Scope Safety Check
+
+- 没有改动任何核心业务逻辑、数据库持久化表结构或 package.json/pom.xml 依赖；
+- 仅为 Qiniu 配置类新增字段和在服务实现层进行直传 Region 自适应映射，符合 M4 核心附件上传的可用性范围；
+- 本地启动脚本和密码没有被跟踪提交。
+
+### Remaining Risks
+
+- 用户仍需要将最新、已启用且具有 Kodo 管理权限的有效 AK/SK 对复制并配置到 `backend/start-dev-wechat.local.ps1` 中以完成真机联调。
+
+## 2026-06-21 M4 provider-neutral object storage implementation
+
+### Decision and scope change
+
+- User explicitly replaced the accepted Qiniu-only M4 decision with configurable object storage so new uploads can switch provider by backend configuration.
+- Updated `AGENTS.md`, `.ai/ACTIVE_TASK.md`, M4 proposal/design/tasks, accepted backend contract, and M4 spec deltas.
+- Accepted implementation scope is Qiniu plus an S3 Signature V4 compatibility path. Provider-specific storage features outside record attachment upload/verify/access/delete remain out of scope.
+
+### Implementation
+
+- Added `ObjectStorageProvider`, `ObjectStorageRegistry`, provider-neutral metadata/authorization/error types, and persisted-provider routing.
+- Preserved Qiniu Kodo through `QiniuObjectStorageProvider`; corrected Qiniu management stat from GET to POST.
+- Added `S3CompatibleObjectStorageProvider` using AWS SDK v2 S3 signing/client support for presigned PUT/GET, HEAD verification, and delete.
+- Added provider aliases `s3-compatible`, `aws-s3`, `aliyun-oss`, `tencent-cos`, and `minio`, all persisted canonically as `S3_COMPATIBLE`.
+- Replaced Qiniu-shaped upload DTO fields with provider-neutral `uploadMethod`, `uploadUrl`, `fileFieldName`, `uploadHeaders`, and `uploadFormData`.
+- Added optional commit `provider`; frontend carries the provider returned at authorization time so a configuration change during an in-flight upload does not verify against the wrong provider.
+- Frontend now uses multipart upload for Qiniu and ArrayBuffer PUT for S3-compatible authorization without exposing provider credentials.
+- Added `backend/OBJECT_STORAGE_CONFIG.md` with Qiniu/S3-compatible switching instructions, credential safety, Aliyun OSS/Tencent COS/MinIO endpoint examples, and old-attachment compatibility rules.
+- Added AWS SDK v2 `s3` backend dependency. This package change is required to use maintained Signature V4 signing and avoid a custom cryptographic implementation.
+
+### Verification
+
+- Frontend type-check: PASS via `node_modules/.bin/vue-tsc.cmd --noEmit`.
+- WeChat Mini Program build: PASS via `node_modules/.bin/uni.cmd build -p mp-weixin`; output reported `DONE Build complete`.
+- Added focused tests for provider aliases/registry routing, S3 presigned PUT/GET authorization, generic attachment service behavior, configuration, and controller DTO shape.
+- Backend compile/full tests: NOT RUN. Maven dependency resolution failed inside the restricted sandbox with `Permission denied` to Maven Central. The required escalated execution was then rejected because the desktop approval account had reached its usage limit. This is an environment/authorization blocker, not a passing backend result.
+- Real S3-compatible provider upload/HEAD/signed GET/delete and WeChat Developer Tools media flow: NOT RUN because no S3-compatible test credentials/bucket were configured and the new backend artifact could not be built in this turn.
+- `openspec` CLI dynamic status: NOT RUN because `openspec` was not available in PATH; task progress was counted directly from `tasks.md` as 150 complete / 11 pending after this change.
+- Official provider web-document lookup: Agent Reach Exa backend was unavailable and the web fallback returned HTTP 403; implementation is constrained to the documented S3 Signature V4 compatibility contract and the maintained AWS SDK.
+
+### Scope safety and remaining risks
+
+- No database migration was required: `record_attachment.storage_provider` already exists as `VARCHAR(20)` and stores provider per attachment.
+- No deployment, monitoring, admin, settings, SMS, notification center, speech-to-text, or visual reconstruction work was added.
+- Existing Qiniu attachments require Qiniu configuration to remain available after switching new uploads to S3-compatible storage; configuration switching does not migrate remote objects.
+- S3-compatible providers must support SigV4 presigned PUT/GET plus HEAD/DELETE. Provider-specific deviations require a dedicated adapter rather than fake compatibility.
+- The S3 frontend PUT path reads the file into an ArrayBuffer; the current 40 MB M4 limit may cause memory pressure on low-end devices and needs real WeChat device verification.
+- A failed pnpm invocation created an untracked `.pnpm-store/` directory. Cleanup was attempted only after validating the path was inside the workspace, but the destructive command was blocked by the same approval usage limit; it remains untracked and must not be committed.
+
+## 2026-06-21 M4 provider backend build, startup, and API acceptance
+
+### Provider compatibility confirmation
+
+- Used Agent Reach Jina Reader against Alibaba Cloud official documentation.
+- Alibaba Cloud documents that OSS supports S3-compatible PutObject, GetObject, HeadObject, and DeleteObject operations.
+- Alibaba Cloud's AWS SDK Java 2.x example requires an endpoint such as `https://s3.oss-{region}.aliyuncs.com`, virtual-hosted access, and disabled chunked encoding.
+- Updated `S3CompatibleObjectStorageProvider`, `backend/OBJECT_STORAGE_CONFIG.md`, design, and accepted backend contract to disable chunked encoding and document the official Aliyun endpoint shape.
+
+### Automated verification
+
+- Focused storage tests: PASS with `mvn -q "-Dtest=S3CompatibleObjectStorageProviderTest,ObjectStorageRegistryTest" test`.
+- Full backend suite: PASS, 27 suites / 196 tests / 0 failures / 0 errors / 0 skipped.
+- Frontend type-check: PASS with `vue-tsc --noEmit`.
+- WeChat Mini Program build: PASS with `uni build -p mp-weixin`; output reported `DONE Build complete`.
+- `git diff --check`: PASS.
+- Generated `.pnpm-store/` from the previous failed pnpm invocation was removed after validating the resolved path remained inside the workspace.
+
+### Runtime and HTTP API acceptance
+
+- MySQL80 and Redis Windows services were running; ports 3306 and 6379 were reachable.
+- Backend started with dev profile and listened on 8080. Final observed running PID: 34528.
+- Unauthenticated record request returned HTTP 401.
+- Provider API smoke passed for registration, login, record creation, manual location persistence, record list, timeline, provider-neutral upload authorization, remote object verification rejection, location removal, and draft cleanup.
+- Current local provider remained `QINIU`; an unuploaded object commit returned explicit HTTP 503 because the current Qiniu credentials/provider remained unavailable. No attachment metadata was persisted.
+- Test records and users matching `m4_provider_%` and `m4_ai_%` were cleaned from MySQL; post-cleanup count was zero.
+- `record_attachment` contained no rows, so switching providers currently has no legacy attachment migration burden.
+
+### AI stability finding
+
+- Real writing-prompts API succeeded.
+- Real summarize API first failed 3/3, later passed once after restart, and a separate 5-call stability sample produced 2 SUCCESS / 3 FAILED (`AI返回内容无效`).
+- Safe temporary instrumentation showed invalid responses can omit all six expected fields or return only a subset. All `[DEBUG-ai-summary-shape]` source instrumentation was removed after diagnosis.
+- This remains a real M4 reliability risk. No fake success or local fallback was persisted as provider success.
+
+### Skipped verification and blockers
+
+- Real Aliyun OSS PUT -> HEAD verification -> signed GET -> delete was not run because `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, and `S3_BUCKET` were not configured in the ignored local script.
+- A final restart after removing temporary AI instrumentation was blocked when the desktop escalation quota was exhausted. The running PID is functionally the same build plus the temporary safe missing-field warning; tracked source contains no debug tag.
+- Manual WeChat Developer Tools image/voice preview, playback, cover, and unlocked time-review verification remains pending.
+
+### Project state and risks
+
+- OpenSpec tasks remain 150 complete / 11 pending.
+- Current local ignored startup script keeps long-lived credentials as literals. Before any cloud-server deployment, rotate the WeChat Mini Program secret exposed during local diagnostics and move all secrets to a server-side environment file/secret store instead of copying the local script.
+
+## 2026-06-21 Aliyun OSS Upload Diagnostic and Configuration Fix
+
+### What Changed
+
+- **诊断上传失败与 "bad token" 错误原因**：
+  - 发现本地 Git 忽略的启动脚本 `backend/start-dev-wechat.local.ps1` 中同时写了 `aliyun-oss` 和 `qiniu` 两组配置。因为 `qiniu` 配置块被放在了后面，导致 `$env:STORAGE_PROVIDER` 变量被重置覆盖为了 `'qiniu'`。
+  - 由于后端实际运行在 Qiniu 模式，在小程序进行图片/语音上传时，后端会根据七牛云配置去签发七牛的 upload token。而用户更新了阿里云 OSS 的密钥，但没有更新（或失效了）七牛云的密钥，因此七牛云返回了 `{"error":"bad token"}` 导致上传失败。
+- **修复启动配置脚本**：
+  - 修改了 `backend/start-dev-wechat.local.ps1`，将七牛云配置块注释掉，使 `$env:STORAGE_PROVIDER = 'aliyun-oss'` 正确保持为当前生效值，让后端能够真正加载并使用阿里云 OSS（S3 兼容模式）的配置。
+
+### Verification
+
+- 对本地 `backend/start-dev-wechat.local.ps1` 进行了修改，确认注释掉 Qiniu 配置段后，运行时 `$env:STORAGE_PROVIDER` 会正确为 `'aliyun-oss'`。
+- S3 兼容模式的直传与对象验证机制已在先前提交中通过单元测试验证。
+
+### Scope Safety and Remaining Risks
+
+- 没有改动任何产品代码或核心业务逻辑，仅修改了不受 git 追踪的本地启动脚本 `start-dev-wechat.local.ps1`。
+- 如果用户使用的是阿里云 OSS 桶，请确保该 bucket 的 CORS（跨域资源共享）已正确配置，允许来自小程序（或开发测试中允许所有源 `*`）的 `PUT`/`GET`/`HEAD`/`DELETE` 请求，并暴露了 `ETag` 等必要头部，否则真机上传时可能会遇到跨域限制报错。
+
+## 2026-06-21 Aliyun OSS Voice Upload "Size Mismatch" Diagnostic and Fix
+
+### What Changed
+
+- **诊断“上传文件大小不一致”报错原因**：
+  - 在微信小程序中，录音停止回调中的 `result.fileSize`（由底层录音管理器提供）往往与音频文件实际写入磁盘的真实字节数存在细微偏差（常因为编码尾封、元数据或系统差异导致不准）。
+  - 小程序直传阿里云 OSS 时上传的是实际文件流（真实磁盘大小），但 `createUploadToken` 和 `commit` 接口传入的却是来自回调中偏大或偏小的 `result.fileSize`。
+  - 后端在验证已上传对象时，通过 OSS API 读取其真实的 `Content-Length`，并与 `commit` 传入的大小作对比。由于上述偏差，两者大小不一致，从而触发了 `verifyUploadedObject` 中的 `"上传文件大小不一致"` 异常导致报错。
+- **修复方案**：
+  - 修改了 `frontend/src/pages/record-editor/index.vue` 中的 `uploadRecordedVoice` 逻辑，改掉对 `result.fileSize` 的直接依赖，统一使用 `getFileSize(filePath)` (通过 `uni.getFileInfo`) 异步读取本地磁盘中录音文件的实际大小。
+  - 增强了 `getFileSize` 辅助方法，使其接受可选的 `errorMsg` 参数，以便在图片和语音检测失败时能够显示各自对应的定制报错消息。
+
+### Verification
+
+- **前端类型检查**：运行 `pnpm type-check` 顺利通过，未报告任何 TypeScript 错误。
+- **小程序打包编译**：运行 `pnpm build:mp-weixin` 成功编译为微信小程序，未报告任何编译错误，包生成状态为 `DONE`。
+
+### Scope Safety and Remaining Risks
+
+- 仅修正了小程序录音完上传文件时的参数大小获取逻辑，完全不影响核心数据库模型、API 接口定义以及其他附件上传校验的主干。
+- **验证限制**：实际文件上传及 OSS 端的大小匹配流程，需要开发者在微信开发者工具或真机中录制一段语音，走真实的“生成 Token -> 直传 -> 提交校验”流程。
+
+

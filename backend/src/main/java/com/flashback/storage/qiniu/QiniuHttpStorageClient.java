@@ -52,7 +52,7 @@ public class QiniuHttpStorageClient implements QiniuStorageClient {
                     .uri(URI.create(RS_HOST + path))
                     .timeout(Duration.ofSeconds(10))
                     .header("Authorization", "QBox " + managementToken(qiniu, path))
-                    .GET()
+                    .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 612) {

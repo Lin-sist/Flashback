@@ -48,8 +48,8 @@ Agents must first:
 - support domestic model direction, with DeepSeek or compatible OpenAI-style domestic endpoints as the current provider strategy
 - preserve AI failure as explicit unavailable/failed behavior instead of fake success
 - implement real record location with current location, map picker, and manual input
-- implement real image and voice attachments backed by private Qiniu object storage
-- issue upload tokens from backend and verify uploaded Qiniu objects before persisting available attachments
+- implement real image and voice attachments backed by configurable private object storage
+- issue provider-neutral upload authorization from backend and verify uploaded objects before persisting available attachments
 - support max 9 images, max 9 voice files, max 40 MB per file, and max 300 MB total attachments per record
 - compress images by default before upload
 - store voice as raw audio only; do not add transcription in M4
@@ -67,8 +67,8 @@ Agents must first:
 - M4 is near-production usability for core Mini Program functions, not a local-only demo.
 - M4 is still not production deployment/release hardening.
 - Preview may remain, but it must not leak into authenticated real user behavior.
-- Qiniu object storage is the M4 storage provider.
-- Qiniu bucket is private.
+- M4 uses a provider-neutral object-storage contract. Qiniu and S3-compatible providers are supported through backend configuration.
+- Object-storage buckets are private.
 - Backend must verify object existence after upload.
 - Images are compressed by default.
 - Cover must come from image attachments already attached to the same record.
@@ -91,7 +91,7 @@ Do not implement or expand the following in M4 unless a separate OpenSpec change
 - social feed, sharing, or public record discovery
 - speech-to-text, voice transcription, transcript search, or voice AI analysis
 - complex AI growth analysis, scoring, diagnosis, psychological assessment, or dashboards
-- multi-cloud storage abstraction beyond the Qiniu implementation needed by M4
+- provider-specific features beyond upload, verification, private access URL, and delete required by record attachments
 - album management outside record attachments
 - standalone cover upload not tied to a record image attachment
 - H5/Web user-side acceptance target
@@ -130,7 +130,7 @@ The user must confirm only contract changes or newly discovered gaps. This inclu
 - request/response DTO fields
 - enum names
 - persistence model choices where more than one reasonable option exists
-- Qiniu object key policy
+- object-storage key policy
 - signed URL expiry behavior
 - provider names and AI configuration fields
 - frontend-visible error/status semantics
@@ -156,7 +156,7 @@ For integration-specific behavior:
 
 - verify real AI success when credentials are available
 - verify explicit AI unavailable/failure behavior
-- verify Qiniu upload token, object existence verification, signed URL/media access, image preview, and voice playback
+- verify configured-provider upload authorization, object existence verification, signed URL/media access, image preview, and voice playback
 - verify attachment and location immutability after seal
 - verify preview mode remains isolated
 - record all manual verification evidence in `.ai/AGENT_LOG.md`

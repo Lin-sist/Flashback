@@ -12,8 +12,8 @@ The user has confirmed these M4 decisions:
 - Preview mode may remain, but preview/mock behavior must be isolated from real user paths.
 - AI should use real provider calls. Current provider direction is domestic large models, with DeepSeek as a primary candidate and OpenAI-compatible endpoint support for compatible domestic model platforms. API keys must stay backend-side.
 - Record location must support current location, map picker, and manual input.
-- Record images and voice must be real features, backed by Qiniu object storage.
-- Qiniu bucket is private.
+- Record images and voice must be real features, backed by configurable object storage.
+- Storage buckets are private; Qiniu and S3-compatible providers are supported.
 - The backend must verify object existence after upload.
 - Each record supports at most 9 images and 9 voice files.
 - Each file is limited to 40 MB, and each record is limited to 300 MB total attachments.
@@ -45,7 +45,7 @@ M4 SHALL make the user-facing Mini Program core capabilities real and verifiable
 1. Replace real-path mock AI behavior with configurable real AI provider calls.
 2. Keep AI failure explicit and non-destructive; do not fake successful AI output.
 3. Implement record location with current location, map picker, and manual input.
-4. Implement image and voice attachments through private Qiniu object storage.
+4. Implement image and voice attachments through configurable private object storage.
 5. Implement backend-issued upload tokens and backend verification of uploaded objects.
 6. Enforce attachment count, per-file size, and per-record total size limits.
 7. Support image preview, voice playback, and draft-only attachment deletion/re-recording.
@@ -71,7 +71,7 @@ M4 MUST NOT implement:
 - social feed, sharing, or public record discovery
 - speech-to-text, voice transcription, or voice AI analysis
 - complex AI scoring, diagnosis, psychological assessment, or dashboards
-- multi-cloud storage abstraction beyond the Qiniu implementation needed by M4
+- provider-specific storage features beyond the attachment lifecycle required by M4
 - album management outside record attachments
 - standalone cover upload not tied to a record image attachment
 - H5/Web user-side acceptance target
@@ -134,9 +134,9 @@ Location MUST be user-owned and record-owned. Draft records may edit or remove l
 
 M4 includes real image and voice attachments:
 
-- Qiniu private bucket storage
-- backend-issued upload token
-- frontend direct upload to Qiniu where suitable
+- configurable private object-storage provider
+- backend-issued provider-neutral upload authorization
+- frontend direct upload to the configured provider where suitable
 - backend object existence verification after upload
 - signed or short-lived access URL for preview/playback
 - max 9 images per record
@@ -185,7 +185,7 @@ M4 is accepted when:
 8. Images can be selected, compressed by default, uploaded, previewed, deleted in draft, and accessed through private-storage-safe URLs.
 9. Voice files can be recorded, uploaded, played, re-recorded, and deleted in draft.
 10. Attachments obey max 9 images, max 9 voice files, 40 MB per file, and 300 MB per record.
-11. Backend verifies Qiniu object existence before persisting attachment metadata as available.
+11. Backend verifies configured-provider object existence before persisting attachment metadata as available.
 12. Cover can be selected only from the same record's image attachments.
 13. Timeline/home record cards show cover when available.
 14. Sealed and unlocked records reject location, attachment, and cover mutation.
@@ -193,7 +193,7 @@ M4 is accepted when:
 16. Preview mode remains available and explicitly isolated.
 17. Home review cards and time review data are backend-backed in real mode.
 18. WeChat Mini Program build passes where feasible.
-19. Backend tests or focused verification cover AI configuration, attachment limits, Qiniu verification, ownership, immutability, and location behavior.
+19. Backend tests or focused verification cover AI configuration, attachment limits, provider routing/object verification, ownership, immutability, and location behavior.
 20. Manual Mini Program verification evidence is recorded in `.ai/AGENT_LOG.md`.
 
 ## Recommended Implementation Order
@@ -202,7 +202,7 @@ M4 is accepted when:
 2. Establish current code facts for AI, records, home cards, timeline, preview, and record editor auxiliary modules.
 3. Follow the accepted contracts in `backend-contract-decisions.md`; ask the user only before changing them.
 4. Implement real AI provider adapter and configuration boundary.
-5. Implement storage schema and Qiniu upload-token/object-verification backend.
+5. Implement storage schema and provider-neutral upload-authorization/object-verification backend.
 6. Implement attachment metadata APIs and immutable lifecycle rules.
 7. Implement location schema/APIs and immutable lifecycle rules.
 8. Implement cover selection and timeline/home display contracts.

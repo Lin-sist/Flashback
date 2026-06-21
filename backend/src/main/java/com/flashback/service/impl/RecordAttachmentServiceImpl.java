@@ -1,11 +1,9 @@
 package com.flashback.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppMediaProperties;
-import com.flashback.config.AppStorageProperties;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordAttachment;
 import com.flashback.domain.RecordAttachmentStatus;
@@ -17,9 +15,11 @@ import com.flashback.mapper.RecordMapper;
 import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.service.RecordAttachmentService;
-import com.flashback.storage.qiniu.QiniuObjectMetadata;
-import com.flashback.storage.qiniu.QiniuStorageClient;
-import com.flashback.storage.qiniu.QiniuStorageException;
+import com.flashback.storage.ObjectStorageException;
+import com.flashback.storage.ObjectStorageMetadata;
+import com.flashback.storage.ObjectStorageProvider;
+import com.flashback.storage.ObjectStorageRegistry;
+import com.flashback.storage.ObjectStorageUploadAuthorization;
 import com.flashback.vo.AttachmentAccessUrlVO;
 import com.flashback.vo.AttachmentUploadTokenVO;
 import com.flashback.vo.RecordAttachmentVO;
@@ -27,16 +27,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -47,8 +41,6 @@ import java.util.function.Supplier;
 @Service
 public class RecordAttachmentServiceImpl implements RecordAttachmentService {
 
-    private static final String QINIU_UPLOAD_URL = "https://upload.qiniup.com";
-    private static final String QINIU_PROVIDER = "QINIU";
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg",
             "image/png",
@@ -65,10 +57,8 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
 
     private final RecordMapper recordMapper;
     private final RecordAttachmentMapper recordAttachmentMapper;
-    private final AppStorageProperties appStorageProperties;
     private final AppMediaProperties appMediaProperties;
-    private final QiniuStorageClient qiniuStorageClient;
-    private final ObjectMapper objectMapper;
+    private final ObjectStorageRegistry objectStorageRegistry;
     private final Clock clock;
     private final Supplier<UUID> uuidSupplier;
 
@@ -76,17 +66,14 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     public RecordAttachmentServiceImpl(
             RecordMapper recordMapper,
             RecordAttachmentMapper recordAttachmentMapper,
-            AppStorageProperties appStorageProperties,
             AppMediaProperties appMediaProperties,
-            QiniuStorageClient qiniuStorageClient,
+            ObjectStorageRegistry objectStorageRegistry,
             Clock clock) {
         this(
                 recordMapper,
                 recordAttachmentMapper,
-                appStorageProperties,
                 appMediaProperties,
-                qiniuStorageClient,
-                new ObjectMapper(),
+                objectStorageRegistry,
                 clock,
                 UUID::randomUUID);
     }
@@ -94,18 +81,14 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     RecordAttachmentServiceImpl(
             RecordMapper recordMapper,
             RecordAttachmentMapper recordAttachmentMapper,
-            AppStorageProperties appStorageProperties,
             AppMediaProperties appMediaProperties,
-            QiniuStorageClient qiniuStorageClient,
-            ObjectMapper objectMapper,
+            ObjectStorageRegistry objectStorageRegistry,
             Clock clock,
             Supplier<UUID> uuidSupplier) {
         this.recordMapper = recordMapper;
         this.recordAttachmentMapper = recordAttachmentMapper;
-        this.appStorageProperties = appStorageProperties;
         this.appMediaProperties = appMediaProperties;
-        this.qiniuStorageClient = qiniuStorageClient;
-        this.objectMapper = objectMapper;
+        this.objectStorageRegistry = objectStorageRegistry;
         this.clock = clock;
         this.uuidSupplier = uuidSupplier;
     }
@@ -117,7 +100,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             CreateAttachmentUploadTokenRequest request) {
         Record record = requireOwnedRecord(recordId, userId);
         ensureDraft(record);
-        AppStorageProperties.Qiniu qiniu = requireQiniuConfigured();
+        ObjectStorageProvider storage = requireActiveStorage();
 
         String mimeType = normalizeMimeType(request.getMimeType());
         String extension = extensionFor(request.getType(), mimeType);
@@ -125,17 +108,28 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         validateCount(recordId, userId, request.getType());
         validateTotalSize(recordId, userId, request.getSizeBytes());
 
-        Instant expiresAtInstant = clock.instant().plusSeconds(qiniu.getUploadTokenTtlSeconds());
-        long deadline = expiresAtInstant.getEpochSecond();
-        String key = buildObjectKey(qiniu.getKeyPrefix(), userId, recordId, request.getType(), extension);
-        String uploadToken = buildUploadToken(qiniu, key, request.getSizeBytes(), deadline);
+        Instant expiresAtInstant = clock.instant().plusSeconds(storage.getUploadAuthorizationTtlSeconds());
+        String key = buildObjectKey(storage.getKeyPrefix(), userId, recordId, request.getType(), extension);
+        ObjectStorageUploadAuthorization authorization;
+        try {
+            authorization = storage.createUploadAuthorization(
+                    key,
+                    mimeType,
+                    request.getSizeBytes(),
+                    expiresAtInstant);
+        } catch (ObjectStorageException ex) {
+            throw serviceUnavailable("上传凭证生成失败");
+        }
 
         AttachmentUploadTokenVO vo = new AttachmentUploadTokenVO();
-        vo.setProvider(QINIU_PROVIDER);
-        vo.setBucket(qiniu.getBucket().trim());
+        vo.setProvider(storage.getProvider().name());
+        vo.setBucket(storage.getBucket());
         vo.setKey(key);
-        vo.setUploadToken(uploadToken);
-        vo.setUploadUrl(QINIU_UPLOAD_URL);
+        vo.setUploadMethod(authorization.getMethod());
+        vo.setUploadUrl(authorization.getUploadUrl());
+        vo.setFileFieldName(authorization.getFileFieldName());
+        vo.setUploadHeaders(authorization.getHeaders());
+        vo.setUploadFormData(authorization.getFormData());
         vo.setExpiresAt(LocalDateTime.ofInstant(expiresAtInstant, clock.getZone()));
         vo.setMaxFileSizeBytes(appMediaProperties.getMaxFileSizeBytes());
         return vo;
@@ -148,7 +142,9 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             CommitRecordAttachmentRequest request) {
         Record record = requireOwnedRecord(recordId, userId);
         ensureDraft(record);
-        AppStorageProperties.Qiniu qiniu = requireQiniuConfigured();
+        ObjectStorageProvider storage = request.getProvider() == null
+                ? requireActiveStorage()
+                : requireStorage(request.getProvider());
 
         String mimeType = normalizeMimeType(request.getMimeType());
         extensionFor(request.getType(), mimeType);
@@ -156,16 +152,16 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         validateCount(recordId, userId, request.getType());
         validateTotalSize(recordId, userId, request.getSizeBytes());
         String key = normalizeStorageKey(request.getKey());
-        validateKeyNamespace(qiniu.getKeyPrefix(), key, userId, recordId, request.getType());
-        verifyUploadedObject(qiniu.getBucket().trim(), key, request.getSizeBytes(), mimeType);
+        validateKeyNamespace(storage.getKeyPrefix(), key, userId, recordId, request.getType());
+        verifyUploadedObject(storage, storage.getBucket(), key, request.getSizeBytes(), mimeType);
 
         LocalDateTime now = LocalDateTime.now(clock);
         RecordAttachment attachment = new RecordAttachment();
         attachment.setRecordId(recordId);
         attachment.setUserId(userId);
         attachment.setType(request.getType());
-        attachment.setStorageProvider(StorageProvider.QINIU);
-        attachment.setBucket(qiniu.getBucket().trim());
+        attachment.setStorageProvider(storage.getProvider());
+        attachment.setBucket(storage.getBucket());
         attachment.setStorageKey(key);
         attachment.setFileName(normalizeRequired(request.getFileName(), "fileName不能为空"));
         attachment.setMimeType(mimeType);
@@ -184,7 +180,6 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     @Override
     public AttachmentAccessUrlVO createAccessUrl(Long userId, Long recordId, Long attachmentId) {
         requireOwnedRecord(recordId, userId);
-        AppStorageProperties.Qiniu qiniu = requireQiniuConfigured();
         RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
                 attachmentId,
                 recordId,
@@ -192,15 +187,22 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         if (attachment == null || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE) {
             throw new NotFoundException("附件不存在");
         }
+        ObjectStorageProvider storage = requireStorage(attachment.getStorageProvider());
 
-        Instant expiresAtInstant = clock.instant().plusSeconds(qiniu.getDownloadUrlTtlSeconds());
-        long deadline = expiresAtInstant.getEpochSecond();
-        String urlWithDeadline = unsignedPrivateUrl(qiniu.getPrivateDomain(), attachment.getStorageKey(), deadline);
-        String token = privateDownloadToken(qiniu, urlWithDeadline);
+        Instant expiresAtInstant = clock.instant().plusSeconds(storage.getDownloadUrlTtlSeconds());
+        String accessUrl;
+        try {
+            accessUrl = storage.createPrivateAccessUrl(
+                    attachment.getBucket(),
+                    attachment.getStorageKey(),
+                    expiresAtInstant);
+        } catch (ObjectStorageException ex) {
+            throw serviceUnavailable("媒体访问地址生成失败");
+        }
 
         AttachmentAccessUrlVO vo = new AttachmentAccessUrlVO();
         vo.setAttachmentId(attachmentId);
-        vo.setUrl(urlWithDeadline + "&token=" + token);
+        vo.setUrl(accessUrl);
         vo.setExpiresAt(LocalDateTime.ofInstant(expiresAtInstant, clock.getZone()));
         return vo;
     }
@@ -209,7 +211,6 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     public void deleteAttachment(Long userId, Long recordId, Long attachmentId) {
         Record record = requireOwnedRecord(recordId, userId);
         ensureDraft(record);
-        requireQiniuConfigured();
 
         RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
                 attachmentId,
@@ -218,10 +219,11 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         if (attachment == null || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE) {
             throw new NotFoundException("附件不存在");
         }
+        ObjectStorageProvider storage = requireStorage(attachment.getStorageProvider());
 
         try {
-            qiniuStorageClient.deleteObject(attachment.getBucket(), attachment.getStorageKey());
-        } catch (QiniuStorageException ex) {
+            storage.deleteObject(attachment.getBucket(), attachment.getStorageKey());
+        } catch (ObjectStorageException ex) {
             if (!ex.isNotFound()) {
                 throw serviceUnavailable("对象存储暂不可用");
             }
@@ -257,17 +259,23 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         }
     }
 
-    private AppStorageProperties.Qiniu requireQiniuConfigured() {
-        AppStorageProperties.StorageProvider provider;
+    private ObjectStorageProvider requireActiveStorage() {
         try {
-            provider = appStorageProperties.getProviderType();
-        } catch (IllegalArgumentException ex) {
+            return objectStorageRegistry.getActiveProvider();
+        } catch (ObjectStorageException ex) {
             throw serviceUnavailable("存储服务未配置");
         }
-        if (provider != AppStorageProperties.StorageProvider.QINIU || !appStorageProperties.getQiniu().isConfigured()) {
+    }
+
+    private ObjectStorageProvider requireStorage(StorageProvider provider) {
+        if (provider == null) {
             throw serviceUnavailable("存储服务未配置");
         }
-        return appStorageProperties.getQiniu();
+        try {
+            return objectStorageRegistry.getRequired(provider);
+        } catch (ObjectStorageException ex) {
+            throw serviceUnavailable("存储服务未配置");
+        }
     }
 
     private String normalizeMimeType(String mimeType) {
@@ -382,11 +390,16 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         }
     }
 
-    private void verifyUploadedObject(String bucket, String key, Long expectedSizeBytes, String expectedMimeType) {
-        QiniuObjectMetadata metadata;
+    private void verifyUploadedObject(
+            ObjectStorageProvider storage,
+            String bucket,
+            String key,
+            Long expectedSizeBytes,
+            String expectedMimeType) {
+        ObjectStorageMetadata metadata;
         try {
-            metadata = qiniuStorageClient.statObject(bucket, key);
-        } catch (QiniuStorageException ex) {
+            metadata = storage.statObject(bucket, key);
+        } catch (ObjectStorageException ex) {
             if (ex.isNotFound()) {
                 throw badRequest("上传文件验证失败");
             }
@@ -402,55 +415,6 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         if (!actualMimeType.isEmpty() && !actualMimeType.equals(expectedMimeType)) {
             throw badRequest("上传文件类型不一致");
         }
-    }
-
-    private String buildUploadToken(
-            AppStorageProperties.Qiniu qiniu,
-            String key,
-            Long sizeBytes,
-            long deadline) {
-        try {
-            Map<String, Object> putPolicy = new LinkedHashMap<>();
-            putPolicy.put("scope", qiniu.getBucket().trim() + ":" + key);
-            putPolicy.put("deadline", deadline);
-            putPolicy.put("fsizeLimit", sizeBytes);
-
-            String encodedPolicy = urlSafeBase64(objectMapper.writeValueAsString(putPolicy).getBytes(StandardCharsets.UTF_8));
-            String encodedSign = hmacSha1(qiniu.getSecretKey().trim(), encodedPolicy);
-            return qiniu.getAccessKey().trim() + ":" + encodedSign + ":" + encodedPolicy;
-        } catch (Exception ex) {
-            throw serviceUnavailable("上传凭证生成失败");
-        }
-    }
-
-    private String unsignedPrivateUrl(String privateDomain, String key, long deadline) {
-        String domain = privateDomain == null ? "" : privateDomain.trim();
-        if (domain.isEmpty()) {
-            throw serviceUnavailable("媒体访问地址未配置");
-        }
-        while (domain.endsWith("/")) {
-            domain = domain.substring(0, domain.length() - 1);
-        }
-        return domain + "/" + key + "?e=" + deadline;
-    }
-
-    private String privateDownloadToken(AppStorageProperties.Qiniu qiniu, String urlWithDeadline) {
-        try {
-            String encodedSign = hmacSha1(qiniu.getSecretKey().trim(), urlWithDeadline);
-            return qiniu.getAccessKey().trim() + ":" + encodedSign;
-        } catch (Exception ex) {
-            throw serviceUnavailable("媒体访问地址生成失败");
-        }
-    }
-
-    private String hmacSha1(String secretKey, String value) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA1");
-        mac.init(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA1"));
-        return urlSafeBase64(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
-    }
-
-    private String urlSafeBase64(byte[] value) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
     }
 
     private String normalizeRequired(String value, String message) {
@@ -486,4 +450,5 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     private BizException serviceUnavailable(String message) {
         return new BizException(ErrorCode.INTERNAL_ERROR, HttpStatus.SERVICE_UNAVAILABLE, message);
     }
+
 }

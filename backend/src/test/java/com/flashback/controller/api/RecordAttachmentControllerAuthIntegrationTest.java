@@ -23,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -85,7 +86,8 @@ class RecordAttachmentControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.data.provider").value("QINIU"))
                 .andExpect(jsonPath("$.data.bucket").value("flashback-private"))
                 .andExpect(jsonPath("$.data.key").value("flashback/users/5001/records/9001/image/token.jpg"))
-                .andExpect(jsonPath("$.data.uploadToken").value("token"))
+                .andExpect(jsonPath("$.data.uploadMethod").value("POST_MULTIPART"))
+                .andExpect(jsonPath("$.data.uploadFormData.token").value("token"))
                 .andExpect(jsonPath("$.data.maxFileSizeBytes").value(41943040));
     }
 
@@ -254,8 +256,10 @@ class RecordAttachmentControllerAuthIntegrationTest {
         vo.setProvider("QINIU");
         vo.setBucket("flashback-private");
         vo.setKey("flashback/users/5001/records/9001/image/token.jpg");
-        vo.setUploadToken("token");
+        vo.setUploadMethod("POST_MULTIPART");
         vo.setUploadUrl("https://upload.qiniup.com");
+        vo.setFileFieldName("file");
+        vo.setUploadFormData(Map.of("token", "token", "key", vo.getKey()));
         vo.setExpiresAt(LocalDateTime.of(2026, 6, 18, 10, 10, 0));
         vo.setMaxFileSizeBytes(41943040L);
         return vo;

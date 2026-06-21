@@ -59,7 +59,7 @@ The Mini Program SHALL support real image attachments for DRAFT records.
 - GIVEN the user is editing a DRAFT record
 - WHEN the user selects images within accepted limits
 - THEN the Mini Program SHALL compress images by default
-- AND upload them through the backend/Qiniu real path
+- AND upload them through the backend-provided object-storage authorization
 - AND show them as available only after backend verification succeeds
 
 #### Scenario: User previews images
@@ -83,7 +83,7 @@ The Mini Program SHALL support real voice attachments as raw audio files.
 
 - GIVEN the user is editing a DRAFT record
 - WHEN the user records voice within accepted limits
-- THEN the Mini Program SHALL upload the raw voice file through the backend/Qiniu real path
+- THEN the Mini Program SHALL upload the raw voice file through the backend-provided object-storage authorization
 - AND show it as available only after backend verification succeeds
 
 #### Scenario: User plays voice

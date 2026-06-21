@@ -32,10 +32,10 @@ Current reference links used for this decision file:
 | API style | Accepted | Keep existing REST style and place record-owned subresources under `/api/records/{recordId}`. |
 | AI provider adapter | Accepted | Implement one OpenAI-compatible adapter first, with DeepSeek as the default configured provider. |
 | Dedicated NVIDIA NIM adapter | Deferred | Do not build a NIM-specific adapter in M4. Use `OPENAI_COMPATIBLE` if a compatible domestic endpoint is provided later. |
-| Qiniu object storage | Accepted | Use private Qiniu bucket, backend-issued upload token, backend object stat verification, and backend signed download URL. |
-| Upload persistence | Accepted | Do not persist attachment metadata until Qiniu object verification succeeds. Token issuance may be stateless except logs. |
+| Configurable object storage | Accepted | Use private buckets through `QINIU` or `S3_COMPATIBLE`, backend-issued upload authorization, provider object verification, and backend-signed download URL. |
+| Upload persistence | Accepted | Do not persist attachment metadata until configured-provider object verification succeeds. Authorization issuance may be stateless except logs. |
 | Attachment mutation | Accepted | DRAFT only. SEALED and UNLOCKED records reject add/delete/replace/re-record. |
-| Draft delete remote object | Accepted | Delete Qiniu object first; if it succeeds or object is already missing, remove metadata. If Qiniu delete fails, return failure and keep metadata. |
+| Draft delete remote object | Accepted | Route by persisted provider and delete the remote object first; if it succeeds or is already missing, remove metadata. If provider delete fails, return failure and keep metadata. |
 | Cover source | Accepted | Cover must be selected from the same record's IMAGE attachment. No standalone cover upload. |
 | Location persistence | Accepted | Use separate `record_location` persistence or equivalent separate model. Do not put all location fields directly into `record` unless implementation proves it is materially simpler. |
 | Location geocoding | Deferred | Backend geocoding/reverse geocoding is outside M4. Store coordinates/name/address supplied by Mini Program. |
@@ -110,7 +110,7 @@ Allowed `status` values:
 
 `FALLBACK` is allowed only when the UI can clearly identify it as fallback, not real AI success.
 
-## Qiniu Storage Contract
+## Configurable Object Storage Contract
 
 ### Configuration
 
@@ -129,6 +129,17 @@ app:
       upload-token-ttl-seconds: ${QINIU_UPLOAD_TOKEN_TTL_SECONDS:600}
       download-url-ttl-seconds: ${QINIU_DOWNLOAD_URL_TTL_SECONDS:600}
       key-prefix: ${QINIU_KEY_PREFIX:flashback}
+    s3:
+      endpoint: ${S3_ENDPOINT:}
+      region: ${S3_REGION:}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      session-token: ${S3_SESSION_TOKEN:}
+      bucket: ${S3_BUCKET:}
+      path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+      upload-token-ttl-seconds: ${S3_UPLOAD_TOKEN_TTL_SECONDS:600}
+      download-url-ttl-seconds: ${S3_DOWNLOAD_URL_TTL_SECONDS:600}
+      key-prefix: ${S3_KEY_PREFIX:flashback}
 ```
 
 Accepted media limits:
@@ -157,7 +168,14 @@ Rules:
 - Client-supplied arbitrary keys are rejected.
 - Upload token scope should target a single bucket/key where practical.
 
-### Upload Token Endpoint
+Provider values:
+
+- `qiniu` -> `QINIU`
+- `s3-compatible`, `aws-s3`, `aliyun-oss`, `tencent-cos`, or `minio` -> `S3_COMPATIBLE`
+- Switching the active value affects new uploads. Existing attachments continue to use their persisted provider and require that provider's credentials to remain configured.
+- Alibaba Cloud OSS through AWS SDK Java 2.x uses an endpoint such as `https://s3.oss-{region}.aliyuncs.com`, virtual-hosted access (`path-style-access: false`), and disabled chunked encoding.
+
+### Upload Authorization Endpoint
 
 Accepted endpoint:
 
@@ -183,8 +201,14 @@ Response data:
   "provider": "QINIU",
   "bucket": "flashback-private",
   "key": "flashback/users/1/records/10/image/uuid.jpg",
-  "uploadToken": "short-lived-token",
+  "uploadMethod": "POST_MULTIPART",
   "uploadUrl": "https://upload.qiniup.com",
+  "fileFieldName": "file",
+  "uploadHeaders": {},
+  "uploadFormData": {
+    "token": "short-lived-token",
+    "key": "flashback/users/1/records/10/image/uuid.jpg"
+  },
   "expiresAt": "2026-06-17T12:00:00",
   "maxFileSizeBytes": 41943040
 }
@@ -210,6 +234,7 @@ Request:
 
 ```json
 {
+  "provider": "QINIU",
   "type": "IMAGE",
   "key": "flashback/users/1/records/10/image/uuid.jpg",
   "fileName": "example.jpg",
@@ -225,8 +250,8 @@ Response data: `RecordAttachmentVO`.
 
 Backend behavior:
 
-- Verify Qiniu object exists using object metadata/stat API.
-- Verify Qiniu-reported size and MIME type when available.
+- Verify the object exists using the selected provider metadata/stat API.
+- Verify provider-reported size and MIME type when available.
 - Verify key belongs to the authenticated user's record namespace.
 - Persist attachment metadata only after verification succeeds.
 
@@ -243,7 +268,7 @@ Behavior:
 - Allowed only for owner and `DRAFT` record.
 - Reject after seal/unlock.
 - If attachment is the current cover, clear `coverAttachmentId` after delete succeeds.
-- Attempt Qiniu object delete before removing metadata. If Qiniu reports object missing, treat as safe to remove metadata. If Qiniu delete fails, return failure and keep metadata.
+- Route using attachment `storageProvider` and attempt remote delete before removing metadata. If the provider reports object missing, treat as safe to remove metadata. If delete fails, return failure and keep metadata.
 
 ### Media Access Endpoint
 
@@ -422,7 +447,7 @@ Accepted default:
 - Use `40100 UNAUTHORIZED` for missing/invalid auth.
 - Use `40300 FORBIDDEN` for ownership/permission violations where not using safe not-found.
 - Use `40400 NOT_FOUND` for missing records/attachments or safe not-found ownership protection.
-- Use `50000 INTERNAL_ERROR` with HTTP 503 for upstream AI/Qiniu unavailable where current code style already uses service unavailable.
+- Use `50000 INTERNAL_ERROR` with HTTP 503 for upstream AI/object-storage unavailable where current code style already uses service unavailable.
 
 Frontend-visible messages should be specific enough to distinguish:
 
@@ -445,10 +470,11 @@ The following decisions were accepted by the user on 2026-06-17:
 1. M4 accepts the REST endpoints under `/api/records/{recordId}`.
 2. M4 implements one OpenAI-compatible adapter first.
 3. M4 defers a dedicated NVIDIA NIM adapter.
-4. Upload-token issuance remains stateless, and attachments are persisted only after Qiniu verification.
-5. Draft delete requires successful Qiniu delete before metadata removal, except object-not-found may be treated as safe cleanup.
+4. Upload-authorization issuance remains stateless, and attachments are persisted only after configured-provider verification.
+5. Draft delete routes by persisted provider and requires successful remote delete before metadata removal, except object-not-found may be treated as safe cleanup.
 6. Signed URL expiry defaults to 600 seconds and remains configurable.
 7. Backend geocoding and reverse geocoding stay out of M4.
 8. Record create/update payloads remain focused on text fields; location, media, and cover use separate endpoints.
+9. On 2026-06-21 the user replaced the Qiniu-only decision with a configurable provider-neutral contract. Qiniu and S3-compatible providers are accepted; provider-specific features outside the record attachment lifecycle remain out of scope.
 
 Agents MUST NOT reopen these questions during implementation unless new code facts make the accepted contract impossible or unsafe. If that happens, the agent MUST document the blocker and ask before changing this file.

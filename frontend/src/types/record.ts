@@ -20,6 +20,7 @@ export interface UpdateRecordCoverDTO {
 
 export type RecordAttachmentType = 'IMAGE' | 'VOICE'
 export type RecordAttachmentStatus = 'AVAILABLE' | 'DELETED'
+export type StorageProvider = 'QINIU' | 'S3_COMPATIBLE'
 
 export interface RecordAttachmentVO {
   id: number
@@ -45,16 +46,20 @@ export interface CreateAttachmentUploadTokenDTO {
 }
 
 export interface AttachmentUploadTokenVO {
-  provider: 'QINIU'
+  provider: StorageProvider
   bucket: string
   key: string
-  uploadToken: string
+  uploadMethod: 'POST_MULTIPART' | 'PUT'
   uploadUrl: string
+  fileFieldName: string
+  uploadHeaders: Record<string, string>
+  uploadFormData: Record<string, string>
   expiresAt: DateTimeValue
   maxFileSizeBytes: number
 }
 
 export interface CommitRecordAttachmentDTO extends CreateAttachmentUploadTokenDTO {
+  provider: StorageProvider
   key: string
   width?: number | null
   height?: number | null

@@ -1,17 +1,22 @@
 package com.flashback.vo;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * M4 Qiniu upload-token response.
+ * M4 provider-neutral upload authorization response.
  */
 public class AttachmentUploadTokenVO {
 
     private String provider;
     private String bucket;
     private String key;
-    private String uploadToken;
+    private String uploadMethod;
     private String uploadUrl;
+    private String fileFieldName;
+    private Map<String, String> uploadHeaders = new LinkedHashMap<>();
+    private Map<String, String> uploadFormData = new LinkedHashMap<>();
     private LocalDateTime expiresAt;
     private Long maxFileSizeBytes;
 
@@ -39,13 +44,8 @@ public class AttachmentUploadTokenVO {
         this.key = key;
     }
 
-    public String getUploadToken() {
-        return uploadToken;
-    }
-
-    public void setUploadToken(String uploadToken) {
-        this.uploadToken = uploadToken;
-    }
+    public String getUploadMethod() { return uploadMethod; }
+    public void setUploadMethod(String uploadMethod) { this.uploadMethod = uploadMethod; }
 
     public String getUploadUrl() {
         return uploadUrl;
@@ -54,6 +54,13 @@ public class AttachmentUploadTokenVO {
     public void setUploadUrl(String uploadUrl) {
         this.uploadUrl = uploadUrl;
     }
+
+    public String getFileFieldName() { return fileFieldName; }
+    public void setFileFieldName(String fileFieldName) { this.fileFieldName = fileFieldName; }
+    public Map<String, String> getUploadHeaders() { return uploadHeaders; }
+    public void setUploadHeaders(Map<String, String> uploadHeaders) { this.uploadHeaders = uploadHeaders; }
+    public Map<String, String> getUploadFormData() { return uploadFormData; }
+    public void setUploadFormData(Map<String, String> uploadFormData) { this.uploadFormData = uploadFormData; }
 
     public LocalDateTime getExpiresAt() {
         return expiresAt;
