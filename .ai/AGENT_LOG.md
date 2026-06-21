@@ -28,6 +28,25 @@ Next:
 
 不要记录 API keys、账号、余额、模型额度或任何敏感信息。
 
+## 2026-06-21 - 修复新建草稿取消保存后在时光轴残留的问题
+
+Task:
+
+- 修复记录模块写下草稿后选择返回并取消保存，时光轴仍然显示该草稿的 bug。
+
+Modified:
+
+- `frontend/src/pages/record-editor/index.vue`
+
+Verification:
+
+- 运行 `pnpm run build:mp-weixin` 编译成功。
+- 在页面关闭逻辑 `handleCloseWithAutoSave` 中，若内容校验未通过且用户确认放弃修改，同时该草稿为本次会话中新建的（`isNewlyCreatedDraft` 为 true），则调用 `recordService.deleteDraft` 接口将后端自动生成的草稿记录删除。
+
+Risks:
+
+- 无明显风险。仅在新建草稿且未成功保存/封存并选择丢弃时触发物理删除。
+
 ## 2026-06-17 - M4 OpenAI-compatible AI adapter
 
 Task:

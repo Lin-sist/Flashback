@@ -31,6 +31,7 @@ type EditorSource = 'home' | 'archive' | 'timeline'
 
 const loading = ref(false)
 const recordId = ref<number | null>(null)
+const isNewlyCreatedDraft = ref(false)
 const source = ref<EditorSource>('home')
 const closing = ref(false)
 const initializing = ref(false)
@@ -327,6 +328,13 @@ const handleCloseWithAutoSave = async () => {
   if (!validateRecordContent(form.content)) {
     const shouldDiscard = await confirmDiscardUnsavedChanges()
     if (shouldDiscard) {
+      if (recordId.value && isNewlyCreatedDraft.value) {
+        try {
+          await recordService.deleteDraft(recordId.value)
+        } catch {
+          // Ignore deletion error to avoid blocking navigation
+        }
+      }
       returnToSource()
     }
     return
@@ -444,6 +452,7 @@ const persistDraft = async () => {
   const created = await recordStore.createDraft(payload)
   recordId.value = created.id
   form.volNo = `Vol. ${String(created.id).padStart(2, '0')}`
+  isNewlyCreatedDraft.value = true
   return created
 }
 
@@ -1371,6 +1380,7 @@ const saveDraft = async () => {
   loading.value = true
   try {
     await persistDraft()
+    isNewlyCreatedDraft.value = false
     markSnapshot()
     uni.showToast({ title: '草稿已保存', icon: 'success' })
   } catch (error) {
