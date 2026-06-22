@@ -421,10 +421,14 @@ onShow(() => {
 
       <!-- topbar -->
       <view class="topbar">
+        <view
+          class="filter-trigger"
+          :class="{ active: hasAppliedFilter }"
+          hover-class="filter-trigger--pressed"
+          @tap="openFilterPanel"
+        >筛选</view>
         <text class="logo">时 光 回 序</text>
-        <view class="search-btn" @tap="openFilterPanel">
-          <view class="search-icon" />
-        </view>
+        <view class="topbar-placeholder" />
       </view>
 
       <!-- page header -->
@@ -825,7 +829,7 @@ onShow(() => {
   padding-right: 56rpx;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
 }
 
 .logo {
@@ -836,32 +840,35 @@ onShow(() => {
   color: var(--fb-ink-light);
 }
 
-.search-btn {
-  width: 36rpx;
-  height: 36rpx;
+.filter-trigger {
+  width: 104rpx;
+  min-height: 60rpx;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.5;
+  border: 1rpx solid rgba(107, 101, 96, 0.28);
+  border-radius: 999rpx;
+  background: rgba(250, 247, 242, 0.78);
+  color: var(--fb-ink-mid);
+  font-size: 22rpx;
+  letter-spacing: 0.12em;
 }
 
-.search-icon {
-  width: 22rpx;
-  height: 22rpx;
-  border-radius: 50%;
-  border: 2rpx solid var(--fb-ink-mid);
-  position: relative;
+.filter-trigger.active {
+  border-color: rgba(181, 53, 42, 0.32);
+  background: rgba(181, 53, 42, 0.08);
+  color: var(--fb-vermilion);
 }
 
-.search-icon::after {
-  content: '';
-  position: absolute;
-  width: 10rpx;
-  height: 2rpx;
-  background: var(--fb-ink-mid);
-  transform: rotate(45deg);
-  bottom: -4rpx;
-  right: -4rpx;
+.filter-trigger--pressed {
+  opacity: 0.68;
+}
+
+.topbar-placeholder {
+  width: 104rpx;
+  height: 60rpx;
+  flex-shrink: 0;
 }
 
 /* ── page header ── */
