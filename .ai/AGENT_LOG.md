@@ -4624,3 +4624,32 @@ backend/src/main/resources/application.yml         |  1 +
 
 - MySQL `EXPLAIN` was attempted but NOT RUN because the local `MySQL80` service was stopped and this session could not open/start the Windows service even with the approved escalation. Static schema audit confirmed no dedicated owner/created-time traversal index, so the smallest accepted index was added; real MySQL query-plan evidence remains pending.
 - No frontend or Preview behavior is included in this backend checkpoint; those consumers must be updated before the endpoint contract is manually exercised from the Mini Program.
+
+## 2026-06-22 M4 timeline Mini Program filtering and pagination implementation
+
+### Implementation
+
+- Updated frontend `TimelineQuery` with `tagId`, year/month/day, page number, and page size, and added `TimelinePageVO` matching the accepted backend response.
+- Switched real `recordService.getTimeline` and Preview timeline data atomically from `TimelineGroupVO[]` to `TimelinePageVO`.
+- Added Preview single-tag/date AND filtering, default 20/max 50 pagination, stable created-time/id ordering, grouped page data, total, and `hasMore`.
+- Replaced the free-form year input with the existing-style restrained filter sheet: enabled tag chips, all/year/month/day granularity, native date picker, reset, and apply.
+- Kept draft filter selections separate from applied filters. Failed page-1 requests preserve old groups and their old applied summary.
+- Added local tag-list loading/failure/retry without blocking unfiltered or date-only timeline browsing.
+- Added incremental scroll loading, repeated-month merge, record-id deduplication, duplicate load-more suppression, and stale-response sequence protection.
+- Added initial/loading-more/error/retry/filtered-empty/end states and only loads cover URLs for accepted page items.
+- Preserved the existing paper/vermilion timeline visual language, three top-level tabs, canonical naming, and preview/authenticated data boundary.
+
+### Verification
+
+- Product Design get-context playback used the already-confirmed brief: existing timeline visual system, full functionality, no redesign or dashboard expansion.
+- Frontend type-check: PASS with bundled Node and `vue-tsc --noEmit`.
+- WeChat Mini Program build: PASS with bundled Node and `uni build -p mp-weixin`; output reported `DONE Build complete`.
+- Generated WXML audit: PASS for `筛选时光`, tag/date controls, apply/reset, `bindscrolltolower`, loading-more, retry, filtered-empty support, and canonical `时光轴` navigation.
+- Generated JS audit: PASS for `tagId`/year/month/day/page query construction, `pageSize:20`, `hasMore`, request sequencing, group merge, and Preview/real service imports.
+- `git diff --check`: PASS before checkpoint preparation.
+
+### Skipped verification and remaining risk
+
+- Manual WeChat Developer Tools interaction remains NOT RUN: tag/year/month/day selection, combined filtering, reset, failed apply preserving old data, repeated scroll loading, and Preview parity require interactive verification after importing `frontend/dist/build/mp-weixin`.
+- Real authenticated end-to-end HTTP verification remains blocked while local MySQL80 cannot be started by this session; backend integration tests cover the contract against H2.
+- The existing non-fatal build message `os - Alias not found` remains; the build completed successfully and no package/lockfile was changed.

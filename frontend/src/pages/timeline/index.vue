@@ -1,102 +1,116 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { recordService } from '../../services'
+import { recordService, tagService } from '../../services'
 import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
-import { RecordStatus, type TimelineGroupVO, type TimelineItemVO } from '../../types'
+import {
+  RecordStatus,
+  type TagVO,
+  type TimelineGroupVO,
+  type TimelineItemVO,
+  type TimelineQuery,
+} from '../../types'
 import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
 type NodeKind = 'sealed' | 'unlocked' | 'draft' | 'locked'
+type DateGranularity = 'ALL' | 'YEAR' | 'MONTH' | 'DAY'
 
 interface DecoratedItem {
   id: number
   raw: TimelineItemVO
   title: string
   kind: NodeKind
-  statusText: string
-  tagText: string
   dateText: string
   hasImage: boolean
-  excerpt: string
 }
 
+interface TimelineFilterState {
+  tagId?: number
+  tagName?: string
+  year?: number
+  month?: number
+  day?: number
+}
+
+const PAGE_SIZE = 20
+const SHANGHAI_OFFSET_MILLIS = 8 * 60 * 60 * 1000
+const dateGranularityOptions: Array<{ value: DateGranularity; label: string }> = [
+  { value: 'ALL', label: '全部' },
+  { value: 'YEAR', label: '按年' },
+  { value: 'MONTH', label: '按月' },
+  { value: 'DAY', label: '按日' },
+]
+
 const loading = ref(false)
+const loadingMore = ref(false)
 const timelineGroups = ref<TimelineGroupVO[]>([])
-const yearInput = ref('')
-const appliedYear = ref('')
 const timelineLoadFailed = ref(false)
-const yearInputFocused = ref(false)
+const loadMoreFailed = ref(false)
+const timelineTotal = ref(0)
+const currentPage = ref(0)
+const hasMore = ref(false)
 const filterPanelVisible = ref(false)
+const filterApplying = ref(false)
+const filterApplyFailed = ref(false)
+const availableTags = ref<TagVO[]>([])
+const tagsLoading = ref(false)
+const tagsLoadFailed = ref(false)
+const appliedFilters = ref<TimelineFilterState>({})
+const draftTagId = ref<number | undefined>()
+const draftGranularity = ref<DateGranularity>('ALL')
+const draftDate = ref('')
+let latestRequestId = 0
+
 const { coverUrls, coverErrors, loadCovers, markCoverFailed } = useRecordCoverUrls()
 
-const flatCount = computed(() => timelineGroups.value.reduce((sum, g) => sum + g.items.length, 0))
-const hasAppliedYearFilter = computed(() => Boolean(appliedYear.value))
+const flatCount = computed(() => timelineGroups.value.reduce((sum, group) => sum + group.items.length, 0))
+const hasAppliedFilter = computed(() => Boolean(
+  appliedFilters.value.tagId
+    || appliedFilters.value.year
+    || appliedFilters.value.month
+    || appliedFilters.value.day
+))
 const showLoadFailureState = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showEmptyState = computed(() => !loading.value && !timelineLoadFailed.value && timelineGroups.value.length === 0)
 const showStaleNotice = computed(() => !loading.value && timelineLoadFailed.value && timelineGroups.value.length > 0)
-const appliedFilterText = computed(() => hasAppliedYearFilter.value ? `${appliedYear.value} 年` : '全部')
-const emptyStateText = computed(() => hasAppliedYearFilter.value ? '这一年还没有留下新的片段' : '时间长廊还没有展开第一段记忆')
-
-const resolveRequestedYear = () => {
-  const text = yearInput.value.trim()
-  if (!text) return { payload: {}, yearText: '' }
-  const year = Number(text)
-  if (Number.isNaN(year)) return { payload: {}, yearText: '' }
-  return { payload: { year }, yearText: String(year) }
-}
-
-const ensureLogin = () => {
-  if (!hasAuthenticatedSession()) {
-    uni.reLaunch({ url: '/pages/login/index' })
-    return false
+const pickerFields = computed(() => {
+  if (draftGranularity.value === 'YEAR') return 'year'
+  if (draftGranularity.value === 'MONTH') return 'month'
+  return 'day'
+})
+const appliedFilterText = computed(() => {
+  const parts: string[] = []
+  if (appliedFilters.value.tagName) parts.push(appliedFilters.value.tagName)
+  if (appliedFilters.value.year) {
+    let dateText = `${appliedFilters.value.year} 年`
+    if (appliedFilters.value.month) dateText += ` ${appliedFilters.value.month} 月`
+    if (appliedFilters.value.day) dateText += ` ${appliedFilters.value.day} 日`
+    parts.push(dateText)
   }
-  return true
-}
+  return parts.length ? parts.join(' · ') : '全部'
+})
+const emptyStateText = computed(() => hasAppliedFilter.value
+  ? '没有找到符合这些条件的片段'
+  : '时间长廊还没有展开第一段记忆')
+const draftDateText = computed(() => {
+  if (draftGranularity.value === 'ALL') return '全部日期'
+  const [year, month, day] = ensureDraftDate().split('-').map(Number)
+  if (draftGranularity.value === 'YEAR') return `${year} 年`
+  if (draftGranularity.value === 'MONTH') return `${year} 年 ${month} 月`
+  return `${year} 年 ${month} 月 ${day} 日`
+})
 
-const openFilterPanel = async () => {
-  filterPanelVisible.value = true
-  await nextTick()
-  yearInputFocused.value = true
-}
+const shanghaiToday = () => new Date(Date.now() + SHANGHAI_OFFSET_MILLIS).toISOString().slice(0, 10)
 
-const blurYearInput = () => { yearInputFocused.value = false }
-const closeFilterPanel = () => { filterPanelVisible.value = false; yearInputFocused.value = false }
-
-const submitYearFilter = async () => {
-  yearInputFocused.value = false
-  closeFilterPanel()
-  await loadTimeline()
-}
-
-const resetYearFilter = async () => {
-  yearInput.value = ''
-  appliedYear.value = ''
-  closeFilterPanel()
-  await loadTimeline()
+function ensureDraftDate() {
+  if (!draftDate.value) draftDate.value = shanghaiToday()
+  return draftDate.value
 }
 
 const resolveNodeKind = (status: RecordStatus): NodeKind => {
   if (status === RecordStatus.UNLOCKED) return 'unlocked'
   if (status === RecordStatus.SEALED) return 'sealed'
   return 'draft'
-}
-
-const resolveStatusText = (status: RecordStatus) => {
-  if (status === RecordStatus.UNLOCKED) return '已解封'
-  if (status === RecordStatus.SEALED) return '即将抵达'
-  return '草稿'
-}
-
-const resolveTagText = (status: RecordStatus) => {
-  if (status === RecordStatus.UNLOCKED) return '已解封 · 图文记忆'
-  if (status === RecordStatus.SEALED) return '即将抵达'
-  return '草稿'
-}
-
-const resolveSealChar = (status: RecordStatus) => {
-  if (status === RecordStatus.UNLOCKED) return '封'
-  if (status === RecordStatus.SEALED) return '待'
-  return '稿'
 }
 
 const decoratedGroups = computed(() =>
@@ -107,14 +121,191 @@ const decoratedGroups = computed(() =>
       raw: item,
       title: item.title?.trim() || '未命名片段',
       kind: resolveNodeKind(item.status),
-      statusText: resolveStatusText(item.status),
-      tagText: resolveTagText(item.status),
       dateText: formatDateTime(item.createdAt),
       hasImage: Boolean(item.cover),
-      excerpt: '',
     })),
   }))
 )
+
+const ensureLogin = () => {
+  if (!hasAuthenticatedSession()) {
+    uni.reLaunch({ url: '/pages/login/index' })
+    return false
+  }
+  return true
+}
+
+const loadTags = async () => {
+  if (tagsLoading.value || availableTags.value.length) return
+  tagsLoading.value = true
+  tagsLoadFailed.value = false
+  try {
+    availableTags.value = await tagService.getTags()
+  } catch {
+    tagsLoadFailed.value = true
+  } finally {
+    tagsLoading.value = false
+  }
+}
+
+const appliedGranularity = () => {
+  if (appliedFilters.value.day) return 'DAY'
+  if (appliedFilters.value.month) return 'MONTH'
+  if (appliedFilters.value.year) return 'YEAR'
+  return 'ALL'
+}
+
+const openFilterPanel = () => {
+  draftTagId.value = appliedFilters.value.tagId
+  draftGranularity.value = appliedGranularity()
+  const year = appliedFilters.value.year
+  const month = appliedFilters.value.month || 1
+  const day = appliedFilters.value.day || 1
+  draftDate.value = year
+    ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    : shanghaiToday()
+  filterApplyFailed.value = false
+  filterPanelVisible.value = true
+  void loadTags()
+}
+
+const closeFilterPanel = () => {
+  if (filterApplying.value) return
+  filterPanelVisible.value = false
+  filterApplyFailed.value = false
+}
+
+const chooseTag = (tagId?: number) => {
+  draftTagId.value = draftTagId.value === tagId ? undefined : tagId
+  filterApplyFailed.value = false
+}
+
+const chooseGranularity = (granularity: DateGranularity) => {
+  draftGranularity.value = granularity
+  if (granularity !== 'ALL') ensureDraftDate()
+  filterApplyFailed.value = false
+}
+
+const onDateChange = (event: { detail: { value: string } }) => {
+  const current = ensureDraftDate().split('-')
+  const selected = event.detail.value.split('-')
+  draftDate.value = [selected[0], selected[1] || current[1] || '01', selected[2] || current[2] || '01'].join('-')
+  filterApplyFailed.value = false
+}
+
+const buildDraftFilters = (): TimelineFilterState => {
+  const filters: TimelineFilterState = {}
+  if (draftTagId.value) {
+    filters.tagId = draftTagId.value
+    filters.tagName = availableTags.value.find((tag) => tag.id === draftTagId.value)?.name
+  }
+  if (draftGranularity.value === 'ALL') return filters
+
+  const [year, month, day] = ensureDraftDate().split('-').map(Number)
+  filters.year = year
+  if (draftGranularity.value === 'MONTH' || draftGranularity.value === 'DAY') filters.month = month
+  if (draftGranularity.value === 'DAY') filters.day = day
+  return filters
+}
+
+const toTimelineQuery = (filters: TimelineFilterState, pageNum: number): TimelineQuery => ({
+  tagId: filters.tagId,
+  year: filters.year,
+  month: filters.month,
+  day: filters.day,
+  pageNum,
+  pageSize: PAGE_SIZE,
+})
+
+const mergeTimelineGroups = (incoming: TimelineGroupVO[]) => {
+  const groups = timelineGroups.value.map((group) => ({ ...group, items: [...group.items] }))
+  const existingIds = new Set(groups.flatMap((group) => group.items.map((item) => item.id)))
+  incoming.forEach((incomingGroup) => {
+    const target = groups.find((group) => group.yearMonth === incomingGroup.yearMonth)
+    const newItems = incomingGroup.items.filter((item) => !existingIds.has(item.id))
+    newItems.forEach((item) => existingIds.add(item.id))
+    if (target) target.items.push(...newItems)
+    else groups.push({ ...incomingGroup, items: [...newItems] })
+  })
+  return groups
+}
+
+const loadTimeline = async (options: { append?: boolean; filters?: TimelineFilterState } = {}) => {
+  if (!ensureLogin()) return false
+  const append = Boolean(options.append)
+  if (append && (loading.value || loadingMore.value || !hasMore.value)) return false
+
+  const filters = options.filters || appliedFilters.value
+  const pageNum = append ? currentPage.value + 1 : 1
+  const requestId = ++latestRequestId
+  if (append) {
+    loadingMore.value = true
+    loadMoreFailed.value = false
+  } else {
+    loading.value = true
+    timelineLoadFailed.value = false
+  }
+
+  try {
+    const result = await recordService.getTimeline(toTimelineQuery(filters, pageNum))
+    if (requestId !== latestRequestId) return false
+
+    timelineGroups.value = append ? mergeTimelineGroups(result.groups) : result.groups
+    timelineTotal.value = result.total
+    currentPage.value = result.pageNum
+    hasMore.value = result.hasMore
+    if (!append) appliedFilters.value = { ...filters }
+    void loadCovers(result.groups.flatMap((group) => group.items
+      .filter((item) => Boolean(item.cover))
+      .map((item) => ({ recordId: item.id, cover: item.cover }))))
+    return true
+  } catch {
+    if (requestId !== latestRequestId) return false
+    if (append) loadMoreFailed.value = true
+    else timelineLoadFailed.value = true
+    return false
+  } finally {
+    if (requestId === latestRequestId) {
+      loading.value = false
+      loadingMore.value = false
+    }
+  }
+}
+
+const applyFilters = async () => {
+  if (filterApplying.value) return
+  filterApplying.value = true
+  filterApplyFailed.value = false
+  const succeeded = await loadTimeline({ filters: buildDraftFilters() })
+  filterApplying.value = false
+  if (succeeded) filterPanelVisible.value = false
+  else filterApplyFailed.value = true
+}
+
+const resetFilters = async () => {
+  if (filterApplying.value) return
+  draftTagId.value = undefined
+  draftGranularity.value = 'ALL'
+  filterApplying.value = true
+  filterApplyFailed.value = false
+  const succeeded = await loadTimeline({ filters: {} })
+  filterApplying.value = false
+  if (succeeded) filterPanelVisible.value = false
+  else filterApplyFailed.value = true
+}
+
+const loadMoreTimeline = () => {
+  void loadTimeline({ append: true })
+}
+
+const retryTimeline = () => {
+  void loadTimeline()
+}
+
+const retryLoadMore = () => {
+  loadMoreFailed.value = false
+  void loadTimeline({ append: true })
+}
 
 const openNode = (item: TimelineItemVO) => {
   if (item.status === RecordStatus.DRAFT) {
@@ -132,28 +323,10 @@ const goUserCenter = () => {
   uni.switchTab({ url: '/pages/user-center/index' })
 }
 
-const loadTimeline = async () => {
-  if (!ensureLogin()) return
-  loading.value = true
-  timelineLoadFailed.value = false
-  const requested = resolveRequestedYear()
-  try {
-    const result = await recordService.getTimeline(requested.payload)
-    timelineGroups.value = result
-    appliedYear.value = requested.yearText
-    void loadCovers(result.flatMap((group) => group.items
-      .filter((item) => Boolean(item.cover))
-      .map((item) => ({ recordId: item.id, cover: item.cover }))))
-  } catch {
-    timelineLoadFailed.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
 onShow(() => {
   uni.hideTabBar({ animation: false })
-  loadTimeline()
+  void loadTags()
+  void loadTimeline()
 })
 </script>
 
@@ -166,30 +339,85 @@ onShow(() => {
     <view v-if="filterPanelVisible" class="filter-layer" @tap="closeFilterPanel">
       <view class="filter-sheet" @tap.stop>
         <view class="filter-sheet-head">
-          <text class="filter-sheet-title">筛选年份</text>
+          <text class="filter-sheet-title">筛选时光</text>
           <text class="filter-sheet-close" @tap="closeFilterPanel">收起</text>
         </view>
-        <view class="filter-input-wrap" :class="{ focused: yearInputFocused }">
-          <input
-            v-model="yearInput"
-            class="year-filter"
-            type="number"
-            confirm-type="search"
-            placeholder="如 2026"
-            :focus="yearInputFocused"
-            @confirm="submitYearFilter"
-            @blur="blurYearInput"
-          />
+
+        <view class="filter-section">
+          <text class="filter-section-label">标签</text>
+          <view v-if="tagsLoading" class="filter-inline-state">正在整理标签...</view>
+          <view v-else-if="tagsLoadFailed" class="filter-inline-state filter-inline-error">
+            <text>标签暂未展开</text>
+            <text class="filter-inline-retry" @tap="loadTags">重试</text>
+          </view>
+          <scroll-view v-else class="filter-chip-scroll" scroll-x :show-scrollbar="false">
+            <view class="filter-chip-row">
+              <view
+                class="filter-chip"
+                :class="{ active: !draftTagId }"
+                @tap="chooseTag(undefined)"
+              >全部</view>
+              <view
+                v-for="tag in availableTags"
+                :key="tag.id"
+                class="filter-chip"
+                :class="{ active: draftTagId === tag.id }"
+                @tap="chooseTag(tag.id)"
+              >{{ tag.name }}</view>
+            </view>
+          </scroll-view>
         </view>
-        <text class="filter-sheet-meta">当前：{{ appliedFilterText }} · {{ flatCount }} 则</text>
+
+        <view class="filter-section">
+          <text class="filter-section-label">写下的时间</text>
+          <view class="filter-granularity-row">
+            <view
+              v-for="option in dateGranularityOptions"
+              :key="option.value"
+              class="filter-granularity"
+              :class="{ active: draftGranularity === option.value }"
+              @tap="chooseGranularity(option.value)"
+            >{{ option.label }}</view>
+          </view>
+          <picker
+            v-if="draftGranularity !== 'ALL'"
+            mode="date"
+            :fields="pickerFields"
+            :value="ensureDraftDate()"
+            @change="onDateChange"
+          >
+            <view class="filter-date-picker">
+              <text>{{ draftDateText }}</text>
+              <text class="filter-date-action">更改</text>
+            </view>
+          </picker>
+        </view>
+
+        <text class="filter-sheet-meta">当前：{{ appliedFilterText }} · 已载入 {{ flatCount }}/{{ timelineTotal }} 则</text>
+        <text v-if="filterApplyFailed" class="filter-apply-error">没有筛选成功，原有时光轴仍被保留</text>
         <view class="filter-actions">
-          <view class="filter-action filter-action-ghost" @tap="resetYearFilter">全部年份</view>
-          <view class="filter-action" @tap="submitYearFilter">确定</view>
+          <view
+            class="filter-action filter-action-ghost"
+            :class="{ disabled: filterApplying }"
+            @tap="resetFilters"
+          >重置</view>
+          <view
+            class="filter-action"
+            :class="{ disabled: filterApplying }"
+            @tap="applyFilters"
+          >{{ filterApplying ? '正在展开...' : '应用筛选' }}</view>
         </view>
       </view>
     </view>
 
-    <scroll-view class="scroll-body" scroll-y enhanced :show-scrollbar="false">
+    <scroll-view
+      class="scroll-body"
+      scroll-y
+      enhanced
+      :show-scrollbar="false"
+      :lower-threshold="160"
+      @scrolltolower="loadMoreTimeline"
+    >
 
       <!-- topbar -->
       <view class="topbar">
@@ -206,7 +434,7 @@ onShow(() => {
         <view class="deco-line" />
         <view v-if="showStaleNotice" class="stale-notice">
           <text>同步稍慢，当前仍显示 {{ appliedFilterText }}</text>
-          <text class="stale-action" @tap="loadTimeline">重试</text>
+          <text class="stale-action" @tap="retryTimeline">重试</text>
         </view>
       </view>
 
@@ -228,7 +456,7 @@ onShow(() => {
           <view class="state-block">
             <text class="state-title">暂时没有展开</text>
             <text class="state-desc">网络稍慢，请再试一次</text>
-            <view class="state-action" @tap="loadTimeline">重新整理</view>
+            <view class="state-action" @tap="retryTimeline">重新整理</view>
           </view>
         </view>
 
@@ -352,6 +580,16 @@ onShow(() => {
         </view>
       </view>
 
+      <view v-if="timelineGroups.length && !loading" class="load-more-block">
+        <text v-if="loadingMore" class="load-more-text">正在继续展开...</text>
+        <view v-else-if="loadMoreFailed" class="load-more-retry" @tap="retryLoadMore">
+          <text>后面的片段暂未展开</text>
+          <text class="load-more-action">重试</text>
+        </view>
+        <text v-else-if="hasMore" class="load-more-text">继续向下，回到更早的时光</text>
+        <text v-else class="load-more-text">已展开 {{ timelineTotal }} 则片段</text>
+      </view>
+
       <!-- tail -->
       <view class="tail">
         <text class="tail-text">回溯的终点，亦是感知的起点</text>
@@ -454,27 +692,89 @@ onShow(() => {
   color: var(--fb-ink-light);
 }
 
-.filter-input-wrap {
-  margin-top: 24rpx;
-  height: 88rpx;
+.filter-section {
+  margin-top: 28rpx;
+}
+
+.filter-section-label {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 23rpx;
+  color: var(--fb-ink-light);
+  letter-spacing: 0.08em;
+}
+
+.filter-chip-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.filter-chip-row {
+  display: inline-flex;
+  gap: 12rpx;
+  padding-right: 8rpx;
+}
+
+.filter-chip,
+.filter-granularity {
+  min-height: 62rpx;
   padding: 0 24rpx;
+  border: 1rpx solid rgba(200, 194, 184, 0.36);
   border-radius: 4rpx;
-  background: rgba(245, 240, 232, 0.92);
-  border: 1rpx solid rgba(200, 194, 184, 0.28);
+  background: rgba(245, 240, 232, 0.76);
+  color: var(--fb-ink-mid);
+  font-size: 24rpx;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.filter-input-wrap.focused {
-  background: rgba(255, 255, 255, 0.96);
-  border-color: rgba(181, 53, 42, 0.26);
+.filter-chip.active,
+.filter-granularity.active {
+  border-color: rgba(181, 53, 42, 0.32);
+  background: rgba(181, 53, 42, 0.08);
+  color: var(--fb-vermilion);
 }
 
-.year-filter {
+.filter-granularity-row {
+  display: flex;
+  gap: 10rpx;
+}
+
+.filter-granularity {
   flex: 1;
-  height: 100%;
-  font-size: 28rpx;
+  padding: 0 12rpx;
+}
+
+.filter-date-picker {
+  margin-top: 16rpx;
+  min-height: 76rpx;
+  padding: 0 22rpx;
+  border-radius: 4rpx;
+  background: rgba(245, 240, 232, 0.76);
   color: var(--fb-ink);
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-date-action,
+.filter-inline-retry {
+  color: var(--fb-vermilion);
+}
+
+.filter-inline-state {
+  min-height: 62rpx;
+  color: var(--fb-ink-light);
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.filter-inline-error {
+  color: var(--fb-ink-mid);
 }
 
 .filter-sheet-meta {
@@ -482,6 +782,13 @@ onShow(() => {
   margin-top: 18rpx;
   font-size: 23rpx;
   color: var(--fb-ink-light);
+}
+
+.filter-apply-error {
+  display: block;
+  margin-top: 14rpx;
+  color: var(--fb-vermilion);
+  font-size: 23rpx;
 }
 
 .filter-actions {
@@ -505,6 +812,10 @@ onShow(() => {
 .filter-action-ghost {
   background: rgba(245, 240, 232, 0.96);
   color: var(--fb-ink-mid);
+}
+
+.filter-action.disabled {
+  opacity: 0.55;
 }
 
 /* ── topbar ── */
@@ -1060,7 +1371,28 @@ onShow(() => {
   font-size: 26rpx;
 }
 
-/* ── tail ── */
+/* ── load more / tail ── */
+.load-more-block {
+  padding: 8rpx 56rpx 0;
+  text-align: center;
+}
+
+.load-more-text,
+.load-more-retry {
+  color: var(--fb-ink-light);
+  font-size: 22rpx;
+}
+
+.load-more-retry {
+  display: flex;
+  justify-content: center;
+  gap: 18rpx;
+}
+
+.load-more-action {
+  color: var(--fb-vermilion);
+}
+
 .tail {
   padding: 48rpx 56rpx 0;
   text-align: center;

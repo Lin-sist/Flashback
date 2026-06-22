@@ -10,7 +10,7 @@ import type {
   RecordDetailVO,
   RecordListItemVO,
   RecordStatus,
-  TimelineGroupVO,
+  TimelinePageVO,
   TimelineQuery,
   UpdateRecordCoverDTO,
   UpdateRecordLocationDTO,
@@ -208,10 +208,14 @@ export const recordService = {
       return Promise.resolve(getPreviewTimeline(query))
     }
 
-    return httpRequest<TimelineGroupVO[]>({
+    return httpRequest<TimelinePageVO>({
       url: `/api/records/timeline${buildQueryString({
         year: query.year,
+        month: query.month,
+        day: query.day,
         tagId: query.tagId,
+        pageNum: query.pageNum,
+        pageSize: query.pageSize,
       })}`,
     })
   },

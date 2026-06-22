@@ -185,15 +185,15 @@
 - [ ] Audit query plans/indexes and add only the smallest required record/tag index if current schema is insufficient.
 - [x] Return `TimelinePageVO` with grouped current-page records, record-level total, page metadata, and `hasMore`.
 - [x] Add backend tests for tag/date AND filtering, date validation, safe empty results, user scope, stable ordering, grouping, and pagination boundaries.
-- [ ] Replace the free-form year-only Mini Program panel with single-tag and year/month/day controls plus reset/apply actions.
-- [ ] Keep draft filter selections separate from applied filters; cancel changes nothing and a failed page-1 request keeps the old data/filter summary aligned.
-- [ ] Handle tag-list loading/failure inside the filter sheet without blocking unfiltered or date-only timeline browsing.
-- [ ] Reset to page 1 when filters change and merge later-page month groups without duplicate record ids.
-- [ ] Guard duplicate load-more requests and ignore stale responses from superseded filter/page requests.
-- [ ] Preserve loading, stale-data retry, filtered empty, load-more, and load-more failure states.
-- [ ] Update backend response, real frontend types/service/page, and preview timeline data in one checkpoint so all consumers match `TimelinePageVO` pagination semantics.
-- [ ] Add focused frontend checks for query construction, filter reset, group merge, and preview parity where practical.
-- [ ] Do not add a frontend test framework or modify package/lockfiles solely for this feature; use existing checks plus type-check/build/manual evidence when no focused runner exists.
+- [x] Replace the free-form year-only Mini Program panel with single-tag and year/month/day controls plus reset/apply actions.
+- [x] Keep draft filter selections separate from applied filters; cancel changes nothing and a failed page-1 request keeps the old data/filter summary aligned.
+- [x] Handle tag-list loading/failure inside the filter sheet without blocking unfiltered or date-only timeline browsing.
+- [x] Reset to page 1 when filters change and merge later-page month groups without duplicate record ids.
+- [x] Guard duplicate load-more requests and ignore stale responses from superseded filter/page requests.
+- [x] Preserve loading, stale-data retry, filtered empty, load-more, and load-more failure states.
+- [x] Update backend response, real frontend types/service/page, and preview timeline data in one checkpoint so all consumers match `TimelinePageVO` pagination semantics.
+- [x] Add focused frontend checks for query construction, filter reset, group merge, and preview parity where practical.
+- [x] Do not add a frontend test framework or modify package/lockfiles solely for this feature; use existing checks plus type-check/build/manual evidence when no focused runner exists.
 - [ ] Manually verify single-tag, year, month, day, combined filter, reset, empty result, and incremental loading in WeChat Developer Tools.
 
 ## 13. Integration and Verification
@@ -226,5 +226,5 @@
 - [x] Confirm cover comes only from same-record image attachments.
 - [x] Confirm voice is stored as raw audio only with no transcription.
 - [x] Confirm V2.0 visible naming remains "我的记录", "时光轴", and "时间回看".
-- [ ] Confirm timeline filtering remains limited to one tag plus created-time year/month/day and does not expand into dashboard-style advanced search.
+- [x] Confirm timeline filtering remains limited to one tag plus created-time year/month/day and does not expand into dashboard-style advanced search.
 - [ ] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.

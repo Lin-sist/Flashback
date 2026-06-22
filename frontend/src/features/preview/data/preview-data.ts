@@ -7,6 +7,7 @@ import type {
   ReplyVO,
   TagVO,
   TimelineGroupVO,
+  TimelinePageVO,
   TimelineQuery,
   UserInfoVO,
 } from '../../../types'
@@ -148,8 +149,12 @@ const previewReplies: Record<number, ReplyVO> = {
 
 const deepCopy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
-const sortByNewest = <T extends { createdAt: string }>(list: T[]) =>
-  [...list].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+const sortByNewest = <T extends { createdAt: string; id?: number }>(list: T[]) =>
+  [...list].sort((left, right) => {
+    const createdAtDiff = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    if (createdAtDiff !== 0) return createdAtDiff
+    return (right.id || 0) - (left.id || 0)
+  })
 
 const resolveTags = (tagIds: number[]) =>
   previewTags.filter((tag) => tagIds.includes(tag.id))
@@ -216,16 +221,28 @@ export const getPreviewUnlockedRecords = (pageNum = 1, pageSize = 10) =>
     { pageNum, pageSize }
   )
 
-export const getPreviewTimeline = (query: TimelineQuery = {}): TimelineGroupVO[] => {
-  const filtered = getSortedPreviewRecords().filter((record) => {
-    if (!query.year) {
-      return true
-    }
+const parsePreviewDate = (value: string) => {
+  const [datePart] = value.split(/[ T]/)
+  const [year, month, day] = datePart.split('-').map(Number)
+  return { year, month, day }
+}
 
-    return new Date(record.createdAt.replace(' ', 'T')).getFullYear() === query.year
+export const getPreviewTimeline = (query: TimelineQuery = {}): TimelinePageVO => {
+  const filtered = getSortedPreviewRecords().filter((record) => {
+    if (query.tagId && !record.tagIds.includes(query.tagId)) return false
+    const createdDate = parsePreviewDate(record.createdAt)
+    if (query.year && createdDate.year !== query.year) return false
+    if (query.month && createdDate.month !== query.month) return false
+    if (query.day && createdDate.day !== query.day) return false
+    return true
   })
 
-  const grouped = filtered.reduce<Record<string, TimelineGroupVO>>((acc, record) => {
+  const pageNum = Math.max(1, query.pageNum || 1)
+  const pageSize = Math.min(50, Math.max(1, query.pageSize || 20))
+  const offset = (pageNum - 1) * pageSize
+  const pageRecords = filtered.slice(offset, offset + pageSize)
+
+  const grouped = pageRecords.reduce<Record<string, TimelineGroupVO>>((acc, record) => {
     const date = new Date(record.createdAt.replace(' ', 'T'))
     const yearMonth = `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(2, '0')}月`
 
@@ -248,7 +265,13 @@ export const getPreviewTimeline = (query: TimelineQuery = {}): TimelineGroupVO[]
     return acc
   }, {})
 
-  return Object.values(grouped)
+  return {
+    groups: Object.values(grouped),
+    total: filtered.length,
+    pageNum,
+    pageSize,
+    hasMore: offset + pageSize < filtered.length,
+  }
 }
 
 export const getPreviewRecordDetail = (id: string | number) => {

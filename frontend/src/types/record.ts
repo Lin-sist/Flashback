@@ -90,7 +90,11 @@ export interface UpdateRecordDTO extends CreateRecordDTO { }
 
 export interface TimelineQuery {
   year?: number
+  month?: number
+  day?: number
   tagId?: number
+  pageNum?: number
+  pageSize?: number
 }
 
 export interface RecordListItemVO {
@@ -149,4 +153,12 @@ export interface TimelineItemVO {
 export interface TimelineGroupVO {
   yearMonth: string
   items: TimelineItemVO[]
+}
+
+export interface TimelinePageVO {
+  groups: TimelineGroupVO[]
+  total: number
+  pageNum: number
+  pageSize: number
+  hasMore: boolean
 }
