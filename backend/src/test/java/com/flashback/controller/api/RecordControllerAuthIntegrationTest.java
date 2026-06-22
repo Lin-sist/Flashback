@@ -19,6 +19,7 @@ import com.flashback.vo.RecordLocationVO;
 import com.flashback.vo.RecordTagVO;
 import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
+import com.flashback.vo.TimelinePageVO;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -186,16 +187,19 @@ class RecordControllerAuthIntegrationTest {
                 group.setItems(List.of(item));
 
                 when(recordService.timeline(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
-                                .thenReturn(List.of(group));
+                                .thenReturn(TimelinePageVO.of(List.of(group), 1L, 1, 20));
 
                 mockMvc.perform(get("/api/records/timeline")
                                 .header("Authorization", "Bearer " + token)
                                 .param("year", "2026"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.code").value(0))
-                                .andExpect(jsonPath("$.data[0].yearMonth").value("2026-03"))
-                                .andExpect(jsonPath("$.data[0].items[0].id").value(9001))
-                                .andExpect(jsonPath("$.data[0].items[0].tagNames[0]").value("焦虑"));
+                                .andExpect(jsonPath("$.data.total").value(1))
+                                .andExpect(jsonPath("$.data.pageSize").value(20))
+                                .andExpect(jsonPath("$.data.hasMore").value(false))
+                                .andExpect(jsonPath("$.data.groups[0].yearMonth").value("2026-03"))
+                                .andExpect(jsonPath("$.data.groups[0].items[0].id").value(9001))
+                                .andExpect(jsonPath("$.data.groups[0].items[0].tagNames[0]").value("焦虑"));
         }
 
         @Test
@@ -203,12 +207,16 @@ class RecordControllerAuthIntegrationTest {
                 String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
                 when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
                 when(recordService.timeline(org.mockito.ArgumentMatchers.eq(5001L), org.mockito.ArgumentMatchers.any()))
-                                .thenReturn(List.of());
+                                .thenReturn(TimelinePageVO.of(List.of(), 0L, 2, 15));
 
                 mockMvc.perform(get("/api/records/timeline")
                                 .header("Authorization", "Bearer " + token)
                                 .param("year", "2026")
-                                .param("tagId", "12"))
+                                .param("month", "6")
+                                .param("day", "22")
+                                .param("tagId", "12")
+                                .param("pageNum", "2")
+                                .param("pageSize", "15"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.code").value(0));
 
@@ -216,7 +224,11 @@ class RecordControllerAuthIntegrationTest {
                 verify(recordService).timeline(org.mockito.ArgumentMatchers.eq(5001L), queryCaptor.capture());
                 RecordTimelineQuery query = queryCaptor.getValue();
                 assertThat(query.getYear()).isEqualTo(2026);
+                assertThat(query.getMonth()).isEqualTo(6);
+                assertThat(query.getDay()).isEqualTo(22);
                 assertThat(query.getTagId()).isEqualTo(12L);
+                assertThat(query.getPageNum()).isEqualTo(2);
+                assertThat(query.getPageSize()).isEqualTo(15);
         }
 
         @Test
@@ -230,6 +242,44 @@ class RecordControllerAuthIntegrationTest {
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.code").value(40000))
                                 .andExpect(jsonPath("$.message").value("year: year最小为1970"));
+        }
+
+        @Test
+        void shouldReturn400WhenTimelineDateDependencyIsInvalid() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+
+                mockMvc.perform(get("/api/records/timeline")
+                                .header("Authorization", "Bearer " + token)
+                                .param("month", "6"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value(40000));
+        }
+
+        @Test
+        void shouldReturn400WhenTimelineDateDoesNotExist() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+
+                mockMvc.perform(get("/api/records/timeline")
+                                .header("Authorization", "Bearer " + token)
+                                .param("year", "2026")
+                                .param("month", "2")
+                                .param("day", "30"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value(40000));
+        }
+
+        @Test
+        void shouldReturn400WhenTimelinePageSizeExceedsLimit() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+
+                mockMvc.perform(get("/api/records/timeline")
+                                .header("Authorization", "Bearer " + token)
+                                .param("pageSize", "51"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.code").value(40000));
         }
 
         @Test

@@ -48,12 +48,15 @@ import com.flashback.vo.RecordLocationVO;
 import com.flashback.vo.RecordTagVO;
 import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
+import com.flashback.vo.TimelinePageVO;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -399,8 +402,26 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
-    public List<TimelineGroupVO> timeline(Long userId, RecordTimelineQuery query) {
-        List<Record> records = recordMapper.selectTimelineByUserAndCondition(userId, query.getTagId(), query.getYear());
+    public TimelinePageVO timeline(Long userId, RecordTimelineQuery query) {
+        TimelineDateRange dateRange = resolveTimelineDateRange(query);
+        int pageNum = query.getPageNum();
+        int pageSize = query.getPageSize();
+        int offset = (pageNum - 1) * pageSize;
+
+        long total = recordMapper.countTimelineByUserAndCondition(
+                userId,
+                query.getTagId(),
+                dateRange.createdFrom(),
+                dateRange.createdBefore());
+        List<Record> records = total == 0
+                ? List.of()
+                : recordMapper.selectTimelinePageByUserAndCondition(
+                        userId,
+                        query.getTagId(),
+                        dateRange.createdFrom(),
+                        dateRange.createdBefore(),
+                        offset,
+                        pageSize);
         Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
 
         Map<String, List<TimelineItemVO>> grouped = new LinkedHashMap<>();
@@ -417,7 +438,45 @@ public class RecordServiceImpl implements RecordService {
             group.setItems(entry.getValue());
             timeline.add(group);
         }
-        return timeline;
+        return TimelinePageVO.of(timeline, total, pageNum, pageSize);
+    }
+
+    private TimelineDateRange resolveTimelineDateRange(RecordTimelineQuery query) {
+        Integer year = query.getYear();
+        Integer month = query.getMonth();
+        Integer day = query.getDay();
+        if (year == null) {
+            if (month != null || day != null) {
+                throw badRequest("年月日筛选条件无效");
+            }
+            return new TimelineDateRange(null, null);
+        }
+        if (day != null && month == null) {
+            throw badRequest("年月日筛选条件无效");
+        }
+
+        try {
+            LocalDate startDate;
+            LocalDate endDate;
+            if (month == null) {
+                startDate = LocalDate.of(year, 1, 1);
+                endDate = startDate.plusYears(1);
+            } else if (day == null) {
+                startDate = LocalDate.of(year, month, 1);
+                endDate = startDate.plusMonths(1);
+            } else {
+                startDate = LocalDate.of(year, month, day);
+                endDate = startDate.plusDays(1);
+            }
+            return new TimelineDateRange(
+                    startDate.atStartOfDay(clock.getZone()).toLocalDateTime(),
+                    endDate.atStartOfDay(clock.getZone()).toLocalDateTime());
+        } catch (DateTimeException ex) {
+            throw badRequest("年月日筛选条件无效");
+        }
+    }
+
+    private record TimelineDateRange(LocalDateTime createdFrom, LocalDateTime createdBefore) {
     }
 
     @Override

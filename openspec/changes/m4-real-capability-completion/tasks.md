@@ -178,13 +178,13 @@
 - [x] Record accepted `createdAt`, single-tag, AND-composition, pagination, ordering, timezone, and response-shape decisions in M4 documents.
 - [x] Verify the existing focused backend timeline tests, frontend type-check, and Mini Program build are green before implementation.
 - [x] Confirm current schemas have user/status/created and record-tag indexes but no dedicated `(user_id, created_at, id)` timeline traversal index.
-- [ ] Extend `RecordTimelineQuery` with validated `month`, `day`, `pageNum`, and `pageSize` fields; enforce timeline default `20` and maximum `50` instead of inheriting global `PageQuery` values `10`/`200` unchanged.
-- [ ] Convert year/month/day through the existing `app.time.zone-id` business-time contract into `LocalDateTime` `[createdFrom, createdBefore)` boundaries and reject invalid dependency/calendar combinations without using the JVM default timezone.
-- [ ] Replace function-wrapped date filtering with created-time range predicates.
-- [ ] Add record-level count/page mapper behavior with `created_at DESC, id DESC` ordering, user ownership scope, and enabled-tag-only filtering.
+- [x] Extend `RecordTimelineQuery` with validated `month`, `day`, `pageNum`, and `pageSize` fields; enforce timeline default `20` and maximum `50` instead of inheriting global `PageQuery` values `10`/`200` unchanged.
+- [x] Convert year/month/day through the existing `app.time.zone-id` business-time contract into `LocalDateTime` `[createdFrom, createdBefore)` boundaries and reject invalid dependency/calendar combinations without using the JVM default timezone.
+- [x] Replace function-wrapped date filtering with created-time range predicates.
+- [x] Add record-level count/page mapper behavior with `created_at DESC, id DESC` ordering, user ownership scope, and enabled-tag-only filtering.
 - [ ] Audit query plans/indexes and add only the smallest required record/tag index if current schema is insufficient.
-- [ ] Return `TimelinePageVO` with grouped current-page records, record-level total, page metadata, and `hasMore`.
-- [ ] Add backend tests for tag/date AND filtering, date validation, safe empty results, user scope, stable ordering, grouping, and pagination boundaries.
+- [x] Return `TimelinePageVO` with grouped current-page records, record-level total, page metadata, and `hasMore`.
+- [x] Add backend tests for tag/date AND filtering, date validation, safe empty results, user scope, stable ordering, grouping, and pagination boundaries.
 - [ ] Replace the free-form year-only Mini Program panel with single-tag and year/month/day controls plus reset/apply actions.
 - [ ] Keep draft filter selections separate from applied filters; cancel changes nothing and a failed page-1 request keeps the old data/filter summary aligned.
 - [ ] Handle tag-list loading/failure inside the filter sheet without blocking unfiltered or date-only timeline browsing.

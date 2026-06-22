@@ -90,8 +90,17 @@ public interface RecordMapper {
                         @Param("offset") int offset,
                         @Param("pageSize") int pageSize);
 
-        List<Record> selectTimelineByUserAndCondition(
+        long countTimelineByUserAndCondition(
                         @Param("userId") Long userId,
                         @Param("tagId") Long tagId,
-                        @Param("year") Integer year);
+                        @Param("createdFrom") LocalDateTime createdFrom,
+                        @Param("createdBefore") LocalDateTime createdBefore);
+
+        List<Record> selectTimelinePageByUserAndCondition(
+                        @Param("userId") Long userId,
+                        @Param("tagId") Long tagId,
+                        @Param("createdFrom") LocalDateTime createdFrom,
+                        @Param("createdBefore") LocalDateTime createdBefore,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize);
 }

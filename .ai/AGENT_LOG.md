@@ -4598,3 +4598,29 @@ backend/src/main/resources/application.yml         |  1 +
 - MySQL `EXPLAIN` against production-scale data was not run because the implementation query and optional index migration do not exist yet. Static schema audit shows no dedicated `(user_id, created_at, id)` index; the implementation Agent must run/record a query-plan comparison before adding the smallest justified index to both MySQL and test schemas.
 - Manual WeChat filter interaction was not run because the feature is not implemented yet.
 - Existing build warning `os - Alias not found` remains non-fatal; build completed successfully and this audit did not change build tooling.
+
+## 2026-06-22 M4 timeline backend filtering and pagination implementation
+
+### Implementation
+
+- Extended `RecordTimelineQuery` from the existing page query shape while overriding timeline defaults/validation to `pageSize=20`, maximum `50`.
+- Added validated `month` and `day` fields plus calendar/dependency validation.
+- Converted year/month/day through the injected business `Clock` zone into `LocalDateTime [createdFrom, createdBefore)` boundaries.
+- Replaced `YEAR(created_at)` with range predicates and added owner-scoped count/page mapper queries.
+- Limited tag filtering to enabled tags; missing, disabled, or non-matching tags produce a safe empty page.
+- Added `TimelinePageVO` with current-page groups, record-level total, page metadata, and `hasMore`; kept the existing endpoint and `ApiResponse` wrapper.
+- Added stable `created_at DESC, id DESC` pagination and applied record paging before year-month grouping.
+- Added `idx_record_user_created_id (user_id, created_at, id)` to MySQL/test schemas plus repeatable existing-database migration `m4-timeline-filter-pagination.sql`.
+- Updated controller, service, mapper, and focused tests for the accepted response/query contract.
+
+### Verification
+
+- Focused backend tests: PASS for `RecordMapperIntegrationTest`, `RecordServiceImplTest`, and `RecordControllerAuthIntegrationTest`.
+- Full backend suite: PASS, 27 suites / 202 tests / 0 failures / 0 errors / 0 skipped.
+- `git diff --check`: PASS before checkpoint preparation.
+- Initial sandboxed Maven run failed while reading a local AWS SDK jar; the same offline command passed outside the sandbox. This was an environment permission issue, not a source failure.
+
+### Skipped verification and remaining risk
+
+- MySQL `EXPLAIN` was attempted but NOT RUN because the local `MySQL80` service was stopped and this session could not open/start the Windows service even with the approved escalation. Static schema audit confirmed no dedicated owner/created-time traversal index, so the smallest accepted index was added; real MySQL query-plan evidence remains pending.
+- No frontend or Preview behavior is included in this backend checkpoint; those consumers must be updated before the endpoint contract is manually exercised from the Mini Program.

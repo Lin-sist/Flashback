@@ -37,6 +37,7 @@ CREATE TABLE `record` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_record_user_id` (`user_id`),
+  KEY `idx_record_user_created_id` (`user_id`, `created_at`, `id`),
   KEY `idx_record_status` (`status`),
   KEY `idx_record_unlock_at` (`unlock_at`),
   KEY `idx_record_user_status_created` (`user_id`, `status`, `created_at`),

@@ -15,7 +15,7 @@ import com.flashback.security.auth.CurrentUser;
 import com.flashback.service.RecordService;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
-import com.flashback.vo.TimelineGroupVO;
+import com.flashback.vo.TimelinePageVO;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,8 +26,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * 记录主链路接口。
@@ -121,7 +119,7 @@ public class RecordController {
     }
 
     @GetMapping("/timeline")
-    public ApiResponse<List<TimelineGroupVO>> timeline(
+    public ApiResponse<TimelinePageVO> timeline(
             @CurrentUser AuthUser authUser,
             @Valid RecordTimelineQuery query) {
         return ApiResponse.success(recordService.timeline(authUser.getUserId(), query));

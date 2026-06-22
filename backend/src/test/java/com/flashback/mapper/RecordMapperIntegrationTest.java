@@ -486,9 +486,44 @@ class RecordMapperIntegrationTest {
                 long topicTagId = insertTag("求职", "TOPIC", "ENABLED", LocalDateTime.of(2026, 3, 1, 0, 0, 0));
                 bindRecordTag(april.getId(), topicTagId);
 
-                List<Record> timeline = recordMapper.selectTimelineByUserAndCondition(5001L, topicTagId, 2026);
+                LocalDateTime createdFrom = LocalDateTime.of(2026, 1, 1, 0, 0);
+                LocalDateTime createdBefore = LocalDateTime.of(2027, 1, 1, 0, 0);
+                long total = recordMapper.countTimelineByUserAndCondition(
+                                5001L,
+                                topicTagId,
+                                createdFrom,
+                                createdBefore);
+                List<Record> timeline = recordMapper.selectTimelinePageByUserAndCondition(
+                                5001L,
+                                topicTagId,
+                                createdFrom,
+                                createdBefore,
+                                0,
+                                20);
+                assertThat(total).isEqualTo(1L);
                 assertThat(timeline).hasSize(1);
                 assertThat(timeline.get(0).getId()).isEqualTo(april.getId());
+        }
+
+        @Test
+        void shouldTreatDisabledTimelineTagAsEmpty() {
+                Record record = newRecord(5003L, "disabled-tag-note", RecordStatus.SEALED, RecordType.NODE_RECORD,
+                                LocalDateTime.of(2026, 6, 22, 10, 0, 0));
+                recordMapper.insert(record);
+                long disabledTagId = insertTag("旧标签", "TOPIC", "DISABLED", LocalDateTime.of(2026, 1, 1, 0, 0));
+                bindRecordTag(record.getId(), disabledTagId);
+
+                long total = recordMapper.countTimelineByUserAndCondition(5003L, disabledTagId, null, null);
+                List<Record> timeline = recordMapper.selectTimelinePageByUserAndCondition(
+                                5003L,
+                                disabledTagId,
+                                null,
+                                null,
+                                0,
+                                20);
+
+                assertThat(total).isZero();
+                assertThat(timeline).isEmpty();
         }
 
         @Test
@@ -506,12 +541,27 @@ class RecordMapperIntegrationTest {
                 recordMapper.insert(newRecord(9002L, "other-user-newer", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 5, 2, 10, 0, 0)));
 
-                List<Record> timeline = recordMapper.selectTimelineByUserAndCondition(5002L, null, 2026);
+                LocalDateTime createdFrom = LocalDateTime.of(2026, 1, 1, 0, 0);
+                LocalDateTime createdBefore = LocalDateTime.of(2027, 1, 1, 0, 0);
+                List<Record> firstPage = recordMapper.selectTimelinePageByUserAndCondition(
+                                5002L,
+                                null,
+                                createdFrom,
+                                createdBefore,
+                                0,
+                                1);
+                List<Record> secondPage = recordMapper.selectTimelinePageByUserAndCondition(
+                                5002L,
+                                null,
+                                createdFrom,
+                                createdBefore,
+                                1,
+                                1);
 
-                assertThat(timeline).hasSize(2);
-                assertThat(timeline.get(0).getId()).isEqualTo(second.getId());
-                assertThat(timeline.get(1).getId()).isEqualTo(first.getId());
-                assertThat(timeline).allSatisfy(record -> assertThat(record.getUserId()).isEqualTo(5002L));
+                assertThat(firstPage).extracting(Record::getId).containsExactly(second.getId());
+                assertThat(secondPage).extracting(Record::getId).containsExactly(first.getId());
+                assertThat(firstPage).allSatisfy(item -> assertThat(item.getUserId()).isEqualTo(5002L));
+                assertThat(secondPage).allSatisfy(item -> assertThat(item.getUserId()).isEqualTo(5002L));
         }
 
         private long insertTag(String name, String type, String status, LocalDateTime createdAt) {

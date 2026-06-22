@@ -265,23 +265,40 @@
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
-    <select id="selectTimelineByUserAndCondition" resultMap="RecordResultMap">
-        SELECT
-        <include refid="BaseColumnList"/>
-        FROM `record` r
+    <sql id="TimelineConditions">
         WHERE r.user_id = #{userId}
-        <if test="year != null">
-            AND YEAR(r.created_at) = #{year}
+        <if test="createdFrom != null">
+            AND r.created_at &gt;= #{createdFrom}
+        </if>
+        <if test="createdBefore != null">
+            AND r.created_at &lt; #{createdBefore}
         </if>
         <if test="tagId != null">
             AND EXISTS (
                 SELECT 1
                 FROM record_tag rt
+                INNER JOIN tag t
+                    ON t.id = rt.tag_id
+                   AND t.status = 'ENABLED'
                 WHERE rt.record_id = r.id
                   AND rt.tag_id = #{tagId}
             )
         </if>
+    </sql>
+
+    <select id="countTimelineByUserAndCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM `record` r
+        <include refid="TimelineConditions"/>
+    </select>
+
+    <select id="selectTimelinePageByUserAndCondition" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record` r
+        <include refid="TimelineConditions"/>
         ORDER BY r.created_at DESC, r.id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
 </mapper>

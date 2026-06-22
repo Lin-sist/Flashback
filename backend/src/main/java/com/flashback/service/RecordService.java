@@ -11,9 +11,7 @@ import com.flashback.dto.UpdateRecordRequest;
 import com.flashback.dto.UpdateUnlockReminderAuthorizationRequest;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordListItemVO;
-import com.flashback.vo.TimelineGroupVO;
-
-import java.util.List;
+import com.flashback.vo.TimelinePageVO;
 
 /**
  * 记录模块业务服务。
@@ -45,7 +43,7 @@ public interface RecordService {
 
     PageResult<RecordListItemVO> pageMyUnlocked(Long userId, RecordPageQuery query);
 
-    List<TimelineGroupVO> timeline(Long userId, RecordTimelineQuery query);
+    TimelinePageVO timeline(Long userId, RecordTimelineQuery query);
 
     int runUnlockJob();
 

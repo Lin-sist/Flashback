@@ -50,6 +50,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -583,7 +584,16 @@ class RecordServiceImplTest {
         february.setId(202L);
         february.setCreatedAt(LocalDateTime.of(2026, 2, 10, 11, 0, 0));
 
-        when(recordMapper.selectTimelineByUserAndCondition(1L, null, 2026)).thenReturn(List.of(march, february));
+        LocalDateTime createdFrom = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime createdBefore = LocalDateTime.of(2027, 1, 1, 0, 0);
+        when(recordMapper.countTimelineByUserAndCondition(1L, null, createdFrom, createdBefore)).thenReturn(2L);
+        when(recordMapper.selectTimelinePageByUserAndCondition(
+                1L,
+                null,
+                createdFrom,
+                createdBefore,
+                0,
+                20)).thenReturn(List.of(march, february));
 
         com.flashback.domain.RecordTagName row = new com.flashback.domain.RecordTagName();
         row.setRecordId(201L);
@@ -594,11 +604,55 @@ class RecordServiceImplTest {
         query.setYear(2026);
 
         var timeline = recordService.timeline(1L, query);
-        assertThat(timeline).hasSize(2);
-        assertThat(timeline.get(0).getYearMonth()).isEqualTo("2026-03");
-        assertThat(timeline.get(0).getItems()).hasSize(1);
-        assertThat(timeline.get(0).getItems().get(0).getTagNames()).containsExactly("焦虑");
-        assertThat(timeline.get(1).getYearMonth()).isEqualTo("2026-02");
+        assertThat(timeline.getTotal()).isEqualTo(2L);
+        assertThat(timeline.getPageNum()).isEqualTo(1);
+        assertThat(timeline.getPageSize()).isEqualTo(20);
+        assertThat(timeline.isHasMore()).isFalse();
+        assertThat(timeline.getGroups()).hasSize(2);
+        assertThat(timeline.getGroups().get(0).getYearMonth()).isEqualTo("2026-03");
+        assertThat(timeline.getGroups().get(0).getItems()).hasSize(1);
+        assertThat(timeline.getGroups().get(0).getItems().get(0).getTagNames()).containsExactly("焦虑");
+        assertThat(timeline.getGroups().get(1).getYearMonth()).isEqualTo("2026-02");
+    }
+
+    @Test
+    void shouldResolveExactDayRangeAndHasMore() {
+        LocalDateTime createdFrom = LocalDateTime.of(2026, 6, 22, 0, 0);
+        LocalDateTime createdBefore = LocalDateTime.of(2026, 6, 23, 0, 0);
+        when(recordMapper.countTimelineByUserAndCondition(1L, 12L, createdFrom, createdBefore)).thenReturn(21L);
+        when(recordMapper.selectTimelinePageByUserAndCondition(
+                1L,
+                12L,
+                createdFrom,
+                createdBefore,
+                0,
+                20)).thenReturn(List.of());
+
+        RecordTimelineQuery query = new RecordTimelineQuery();
+        query.setTagId(12L);
+        query.setYear(2026);
+        query.setMonth(6);
+        query.setDay(22);
+
+        var timeline = recordService.timeline(1L, query);
+
+        assertThat(timeline.getTotal()).isEqualTo(21L);
+        assertThat(timeline.isHasMore()).isTrue();
+        assertThat(timeline.getGroups()).isEmpty();
+    }
+
+    @Test
+    void shouldSkipTimelinePageQueryWhenNoRecordsMatch() {
+        when(recordMapper.countTimelineByUserAndCondition(1L, 999L, null, null)).thenReturn(0L);
+
+        RecordTimelineQuery query = new RecordTimelineQuery();
+        query.setTagId(999L);
+
+        var timeline = recordService.timeline(1L, query);
+
+        assertThat(timeline.getTotal()).isZero();
+        assertThat(timeline.getGroups()).isEmpty();
+        verify(recordMapper, never()).selectTimelinePageByUserAndCondition(any(), any(), any(), any(), anyInt(), anyInt());
     }
 
     @Test
