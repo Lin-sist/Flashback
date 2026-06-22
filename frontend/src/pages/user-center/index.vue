@@ -122,8 +122,12 @@ const generateStageSummary = async () => {
         icon: 'none',
       })
     }
-  } catch {
-    uni.showToast({ title: '阶段总结暂时没有生成出来', icon: 'none' })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    uni.showToast({
+      title: /timeout/i.test(message) ? 'AI响应超时，请稍后再试' : '阶段总结暂时没有生成出来',
+      icon: 'none',
+    })
   } finally {
     summaryLoading.value = false
   }

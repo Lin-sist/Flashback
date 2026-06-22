@@ -186,6 +186,34 @@ class AiServiceImplTest {
         assertThat(result.getBeliefThen()).isEqualTo("那时的我以为只要足够快就不会落后");
     }
 
+    @Test
+    void shouldAcceptStageSummaryWhenProviderReturnsSummaryOnly() {
+        AppAiProperties properties = realProviderProperties();
+        AiServiceImpl aiService = new StubAiService(
+                properties,
+                "{\"summary\":\"这一阶段，你在不确定里慢慢确认了自己的方向。\"}",
+                null);
+
+        var result = aiService.generateStageSummary(5001L, "记录总数：3；已抵达：1；人生节点：2。");
+
+        assertThat(result.getSource()).isEqualTo("deepseek");
+        assertThat(result.getStatus()).isEqualTo("SUCCESS");
+        assertThat(result.getSummary()).isEqualTo("这一阶段，你在不确定里慢慢确认了自己的方向。");
+        assertThat(result.getConfusion()).isNull();
+    }
+
+    @Test
+    void shouldReturnFailedStageSummaryWhenProviderCallFails() {
+        AppAiProperties properties = realProviderProperties();
+        AiServiceImpl aiService = new StubAiService(properties, null, new IOException("upstream unavailable"));
+
+        var result = aiService.generateStageSummary(5001L, "阶段记录上下文");
+
+        assertThat(result.getSource()).isEqualTo("deepseek");
+        assertThat(result.getStatus()).isEqualTo("FAILED");
+        assertThat(result.getMessage()).isEqualTo("AI服务暂时不可用");
+    }
+
     private AppAiProperties realProviderProperties() {
         AppAiProperties properties = new AppAiProperties();
         properties.setProvider("deepseek");

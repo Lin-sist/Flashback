@@ -9,6 +9,7 @@ interface RequestOptions {
   method?: HttpMethod
   data?: RequestData
   auth?: boolean
+  timeout?: number
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8080'
@@ -22,7 +23,7 @@ export const httpRequest = <T>(options: RequestOptions): Promise<T> => {
       url: `${API_BASE_URL}${options.url}`,
       method: options.method ?? 'GET',
       data: options.data,
-      timeout: 10000,
+      timeout: options.timeout ?? 10000,
       header: {
         'Content-Type': 'application/json',
         ...(authRequired && token ? { Authorization: `Bearer ${token}` } : {}),

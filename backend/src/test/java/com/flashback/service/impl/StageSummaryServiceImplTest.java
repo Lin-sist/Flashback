@@ -19,8 +19,8 @@ import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +61,7 @@ class StageSummaryServiceImplTest {
         AiSummaryVO unavailable = new AiSummaryVO();
         unavailable.setStatus("UNAVAILABLE");
         unavailable.setMessage("AI服务未配置");
-        when(aiService.summarizeRecord(eq(100L), any())).thenReturn(unavailable);
+        when(aiService.generateStageSummary(eq(100L), anyString())).thenReturn(unavailable);
 
         var result = stageSummaryService.generate(100L);
 
@@ -76,7 +76,7 @@ class StageSummaryServiceImplTest {
         assertThat(result.getSummary()).contains("毕业前的选择");
         assertThat(result.getSummary()).contains("那时的你曾以为");
         assertThat(result.getSummary()).contains("后来你补充了");
-        verify(aiService).summarizeRecord(eq(100L), any());
+        verify(aiService).generateStageSummary(eq(100L), anyString());
     }
 
     @Test
@@ -90,7 +90,7 @@ class StageSummaryServiceImplTest {
         aiSummary.setSummary("这一阶段，你在不确定里慢慢确认了自己的方向。");
         aiSummary.setSource("deepseek");
         aiSummary.setStatus("SUCCESS");
-        when(aiService.summarizeRecord(eq(100L), any())).thenReturn(aiSummary);
+        when(aiService.generateStageSummary(eq(100L), anyString())).thenReturn(aiSummary);
 
         var result = stageSummaryService.generate(100L);
 
@@ -107,7 +107,7 @@ class StageSummaryServiceImplTest {
         when(recordMapper.countByUserAndCondition(100L, null, RecordType.NODE_RECORD, null, null)).thenReturn(0L);
         when(recordMapper.selectPageByUserAndCondition(100L, null, null, null, null, 0, 20))
                 .thenReturn(List.of());
-        when(aiService.summarizeRecord(eq(100L), any())).thenReturn(null);
+        when(aiService.generateStageSummary(eq(100L), anyString())).thenReturn(null);
 
         var result = stageSummaryService.generate(100L);
 

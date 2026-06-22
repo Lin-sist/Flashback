@@ -3,7 +3,6 @@ package com.flashback.service.impl;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
-import com.flashback.dto.AiSummarizeRecordRequest;
 import com.flashback.mapper.RecordMapper;
 import com.flashback.service.AiService;
 import com.flashback.service.StageSummaryService;
@@ -64,11 +63,8 @@ public class StageSummaryServiceImpl implements StageSummaryService {
             long unlockedCount,
             long lifeNodeCount,
             List<Record> recentRecords) {
-        AiSummarizeRecordRequest request = new AiSummarizeRecordRequest();
-        request.setCoreQuestion("请整理这一阶段的记录与抵达，帮助用户理解当时的自己");
-        request.setContent(buildAiContext(recordCount, unlockedCount, lifeNodeCount, recentRecords));
-
-        AiSummaryVO aiSummary = aiService.summarizeRecord(userId, request);
+        String context = buildAiContext(recordCount, unlockedCount, lifeNodeCount, recentRecords);
+        AiSummaryVO aiSummary = aiService.generateStageSummary(userId, context);
         if (aiSummary != null && "SUCCESS".equals(aiSummary.getStatus()) && hasText(aiSummary.getSummary())) {
             vo.setSummary(aiSummary.getSummary());
             vo.setSource(aiSummary.getSource());

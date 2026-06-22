@@ -8,6 +8,8 @@ import com.flashback.dto.AiWritingPromptsRequest;
 import com.flashback.service.AiService;
 import com.flashback.vo.AiSummaryVO;
 import com.flashback.vo.AiWritingPromptsVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,7 @@ import java.util.Map;
 @Service
 public class AiServiceImpl implements AiService {
 
+    private static final Logger log = LoggerFactory.getLogger(AiServiceImpl.class);
     private static final int PROMPT_LIMIT = 3;
     private static final int CONTEXT_PREVIEW_LIMIT = 20;
     private static final String STATUS_SUCCESS = "SUCCESS";
@@ -136,6 +139,57 @@ public class AiServiceImpl implements AiService {
             summary.setStatus(STATUS_SUCCESS);
             return summary;
         } catch (Exception ex) {
+            return failedSummary("AI服务暂时不可用");
+        }
+    }
+
+    @Override
+    public AiSummaryVO generateStageSummary(Long userId, String context) {
+        AppAiProperties.Provider provider = resolveProviderType();
+        if (provider == null) {
+            return unavailableSummary("AI provider配置不支持");
+        }
+        if (provider == AppAiProperties.Provider.MOCK) {
+            if (!appAiProperties.isRealModeMockEnabled()) {
+                return unavailableSummary("AI mock provider未启用");
+            }
+            AiSummaryVO vo = new AiSummaryVO();
+            vo.setSummary("这一阶段留下的记录，正在慢慢形成一条可以回看的线索。");
+            vo.setSource(resolveProvider());
+            vo.setStatus(STATUS_SUCCESS);
+            return vo;
+        }
+
+        String configError = realProviderConfigError();
+        if (configError != null) {
+            return unavailableSummary(configError);
+        }
+
+        long startedAt = System.nanoTime();
+        try {
+            String content = invokeChatCompletion(buildStageSummaryMessages(context));
+            String summary = parseStageSummary(content);
+            if (isBlank(summary)) {
+                log.warn(
+                        "AI provider response invalid: operation=stage-summary provider={} durationMs={}",
+                        resolveProviderSafely(),
+                        elapsedMillis(startedAt));
+                return failedSummary("AI返回内容无效");
+            }
+            AiSummaryVO vo = new AiSummaryVO();
+            vo.setSummary(summary);
+            vo.setSource(resolveProvider());
+            vo.setStatus(STATUS_SUCCESS);
+            return vo;
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            log.warn(
+                    "AI provider call failed: operation=stage-summary provider={} durationMs={} exception={}",
+                    resolveProviderSafely(),
+                    elapsedMillis(startedAt),
+                    ex.getClass().getSimpleName());
             return failedSummary("AI服务暂时不可用");
         }
     }
@@ -276,6 +330,17 @@ public class AiServiceImpl implements AiService {
                 Map.of("role", "user", "content", prompt));
     }
 
+    private List<Map<String, String>> buildStageSummaryMessages(String context) {
+        String prompt = """
+                请根据以下私密阶段记录上下文，生成一段温和、克制的阶段总结，帮助用户理解当时的自己。
+                只输出JSON，格式为{"summary":"..."}，不要输出其他字段或JSON之外的文本。
+                阶段记录上下文：%s
+                """.formatted(firstPresent(context, "这一阶段暂无记录"));
+        return List.of(
+                Map.of("role", "system", "content", "你是《时光回序》的阶段整理助手，不做诊断或评价。"),
+                Map.of("role", "user", "content", prompt));
+    }
+
     protected String invokeChatCompletion(List<Map<String, String>> messages) throws IOException, InterruptedException {
         Map<String, Object> body = Map.of(
                 "model", appAiProperties.getModel().trim(),
@@ -338,6 +403,10 @@ public class AiServiceImpl implements AiService {
         vo.setDesiredOutcome(text(root, "desiredOutcome"));
         vo.setBeliefThen(text(root, "beliefThen"));
         return vo;
+    }
+
+    private String parseStageSummary(String content) throws IOException {
+        return normalizeOptional(objectMapper.readTree(content).path("summary").asText(null));
     }
 
     private String text(JsonNode root, String fieldName) {
@@ -431,6 +500,10 @@ public class AiServiceImpl implements AiService {
         } catch (IllegalArgumentException ex) {
             return "unknown";
         }
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return Duration.ofNanos(System.nanoTime() - startedAt).toMillis();
     }
 
     private boolean isBlank(String value) {

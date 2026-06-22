@@ -13,4 +13,6 @@ public interface AiService {
     AiWritingPromptsVO generateWritingPrompts(Long userId, AiWritingPromptsRequest request);
 
     AiSummaryVO summarizeRecord(Long userId, AiSummarizeRecordRequest request);
+
+    AiSummaryVO generateStageSummary(Long userId, String context);
 }

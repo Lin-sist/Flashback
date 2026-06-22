@@ -3,6 +3,8 @@ import type { AiResultStatus } from './aiService'
 import { hasPreviewSession } from '../features/preview/preview-session'
 import { getToken } from '../utils'
 
+const STAGE_SUMMARY_TIMEOUT_MS = 15000
+
 export interface StageSummaryVO {
   summary: string
   source: string
@@ -22,6 +24,7 @@ export const stageSummaryService = {
     return httpRequest<StageSummaryVO>({
       url: '/api/stage-summaries/generate',
       method: 'POST',
+      timeout: STAGE_SUMMARY_TIMEOUT_MS,
     })
   },
 }
