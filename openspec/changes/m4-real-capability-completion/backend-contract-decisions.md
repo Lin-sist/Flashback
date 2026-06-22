@@ -4,7 +4,7 @@
 
 This document turns M4's backend-facing open questions into accepted implementation contracts.
 
-The user accepted all eight contract assumptions on 2026-06-17. M4 backend implementation agents MUST follow this document unless the user explicitly updates it.
+The user accepted the initial eight contract assumptions on 2026-06-17 and the timeline filtering/pagination contract on 2026-06-22. M4 backend implementation agents MUST follow this document unless the user explicitly updates it.
 
 Status meanings:
 
@@ -41,6 +41,7 @@ Current reference links used for this decision file:
 | Location geocoding | Deferred | Backend geocoding/reverse geocoding is outside M4. Store coordinates/name/address supplied by Mini Program. |
 | Signed media URL expiry | Accepted | Default 600 seconds; make it backend configurable. |
 | Error model | Accepted | Reuse existing `ApiResponse` + HTTP status + current `ErrorCode` style. Add new numeric error codes only if the existing coarse codes cannot express required frontend behavior. |
+| Timeline filtering and pagination | Accepted | Keep `GET /api/records/timeline`; support one tag plus `createdAt` year/month/day filters with AND semantics and return paginated `TimelinePageVO` groups. |
 
 ## AI Provider Contract
 
@@ -415,6 +416,72 @@ Record detail/time review should include `location`.
 
 List/timeline/home MAY include compact `locationLabel` only if UI needs it; time review MUST include full location when present.
 
+## Timeline Filtering And Pagination Contract
+
+### Endpoint And Query
+
+Accepted endpoint:
+
+- `GET /api/records/timeline`
+
+Accepted optional query fields:
+
+- `tagId: Long` — one enabled/shared tag only
+- `year: Integer` — `1970..9999`
+- `month: Integer` — `1..12`; requires `year`
+- `day: Integer` — valid calendar day; requires `year` and `month`
+- `pageNum: Integer` — default `1`, minimum `1`
+- `pageSize: Integer` — default `20`, minimum `1`, maximum `50`
+
+Tag and date filters combine with AND semantics. Multiple `tagId` values and multi-tag ANY/ALL behavior are not part of M4.
+
+`RecordTimelineQuery` MAY reuse the existing `PageQuery` shape, but it MUST enforce the accepted timeline defaults and limits itself. The current global `PageQuery` defaults to `pageSize=10` and allows up to `200`; inheriting those values unchanged does not satisfy this contract. Timeline requests MUST default to `20` and reject values above `50`.
+
+Date filters use record `createdAt` in the `Asia/Shanghai` business timezone. They MUST NOT use `unlockAt`, `sealedAt`, or `unlockedAt`. The service should use the existing `app.time.zone-id`/business clock contract to convert the selected granularity into `LocalDateTime` `[createdFrom, createdBefore)` boundaries; it MUST NOT use the JVM system-default timezone. The mapper then uses range predicates rather than wrapping `created_at` in `YEAR()`, `MONTH()`, or `DAY()` functions.
+
+Invalid month/day dependency or an impossible calendar date returns `40000 BAD_REQUEST`. A syntactically valid but missing, disabled, or non-matching `tagId`, or any valid filter with no matching records, returns a successful empty page without exposing other users' records. Filtering MUST NOT make disabled tags queryable when `/api/tags` only exposes enabled tags.
+
+### Ordering And Pagination
+
+Accepted record ordering:
+
+- `created_at DESC, id DESC`
+
+Pagination is applied to records before grouping. The implementation reuses page-number pagination for consistency with current record-list APIs. Filter changes or reset restart at page 1.
+
+Before adding an index, implementation MUST inspect the current schema/query plan. If required, the smallest expected record traversal index is `(user_id, created_at, id)`; tag filtering should also have an index that supports tag-to-record lookup.
+
+### Response
+
+The existing `ApiResponse` wrapper remains unchanged. `data` becomes `TimelinePageVO`:
+
+```json
+{
+  "groups": [
+    {
+      "yearMonth": "2026-06",
+      "items": []
+    }
+  ],
+  "total": 42,
+  "pageNum": 1,
+  "pageSize": 20,
+  "hasMore": true
+}
+```
+
+Field semantics:
+
+- `groups`: records from the current page grouped by `createdAt` year-month
+- `total`: total matching record count, not group count
+- `pageNum`: applied page number
+- `pageSize`: applied page size
+- `hasMore`: whether another record page exists
+
+A year-month may appear again on a later page when the page boundary splits that month. The Mini Program MUST merge repeated groups and deduplicate items by record id during normal sequential loading.
+
+The backend response change and both real/preview frontend consumers MUST land in the same implementation checkpoint. Do not leave an intermediate state where the backend returns `TimelinePageVO` while the Mini Program still expects `TimelineGroupVO[]`, or vice versa.
+
 ## Record Response Extensions
 
 Accepted additions:
@@ -434,6 +501,14 @@ Accepted additions:
 
 - `cover`
 - optional `locationLabel`
+
+`TimelinePageVO`:
+
+- `groups: List<TimelineGroupVO>`
+- `total: long`
+- `pageNum: int`
+- `pageSize: int`
+- `hasMore: boolean`
 
 Do not embed permanent signed URLs in persisted models. If list/timeline cards need display-ready cover URLs, backend may generate short-lived URLs at response time.
 
@@ -476,5 +551,6 @@ The following decisions were accepted by the user on 2026-06-17:
 7. Backend geocoding and reverse geocoding stay out of M4.
 8. Record create/update payloads remain focused on text fields; location, media, and cover use separate endpoints.
 9. On 2026-06-21 the user replaced the Qiniu-only decision with a configurable provider-neutral contract. Qiniu and S3-compatible providers are accepted; provider-specific features outside the record attachment lifecycle remain out of scope.
+10. On 2026-06-22 the user accepted the timeline filtering and pagination contract: `createdAt` date semantics in `Asia/Shanghai`, one tag at a time, AND composition, `pageNum`/`pageSize`, stable `created_at DESC, id DESC` ordering, and `TimelinePageVO` grouped responses.
 
 Agents MUST NOT reopen these questions during implementation unless new code facts make the accepted contract impossible or unsafe. If that happens, the agent MUST document the blocker and ask before changing this file.

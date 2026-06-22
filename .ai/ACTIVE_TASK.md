@@ -57,6 +57,8 @@ Agents must first:
 - support draft-only voice preview, re-record, and delete behavior
 - support cover selection only from the same record's image attachments
 - show covers on timeline/home cards where applicable
+- complete timeline filtering with one tag plus created-time year/month/day filters
+- paginate timeline records with stable `created_at DESC, id DESC` ordering and grouped page responses
 - show location in time review after unlock
 - freeze location, attachments, and cover after record seal
 - keep preview mode available but isolated from authenticated real user paths
@@ -75,6 +77,8 @@ Agents must first:
 - Sealed and unlocked records cannot delete or modify location, attachments, or cover.
 - Settings page work is deferred outside M4.
 - Voice transcription and voice AI analysis are outside M4.
+- Timeline filtering uses `createdAt` in the `Asia/Shanghai` business timezone, supports one tag at a time, and combines tag/date conditions with AND semantics.
+- Timeline pagination uses the existing `/api/records/timeline` endpoint and the accepted `TimelinePageVO` response contract.
 
 ## Out Of Scope
 
@@ -159,6 +163,7 @@ For integration-specific behavior:
 - verify configured-provider upload authorization, object existence verification, signed URL/media access, image preview, and voice playback
 - verify attachment and location immutability after seal
 - verify preview mode remains isolated
+- verify timeline single-tag and year/month/day filters, pagination, stable ordering, safe empty results, and preview parity
 - record all manual verification evidence in `.ai/AGENT_LOG.md`
 
 For documentation-only changes:

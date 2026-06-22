@@ -141,6 +141,46 @@ Timeline and home record cards SHALL show the selected cover when available in r
 - THEN the Mini Program SHALL show a safe fallback visual
 - AND it SHALL NOT substitute unrelated preview media
 
+### Requirement: M4 Timeline Must Provide Calm Filtered Browsing
+
+The Mini Program SHALL support focused timeline filtering without turning the page into a dashboard or general-purpose search surface.
+
+#### Scenario: User applies filters
+
+- GIVEN the user opens the timeline filter sheet
+- WHEN the user selects at most one tag and a year, month, or exact day and applies the filter
+- THEN the Mini Program SHALL request page 1 using the accepted tag/date query
+- AND tag and date selections SHALL combine with AND semantics
+- AND the page SHALL show a compact applied-filter summary
+
+#### Scenario: User resets filters
+
+- GIVEN timeline filters are active
+- WHEN the user resets them
+- THEN the Mini Program SHALL clear tag/date selections
+- AND restart unfiltered timeline loading from page 1
+
+#### Scenario: User loads more records
+
+- GIVEN the current timeline page reports `hasMore`
+- WHEN the user reaches the load-more boundary
+- THEN the Mini Program SHALL request the next page
+- AND merge repeated year-month groups without duplicate record ids
+
+#### Scenario: Filtered result is empty or fails
+
+- GIVEN the user applies a valid filter
+- WHEN no records match or the request fails
+- THEN the Mini Program SHALL distinguish a filtered empty state from a retryable request failure
+- AND it SHALL NOT replace real data with preview records
+
+#### Scenario: Preview timeline is filtered
+
+- GIVEN the user explicitly entered preview mode
+- WHEN the user applies or resets timeline filters or loads another page
+- THEN preview data SHALL follow the same query and pagination semantics
+- AND preview state SHALL remain isolated from authenticated real mode
+
 ### Requirement: M4 Time Review Must Show Real Location And Media
 
 Time review SHALL show real location and media for unlocked records when present.

@@ -4517,4 +4517,84 @@ backend/src/main/resources/application.yml         |  1 +
 - 仅修正了小程序录音完上传文件时的参数大小获取逻辑，完全不影响核心数据库模型、API 接口定义以及其他附件上传校验的主干。
 - **验证限制**：实际文件上传及 OSS 端的大小匹配流程，需要开发者在微信开发者工具或真机中录制一段语音，走真实的“生成 Token -> 直传 -> 提交校验”流程。
 
+## 2026-06-22 M4 timeline filtering and pagination contract update
 
+### User-confirmed decision
+
+- The user accepted the recommended M4 timeline filtering plan before implementation.
+- Date filtering uses record `createdAt` in the `Asia/Shanghai` business timezone.
+- Timeline supports one tag at a time; tag and date conditions use AND semantics.
+- Date granularity is year, month, or exact day; month requires year and day requires year/month.
+- `GET /api/records/timeline` remains the endpoint and returns `TimelinePageVO` inside the existing `ApiResponse` wrapper.
+- Pagination defaults to 20 records, caps page size at 50, and uses stable `created_at DESC, id DESC` ordering.
+- Multiple-tag boolean logic, keyword search, record state/type filtering, and persisted filter preferences remain outside this M4 addition.
+
+### Documentation changes
+
+- Updated `.ai/ACTIVE_TASK.md` with timeline filtering, pagination, preview parity, and verification focus.
+- Updated M4 `proposal.md` with the partial-current-state problem, P1 scope, acceptance criteria, and implementation order.
+- Updated M4 `design.md` with filter-sheet UX, date semantics, record-level pagination, month-group merge, preview behavior, index audit, and verification expectations.
+- Updated `backend-contract-decisions.md` with the accepted endpoint/query/validation/ordering/`TimelinePageVO` response contract.
+- Added a dedicated unchecked implementation and verification section to `tasks.md`; only fact confirmation and contract documentation tasks are marked complete.
+- Added backend-core, miniapp-core, and v2-product-scope delta requirements for owner-scoped filtering, pagination, calm UI behavior, empty/error states, and scope deferrals.
+
+### Verification
+
+- `git diff --check`: PASS.
+- Cross-document keyword audit: PASS for `TimelinePageVO`, `createdAt`, `Asia/Shanghai`, one-tag scope, AND semantics, and `created_at DESC, id DESC` ordering.
+- Task numbering audit: PASS; sections now run from 0 through 14 without duplicates.
+- OpenSpec CLI validation: NOT RUN because `openspec` is not available in PATH in this workspace; checked-in artifacts were reviewed directly.
+- Backend/frontend tests and Mini Program build: NOT RUN because this turn changed documentation only and intentionally did not implement the feature.
+
+### Scope safety and remaining risks
+
+- No backend, frontend, schema, dependency, package, lockfile, deployment, monitoring, admin, settings, notification, or AI behavior was changed.
+- Existing backend `year + tagId` support and frontend year-only panel remain partial code facts; the newly added tasks are not implemented yet.
+- Implementation must inspect current database indexes/query plans before adding a migration and must preserve the explicit preview/real-data boundary.
+- The unrelated untracked `.claude/settings.local.json` file was not modified.
+
+## 2026-06-22 M4 timeline filtering pre-implementation audit
+
+### Result
+
+- **GO** for formal implementation. No unresolved user contract decision or architectural blocker remains.
+- This audit did not implement backend/frontend/schema behavior. It strengthened only implementation guardrails in `backend-contract-decisions.md`, `design.md`, and `tasks.md`.
+
+### Current-code classification
+
+- **Confirmed**:
+  - `GET /api/records/timeline` is authenticated and owner-scoped.
+  - Backend already accepts `year + tagId`, returns stable `created_at DESC, id DESC` ordering, groups by year-month, and includes tag names/cover metadata.
+  - `/api/tags` exposes enabled shared tags; Preview seeds already contain `tagIds` and preview tag definitions.
+  - `app.time.zone-id` defaults to `Asia/Shanghai`, the backend provides a business `Clock`, tests assert that zone, and the dev JDBC URL sets `serverTimezone=Asia/Shanghai`.
+  - Existing schemas contain `idx_record_user_status_created`, record user/status indexes, and record-tag indexes.
+- **Partial**:
+  - Backend date filtering still uses `YEAR(created_at)` and returns the full matching `List<TimelineGroupVO>` without count/page metadata.
+  - Frontend exposes only a free-form year field and replaces the full group list on each request.
+  - Preview timeline filters by year only and returns `TimelineGroupVO[]`; it does not yet apply `tagId` or pagination.
+- **Planned**: month/day validation, created-time range predicates, enabled-tag filtering, `TimelinePageVO`, index/query-plan decision, filter-sheet completion, request race protection, load-more merge, preview parity, and manual WeChat verification.
+- **Out of scope**: multiple-tag boolean logic, keyword/state/type filters, persisted filter preferences, dashboard redesign, package/lockfile changes, and unrelated platform work.
+
+### Drift risks closed in documentation
+
+- The generic `PageQuery` currently defaults to `pageSize=10` and allows `200`; timeline implementation must enforce accepted `20`/`50` values rather than inherit those unchanged.
+- Missing or disabled tags must return a safe empty page and must not become queryable when the tag catalog exposes enabled tags only.
+- Date boundaries must use the existing business-time contract and `LocalDateTime` range values, never the JVM system-default timezone.
+- Backend, real frontend, and Preview response-shape changes must land atomically to avoid `TimelinePageVO` versus `TimelineGroupVO[]` incompatibility.
+- Frontend must separate draft/applied filters, isolate tag-list failure, suppress duplicate load-more calls, and ignore stale responses so old data is never mislabeled or allowed to overwrite a newer filter.
+- No new frontend test framework or dependency is justified for this feature; use existing checks plus focused helper checks/manual evidence.
+
+### Verification evidence
+
+- Existing focused backend timeline baseline: PASS with `RecordMapperIntegrationTest`, `RecordServiceImplTest`, and `RecordControllerAuthIntegrationTest`.
+- Full backend suite: PASS, 27 suites / 196 tests / 0 failures / 0 errors / 0 skipped.
+- Frontend type-check: PASS with bundled Node and `vue-tsc --noEmit`.
+- WeChat Mini Program build: PASS with bundled Node and `uni build -p mp-weixin`; output reported `DONE Build complete`.
+- Contract-language audit: PASS; no timeline `Open`, `Pending`, `TBD`, `TODO`, or `待确认` decision remains.
+- `git diff --check`: PASS before final handoff.
+
+### Skipped verification and remaining risks
+
+- MySQL `EXPLAIN` against production-scale data was not run because the implementation query and optional index migration do not exist yet. Static schema audit shows no dedicated `(user_id, created_at, id)` index; the implementation Agent must run/record a query-plan comparison before adding the smallest justified index to both MySQL and test schemas.
+- Manual WeChat filter interaction was not run because the feature is not implemented yet.
+- Existing build warning `os - Alias not found` remains non-fatal; build completed successfully and this audit did not change build tooling.

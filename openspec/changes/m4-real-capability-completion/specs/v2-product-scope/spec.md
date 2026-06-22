@@ -79,3 +79,14 @@ M4 SHALL keep the V2.0 Mini Program oriented around private writing and time rev
 - THEN it SHALL remain quiet, private, and user-centered
 - AND it SHALL preserve canonical naming such as "我的记录", "时光轴", and "时间回看"
 - AND it SHALL NOT turn the product into a dashboard, social feed, content platform, or admin workflow
+
+### Requirement: M4 Timeline Filtering Must Remain Focused
+
+M4 SHALL improve timeline browsing for larger personal record collections through focused filters and incremental loading.
+
+#### Scenario: Timeline filtering scope is implemented
+
+- WHEN timeline filtering is added
+- THEN it SHALL support one tag plus created-time year/month/day selection and pagination
+- AND it SHALL preserve the timeline's quiet browsing role
+- AND multiple-tag boolean search, keyword search, state/type filtering, and persisted filter preferences SHALL remain outside this M4 addition

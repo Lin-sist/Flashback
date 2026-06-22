@@ -167,3 +167,35 @@ The backend SHALL support record location through current location, map picker, 
 - WHEN the record has location
 - THEN the backend SHALL return location data needed for the Mini Program to display it
 - AND it SHALL remain scoped to the record owner
+
+### Requirement: M4 Timeline Must Support Focused Filtering And Pagination
+
+The backend SHALL provide owner-scoped timeline filtering by one tag and record creation year/month/day, with stable record-level pagination.
+
+#### Scenario: User filters by tag and date
+
+- GIVEN an authenticated user requests timeline records with a valid `tagId` and valid year/month/day granularity
+- WHEN matching records exist
+- THEN the backend SHALL return only that user's records matching both the tag and created-time range
+- AND date filtering SHALL use `createdAt` in the `Asia/Shanghai` business timezone
+
+#### Scenario: Timeline records are paginated
+
+- GIVEN more records match than the requested page size
+- WHEN the user requests a timeline page
+- THEN records SHALL be ordered by `created_at DESC, id DESC`
+- AND pagination SHALL be applied before records are grouped by year-month
+- AND `TimelinePageVO` SHALL expose groups, record-level total, page number, page size, and `hasMore`
+
+#### Scenario: Date filter is invalid
+
+- GIVEN month is supplied without year, day is supplied without year/month, or the selected calendar date is impossible
+- WHEN the timeline request is validated
+- THEN the backend SHALL reject it with explicit bad-request behavior
+
+#### Scenario: Valid filter has no matches
+
+- GIVEN a valid tag/date filter has no matching user-owned records
+- WHEN the backend responds
+- THEN it SHALL return a successful empty `TimelinePageVO`
+- AND it SHALL NOT expose whether another user has matching records

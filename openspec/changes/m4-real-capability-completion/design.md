@@ -14,7 +14,7 @@ real login
   -> save or seal
   -> unlock when time arrives
   -> review original content, location, media, "你当时以为", and "后来其实"
-  -> browse timeline/home cards with real cover and status data
+  -> browse and filter paginated timeline/home cards with real cover and status data
 ```
 
 ## Product Principles
@@ -27,6 +27,7 @@ M4 prioritizes core capability completion:
 - Location actually persists and displays.
 - Images and voice actually upload, persist, preview, and play.
 - Timeline/home/time review surfaces use real backend data in authenticated mode.
+- Timeline filtering remains a calm browsing aid: one tag, created-time year/month/day granularity, and incremental loading rather than dashboard-style search controls.
 
 Settings, admin features, observability, deployment hardening, and visual polish are deferred.
 
@@ -240,6 +241,7 @@ Recommended API groups:
 - attachment delete for draft only
 - media signed URL retrieval
 - cover update for draft only
+- timeline query with single-tag/date filters and record-level pagination
 
 The implementation should prefer existing controller/service patterns over introducing a new architecture.
 
@@ -274,6 +276,47 @@ Timeline/home cards should use real record data in authenticated mode:
 - safe fallback visual when no cover exists
 
 Preview mode may still show curated demo cards, but only inside explicit preview mode.
+
+### Timeline Filtering And Pagination
+
+The existing timeline filter entry should become a restrained filter sheet rather than a broad search console.
+
+Filter controls:
+
+- a single-select tag section backed by the existing enabled tag list
+- a date-granularity choice for all dates, year, month, or exact day
+- a native or equivalent date selector appropriate to the chosen granularity
+- explicit reset and apply actions
+- a compact applied-filter summary near the timeline heading
+
+The filter sheet should keep editable/draft selections separate from applied selections. Closing the sheet without applying does not reload data. A failed page-1 request must not label old timeline data with new filters; only commit the applied summary and replace current groups after the new request succeeds.
+
+Tag options come from the existing enabled tag endpoint. Tag-list failure should show a local retry/unavailable state inside the filter sheet while still allowing unfiltered or date-only timeline browsing; it must not turn a successful timeline request into a page-level failure.
+
+Accepted date semantics:
+
+- timeline dates refer to record `createdAt`, not `unlockAt`, `sealedAt`, or `unlockedAt`
+- year is required before month, and year/month are required before day
+- date boundaries use the `Asia/Shanghai` business timezone
+- backend queries should translate year/month/day into an indexed `[start, end)` created-time range rather than applying `YEAR()`/`MONTH()`/`DAY()` functions to every row
+
+Accepted pagination behavior:
+
+- `pageNum` defaults to 1
+- `pageSize` defaults to 20 and is capped at 50
+- records are ordered by `created_at DESC, id DESC`
+- pagination is applied to records before records are grouped into `TimelineGroupVO` values
+- `TimelinePageVO` returns groups plus record-level `total`, `pageNum`, `pageSize`, and `hasMore`
+- changing or resetting filters clears loaded pages and requests page 1
+- loading a later page merges a repeated year-month group into the existing group and deduplicates by record id
+- only one page request may mutate timeline state at a time; repeated scroll-bottom events must not request the same page twice
+- stale responses from a previous filter/page request must be ignored so they cannot overwrite newer applied filters
+
+Single tag and date conditions use AND semantics. Multiple-tag boolean logic, keyword search, state/type filtering, and persisted filter preferences are intentionally deferred.
+
+Preview mode should implement the same query semantics and response shape using preview data. Authenticated real mode must continue to call the backend.
+
+The response-shape change should be atomic across backend, real-mode service/types/page state, and preview data. Existing cover loading should receive only the newly accepted page items when appending.
 
 ### Time Review
 
@@ -320,11 +363,15 @@ M4 implementation should verify:
 12. draft location edit/delete behavior
 13. sealed/unlocked location mutation rejection
 14. real-mode timeline/home card data without preview fallback
-15. preview mode still works when explicitly entered
-16. time review displays unlocked record location/media correctly
-17. backend tests or focused integration tests where practical
-18. frontend type-check and Mini Program build where feasible
-19. manual WeChat Developer Tools verification for media/location flows
+15. single-tag and created-time year/month/day filters use AND semantics
+16. invalid date combinations fail explicitly and valid no-match filters return a safe empty page
+17. paginated timeline ordering remains `created_at DESC, id DESC`, repeated month groups merge correctly, and no records duplicate during normal sequential loading
+18. preview timeline filtering and pagination match real-mode semantics without crossing the preview boundary
+19. preview mode still works when explicitly entered
+20. time review displays unlocked record location/media correctly
+21. backend tests or focused integration tests where practical
+22. frontend type-check and Mini Program build where feasible
+23. manual WeChat Developer Tools verification for media/location/timeline-filter flows
 
 All implementation notes, verification evidence, skipped verification reasons, and manual verification results must be written to `.ai/AGENT_LOG.md`.
 
@@ -352,3 +399,5 @@ The current M4 limits are intentionally conservative:
 - 300 MB per record
 
 If Mini Program performance or storage behavior shows these limits are too high, implementation should record evidence and propose a spec update before changing accepted limits.
+
+Timeline implementation should avoid loading every matching record. Before adding schema changes, it should audit whether indexes support `(user_id, created_at, id)` record traversal and tag-to-record filtering; add only the smallest missing index justified by the query plan.

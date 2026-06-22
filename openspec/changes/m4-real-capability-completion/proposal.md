@@ -24,6 +24,7 @@ The user has confirmed these M4 decisions:
 - A record cover may be selected from existing image attachments only.
 - Sealed and unlocked records are immutable: attachments, location, and cover cannot be deleted or changed after sealing.
 - Location is shown in time review after unlock.
+- Timeline filtering uses one tag plus created-time year/month/day filters, combines conditions with AND semantics, and paginates records without changing the quiet timeline presentation.
 - Settings page work is out of M4 scope.
 
 ## Problem
@@ -35,6 +36,7 @@ Several visible M3 surfaces still behave like placeholders or partial demo surfa
 3. Timeline and home review cards can still rely on static or preview-like data in real paths.
 4. Record data contracts do not yet persist location, media attachments, signed media access, or cover selection.
 5. Preview data is useful for demos, but its boundary must be explicit so real users do not receive mock success.
+6. Timeline filtering is only partially surfaced: the backend already accepts year and single-tag conditions, but the Mini Program exposes only a free-form year input, does not support month/day selection, and loads the complete matching timeline without pagination.
 
 If these gaps remain, the Mini Program can look complete while still failing the user's expectation that all core functions are actually usable.
 
@@ -56,6 +58,8 @@ M4 SHALL make the user-facing Mini Program core capabilities real and verifiable
 12. Separate preview/mock data from authenticated real user paths.
 13. Make home review cards and time review surfaces backend-backed in real mode.
 14. Keep V2.0 naming and the quiet, private, time-oriented product intention.
+15. Complete timeline filtering with one tag and created-time year/month/day granularity.
+16. Paginate timeline records with stable ordering and grouped responses suitable for incremental Mini Program loading.
 
 ## Non-Goals
 
@@ -159,6 +163,21 @@ M4 includes a real-path mock cleanup:
 - time review MUST use backend-backed record detail, attachments, cover, location, and reflection data
 - AI fallback MUST not pretend to be a successful real provider response
 
+### P1: Timeline Filtering And Pagination
+
+M4 includes a focused timeline browsing contract for users whose records have grown beyond a single short list:
+
+- filter by one enabled/shared tag at a time
+- filter by record creation year, month, or exact date
+- combine tag and date filters with AND semantics
+- interpret date filters against `createdAt` in the `Asia/Shanghai` business timezone
+- paginate matching records with stable `created_at DESC, id DESC` ordering
+- preserve backend-provided year-month groups while incrementally loading and merging pages
+- return safe empty results for valid filters with no matches
+- keep preview-mode filtering behavior aligned with authenticated real mode
+
+Multiple-tag boolean logic, keyword search, record-type/status filters, and persisted filter preferences remain outside this M4 addition.
+
 ### P2: Mini Program UX Completion
 
 M4 frontend work focuses on functional completion rather than visual redesign:
@@ -170,6 +189,7 @@ M4 frontend work focuses on functional completion rather than visual redesign:
 - timeline/home cover display
 - time review location, image preview, and voice playback
 - loading, error, retry, and upload-progress states where they affect usability
+- a restrained timeline filter sheet, applied-filter summary, filtered empty state, and load-more state
 
 ## Acceptance Criteria
 
@@ -195,6 +215,11 @@ M4 is accepted when:
 18. WeChat Mini Program build passes where feasible.
 19. Backend tests or focused verification cover AI configuration, attachment limits, provider routing/object verification, ownership, immutability, and location behavior.
 20. Manual Mini Program verification evidence is recorded in `.ai/AGENT_LOG.md`.
+21. Timeline supports one-tag and created-time year/month/day filters with AND semantics.
+22. Timeline results use `TimelinePageVO`, default to 20 records per page, cap page size at 50, and retain stable `created_at DESC, id DESC` ordering.
+23. Applying or resetting a timeline filter restarts pagination; loading later pages merges repeated year-month groups without duplicate records.
+24. Valid filters with no matches return a safe empty state, while invalid date combinations return explicit validation errors.
+25. Explicit preview mode supports the same timeline filter and pagination semantics without leaking preview data into authenticated real mode.
 
 ## Recommended Implementation Order
 
@@ -206,6 +231,7 @@ M4 is accepted when:
 6. Implement attachment metadata APIs and immutable lifecycle rules.
 7. Implement location schema/APIs and immutable lifecycle rules.
 8. Implement cover selection and timeline/home display contracts.
-9. Connect Mini Program location, image, voice, and cover flows.
-10. Clean real-path mock usage while preserving explicit preview mode.
-11. Run backend tests, frontend type-check/build, Mini Program build, and manual end-to-end verification.
+9. Implement the accepted timeline filter and pagination contract.
+10. Connect Mini Program location, image, voice, cover, and timeline filter flows.
+11. Clean real-path mock usage while preserving explicit preview mode.
+12. Run backend tests, frontend type-check/build, Mini Program build, and manual end-to-end verification.

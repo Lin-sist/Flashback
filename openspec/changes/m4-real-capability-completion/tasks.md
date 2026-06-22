@@ -48,7 +48,7 @@
 - [x] Implement accepted media signed URL expiry policy.
 - [x] Implement accepted cover update API path and DTO.
 - [x] Implement accepted frontend-visible upload, verification, and media error states.
-- [ ] Record any decision changes in `backend-contract-decisions.md` before implementation.
+- [x] Record the accepted 2026-06-22 timeline filter/pagination decision in `backend-contract-decisions.md` before implementation.
 
 ## 3. Backend Phase: Real AI Provider
 
@@ -172,7 +172,31 @@
 - [x] Add safe empty/loading/error states for real-mode data failures.
 - [ ] Verify preview mode still works after mock-boundary changes.
 
-## 12. Integration and Verification
+## 12. Timeline Filtering And Pagination
+
+- [x] Confirm the current backend already supports partial `year + tagId` filtering and the frontend currently exposes only year input.
+- [x] Record accepted `createdAt`, single-tag, AND-composition, pagination, ordering, timezone, and response-shape decisions in M4 documents.
+- [x] Verify the existing focused backend timeline tests, frontend type-check, and Mini Program build are green before implementation.
+- [x] Confirm current schemas have user/status/created and record-tag indexes but no dedicated `(user_id, created_at, id)` timeline traversal index.
+- [ ] Extend `RecordTimelineQuery` with validated `month`, `day`, `pageNum`, and `pageSize` fields; enforce timeline default `20` and maximum `50` instead of inheriting global `PageQuery` values `10`/`200` unchanged.
+- [ ] Convert year/month/day through the existing `app.time.zone-id` business-time contract into `LocalDateTime` `[createdFrom, createdBefore)` boundaries and reject invalid dependency/calendar combinations without using the JVM default timezone.
+- [ ] Replace function-wrapped date filtering with created-time range predicates.
+- [ ] Add record-level count/page mapper behavior with `created_at DESC, id DESC` ordering, user ownership scope, and enabled-tag-only filtering.
+- [ ] Audit query plans/indexes and add only the smallest required record/tag index if current schema is insufficient.
+- [ ] Return `TimelinePageVO` with grouped current-page records, record-level total, page metadata, and `hasMore`.
+- [ ] Add backend tests for tag/date AND filtering, date validation, safe empty results, user scope, stable ordering, grouping, and pagination boundaries.
+- [ ] Replace the free-form year-only Mini Program panel with single-tag and year/month/day controls plus reset/apply actions.
+- [ ] Keep draft filter selections separate from applied filters; cancel changes nothing and a failed page-1 request keeps the old data/filter summary aligned.
+- [ ] Handle tag-list loading/failure inside the filter sheet without blocking unfiltered or date-only timeline browsing.
+- [ ] Reset to page 1 when filters change and merge later-page month groups without duplicate record ids.
+- [ ] Guard duplicate load-more requests and ignore stale responses from superseded filter/page requests.
+- [ ] Preserve loading, stale-data retry, filtered empty, load-more, and load-more failure states.
+- [ ] Update backend response, real frontend types/service/page, and preview timeline data in one checkpoint so all consumers match `TimelinePageVO` pagination semantics.
+- [ ] Add focused frontend checks for query construction, filter reset, group merge, and preview parity where practical.
+- [ ] Do not add a frontend test framework or modify package/lockfiles solely for this feature; use existing checks plus type-check/build/manual evidence when no focused runner exists.
+- [ ] Manually verify single-tag, year, month, day, combined filter, reset, empty result, and incremental loading in WeChat Developer Tools.
+
+## 13. Integration and Verification
 
 - [x] Run focused backend tests where practical.
 - [x] Run full backend test suite when feasible.
@@ -187,9 +211,10 @@
 - [ ] Verify timeline/home cover display.
 - [ ] Verify unlocked time review displays location, image, voice, and M3 reflection data.
 - [ ] Verify preview mode remains explicitly isolated and functional.
+- [ ] Verify timeline single-tag/date filters, stable pagination, month-group merge, safe empty results, and preview parity.
 - [x] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
 
-## 13. Final Review
+## 14. Final Review
 
 - [x] Confirm M4 did not implement settings page work.
 - [x] Confirm M4 did not add admin, production deployment, monitoring, SMS, notification center, campaign delivery, social feed, or H5/Web acceptance scope.
@@ -201,4 +226,5 @@
 - [x] Confirm cover comes only from same-record image attachments.
 - [x] Confirm voice is stored as raw audio only with no transcription.
 - [x] Confirm V2.0 visible naming remains "我的记录", "时光轴", and "时间回看".
+- [ ] Confirm timeline filtering remains limited to one tag plus created-time year/month/day and does not expand into dashboard-style advanced search.
 - [ ] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.
