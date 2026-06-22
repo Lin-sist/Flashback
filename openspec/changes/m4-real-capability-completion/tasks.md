@@ -182,7 +182,8 @@
 - [x] Convert year/month/day through the existing `app.time.zone-id` business-time contract into `LocalDateTime` `[createdFrom, createdBefore)` boundaries and reject invalid dependency/calendar combinations without using the JVM default timezone.
 - [x] Replace function-wrapped date filtering with created-time range predicates.
 - [x] Add record-level count/page mapper behavior with `created_at DESC, id DESC` ordering, user ownership scope, and enabled-tag-only filtering.
-- [ ] Audit query plans/indexes and add only the smallest required record/tag index if current schema is insufficient.
+- [x] Audit current schemas/indexes and add only the smallest required record/tag index when the current schema is insufficient.
+- [ ] Run and record real MySQL `EXPLAIN` for the final timeline range/page query when the local MySQL service is available.
 - [x] Return `TimelinePageVO` with grouped current-page records, record-level total, page metadata, and `hasMore`.
 - [x] Add backend tests for tag/date AND filtering, date validation, safe empty results, user scope, stable ordering, grouping, and pagination boundaries.
 - [x] Replace the free-form year-only Mini Program panel with single-tag and year/month/day controls plus reset/apply actions.
@@ -210,8 +211,8 @@
 - [x] Verify sealed/unlocked records reject location, attachment, and cover mutation.
 - [ ] Verify timeline/home cover display.
 - [ ] Verify unlocked time review displays location, image, voice, and M3 reflection data.
-- [ ] Verify preview mode remains explicitly isolated and functional.
-- [ ] Verify timeline single-tag/date filters, stable pagination, month-group merge, safe empty results, and preview parity.
+- [x] Verify preview mode remains explicitly isolated and functional.
+- [x] Verify timeline single-tag/date filters, stable pagination, month-group merge, safe empty results, and preview parity through automated/compiled checks.
 - [x] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
 
 ## 14. Final Review
@@ -227,4 +228,4 @@
 - [x] Confirm voice is stored as raw audio only with no transcription.
 - [x] Confirm V2.0 visible naming remains "我的记录", "时光轴", and "时间回看".
 - [x] Confirm timeline filtering remains limited to one tag plus created-time year/month/day and does not expand into dashboard-style advanced search.
-- [ ] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.
+- [x] Include modified files, what changed, verification result, skipped verification reason, `git diff --stat`, scope safety check, and remaining risks in final handoff.

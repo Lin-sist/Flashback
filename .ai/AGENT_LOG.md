@@ -4653,3 +4653,25 @@ backend/src/main/resources/application.yml         |  1 +
 - Manual WeChat Developer Tools interaction remains NOT RUN: tag/year/month/day selection, combined filtering, reset, failed apply preserving old data, repeated scroll loading, and Preview parity require interactive verification after importing `frontend/dist/build/mp-weixin`.
 - Real authenticated end-to-end HTTP verification remains blocked while local MySQL80 cannot be started by this session; backend integration tests cover the contract against H2.
 - The existing non-fatal build message `os - Alias not found` remains; the build completed successfully and no package/lockfile was changed.
+
+## 2026-06-22 M4 timeline filtering closeout verification
+
+### Automated and compiled verification
+
+- Backend full suite remains PASS after timeline implementation: 27 suites / 202 tests / 0 failures / 0 errors / 0 skipped.
+- Frontend type-check: PASS.
+- Default WeChat Mini Program build: PASS.
+- Explicit Preview-mode WeChat Mini Program build: PASS.
+- Rebuilt the default Mini Program output after Preview verification so `frontend/dist/build/mp-weixin` is left in the normal handoff state.
+- Executed the compiled Preview `getPreviewTimeline` function in a read-only Node VM harness:
+  - `tagId=2 + year=2026` -> total 2, ids 101/201.
+  - `tagId=3 + 2026-03-08` -> total 1, id 201.
+  - unknown `tagId=999` -> successful empty page.
+  - `pageNum=2 + pageSize=2` -> total 5, ids 202/302, `hasMore=true`.
+- Generated WXML/JS inspection confirmed tag/date controls, apply/reset, scroll-bottom binding, page query construction, loading-more/retry states, request sequencing, and canonical navigation.
+- Final tracked worktree audit found no package/lockfile, deployment, monitoring, admin, settings, notification, speech-to-text, or unrelated feature changes.
+
+### Remaining manual/external verification
+
+- Real MySQL `EXPLAIN` remains pending because `MySQL80` is stopped and this session cannot open/start the Windows service. Run the recorded migration, then compare the range/page query plan and confirm `idx_record_user_created_id` is selected or otherwise justified.
+- WeChat Developer Tools interaction remains pending for tag/year/month/day/combined filters, reset, empty results, failed apply preserving old data, repeated load-more, cover display, and explicit Preview-mode parity.
