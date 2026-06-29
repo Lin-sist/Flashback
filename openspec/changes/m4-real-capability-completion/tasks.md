@@ -130,7 +130,7 @@
 - [x] Show explicit unavailable/failed state when AI is not configured or provider call fails.
 - [x] Do not show mock AI output in authenticated real mode.
 - [x] Keep original content visible and unchanged after AI organization.
-- [ ] Verify real AI flow with configured provider where available.
+- [x] Verify real AI flow with configured provider where available.
 
 ## 9. Frontend Phase: Location
 
@@ -142,7 +142,7 @@
 - [x] Show read-only location after seal/unlock where applicable.
 - [x] Show location in time review after unlock.
 - [x] Handle permission denial and unavailable location services without blocking record editing.
-- [ ] Verify Mini Program location behavior manually where automation is not practical.
+- [x] Verify Mini Program location behavior manually where automation is not practical.
 
 ## 10. Frontend Phase: Images, Voice, and Cover
 
@@ -160,7 +160,7 @@
 - [x] Prevent cover selection when no image attachment exists.
 - [x] Show cover on timeline/home cards when available.
 - [x] Show attachments as read-only after seal/unlock.
-- [ ] Verify media flow manually in WeChat Developer Tools where automation is not practical.
+- [x] Verify media flow manually in WeChat Developer Tools where automation is not practical.
 
 ## 11. Frontend Phase: Mock Boundary and Real Data Surfaces
 
@@ -170,7 +170,7 @@
 - [x] Replace hard-coded home review countdown/card data with backend-backed real-mode data.
 - [x] Ensure time review uses backend-backed detail, attachments, location, and cover in real mode.
 - [x] Add safe empty/loading/error states for real-mode data failures.
-- [ ] Verify preview mode still works after mock-boundary changes.
+- [x] Verify preview mode still works after mock-boundary changes.
 
 ## 12. Timeline Filtering And Pagination
 
@@ -195,7 +195,7 @@
 - [x] Update backend response, real frontend types/service/page, and preview timeline data in one checkpoint so all consumers match `TimelinePageVO` pagination semantics.
 - [x] Add focused frontend checks for query construction, filter reset, group merge, and preview parity where practical.
 - [x] Do not add a frontend test framework or modify package/lockfiles solely for this feature; use existing checks plus type-check/build/manual evidence when no focused runner exists.
-- [ ] Manually verify single-tag, year, month, day, combined filter, reset, empty result, and incremental loading in WeChat Developer Tools.
+- [x] Manually verify single-tag, year, month, day, combined filter, reset, empty result, and incremental loading in WeChat Developer Tools.
 
 ## 13. Integration and Verification
 
@@ -204,13 +204,13 @@
 - [x] Run frontend type-check when feasible.
 - [x] Run Mini Program build when feasible.
 - [x] Verify no tracked AI or object-storage secrets are committed.
-- [ ] Verify real AI configured success path where provider credentials are available.
+- [x] Verify real AI configured success path where provider credentials are available.
 - [x] Verify AI missing-config/failure path.
-- [ ] Verify configured-provider upload, object verification, signed URL, image preview, and voice playback.
+- [x] Verify configured-provider upload, object verification, signed URL, image preview, and voice playback.
 - [x] Verify attachment limit errors and record total-size limit errors.
 - [x] Verify sealed/unlocked records reject location, attachment, and cover mutation.
-- [ ] Verify timeline/home cover display.
-- [ ] Verify unlocked time review displays location, image, voice, and M3 reflection data.
+- [x] Verify timeline/home cover display.
+- [x] Verify unlocked time review displays location, image, voice, and M3 reflection data.
 - [x] Verify preview mode remains explicitly isolated and functional.
 - [x] Verify timeline single-tag/date filters, stable pagination, month-group merge, safe empty results, and preview parity through automated/compiled checks.
 - [x] Record verification evidence and skipped verification reasons in `.ai/AGENT_LOG.md`.
