@@ -1,728 +1,506 @@
-# Flashback
-《时光回序》一款面向大学生与年轻人的**节点记录与延迟回看产品**。产品聚焦用户在升学、毕业、求职、实习等重要人生节点中的迷茫、焦虑、期待与自我表达需求，提供一个私密、低负担的记录空间，并通过“延迟回看”机制帮助用户重新理解过去的自己，增强对当下问题的整理与行动感。
+# 时光回序 Flashback V2.0
 
-## 项目结构
-- 后端：Spring Boot 3 + MyBatis + MySQL/Redis + JWT，用户侧 MVP 主链路已完成，详见 [backend/README.md](backend/README.md)
-- 前端：Uniapp(Vue 3) + Vite，小程序端开发规范见 [Docs/前端文档/flashback_frontend_dev_spec.md](Docs/前端文档/flashback_frontend_dev_spec.md)
-- 文档：需求/设计/接口与数据库等资料汇总在 [Docs/开发文档/接口清单文档.md](Docs/开发文档/接口清单文档.md)
+《时光回序》是一款面向个人表达与延迟回看的微信小程序。它帮助用户在升学、毕业、求职、实习、关系变化或普通生活片段中写下当下的情绪、困惑、期待与选择，并在未来某个时间重新回看这一刻。
 
-## 快速开始
+项目的核心理念不是效率管理、社交流或情绪打分，而是给用户一个安静、私密、低负担的记录空间。记录本身先成立，未来回看只是把理解权交还给时间。
 
-### 系统环境要求
+## 核心能力概览
 
-| 工具 | 版本 | 说明 |
-|-----|------|------|
-| JDK | 17+ | 后端编译运行必需 |
-| Maven | 3.8+ | Java 项目依赖管理 |
+### 用户侧主流程
+
+```text
+注册 / 登录
+  -> 首页写下此刻
+  -> 创建或编辑草稿
+  -> 添加正文、标签、位置、图片、语音和可选封面
+  -> 可选使用 AI 辅助整理
+  -> 保存草稿或交给时间
+  -> 时光轴浏览和筛选记录
+  -> 到期后进入时间回看
+  -> 查看那时的我、现在的我、位置与媒体
+```
+
+### 已覆盖的核心模块
+
+- 认证：用户名密码注册登录、JWT 鉴权、当前用户信息。
+- 记录：草稿创建/编辑/删除、封存、详情、列表、已解锁记录、回信。
+- 标签：标签列表、记录标签绑定、时光轴单标签筛选。
+- 时间轴：按 `createdAt` 年/月/日筛选，支持单标签与日期 AND 组合，按 `created_at DESC, id DESC` 稳定分页。
+- 位置：当前定位、地图选点、手动输入；草稿可改，封存/解锁后不可变。
+- 附件：图片和语音上传、后端对象校验、私有桶短时访问 URL、草稿删除/重录。
+- 封面：只能从当前记录的图片附件中选择。
+- AI：后端侧配置 DeepSeek 或 OpenAI-compatible Provider；真实路径缺配置或调用失败时显式失败，不伪造成功。
+- Preview：可保留演示数据，但必须与登录后的真实用户路径隔离。
+
+## 目录结构
+
+```text
+Flashback/
+├── backend/        # Spring Boot 后端
+│   ├── src/
+│   ├── sql/mysql/schema.mysql.sql
+│   ├── start-dev.ps1
+│   └── OBJECT_STORAGE_CONFIG.md
+├── frontend/       # Uniapp 微信小程序
+│   ├── src/
+│   ├── package.json
+│   ├── .env.development
+│   └── .env.preview
+├── openspec/       # 当前事实源与变更说明
+├── Docs/           # 历史设计/开发文档，仅在不冲突时参考
+├── .ai/            # Agent 当前任务与工作记录
+└── README.md
+```
+
+## 环境要求
+
+| 工具 | 建议版本 | 用途 |
+| --- | --- | --- |
+| JDK | 17+ | 后端编译运行 |
+| Maven | 3.8+ | 后端依赖与测试 |
 | MySQL | 8.0+ | 业务数据库 |
-| Redis | 6.0+ | 缓存服务 |
-| Node.js | 16+ | 前端包管理 |
-| Git | 任意 | 版本管理 |
+| Redis | 6.0+ | 缓存与运行依赖 |
+| Node.js | 18+ | 前端依赖和构建 |
+| pnpm | 8+ | 前端包管理，npm 也可用 |
+| 微信开发者工具 | 当前稳定版 | 小程序调试 |
 
-**验证命令：**
+检查命令：
+
 ```powershell
 java -version
 mvn -version
 mysql --version
 redis-cli --version
 node --version
+pnpm --version
 ```
 
-### 后端启动（完整步骤）
+## 本地快速启动
 
-#### 1. 环境准备检查
+以下步骤默认在 Windows PowerShell 中执行。
+
+### 1. 克隆并进入项目
 
 ```powershell
-# 检查 JDK
-java -version
-
-# 检查 Maven
-mvn -version
-
-# 检查 MySQL 是否正在运行（Windows 需先启动 MySQL 服务）
-# 进入 MySQL 命令行验证连接
-mysql -u root -p
-# 输入你的数据库密码
+git clone <your-repo-url>
+cd Flashback
 ```
 
-#### 2. 数据库初始化
+### 2. 初始化 MySQL
+
+创建数据库：
 
 ```powershell
-# 使用 MySQL 命令行创建数据库
 mysql -u root -p
+```
 
-# 在 MySQL 提示符下执行：
+进入 MySQL 后执行：
+
+```sql
 CREATE DATABASE flashback DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
+```
 
-# 导入建表脚本
+导入表结构：
+
+```powershell
 mysql -u root -p flashback < backend/sql/mysql/schema.mysql.sql
 ```
 
-或使用 MySQL 可视化工具（如 Navicat）：
-1. 新建数据库 `flashback`
-2. 打开 `backend/sql/mysql/schema.mysql.sql` 脚本并执行
+当前 schema 包含用户、记录、位置、附件、标签、回信、提醒和解锁通知日志等表。
 
-#### 3. Redis 启动
+### 3. 启动 Redis
+
+如果 Redis 已作为 Windows 服务安装：
 
 ```powershell
-# 如果已安装 Redis，启动服务
-redis-server
-
-# 或在另一个终端验证连接
 redis-cli ping
-# 应返回 PONG
 ```
 
-#### 4. 启动后端服务
+返回 `PONG` 即可。未启动时按你的本机安装方式启动 Redis，例如：
 
-进入 `backend` 目录，使用一键启动脚本：
+```powershell
+redis-server
+```
+
+### 4. 启动后端
+
+进入后端目录：
 
 ```powershell
 cd backend
-./start-dev.ps1
 ```
 
-**脚本说明：**
-- 默认数据库用户名：`root`，密码：`123456`
-- 如需修改，运行：`./start-dev.ps1 -DbUsername your_user -DbPassword your_password`
-
-或手动启动：
+使用默认脚本启动：
 
 ```powershell
-cd backend
-mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
+.\start-dev.ps1
 ```
 
-**启动成功标志：**
-```
-Tomcat started on port(s): 8080 (http) with context path ''
-Started FlashbackApplication in X.XXX seconds
-```
+脚本默认注入：
 
-#### 5. 环境变量覆盖（可选）
+- `DB_USERNAME=root`
+- `DB_PASSWORD=123456`
+- `spring.profiles.active=dev`
 
-如需修改连接信息，可设置环境变量（如使用其他数据库或 Redis 实例）：
+如果你的 MySQL 密码不同：
 
 ```powershell
-# 数据库连接
+.\start-dev.ps1 -DbUsername root -DbPassword "你的密码"
+```
+
+启动成功后应看到 Tomcat 运行在 `8080`。可在另一个终端验证：
+
+```powershell
+curl http://127.0.0.1:8080/actuator/health
+```
+
+返回 `{"status":"UP"}` 表示后端可用。
+
+### 5. 启动前端
+
+新开一个 PowerShell，进入前端目录：
+
+```powershell
+cd frontend
+pnpm install
+pnpm dev:mp-weixin
+```
+
+如果不用 pnpm，也可以使用：
+
+```powershell
+npm install
+npm run dev:mp-weixin
+```
+
+默认开发环境读取 `frontend/.env.development`：
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8080
+VITE_PREVIEW_MODE=false
+```
+
+### 6. 用微信开发者工具打开
+
+1. 打开微信开发者工具。
+2. 选择“小程序项目”。
+3. 项目目录选择 `frontend`。
+4. AppID 使用 `frontend/src/manifest.json` 中的 AppID，或使用你自己的测试号。
+5. 本地联调时，在“详情/本地设置”中勾选“不校验合法域名、web-view、TLS 版本以及 HTTPS 证书”。
+6. 勾选“允许发起本地网络请求”。
+
+进入小程序后，先注册一个测试账号，再登录并创建记录。
+
+## 配置说明
+
+### 后端基础配置
+
+后端默认 profile 是 `dev`，配置文件在：
+
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/resources/application-dev.yml`
+- `backend/src/main/resources/application-prod.yml`
+
+常用环境变量：
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DB_URL` | `jdbc:mysql://127.0.0.1:3306/flashback?...` | MySQL 连接地址 |
+| `DB_USERNAME` | `root` | MySQL 用户名 |
+| `DB_PASSWORD` | 空，启动脚本默认 `123456` | MySQL 密码 |
+| `REDIS_HOST` | `127.0.0.1` | Redis 主机 |
+| `REDIS_PORT` | `6379` | Redis 端口 |
+| `REDIS_DATABASE` | `0` | Redis database |
+| `REDIS_TIMEOUT` | `3000ms` | Redis 超时 |
+| `JWT_SECRET` | dev 有本地示例值 | 生产/独立环境应显式注入 |
+| `APP_TIME_ZONE_ID` | `Asia/Shanghai` | 业务时区 |
+
+临时覆盖示例：
+
+```powershell
 $env:DB_URL = "jdbc:mysql://127.0.0.1:3306/flashback?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai"
 $env:DB_USERNAME = "root"
 $env:DB_PASSWORD = "your_password"
-
-# Redis 连接
 $env:REDIS_HOST = "127.0.0.1"
 $env:REDIS_PORT = "6379"
-$env:REDIS_DATABASE = "0"
-$env:REDIS_TIMEOUT = "3000ms"
 
-# 然后启动后端
+cd backend
 mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
-### 前端启动（完整步骤）
+### AI Provider 配置
 
-#### 1. 安装依赖
+AI 密钥只能放在后端环境变量、本地忽略提交脚本或部署侧 secret 中，不能写进前端或 tracked file。
 
-首先进入前端目录：
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `AI_PROVIDER` | `mock` | `mock`、`deepseek`、`openai-compatible` |
+| `AI_BASE_URL` | `https://api.deepseek.com` | OpenAI-compatible base URL |
+| `AI_API_KEY` | 空 | Provider API Key |
+| `AI_MODEL` | `deepseek-v4-pro` | 模型名 |
+| `AI_TIMEOUT_MILLIS` | `10000` | 请求超时 |
+| `AI_REAL_MODE_MOCK_ENABLED` | `false` | 是否允许真实路径 mock，默认禁止 |
+
+DeepSeek 示例：
+
+```powershell
+$env:AI_PROVIDER = "deepseek"
+$env:AI_BASE_URL = "https://api.deepseek.com"
+$env:AI_API_KEY = "<your-api-key>"
+$env:AI_MODEL = "deepseek-v4-pro"
+```
+
+如果没有配置真实 `AI_API_KEY`，真实用户路径应看到明确的不可用/失败状态，而不是 mock 成功。
+
+### 对象存储与媒体配置
+
+M4 附件使用私有对象存储，前端向后端请求上传授权，再直传到 Provider，最后由后端校验对象存在后才写入附件元数据。
+
+支持的 `STORAGE_PROVIDER`：
+
+| 值 | 后端 Provider | 说明 |
+| --- | --- | --- |
+| `qiniu` | `QINIU` | 七牛云 Kodo 私有空间 |
+| `s3-compatible` / `aws-s3` | `S3_COMPATIBLE` | AWS S3 或通用 SigV4 服务 |
+| `aliyun-oss` | `S3_COMPATIBLE` | 阿里云 OSS S3 兼容模式 |
+| `tencent-cos` | `S3_COMPATIBLE` | 腾讯云 COS S3 兼容模式 |
+| `minio` | `S3_COMPATIBLE` | MinIO |
+
+媒体限制：
+
+| 配置 | 默认值 |
+| --- | --- |
+| 每条记录图片数 | 9 |
+| 每条记录语音数 | 9 |
+| 单文件大小 | 40 MB |
+| 单条记录附件总大小 | 300 MB |
+| 上传授权 TTL | 600 秒 |
+| 下载访问 URL TTL | 600 秒 |
+
+七牛云示例：
+
+```powershell
+$env:STORAGE_PROVIDER = "qiniu"
+$env:QINIU_ACCESS_KEY = "<AK>"
+$env:QINIU_SECRET_KEY = "<SK>"
+$env:QINIU_BUCKET = "<private-bucket>"
+$env:QINIU_REGION = "z0"
+$env:QINIU_PRIVATE_DOMAIN = "https://<private-media-domain>"
+$env:QINIU_KEY_PREFIX = "flashback"
+```
+
+S3 兼容示例：
+
+```powershell
+$env:STORAGE_PROVIDER = "s3-compatible"
+$env:S3_ENDPOINT = "https://<provider-endpoint>"
+$env:S3_REGION = "<provider-region>"
+$env:S3_ACCESS_KEY = "<AK>"
+$env:S3_SECRET_KEY = "<SK>"
+$env:S3_BUCKET = "<private-bucket>"
+$env:S3_PATH_STYLE_ACCESS = "false"
+$env:S3_KEY_PREFIX = "flashback"
+```
+
+更多服务商说明见 `backend/OBJECT_STORAGE_CONFIG.md`。
+
+### 微信能力配置
+
+微信登录和订阅消息相关变量：
+
+| 变量 | 说明 |
+| --- | --- |
+| `WECHAT_MINI_PROGRAM_APP_ID` | 小程序 AppID |
+| `WECHAT_MINI_PROGRAM_SECRET` | 小程序 AppSecret |
+| `WECHAT_UNLOCK_REMINDER_TEMPLATE_ID` | 解锁提醒订阅消息模板 ID |
+| `WECHAT_UNLOCK_REMINDER_PAGE` | 订阅消息跳转页面，默认 `pages/record-detail/index` |
+| `WECHAT_UNLOCK_REMINDER_THING_KEY` | 模板 thing 字段 key |
+| `WECHAT_UNLOCK_REMINDER_TIME_KEY` | 模板 time 字段 key |
+
+本地真实微信联调时，可把这些 secret 放在忽略提交的本地启动脚本、PowerShell 会话环境变量或系统环境变量中。不要提交真实 AppSecret。
+
+小程序端权限在 `frontend/src/manifest.json` 中声明：
+
+- `scope.userLocation`：用于保存用户主动选择的位置。
+- `scope.record`：用于添加用户主动录制的语音。
+- `requiredPrivateInfos`：`getLocation`、`chooseLocation`。
+
+### 前端模式配置
+
+前端环境文件：
+
+- `frontend/.env.development`：真实后端联调，`VITE_PREVIEW_MODE=false`。
+- `frontend/.env.preview`：preview 演示模式，`VITE_PREVIEW_MODE=true`。
+
+常用命令：
 
 ```powershell
 cd frontend
+
+# 真实后端联调
+pnpm dev:mp-weixin
+
+# preview 演示模式
+pnpm dev:mp-weixin:preview
+
+# 构建微信小程序
+pnpm build:mp-weixin
+
+# 构建 preview 小程序
+pnpm build:mp-weixin:preview
+
+# 类型检查
+pnpm type-check
 ```
 
-安装依赖（推荐使用 pnpm，速度较快）：
+## 联调验收建议
+
+### 最小可用链路
+
+1. 后端 `/actuator/health` 返回 `UP`。
+2. 小程序注册新账号。
+3. 登录后进入首页。
+4. 创建一条草稿记录。
+5. 保存草稿后在“我的记录”或“时光轴”中看到它。
+6. 封存记录后确认正文、位置、附件和封面不可再修改。
+7. 到期后进入“时间回看”查看原记录和回信入口。
+
+### M4 能力验收
+
+- AI：配置真实 Provider 后调用写作提示/内容整理；缺配置时显示明确不可用。
+- 位置：分别验证当前定位、地图选点、手动输入；封存后禁止修改。
+- 图片：选择、压缩、上传、后端 commit 校验、预览、草稿删除。
+- 语音：录制、上传、播放、草稿重录/删除。
+- 封面：只能从当前记录图片附件选择；删除当前封面图片时封面被清理。
+- 时光轴：单标签、年、月、日、组合筛选、重置、空结果、加载更多。
+- Preview：显式 preview 模式可用，但登录真实路径不使用 preview/mock 数据。
+
+## 开发与验证命令
+
+### 后端
 
 ```powershell
-# 如已安装 pnpm
+cd backend
+
+# 启动开发服务
+.\start-dev.ps1
+
+# 手动启动
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
+
+# 运行测试
+mvn test
+
+# 打包
+mvn clean package -DskipTests
+```
+
+### 前端
+
+```powershell
+cd frontend
+
+# 安装依赖
 pnpm install
 
-# 如未安装 pnpm，使用 npm（Node.js 自带）
-npm install
+# 类型检查
+pnpm type-check
+
+# 微信小程序构建
+pnpm build:mp-weixin
 ```
 
-**第一次安装可能需要 1-3 分钟，请耐心等待。**
-
-#### 2. 启动开发服务
+### 数据库
 
 ```powershell
-pnpm dev:mp-weixin
+mysql -u root -p flashback
 ```
 
-开发服务启动后，将看到类似输出：
+常用 SQL：
+
+```sql
+SHOW TABLES;
+DESCRIBE record;
+DESCRIBE record_location;
+DESCRIBE record_attachment;
+SELECT id, username, nickname FROM user LIMIT 10;
+SELECT id, user_id, status, title, created_at FROM record ORDER BY id DESC LIMIT 10;
 ```
-  VITE ⚡ [vite] v5.2.8 is ready
 
-  ➜  Local: http://localhost:5173
-  ➜  press h to show help
+## 常见问题
+
+### 后端启动报 `Unknown database 'flashback'`
+
+数据库未创建。执行：
+
+```sql
+CREATE DATABASE flashback DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-#### 3. 使用微信开发者工具调试
+然后重新导入 `backend/sql/mysql/schema.mysql.sql`。
 
-1. 打开微信开发者工具
-2. 选择"小程序项目"
-3. 项目路径指向 `frontend` 目录
-4. AppID 可填写测试号或留空
-5. 勾选"不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书"
-6. 勾选"允许发起本地网络请求"（重要！否则无法调试后端接口）
-7. 点击"打开"
+### 后端启动报 `Access denied for user`
 
-#### 4. 类型检查（可选）
-
-检查 TypeScript 类型是否有错误：
+MySQL 用户名或密码不对。用下面命令确认可登录：
 
 ```powershell
-npm run type-check
+mysql -u root -p
 ```
 
-### 联调验证
-
-启动后端和前端后，进行以下测试：
-
-#### 1. 后端接口测试
+再用正确密码启动：
 
 ```powershell
-# 使用 curl 测试健康检查（需在另一个终端）
-curl http://localhost:8080/actuator/health
-
-# 应返回: {"status":"UP"}
+cd backend
+.\start-dev.ps1 -DbUsername root -DbPassword "你的密码"
 ```
 
-#### 2. 前端注册测试
+### 后端报表不存在
 
-1. 在小程序中打开登录页
-2. 填写用户名、密码、昵称
-3. 点击"注册"
-4. 成功注册后应跳转到首页
+未导入 schema。执行：
 
-#### 3. 前端登录测试
-
-1. 使用刚注册的账号登录
-2. 登录成功后应能看到首页内容
-3. 检查浏览器控制台是否有错误信息
-
-## 开发规范与架构
-
-### 后端技术栈
-- **框架：** Spring Boot 3（Java 17+）
-- **ORM：** MyBatis（SQL 手写）
-- **数据库：** MySQL 8
-- **缓存：** Redis 6+
-- **认证：** JWT（2 小时过期）
-
-### 项目分层结构
-
-后端采用标准三层架构，位置在 `backend/src/main/java/com/flashback/`：
-
-```
-controller/          # 控制层（接收请求）
-├── api/             # 用户端接口 /api/**
-└── admin/           # 管理端接口 /admin/**
-
-service/             # 业务层（业务逻辑）
-├── impl/            # 业务实现
-└── 接口定义
-
-mapper/              # 数据访问层（SQL 映射）
-└── XML 文件位于 resources/mapper/
-
-domain/              # 实体类（数据库表映射）
-
-dto/                 # 数据传输对象（请求/响应）
-
-vo/                  # 视图对象（前端展示）
-```
-
-### 认证与授权
-
-**核心原则：**
-1. 用户端 `/api/**` 需要登录，管理端 `/admin/**` 需要管理员权限
-2. 白名单接口：`/api/auth/**`、`/admin/auth/**`、`/error`、`/actuator/health`
-3. 其他接口必须通过 `JwtAuthenticationInterceptor` 检查 token
-
-**使用登录用户信息：**
-
-```java
-// 控制器中直接注入当前用户
-@PostMapping("/records")
-public ApiResponse<RecordVO> createRecord(
-    @CurrentUser AuthUser authUser,  // 自动注入当前登录用户
-    @RequestBody CreateRecordRequest request
-) {
-    Long userId = authUser.getUserId();
-    String role = authUser.getRole();
-    // ... 业务逻辑
-}
-```
-
-### 统一响应格式
-
-所有接口都返回统一的 `ApiResponse` 结构：
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    // 实际业务数据
-  }
-}
-```
-
-**异常处理：** 业务异常统一抛 `BizException` 或其子类：
-
-```java
-// 示例：找不到记录
-if (record == null) {
-    throw new BizException(ErrorCode.RECORD_NOT_FOUND, "记录不存在");
-}
-```
-
-### 前端技术栈
-- **框架：** Uniapp 3.0（Vue 3）
-- **构建：** Vite 5
-- **包管理：** pnpm 或 npm
-- **平台：** 微信小程序
-
-### 前端页面规范
-
-**一级导航（底部 Tab）固定 3 个：**
-1. 首页 - 草稿入口 + 最近解锁
-2. 时间轴 - 记录列表 + 筛选
-3. 个人中心 - 用户信息 + 设置
-
-**二级页面（无底部导航）：**
-- 我的档案 - 全部记录管理
-- 新建页 - 沉浸式书写
-- 解锁页 - 查看已解锁回忆
-- 详情页 - 记录详情 + 回信
-
-### 关键业务流程
-
-#### 1. 用户认证流程
-```
-注册 (username, password, nickname)
-  ↓
-登录 (username, password)
-  ↓
-获取 JWT Token（2 小时有效期）
-  ↓
-后续请求携带 Authorization header
-  ↓
-Token 过期需重新登录
-```
-
-#### 2. 记录生命周期
-```
-草稿 (Draft)
-  ↓
-封存 (Archived) - 不可编辑，可查看
-  ↓
-到期解锁 (Unlocked) - 定时任务自动解锁，可回信
-  ↓
-单记录仅一条回信
-```
-
-#### 3. 标签绑定
-```
-创建记录时指定 tagIds
-  ↓
-标签用于时间轴筛选
-  ↓
-按标签、按年份分类显示
-```
-
-### 开发注意事项
-
-**记录编辑陷阱：**
-- 编辑记录必须显式传递 `tagIds`、`aiSummary`、`aiPromptResults`
-- 遗漏的字段会被更新为 NULL（不是保留原值）
-
-**测试环境特殊性：**
-- 测试 profile 默认禁用 DataSource、MyBatis、Redis 自动配置
-- 新增数据库依赖的测试需额外处理配置
-
-**前端事件类型：**
-- `<input @input>` 在 TypeScript 中按 DOM Event 类型推断
-- 需要先接收 Event，再从 `event.detail?.value` 取值
-
-**多语言支持：**
-- 中文作为主要表达，英文仅作弱辅助
-- 文档和代码注释优先使用中文
-
-## 常见问题与排查
-
-### 后端启动问题
-
-#### ❌ `Access denied for user 'root'@'localhost'`
-
-**问题原因：** 数据库用户名或密码错误
-
-**排查步骤：**
-1. 验证 MySQL 是否正在运行：`mysql -u root -p`
-2. 确认你的数据库密码，使用正确密码重新连接
-3. 如要修改启动脚本中的密码：
-   ```powershell
-   cd backend
-   ./start-dev.ps1 -DbUsername root -DbPassword 你的正确密码
-   ```
-
-#### ❌ `Unknown database 'flashback'`
-
-**问题原因：** 数据库不存在
-
-**解决方案：**
-1. 登录 MySQL：`mysql -u root -p`
-2. 创建数据库：
-   ```sql
-   CREATE DATABASE flashback DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
-3. 查看是否创建成功：`SHOW DATABASES;`
-
-#### ❌ `Table 'flashback.user' doesn't exist`
-
-**问题原因：** 没有执行建表脚本
-
-**解决方案：**
 ```powershell
-# 在项目根目录执行
 mysql -u root -p flashback < backend/sql/mysql/schema.mysql.sql
 ```
 
-验证建表成功：
-```sql
-mysql -u root -p flashback
-SHOW TABLES;  # 应看到 user, record, tag, reply 等表
-```
+### Redis 连接失败
 
-#### ❌ `Connection refused` 或 `Communications link failure`
-
-**问题原因：** MySQL 或 Redis 未启动，或端口不通
-
-**排查步骤：**
-1. **检查 MySQL 状态：**
-   ```powershell
-   # Windows：检查 MySQL 服务是否运行
-   Get-Service MySQL80  # 或你的 MySQL 版本
-   
-   # 如未运行，启动服务
-   net start MySQL80
-   ```
-
-2. **检查 Redis 状态：**
-   ```powershell
-   redis-cli ping
-   # 应返回 PONG
-   ```
-
-3. **检查端口占用：**
-   ```powershell
-   netstat -ano | findstr ":3306"  # MySQL
-   netstat -ano | findstr ":6379"  # Redis
-   ```
-
-#### ❌ `TestEngine failed to discover tests` 伴随 `NoClassDefFoundError`
-
-**问题原因：** Maven 编译产物陈旧，构建缓存冲突
-
-**解决方案：**
-```powershell
-cd backend
-mvn clean test
-```
-
-### 前端启动问题
-
-#### ❌ `uni is not a function`
-
-**问题原因：** Uniapp 依赖版本不一致
-
-**解决方案：**
-1. 删除 node_modules 和 pnpm-lock.yaml：
-   ```powershell
-   cd frontend
-   Remove-Item node_modules -Recurse -Force
-   Remove-Item pnpm-lock.yaml -Force
-   ```
-
-2. 重新安装（确保版本一致）：
-   ```powershell
-   pnpm install
-   ```
-
-3. 验证依赖版本：
-   ```powershell
-   pnpm ls @dcloudio/uni-app
-   # 应显示 3.0.0-5000720260410001
-   ```
-
-#### ❌ 找不到模块或 `Cannot find module`
-
-**问题原因：** 依赖未安装或安装不完整
-
-**解决方案：**
-```powershell
-cd frontend
-
-# 清理旧的安装
-pnpm store prune
-Remove-Item node_modules -Recurse -Force
-Remove-Item pnpm-lock.yaml -Force
-
-# 重新安装
-pnpm install
-```
-
-#### ❌ 类型检查失败 `vue-tsc` 报错
-
-**问题原因：** TypeScript 类型不匹配
-
-**排查步骤：**
-```powershell
-# 运行详细类型检查
-npm run type-check
-
-# 查看具体错误信息，根据行号定位问题
-# 常见原因：事件类型不匹配、变量未声明等
-```
-
-**快速修复：**
-- 组件 `@input` 事件：接收 `Event` 类型，再取 `event.detail?.value`
-- 注意区分 DOM 事件和组件事件
-
-### 联调问题
-
-#### ❌ 小程序无法请求后端
-
-**问题原因：** 微信开发者工具未允许本地网络请求
-
-**解决方案：**
-1. 打开微信开发者工具
-2. 点击"详情"标签
-3. 勾选"不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书"
-4. 勾选"允许发起本地网络请求"
-5. 重启开发服务
-
-#### ❌ 登录返回 `401 Unauthorized`
-
-**问题原因：** Token 过期或未携带
-
-**排查步骤：**
-1. 确认已成功登录（有 token 返回）
-2. 检查后续请求是否在 Header 中携带 token：
-   ```
-   Authorization: Bearer <your_token_here>
-   ```
-3. 检查 token 是否过期（默认 2 小时过期）
-
-#### ❌ 注册时返回 `400 nickname不能为空`
-
-**问题原因：** 前端表单字段不完整
-
-**排查步骤：**
-1. 检查注册表单是否填写了所有必填项：`username`、`password`、`nickname`
-2. 检查前端代码中注册请求是否包含所有字段
-3. 查看浏览器控制台的请求详情（Network 标签）
-
-#### ❌ 登录后无法获取用户信息
-
-**问题原因：** 数据库未初始化或测试账号不存在
-
-**排查步骤：**
-1. 确认数据库已建表：`SHOW TABLES;`
-2. 使用已注册的账号登录（不要使用默认账号）
-3. 检查后端日志是否有数据库查询错误
-4. 验证 Redis 连接是否正常
-
-### 验证完整联调流程
-
-1. **后端服务已启动：**
-   ```powershell
-   curl http://localhost:8080/actuator/health
-   # 应返回 {"status":"UP"}
-   ```
-
-2. **前端服务已启动：**
-   - 微信开发者工具可看到编译结果
-
-3. **注册测试账号：**
-   - 用户名：`testuser123`
-   - 密码：`password123`
-   - 昵称：`测试用户`
-
-4. **登录测试：**
-   - 使用测试账号登录
-   - 能成功进入首页
-
-5. **创建记录：**
-   - 在首页点击"新建"
-   - 输入内容并点击"封存这一刻"
-   - 成功保存后回到首页
-
-**如果以上步骤全部成功，说明本地联调环境配置完成！**
-
-## 推荐工具与IDE
-
-### 后端开发
-| 工具 | 用途 | 说明 |
-|-----|------|------|
-| IntelliJ IDEA | IDE | 推荐使用 Community 版本（免费）或 Ultimate 版本 |
-| MySQL Workbench | 数据库管理 | 官方工具，可视化管理数据库 |
-| Navicat | 数据库管理 | 商业工具，功能更完整 |
-| Postman / Insomnia | API 调试 | 测试接口，导出测试集 |
-| DBeaver | 数据库工具 | 免费开源，支持多数据库 |
-
-### 前端开发
-| 工具 | 用途 | 说明 |
-|-----|------|------|
-| VS Code | 编辑器 | 轻量、快速、扩展丰富 |
-| 微信开发者工具 | 小程序调试 | 必需工具，官方提供 |
-| Vue DevTools | 浏览器扩展 | 调试 Vue 组件状态 |
-
-### VS Code 推荐扩展
-```
-Vue - Official                          (官方 Vue 3 支持)
-Vite                                    (Vite 构建工具)
-Better Comments                         (代码注释高亮)
-Chinese (Simplified) Language Pack      (中文界面)
-```
-
-## 常用命令速查
-
-### 后端常用命令
+确认 Redis 正在运行：
 
 ```powershell
-# 启动后端（开发模式，自动刷新）
-cd backend
-mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
-
-# 只编译不运行
-mvn clean compile
-
-# 运行单元测试
-mvn test
-
-# 运行特定测试类
-mvn test -Dtest=UserServiceImplTest
-
-# 打包为可执行 JAR
-mvn clean package -DskipTests
-
-# 生产环境启动（需显式指定 prod profile）
-java -jar target/flashback-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
-
-# 清理所有编译产物
-mvn clean
+redis-cli ping
 ```
 
-### 前端常用命令
+如果没有返回 `PONG`，先启动 Redis，再重启后端。
 
-```powershell
-# 安装依赖
-pnpm install  # 或 npm install
+### 小程序请求后端失败
 
-# 启动开发服务
-pnpm dev:mp-weixin
+检查：
 
-# 构建生产版本
-pnpm build:mp-weixin
+- 后端是否运行在 `http://127.0.0.1:8080`。
+- `frontend/.env.development` 中 `VITE_API_BASE_URL` 是否正确。
+- 微信开发者工具是否允许本地网络请求。
+- 是否勾选“不校验合法域名、web-view、TLS 版本以及 HTTPS 证书”。
 
-# 类型检查
-npm run type-check
+### AI 一直不可用
 
-# 清理缓存重新安装
-pnpm store prune
-Remove-Item node_modules -Recurse -Force
-Remove-Item pnpm-lock.yaml -Force
-pnpm install
-```
+检查：
 
-### 数据库常用命令
+- `AI_PROVIDER` 是否为 `deepseek` 或 `openai-compatible`。
+- `AI_API_KEY` 是否只注入到了后端进程。
+- `AI_BASE_URL` 与 `AI_MODEL` 是否匹配当前 Provider。
+- 后端日志是否出现超时、鉴权失败或响应格式错误。
 
-```powershell
-# 连接 MySQL
-mysql -u root -p
+### 图片/语音上传失败
 
-# 在 MySQL 提示符内
-SHOW DATABASES;                 # 查看所有数据库
-USE flashback;                  # 切换到 flashback 数据库
-SHOW TABLES;                    # 查看表列表
-DESCRIBE user;                  # 查看 user 表结构
-SELECT COUNT(*) FROM user;      # 查看 user 表记录数
-SELECT * FROM user LIMIT 10;    # 查看前 10 条记录
+检查：
 
-# 备份数据库
-mysqldump -u root -p flashback > backup.sql
+- `STORAGE_PROVIDER` 是否与凭据变量匹配。
+- bucket 是否为私有桶。
+- Provider 是否支持上传、HEAD/stat、GET 签名访问和 DELETE。
+- 单文件是否超过 40 MB，单记录附件总量是否超过 300 MB。
+- 后端是否返回对象验证失败；验证失败不会写入附件元数据。
 
-# 恢复数据库
-mysql -u root -p flashback < backup.sql
-```
+### 微信定位或录音没有弹窗
 
-## 项目代码统计
-
-```
-后端代码结构：
-├── controller/    # HTTP 请求处理层
-├── service/       # 业务逻辑层  
-├── mapper/        # 数据访问层 + XML SQL
-├── domain/        # 实体类
-├── dto/           # 数据传输对象
-├── vo/            # 视图对象
-└── 其他工具类
-
-前端代码结构：
-├── pages/         # 页面组件
-├── components/    # 可复用组件
-├── services/      # API 调用
-├── stores/        # Pinia 状态管理
-├── utils/         # 工具函数
-├── types/         # TypeScript 类型定义
-└── styles/        # 全局样式
-```
-
-## 资源链接
-
-### 官方文档
-- [Spring Boot 官方文档](https://spring.io/projects/spring-boot)
-- [Vue 3 官方文档](https://vuejs.org/)
-- [Uniapp 官方文档](https://uniapp.dcloud.net.cn/)
-- [MySQL 官方文档](https://dev.mysql.com/doc/)
-
-### 相关教程
-- [Spring Boot 快速开始](https://spring.io/guides/gs/spring-boot/)
-- [Vue 3 入门教程](https://vuejs.org/guide/introduction.html)
-- [Uniapp 快速上手](https://uniapp.dcloud.net.cn/quickstart-hx.html)
-- [MyBatis 中文文档](https://mybatis.org/mybatis-3/zh/index.html)
-
-### 本地文档
-- [后端使用说明](backend/README.md)
-- [接口文档](Docs/开发文档/接口清单文档.md)
-- [数据库设计](Docs/开发文档/数据库设计文档.md)
-- [前端开发规范](Docs/前端文档/flashback_frontend_dev_spec.md)
-- [联调清单](Docs/开发文档/联调清单.md)
-
-## 快速问题排查检查清单
-
-遇到问题时，按以下顺序排查：
-
-- [ ] 确认 JDK、Maven、MySQL、Redis 都已安装
-- [ ] 确认 MySQL 已启动且可连接
-- [ ] 确认 Redis 已启动
-- [ ] 确认 MySQL 数据库 `flashback` 已创建
-- [ ] 确认建表脚本已执行：`backend/sql/mysql/schema.mysql.sql`
-- [ ] 确认后端启动没有错误信息
-- [ ] 确认前端依赖已安装：`pnpm install`
-- [ ] 确认前端开发服务已启动
-- [ ] 确认微信开发者工具已勾选"允许发起本地网络请求"
-- [ ] 尝试注册新账号并登录测试
-- [ ] 查看浏览器控制台 Network 标签检查 API 响应
-- [ ] 查看后端服务日志查看错误栈
-
-## 获取帮助
-
-如遇到问题：
-
-1. **查阅本文档** - 常见问题栏已覆盖大部分场景
-2. **查阅项目文档** - [Docs 目录](Docs/)下的详细文档
-3. **查看后端日志** - 后端控制台输出通常包含问题线索
-4. **查看前端日志** - 微信开发者工具的调试器和控制台
-5. **查看数据库** - 用 SQL 直接验证数据是否正确保存
+检查 `frontend/src/manifest.json` 中的权限声明，以及微信开发者工具的权限模拟设置。真机上还需要用户授权定位和录音。

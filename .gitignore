@@ -30,3 +30,5 @@ Docs/学习文档
 /backend/start-dev-wechat.local.ps1
 /frontend/.env.local
 /frontend/.env.*.local
+
+/.claude

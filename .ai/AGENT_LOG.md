@@ -5102,3 +5102,40 @@ Remaining Risks:
 
 - 正式归档 M4 前仍需同步 delta specs 到 accepted `openspec/specs/**`，并决定 MySQL `EXPLAIN` 是否允许作为下一轮 carry-over query-plan evidence。
 - 当前工作区还包含 README、Docs/UML、PPT、`.gitignore` 等其他未提交内容，建议按用途拆分提交。
+
+## 2026-07-04 - 阿里云/微信小程序部署就绪度扫描
+
+Task:
+
+- 回答“把小程序部署到阿里云并上线需要做什么”，并扫描当前 Flashback 小程序项目是否足够支撑部署上线。
+
+Implementation:
+
+- 读取 `.ai/ACTIVE_TASK.md`、`AGENTS.md`、M4 OpenSpec/contract/task 文档，确认当前 M4 边界仍是 core Mini Program usability，不包含生产部署加固。
+- 只读部署相关配置与构建入口：`frontend/package.json`、`frontend/src/manifest.json`、前端 `.env.*`、`backend/pom.xml`、`backend/src/main/resources/application*.yml`、`backend/sql/mysql/schema.mysql.sql`、README、CORS/鉴权配置。
+- 对外部上线要求做官方资料核验：阿里云备案/ECS 文档可读取；微信官方开发文档页面本轮抓取失败，微信侧仅按长期规则列为待控制台复核项。
+
+Verification:
+
+- Backend: `mvn "-Dmaven.repo.local=C:\Users\Lin\.m2\repository" -o -s C:\Users\Lin\.m2\settings.xml -q test` passed.
+- Backend surefire summary: `SUITES=27 TESTS=204 FAILURES=0 ERRORS=0 SKIPPED=0`.
+- Frontend: `vue-tsc --noEmit` passed with bundled Node.
+- Mini Program build: `uni build -p mp-weixin` passed; output `frontend/dist/build/mp-weixin`.
+- `git diff --check` passed; only line-ending warnings were reported for existing changed files.
+
+Skipped:
+
+- 未启动阿里云服务器、未真实部署后端、未配置线上域名/HTTPS/备案、未提交微信审核：本轮用户要求部署准备与就绪度扫描。
+- 未执行真实线上 AI/OSS/微信登录 smoke：缺少线上服务器、域名、生产环境变量与微信公众平台合法域名配置。
+- 未运行真实 MySQL `EXPLAIN`：本轮仍未连接部署目标数据库；M4 tasks 中该项此前也保持未完成。
+
+Scope Safety:
+
+- 本轮只追加 `.ai/AGENT_LOG.md` 证据；未修改 backend/frontend 运行代码、schema、依赖、lockfile、deployment、monitoring、admin、SMS、settings 或生产发布实现。
+- 保留并未回退工作区已有未提交改动。
+
+Remaining Risks:
+
+- 当前项目可构建、可测试，但仍处于本地/演示部署形态；正式上线前必须补齐生产域名 HTTPS、ICP备案/小程序备案、微信合法域名、线上 secret 注入、数据库/Redis/OSS/AI 实配和 smoke 验收。
+- `frontend/.env.*` 当前仍指向 `http://127.0.0.1:8080`，`manifest.json` 中 `mp-weixin.setting.urlCheck=false`，不应作为正式提审配置。
+- README 引用 `/actuator/health`，但当前 `pom.xml` 未看到 actuator 依赖；生产健康检查需要另行确认或补一个真实可用的健康端点。
