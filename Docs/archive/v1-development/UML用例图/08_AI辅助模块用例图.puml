@@ -1,0 +1,29 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+skinparam defaultFontName Microsoft YaHei
+
+title AI 辅助模块用例图
+
+actor "普通用户" as User
+actor "AI Provider" as AI
+
+rectangle "AI 辅助模块" {
+  usecase "获取写作提示" as UC1
+  usecase "整理记录内容" as UC2
+  usecase "生成阶段总结" as UC3
+  usecase "显示不可用/失败状态" as UC4
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+AI --> UC1
+AI --> UC2
+AI --> UC3
+UC1 ..> UC4 : <<fallback>>
+UC2 ..> UC4 : <<fallback>>
+UC3 ..> UC4 : <<fallback>>
+@enduml

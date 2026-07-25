@@ -1,0 +1,28 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+skinparam defaultFontName Microsoft YaHei
+
+title 时间与提醒模块用例图
+
+actor "普通用户" as User
+actor "定时任务" as Scheduler
+actor "微信服务" as WX
+
+rectangle "时间与提醒模块" {
+  usecase "设置解锁时间" as UC1
+  usecase "授权解锁提醒" as UC2
+  usecase "自动解锁到期记录" as UC3
+  usecase "发送订阅提醒" as UC4
+  usecase "查看已解锁记录" as UC5
+}
+
+User --> UC1
+User --> UC2
+User --> UC5
+Scheduler --> UC3
+WX --> UC4
+UC3 ..> UC4 : <<extend>>
+@enduml

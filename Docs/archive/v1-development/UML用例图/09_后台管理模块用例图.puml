@@ -1,0 +1,27 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+skinparam defaultFontName Microsoft YaHei
+
+title M4 范围外能力说明
+
+actor "后续版本/项目负责人" as Owner
+
+rectangle "M4 范围外能力" {
+  usecase "后台管理" as UC1
+  usecase "生产部署加固" as UC2
+  usecase "监控告警" as UC3
+  usecase "SMS / 生产通知中心" as UC4
+  usecase "社交流 / 公开发现" as UC5
+  usecase "语音转文字 / 复杂 AI 诊断" as UC6
+}
+
+Owner --> UC1
+Owner --> UC2
+Owner --> UC3
+Owner --> UC4
+Owner --> UC5
+Owner --> UC6
+@enduml

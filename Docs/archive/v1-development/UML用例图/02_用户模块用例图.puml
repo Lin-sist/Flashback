@@ -1,0 +1,27 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle stickman
+skinparam defaultFontName Microsoft YaHei
+
+title 用户与认证模块用例图
+
+actor "普通用户" as User
+actor "微信服务" as WX
+
+rectangle "用户与认证模块" {
+  usecase "注册" as UC1
+  usecase "账号密码登录" as UC2
+  usecase "微信登录" as UC3
+  usecase "获取当前用户信息" as UC4
+  usecase "修改个人资料" as UC5
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+WX --> UC3
+@enduml

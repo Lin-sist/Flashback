@@ -1,0 +1,69 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam handwritten false
+skinparam actorStyle stickman
+skinparam defaultFontName Microsoft YaHei
+skinparam usecase {
+  BackgroundColor white
+  BorderColor #5B6B7A
+}
+
+title 时光回序 V2.0 M4——项目总体用例图
+
+actor "普通用户" as User
+actor "微信服务" as WX
+actor "AI Provider" as AI
+actor "对象存储" as OSS
+actor "定时任务" as Scheduler
+actor "Preview 模式" as Preview
+
+rectangle "时光回序 V2.0 M4" {
+  usecase "注册 / 登录" as UC_Auth
+  usecase "管理个人资料" as UC_Profile
+  usecase "写下记录草稿" as UC_Draft
+  usecase "添加位置" as UC_Location
+  usecase "添加图片 / 语音" as UC_Attachment
+  usecase "选择封面" as UC_Cover
+  usecase "AI 辅助整理" as UC_AI
+  usecase "封存记录" as UC_Seal
+  usecase "到期解锁" as UC_Unlock
+  usecase "时间回看" as UC_Review
+  usecase "留下回信" as UC_Reply
+  usecase "浏览时光轴" as UC_Timeline
+  usecase "筛选与分页加载" as UC_Filter
+  usecase "显式演示数据" as UC_Preview
+}
+
+User --> UC_Auth
+User --> UC_Profile
+User --> UC_Draft
+User --> UC_Location
+User --> UC_Attachment
+User --> UC_Cover
+User --> UC_AI
+User --> UC_Seal
+User --> UC_Review
+User --> UC_Reply
+User --> UC_Timeline
+User --> UC_Filter
+
+WX --> UC_Auth
+WX --> UC_Unlock
+AI --> UC_AI
+OSS --> UC_Attachment
+Scheduler --> UC_Unlock
+Preview --> UC_Preview
+
+UC_Draft ..> UC_Location : <<extend>>
+UC_Draft ..> UC_Attachment : <<extend>>
+UC_Attachment ..> UC_Cover : <<extend>>
+UC_Seal ..> UC_Unlock : <<include>>
+UC_Unlock ..> UC_Review : <<include>>
+UC_Review ..> UC_Reply : <<extend>>
+UC_Timeline ..> UC_Filter : <<include>>
+UC_Preview ..> UC_Timeline : <<isolated>>
+
+@enduml
