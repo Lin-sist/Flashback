@@ -5439,3 +5439,113 @@ Commit: pending
 - **提交方式**: 用户显式授权 Agent 代为提交；按路径显式 `git add`（未用 `git add .`），保留 hooks（未加 `--no-verify`）
 - **未执行**: `git push`（未授权）。当前 `main` 领先 `origin/main` 1 个提交，待用户自行决定推送。
 - **密钥检查**: `backend/start-dev-wechat.local.ps1` 与 `frontend/.env.local` 经 `git check-ignore` 确认被忽略，未进入本次提交；提交后 `git status` 干净。
+
+## 2026-07-27｜agent-tool-calling｜Type C（规划闸产出）
+
+- **Scope**: 仅 OpenSpec 规划文档与状态指针，**零业务代码**
+  - `openspec/changes/agent-tool-calling/proposal.md`（新建）
+  - `openspec/changes/agent-tool-calling/design.md`（新建，含 8 条决策记录）
+  - `openspec/changes/agent-tool-calling/tasks.md`（新建，T-00 ~ T-49，含三道闸门检查点）
+  - `openspec/changes/agent-tool-calling/specs/agent-runtime/spec.md`（新建 delta，主契约）
+  - `openspec/changes/agent-tool-calling/specs/backend-core/spec.md`（新建 delta）
+  - `openspec/changes/agent-tool-calling/specs/miniapp-core/spec.md`（新建 delta）
+  - `openspec/changes/agent-tool-calling/specs/v2-product-scope/spec.md`（新建 delta）
+  - `.ai/ACTIVE_TASK.md`（IDLE → ACTIVE，指向本 change）
+- **Changes**:
+  - 前置校验：`ACTIVE_TASK=IDLE`、C1 已归档、蓝图 v1.1 §3.2 默认顺序下一刀为 C2、C1 手验未见气质越界（无需把 C4 前移）→ 判定可开 C2 规划闸
+  - 开工锚点：`63d1767`，`git status --porcelain` 为空（工作区干净）
+  - 现状扫描落 28 条事实（F1–F28）并标能力五态。关键 `confirmed`：后端源码零处 `tools`/`tool_choice`/`function_call`/`tool_calls`；标签写操作不存在（`TagController` 仅 `GET /api/tags`）；打标签只能经 `PUT /api/records/{id}` 全量重绑 `tagIds`；`agent_message` 唯一键 `uk_agent_message_session_turn_role` 限制同轮同 role 单条；无工具审计表。关键 `unknown`：`tools` 与 `response_format=json_object` 共存性（F24）、白名单最终范围（F25）
+  - 设计要点：二段式协议（模型只能提议、执行必须经用户确认的独立请求）＋ 代码级白名单 ＋ 执行复用 `RecordService`（继承 `ensureDraft`，不开 Agent 专用旁路）＋ 新表 `agent_tool_call` 承载幂等与审计 ＋ 结果结构化回注上下文
+  - 白名单推荐：写 `append_record_content` / `add_record_tags` / `propose_unlock_at`，读 `list_available_tags` / `read_draft_snapshot`；seal / delete / unlock / location / cover / attachment / later-reflection / 标签创建全部代码级排除
+  - 规划闸待确认 5 项（Q1 提议协议、Q2 白名单范围、Q3 持久化落点、Q4 执行入口形态、Q5 delta 落点），均在 proposal §7 列出推荐与代价
+  - 外调预算：规划闸 0；实现期 0（mock provider）；闸门 3 后 ≤ 30 次（Q1 若选原生 FC 则 ≤ 45 次）
+  - 已把 C1 遗留纳入 C2 视野：素材回填在正文为空时报错的缺陷，由「后端 `appendContent` 方法」路径覆盖（design 决策 5）
+  - 已把 C1 流程偏差写成 C2 前置约束：任何手验前先确认本地 `AI_PROVIDER` 取值，若为真实 provider 须先取闸门 3 授权（tasks Gate 2）
+- **Verification**: PASS（规划阶段，无代码可测）
+  - 事实核对：28 条现状事实均可回溯到具体文件与类/方法/端点
+  - 范围检查：未触碰业务代码、未改 package/lockfile、未创建 `.kiro/specs/`、未改三 Tab 与用户可见命名
+  - 闸门检查：闸门 1 未取得，故未进入任何实现任务；tasks 中 T-03（实现授权）、T-37（外调授权）为独立检查点
+  - **SKIPPED**：编译/测试/构建——本阶段零代码改动，无可验证目标
+- **Risks**:
+  - Q1 若最终选原生 Function Calling，`AgentModelClient` 与 `AiServiceImpl` 两处解析路径都要改，且 mock provider 需平行路径，实现面显著扩大
+  - F24（`tools` 与 `json_object` 共存性）在规划期无法验证，只能在闸门 3 外调时确认
+  - 提议格式遵从率依赖 prompt，M4 曾观察到结构化输出 5 次中 1 次无效；缓解为解析失败降级成「只有 reply」
+  - C2 期间内容合规仍为 C1 单层 prompt + 长度裁剪（已接受风险，C4 补齐）；若手验见明显越界，按蓝图 §3.2 可将 C4 提前
+  - `propose_unlock_at` 是否越过「建议不代决」边界存在判断空间，已在 design 决策 3 说明并可在规划闸直接砍掉
+- **Commit**: pending
+- **Next**: 等用户对 Q1–Q5 定稿并给出**闸门 1 规划批准**；批准后再单独取得闸门 2 实现授权，才可动 T-04 起的业务代码。
+
+## 2026-07-27｜agent-tool-calling｜Type C（Q1 协议翻转 + 规划定稿）
+
+- **Scope**: 仅 OpenSpec 规划文档与状态指针，**零业务代码**
+  - `openspec/changes/agent-tool-calling/proposal.md`（F5b/F23/F24/F29/F30 更新，§7 改为已定稿，§10 验收标准重编号并补 FC 项，新增 §12 长期演进备注）
+  - `openspec/changes/agent-tool-calling/design.md`（架构图、数据流 2.1、白名单 §3 重写；新增 §3.1 读工具预注入、§3.2 strict schema 约束落点、§3.3 FC 可用性判定；决策 1 重写；**新增决策 9/10/11**）
+  - `openspec/changes/agent-tool-calling/tasks.md`（T-01 勾选定稿；新增 T-05b/T-08b/T-18b/T-18c/T-18d/T-39b；T-24/T-25/T-37/T-39 改写；范围守护补 4 条）
+  - `openspec/changes/agent-tool-calling/specs/agent-runtime/spec.md`（**新增 2 个 Requirement**：原生 FC 无降级、不在回复生成过程内执行；白名单条款补 3 个 scenario）
+  - `openspec/changes/agent-tool-calling/specs/backend-core/spec.md`（新增 Requirement：FC 配置须 backend-side 且显式判定）
+  - `.ai/ACTIVE_TASK.md`（Gate 表、决策定稿表、Current Progress、Out Of Scope 更新）
+- **Changes**:
+  - **Q1 决策翻转**：规划初稿推荐「扩展自研 JSON `proposal` 字段」，理由是 `tools` 与 `json_object` 共存性未知。查阅 DeepSeek 官方 Tool Calls 文档后该前提不成立，四条事实推翻初稿：① FC 路径下 `tool_calls` 与 `content` 分属不同字段、天然并存，不需要 `json_object`（F24 `unknown` → `confirmed`）；② 官方示例用的就是 `deepseek-v4-pro`，正是本仓库 `app.ai.model` 默认值（F5b 新增）；③ **strict mode（Beta）** 由服务端校验 JSON Schema，使白名单从 prompt 提示升级为服务端强制类型约束，可靠性反超自研协议；④ tools schema / `tool_call_id` / `role:"tool"` 是 C3 多工具、C5 决策链路与未来 MCP / 框架接入的共同地基。用户 2026-07-27 确认改为原生 FC + strict mode
+  - **无降级定为硬约束**：FC 不可用即显式 `UNAVAILABLE`，仓库内不得存在第二条提议解析路径。依据是已接受 baseline「不得 mock success 冒充真实成功」——静默降级会制造「以为在跑 FC、实际在跑另一套解析」的模糊状态
+  - **决策 9（新）**：不做单轮内 FC 循环。原生 FC 的标准控制流是模型驱动执行，用户没有插入确认的位置，与二段式确认直接冲突。结论：采用 FC 的**协议**不等于采用它的**控制流**；每轮 provider 请求次数恒定为 1
+  - **决策 10（新）**：单轮多个 `tool_calls` 只取第一个合法提议。产品气质要求输出克制，多条确认条会让浮层变成待办清单；`pendingToolCall` 保持单值，幂等边界清晰
+  - **决策 11（新）**：不引入 MCP / Spring AI。MCP 解决跨客户端工具复用，而本项目工具只有一个消费方且必须绑 JWT 上下文与二段式确认；Spring AI 会改 `pom.xml` 并替换 C1 已验证调用链。因选了原生 FC schema，未来迁移是平滑替换而非重写
+  - **strict mode 限制已落到设计**：strict 不支持 `maxLength` / `maxItems` / `minItems`，故 `text` 长度、`tagIds` 数量、`unlockAt` 时序必须在 `AgentToolValidator` 代码层二次校验，明确写入 design §3.2 与验收标准第 7 项。结论：strict 把**类型与形状**前移到服务端，**业务边界**仍归后端
+  - **读工具改为 prompt 预注入**：`list_available_tags` / `read_draft_snapshot` 数据量小且每轮都需要，在「不做单轮内 FC 循环」约束下无法作为 FC tool 获取；registry 仍声明它们（白名单与审计完整视图），但只把写工具放进下发的 `tools` 数组
+  - **新增配置项设计**（无凭证）：`tool-calling-enabled` / `strict-mode-enabled` / `strict-mode-base-url` / `function-calling-models`。最后一项来自 F29——R1 曾明确不支持 FC、有第三方报告称 distill 变体返回空 `tool_calls`，故不得假设任意 OPENAI_COMPATIBLE provider 或任意 model 都支持
+  - **F30 结论**：第三方报告称 streaming 加剧 `tool_calls` 解析不稳，本仓库已固定 `stream: false`，**保持不动**
+  - 外调预算 30 → **45 次**（含 strict schema 被服务端接受/拒绝验证、`tool_calls` 与 `content` 并存确认、`content` 为空时 `askText` 兜底）
+  - 长期演进方向记入 proposal §12（MCP / Spring AI / C3 的 Memory 存储选型），标注为**不授权在 C2 实施**
+- **Verification**: PASS（规划阶段，无代码可测）
+  - 一致性扫描：grep `json_object` / `proposal 字段` / `降级` / `≤ 30` 全库复核，未残留与 Q1 定稿矛盾的表述；`json_object` 剩余出现均为「既有链路不碰」的正确语境
+  - 编号修正：proposal §3 Goals 与 §10 验收标准因插入条目导致的编号错乱已修正
+  - 诚实性复核：F23 明确标 `partial`（官方文档确认、**本仓库一次未跑过**），未写成 `confirmed`；F29/F30 标注为非官方源按风险提示对待；F24 转 `confirmed` 的依据是官方响应结构而非本仓库实测，已在诚实性声明中写明
+  - 范围检查：未触碰业务代码、未改 package/lockfile、未创建 `.kiro/specs/`、未执行 git 写操作
+  - **SKIPPED**：编译/测试/构建——本阶段零代码改动，无可验证目标
+  - **误报澄清**：`design.md` / `tasks.md` 的 Kiro 诊断报「缺少 Kiro Spec 章节」（Overview / Architecture / Task Dependency Graph 等）。已对已归档验收的 C1 同款文档取诊断，报错完全一致 → 该诊断来自 Kiro Spec 格式提供方，本项目按规则使用 OpenSpec，**属误报，不修**
+- **Risks**:
+  - **F23 是本 change 最大未验证依赖**：strict mode 为 Beta 且需 `/beta` base URL（与生产默认 `AI_BASE_URL` 不同），本仓库零实测。闸门 3 若 schema 被拒，处置顺序＝修 schema → 关 `strict-mode-enabled` 仅用普通 FC → 升级请示；**任何情况下不退回自研协议**
+  - 决策 9 的代价：Agent 在提议那一轮不知道执行结果，衔接感弱于标准 FC 循环；缓解是下一轮 prompt 带执行摘要
+  - 决策 9 的副作用：`role:"tool"` 标准消息角色在 C2 用不上，C5 记链路时需自己把 `agent_tool_call` 映射成 observation 段
+  - `propose_unlock_at` 是否越过「建议不代决」仍有判断空间，规划闸判为不越界，手验体感越界可从 registry 移除
+  - C2 期间内容合规仍为 C1 单层 prompt + 长度裁剪（C4 补齐）；日记正文中的诱导性指令由白名单 + 二段式确认兜底，而非内容识别
+- **Commit**: pending
+- **Next**: 等 **T-02b 闸门 1 放行**；放行后仍需单独的闸门 2 实现授权才可动 T-04 起的业务代码。
+
+## 2026-07-27｜agent-tool-calling｜Type C（闸门 2 实现）
+
+- **Scope**: 后端 Tool 层 + 持久化 + 执行层 + 会话集成 + 确认端点；前端确认交互；OpenSpec 同步
+  - **新增（后端主代码）**：`agent/tool/` 共 11 个类（`AgentToolName` / `AgentToolSpec` / `AgentToolRegistry` / `AgentToolSchemaFactory` / `AgentToolProposal` / `AgentToolRawArguments` / `AgentToolValidator` / `AgentToolValidationResult` / `AgentToolOutcome` / `AgentToolCallStatus` / `AgentToolDecision` / `AgentToolExecutor` / `AgentToolCoordinator` / `AgentToolArgsDigest` / `AgentToolPendingArgs`）、`agent/AgentModelResponse`、`agent/AgentRawToolCall`、`domain/AgentToolCall`、`mapper/AgentToolCallMapper` + XML、`dto/AgentToolCallConfirmRequest`、`vo/AgentToolCallVO`、`sql/mysql/c2-agent-tool-call.sql`
+  - **修改（后端）**：`AgentModelClient`（新增 `completeWithTools` + FC 可用性判定，既有 `complete()` 未动）、`AgentPromptBuilder`（新增带工具补充上下文的重载 + `buildToolSupplement`）、`AgentMockResponder`（伪造 `tool_calls`）、`AppAgentProperties`（7 项 C2 配置）、`AgentChatService(+Impl)`（`confirmToolCall`）、`AgentController`（确认端点）、`AgentSessionVO`（2 个向后兼容字段）、`RecordService(+Impl)`（`appendContent` / `appendTags` / `updateUnlockAt`）、`RecordMapper(+XML)`（2 条窄更新）、`RecordTagMapper(+XML)`（`selectTagIdsByRecordId`）、`application.yml`、测试 `schema.sql`
+  - **新增（后端测试）**：`AgentToolValidatorTest`(16)、`AgentToolSchemaFactoryTest`(9)、`AgentToolExecutorTest`(11)、`AgentToolCoordinatorTest`(7)、`AgentModelClientToolCallingTest`(11)、`AgentToolCallingIntegrationTest`(11)、`RecordServiceAppendIntegrationTest`(13)
+  - **修改（前端）**：`services/agentService.ts`、`stores/agentChat.ts`、`components/AgentChatSheet.vue`、`pages/record-editor/index.vue`
+  - **OpenSpec**：`tasks.md`（T-04~T-36 勾选）、`design.md`（新增决策 12）、`specs/agent-runtime/spec.md`（新增瞬态参数 3 个 scenario）、`proposal.md`（提交责任变更）
+- **Changes**:
+  - **原生 FC 接入**：`completeWithTools` 下发 `tools`、解析 `message.content` 与 `message.tool_calls`；**不下发** `response_format`。既有 `complete()` 与 `/api/ai/**` 三端点的 `json_object` 链路完全未动（grep 复核：`response_format` 仅存于 `AiServiceImpl` 与 `complete()` 两处）
+  - **无降级已落实**：grep 复核后端零处自研 `proposal` JSON 解析路径；FC 不可用时仅不下发 tools 并退回 C1 纯对话
+  - **strict schema 守门**：`AgentToolSchemaFactory` 生成全属性 `required` + `additionalProperties:false`，专测断言**不含** `maxLength`/`minLength`/`maxItems`/`minItems`（出现即会被 provider 拒绝整个 schema）；长度与数量边界改由 `AgentToolValidator` 代码层校验
+  - **二段式落地**：提议只落 `PROPOSED`，执行仅在 `confirmToolCall`。`AgentToolCoordinatorTest` 以 `verifyNoInteractions(executor)` 证明提议阶段绝不执行
+  - **幂等**：`updateStatusIfProposed` 用 `WHERE status='PROPOSED'` 条件更新实现，非先查后写；集成测试证明重复 ACCEPT 不产生第二段正文
+  - **执行不绕业务层**：三个写工具全部经 `RecordService`，继承 `requireOwnedRecord` + `ensureDraft`；两条新增窄 SQL 同样带 `AND status='DRAFT'`，使封存不可变在 DB 层也成立
+  - **决策 12（实现期新增）**：执行需要原始 `text` 但审计只存摘要 → 选瞬态 `pending_args` 列，终结时与状态流转在同一条 UPDATE 中置 NULL。否决「前端回传参数」（等于绕过白名单校验）与「存内存」（重启即丢、多实例失效）
+  - **白名单排除已验证**：`AgentToolValidatorTest` 对 seal/delete/unlock/location/cover/attachment/later-reflection/标签创建 9 个工具名逐一断言被拒；`AgentToolExecutorTest` 以 `never()` 断言 `seal`/`delete`/`update` 等从未被调用
+  - **决策 8 已验证**：集成测试断言确认前后 `stage` 与 `turnCount` 均不变
+  - **前端**：确认条复用素材卡视觉家族，未新增页面/路由/一级 Tab；执行成功后调既有 `fillByDetail` 刷新表单，避免表单与后端漂移导致后续保存覆盖掉刚追加的内容；`confirmingToolCall` 防抖
+- **Verification**:
+  - backend `mvn -B test`：**PASS｜329 tests / 0 failures / 0 errors**（C1 基线 254 + 新增 75）
+  - C1 基线回归：**PASS 且未改动任何 C1 断言**。仅 3 个用例改了 stub 接线（`complete` → `completeWithTools`），原因是 Agent 路径按 Q1 定稿改走 FC；另补齐 `AgentChatServiceImplTest` 构造签名新增依赖。已在代码注释中说明
+  - frontend `type-check`：PASS；`build:mp-weixin`：PASS
+  - H2 schema：新增 `agent_tool_call` 建表 + DROP 顺序修正（`agent_tool_call` 须先于 `agent_session`，否则外键阻塞建库——已实测触发并修复）
+  - 结构化日志抽查：执行日志仅输出 sessionId/toolCallId/tool/status/failureType/costMs，无参数原文
+  - 审计脱敏：集成测试断言 `args_digest` 含 `len=`/`sha256=` 且不含原文；`pending_args` 在终结后为 NULL
+  - **SKIPPED｜真实 provider FC 联调（T-37~T-39b）**：原因＝**闸门 3 未授权**。strict mode 是否被 DeepSeek 服务端接受、`tool_calls` 与 `content` 实际并存行为，本仓库仍**零实测**（proposal F23 保持 `partial`）
+  - **SKIPPED｜微信小程序手验（T-40~T-42）**：原因＝同上，需真实 provider 才能产生提议
+  - **SKIPPED｜真实 MySQL DDL 执行（T-38）**：原因＝闸门 3 未授权且本地 MySQL80 为手动启动；`c2-agent-tool-call.sql` 目前仅经 H2 等价 schema 验证
+- **Risks**:
+  - **最大未验证项**：原生 FC + strict mode 在真实 provider 上一次未跑。若 schema 被拒，按 design §4 处置顺序（修 schema → 关 strict → 升级请示），任何情况下不退回自研协议
+  - mock provider 的提议触发点固定在 `CORE_QUESTION` 阶段，真实模型的提议时机与频率未知，可能过多或过少，须手验观察
+  - `pending_args` 在待确认窗口内确实存在日记文本副本（虽瞬态），比决策 6 理想状态弱一档，已在 DDL 注释与 spec scenario 显式声明
+  - C2 期间内容合规仍为 C1 单层 prompt + 长度裁剪；提议话术可能出现诊断色彩表达，C4 补齐
+  - `propose_unlock_at` 是否越界仍待手验体感确认，越界可从 registry 移除
+- **Commit**: pending（本条之后由 Agent 代为提交，提交后另条补录 hash，不回改本条）
+- **Next**: 请求**闸门 3 外调授权**（≤ 45 次，含 strict schema 验证）。授权前先确认本地 `AI_PROVIDER` 取值，避免重演 C1 偏差。

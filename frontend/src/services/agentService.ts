@@ -23,6 +23,24 @@ export interface AgentMessage {
     createdAt: string
 }
 
+/** C2 工具提议状态。 */
+export type AgentToolCallStatus = 'PROPOSED' | 'EXECUTED' | 'FAILED' | 'REJECTED' | 'REJECTED_BY_GUARD'
+
+/** C2 用户对提议的决定。只有接受或拒绝，没有免确认模式。 */
+export type AgentToolDecision = 'ACCEPT' | 'REJECT'
+
+export interface AgentToolCall {
+    toolCallId: number
+    tool: string
+    status: AgentToolCallStatus
+    /** Agent 的征询话术，用作确认条文案。 */
+    askText?: string | null
+    resultSummary?: string | null
+    failureType?: string | null
+    tagIds?: number[] | null
+    unlockAt?: string | null
+}
+
 export interface AgentSession {
     sessionId: number
     recordId?: number | null
@@ -36,6 +54,10 @@ export interface AgentSession {
     source: string
     status: AgentResultStatus
     message?: string | null
+    /** C2 新增：待用户确认的工具提议。 */
+    pendingToolCall?: AgentToolCall | null
+    /** C2 新增：最近一次工具执行结果。 */
+    lastToolCallResult?: AgentToolCall | null
 }
 
 const shouldBlockRealIntegrationInPreview = () => !getToken() && hasPreviewSession()
@@ -73,6 +95,19 @@ export const agentService = {
         return requireRealSession(() => httpRequest<AgentSession>({
             url: `/api/agent/sessions/${sessionId}/finish`,
             method: 'POST',
+        }))
+    },
+    /**
+     * C2：确认或拒绝一条工具提议。
+     *
+     * 刻意不传任何工具参数——执行入参一律取自后端持久化的提议，
+     * 前端回传参数等于绕过白名单与校验。
+     */
+    confirmToolCall(sessionId: number, toolCallId: number, decision: AgentToolDecision) {
+        return requireRealSession(() => httpRequest<AgentSession>({
+            url: `/api/agent/sessions/${sessionId}/tool-calls/${toolCallId}/confirm`,
+            method: 'POST',
+            data: { decision },
         }))
     },
 }

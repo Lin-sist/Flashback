@@ -22,6 +22,15 @@ public class AgentSessionVO {
     private String source;
     private String status;
     private String message;
+    /**
+     * C2 新增（向后兼容）：当前待用户确认的工具提议；无提议时为 null。
+     * C1 既有字段语义不变。
+     */
+    private AgentToolCallVO pendingToolCall;
+    /**
+     * C2 新增（向后兼容）：最近一次工具执行结果，用于前端展示成功或失败原因。
+     */
+    private AgentToolCallVO lastToolCallResult;
 
     public Long getSessionId() {
         return sessionId;
@@ -117,5 +126,21 @@ public class AgentSessionVO {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public AgentToolCallVO getPendingToolCall() {
+        return pendingToolCall;
+    }
+
+    public void setPendingToolCall(AgentToolCallVO pendingToolCall) {
+        this.pendingToolCall = pendingToolCall;
+    }
+
+    public AgentToolCallVO getLastToolCallResult() {
+        return lastToolCallResult;
+    }
+
+    public void setLastToolCallResult(AgentToolCallVO lastToolCallResult) {
+        this.lastToolCallResult = lastToolCallResult;
     }
 }

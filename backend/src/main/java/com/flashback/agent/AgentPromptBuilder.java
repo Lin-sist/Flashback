@@ -1,9 +1,12 @@
 package com.flashback.agent;
 
+import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentStage;
+import com.flashback.domain.AgentToolCall;
+import com.flashback.vo.TagVO;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -46,8 +49,25 @@ public class AgentPromptBuilder {
             AgentStage targetStage,
             List<AgentMessage> history,
             String draftExcerpt) {
+        return buildConversationMessages(targetStage, history, draftExcerpt, null);
+    }
+
+    /**
+     * C2 重载：附带工具补充上下文。
+     *
+     * @param toolSupplement 预注入的读工具内容与最近工具执行结果摘要，可为 null
+     */
+    public List<Map<String, String>> buildConversationMessages(
+            AgentStage targetStage,
+            List<AgentMessage> history,
+            String draftExcerpt,
+            String toolSupplement) {
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", buildSystemPrompt(targetStage, draftExcerpt)));
+        String system = buildSystemPrompt(targetStage, draftExcerpt);
+        if (toolSupplement != null && !toolSupplement.isBlank()) {
+            system = system + "\n\n" + toolSupplement.trim();
+        }
+        messages.add(Map.of("role", "system", "content", system));
 
         for (AgentMessage message : windowOf(history)) {
             messages.add(Map.of(
@@ -75,6 +95,47 @@ public class AgentPromptBuilder {
             builder.append("\n\n用户已经写下的正文（只读参考，禁止改写或替换）：\n").append(excerpt);
         }
         return builder.toString();
+    }
+
+    /**
+     * C2：构造工具补充上下文。
+     *
+     * 两部分（design §3.1、数据流 2.3）：
+     * 1. 预注入读工具内容——可选标签清单。读工具不作为 FC tool 下发，
+     * 因为 C2 不做单轮内 FC 循环，模型无法先调工具再提议。
+     * 2. 最近工具执行结果的结构化摘要，使 Agent 知道「刚刚做了什么」，
+     * 不重复提议同一个已完成的行动。摘要不含日记原文。
+     *
+     * 同时给出工具使用的气质约束：提议而非代决，且不得改写用户原文。
+     */
+    public String buildToolSupplement(List<TagVO> availableTags, List<AgentToolCall> recentToolCalls) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("""
+                关于你可以做的小动作：
+                - 你可以在合适的时候提议帮用户做一件小事（把他说过的话整理进正文、加个标签、设一个解锁时间）。
+                - 提议就只是提议：由用户点确认才会发生，你不能替他决定，也不要反复追问同一件事。
+                - 封存、解锁、删除这些事你做不了，只能建议用户自己在页面上确认。
+                - 你永远不能改写、替换或“修正”用户已经写下的文字，只能追加他自己说过的内容。
+                """.trim());
+
+        if (availableTags != null && !availableTags.isEmpty()) {
+            builder.append("\n\n可选标签（只能从这里挑，不能新建）：\n");
+            for (TagVO tag : availableTags) {
+                builder.append("- id=").append(tag.getId()).append(" ").append(tag.getName()).append('\n');
+            }
+        }
+
+        if (recentToolCalls != null && !recentToolCalls.isEmpty()) {
+            builder.append("\n已经发生过的操作（不要重复提议）：\n");
+            for (AgentToolCall toolCall : recentToolCalls) {
+                builder.append("- ")
+                        .append(toolCall.getToolName())
+                        .append('：')
+                        .append(toolCall.getStatus() == AgentToolCallStatus.EXECUTED ? "已完成" : "没有成功")
+                        .append('\n');
+            }
+        }
+        return builder.toString().trim();
     }
 
     /**

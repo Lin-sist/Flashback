@@ -73,6 +73,10 @@ public class RecordServiceImpl implements RecordService {
 
     private static final int PREVIEW_MAX_LENGTH = 60;
     private static final int UNLOCK_BATCH_SIZE = 100;
+    /**
+     * 与 UpdateRecordRequest / CreateRecordRequest 的 tagIds @Size(max = 20) 保持一致。
+     */
+    private static final int MAX_TAG_IDS_PER_RECORD = 20;
     private static final String NOTICE_TYPE_SYSTEM_UNLOCK = "SYSTEM_UNLOCK";
     private static final String NOTICE_STATUS_SUCCESS = "SUCCESS";
     private static final String TEMPLATE_TYPE_UNLOCK_REMINDER = "UNLOCK_REMINDER";
@@ -284,6 +288,80 @@ public class RecordServiceImpl implements RecordService {
         }
 
         int affected = recordMapper.sealDraftByIdAndUserId(id, userId, now, now);
+        if (affected == 0) {
+            throw badRequest("记录状态已变更，请刷新后重试");
+        }
+
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO appendContent(Long userId, Long id, String text) {
+        Record current = requireOwnedRecord(id, userId);
+        ensureDraft(current, "记录已封存，不能追加正文");
+
+        String addition = normalizeRequired(text, "追加内容不能为空");
+        String existing = normalizeOptional(current.getContent());
+        // 只追加：既有正文原样保留在前，不做修剪、润色或替换。
+        String merged = existing == null ? addition : existing + "\n\n" + addition;
+
+        int affected = recordMapper.updateDraftContentByIdAndUserId(
+                id,
+                userId,
+                merged,
+                LocalDateTime.now(clock));
+        if (affected == 0) {
+            throw badRequest("记录状态已变更，请刷新后重试");
+        }
+
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO appendTags(Long userId, Long id, List<Long> tagIds) {
+        Record current = requireOwnedRecord(id, userId);
+        ensureDraft(current, "记录已封存，不能修改标签");
+
+        List<Long> incoming = normalizeTagIds(tagIds);
+        if (incoming.isEmpty()) {
+            throw badRequest("tagIds不能为空");
+        }
+        validateTagIdsExist(incoming);
+
+        List<Long> existing = recordTagMapper.selectTagIdsByRecordId(id);
+        LinkedHashSet<Long> merged = new LinkedHashSet<>(existing == null ? List.of() : existing);
+        // 只追加：既有标签先入集合，重复项被集合天然去重，不产生重复绑定。
+        merged.addAll(incoming);
+
+        if (merged.size() > MAX_TAG_IDS_PER_RECORD) {
+            throw badRequest("标签数量超出上限");
+        }
+
+        if (merged.size() != (existing == null ? 0 : existing.size())) {
+            rebindRecordTags(id, List.copyOf(merged));
+        }
+
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO updateUnlockAt(Long userId, Long id, LocalDateTime unlockAt) {
+        Record current = requireOwnedRecord(id, userId);
+        ensureDraft(current, "记录已封存，不能修改解锁时间");
+
+        if (unlockAt == null) {
+            throw badRequest("unlockAt不能为空");
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!unlockAt.isAfter(now)) {
+            throw badRequest("unlockAt必须晚于当前时间");
+        }
+
+        // 只写解锁时间，不改 status：封存仍须用户自行确认。
+        int affected = recordMapper.updateDraftUnlockAtByIdAndUserId(id, userId, unlockAt, now);
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
@@ -631,7 +709,8 @@ public class RecordServiceImpl implements RecordService {
                 sendUnlockReminder(reminder, openid, now);
             }
         } catch (Exception ex) {
-            // Reminder persistence is best-effort in M2 and must never block unlock processing.
+            // Reminder persistence is best-effort in M2 and must never block unlock
+            // processing.
         }
     }
 
@@ -795,7 +874,8 @@ public class RecordServiceImpl implements RecordService {
         vo.setLifeNodeType(record.getLifeNodeType());
         vo.setLifeNodeCustomLabel(record.getLifeNodeCustomLabel());
         vo.setLifeNodeLabel(resolveLifeNodeLabel(record));
-        vo.setLocation(toLocationVO(recordLocationMapper.selectByRecordIdAndUserId(record.getId(), record.getUserId())));
+        vo.setLocation(
+                toLocationVO(recordLocationMapper.selectByRecordIdAndUserId(record.getId(), record.getUserId())));
         List<RecordAttachmentVO> attachments = loadAvailableAttachments(record.getId(), record.getUserId());
         vo.setAttachments(attachments);
         vo.setCover(toCoverVO(record));
@@ -811,7 +891,8 @@ public class RecordServiceImpl implements RecordService {
     }
 
     private List<RecordAttachmentVO> loadAvailableAttachments(Long recordId, Long userId) {
-        List<RecordAttachment> attachments = recordAttachmentMapper.selectAvailableByRecordIdAndUserId(recordId, userId);
+        List<RecordAttachment> attachments = recordAttachmentMapper.selectAvailableByRecordIdAndUserId(recordId,
+                userId);
         if (attachments == null || attachments.isEmpty()) {
             return List.of();
         }

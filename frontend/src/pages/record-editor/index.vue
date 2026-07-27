@@ -5,7 +5,7 @@ import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/prev
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import AgentChatSheet from './components/AgentChatSheet.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
-import { aiService, attachmentService, recordService } from '../../services'
+import { aiService, attachmentService, recordService, type AgentToolDecision } from '../../services'
 import { useAgentChatStore, useRecordStore, useTagStore } from '../../stores'
 import {
   LifeNodeType,
@@ -541,6 +541,27 @@ const finishAgentChat = async () => {
   if (agentChatStore.finishing) return
   try {
     await agentChatStore.finish()
+  } catch (error) {
+    if (!agentChatStore.errorMessage) {
+      agentChatStore.errorMessage = toUserMessage(error)
+    }
+  }
+}
+
+/**
+ * C2：确认或拒绝 Agent 的工具提议。
+ *
+ * 执行成功后重新拉取记录详情刷新表单——工具写的是后端记录，
+ * 若不刷新，编辑器里的正文/标签会与后端状态漂移，用户接着保存就会覆盖掉刚追加的内容。
+ */
+const confirmAgentToolCall = async (decision: AgentToolDecision) => {
+  if (agentChatStore.confirmingToolCall) return
+  try {
+    const result = await agentChatStore.confirmToolCall(decision)
+    if (result?.status === 'EXECUTED' && recordId.value) {
+      await fillByDetail(recordId.value)
+      markSnapshot()
+    }
   } catch (error) {
     if (!agentChatStore.errorMessage) {
       agentChatStore.errorMessage = toUserMessage(error)
@@ -1941,7 +1962,9 @@ onUnload(() => {
     :loading="agentChatStore.loading"
     :sending="agentChatStore.sending"
     :finishing="agentChatStore.finishing"
+    :confirming-tool-call="agentChatStore.confirmingToolCall"
     :error-message="agentChatStore.errorMessage"
+    @confirm-tool-call="confirmAgentToolCall"
     @close="showAgentChat = false"
     @send="sendAgentMessage"
     @finish="finishAgentChat"

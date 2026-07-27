@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import type { AgentMessage, AgentSession } from '../../../services'
+import type { AgentMessage, AgentSession, AgentToolDecision } from '../../../services'
 
 const props = defineProps<{
   visible: boolean
@@ -8,6 +8,7 @@ const props = defineProps<{
   loading: boolean
   sending: boolean
   finishing: boolean
+  confirmingToolCall: boolean
   errorMessage: string
 }>()
 
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   retry: []
   useMaterial: [material: string]
   discardMaterial: []
+  confirmToolCall: [decision: AgentToolDecision]
 }>()
 
 const input = ref('')
@@ -42,6 +44,23 @@ const phaseText = computed(() => {
   if (props.session.stage === 'CLOSING' || props.session.stage === 'ENDED') return '说到这里已经很好'
   return '写下此刻'
 })
+
+/** C2：仅待确认的提议才展示确认条。 */
+const pendingToolCall = computed(() => {
+  const pending = props.session?.pendingToolCall
+  return pending && pending.status === 'PROPOSED' ? pending : null
+})
+
+/** C2：执行失败时给出明确原因，成功时给一句轻量确认。 */
+const toolCallNotice = computed(() => {
+  const result = props.session?.lastToolCallResult
+  if (!result) return ''
+  if (result.status === 'FAILED') return result.resultSummary || '这一步没有成功'
+  if (result.status === 'EXECUTED') return result.resultSummary || '已经帮你做好了'
+  return ''
+})
+
+const toolCallFailed = computed(() => props.session?.lastToolCallResult?.status === 'FAILED')
 
 const messageKey = (message: AgentMessage, index: number) => `${message.id || 'pending'}-${message.turnNo}-${message.role}-${index}`
 
@@ -110,6 +129,34 @@ const submit = () => {
         <view v-if="errorMessage" class="error-card">
           <text class="error-text">{{ errorMessage }}</text>
           <view class="retry-link" @tap="emit('retry')">再试一次</view>
+        </view>
+
+        <!--
+          C2 工具提议确认条。保持克制：一行征询 + 两个选项，
+          不做成待办清单（单轮至多一个提议）。
+        -->
+        <view v-if="pendingToolCall" class="tool-card">
+          <text class="tool-ask">{{ pendingToolCall.askText || '要不要我帮你做这一步？' }}</text>
+          <view class="tool-actions">
+            <view
+              class="tool-secondary"
+              :class="{ 'tool-action--disabled': confirmingToolCall }"
+              @tap="emit('confirmToolCall', 'REJECT')"
+            >先不用</view>
+            <view
+              class="tool-primary"
+              :class="{ 'tool-action--disabled': confirmingToolCall }"
+              @tap="emit('confirmToolCall', 'ACCEPT')"
+            >{{ confirmingToolCall ? '正在处理...' : '好' }}</view>
+          </view>
+        </view>
+
+        <view
+          v-else-if="toolCallNotice"
+          class="tool-notice"
+          :class="{ 'tool-notice--failed': toolCallFailed }"
+        >
+          <text class="tool-notice-text">{{ toolCallNotice }}</text>
         </view>
 
         <view v-if="material" class="material-card">
@@ -369,6 +416,67 @@ const submit = () => {
 .material-primary {
   color: #fffaf3;
   background: #9c6447;
+}
+
+/* C2 工具提议确认条：与素材卡同一视觉家族，不引入新的视觉语言。 */
+.tool-card {
+  margin: 8rpx 0 20rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(151, 101, 72, 0.16);
+  border-radius: 18rpx;
+  background: rgba(255, 250, 242, 0.86);
+}
+
+.tool-ask {
+  display: block;
+  color: #55483c;
+  font-size: 26rpx;
+  line-height: 1.7;
+}
+
+.tool-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18rpx;
+  margin-top: 20rpx;
+}
+
+.tool-secondary,
+.tool-primary {
+  padding: 14rpx 28rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+}
+
+.tool-secondary {
+  color: rgba(64, 55, 47, 0.64);
+  background: rgba(102, 85, 65, 0.07);
+}
+
+.tool-primary {
+  color: #fffaf3;
+  background: #9c6447;
+}
+
+.tool-action--disabled {
+  opacity: 0.4;
+}
+
+.tool-notice {
+  margin: 4rpx 0 18rpx;
+  padding: 14rpx 20rpx;
+  border-radius: 14rpx;
+  background: rgba(102, 85, 65, 0.06);
+}
+
+.tool-notice--failed {
+  background: rgba(157, 102, 73, 0.1);
+}
+
+.tool-notice-text {
+  color: rgba(64, 55, 47, 0.66);
+  font-size: 23rpx;
+  line-height: 1.65;
 }
 
 .message-bottom-space {

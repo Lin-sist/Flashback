@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `agent_tool_call`;
 DROP TABLE IF EXISTS `agent_message`;
 DROP TABLE IF EXISTS `agent_session`;
 DROP TABLE IF EXISTS `unlock_notice_log`;
@@ -203,4 +204,28 @@ CREATE TABLE `agent_message` (
   KEY `idx_agent_message_user_id` (`user_id`),
   CONSTRAINT `fk_agent_message_session_id` FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_agent_message_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `agent_tool_call` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `session_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `record_id` BIGINT DEFAULT NULL,
+  `turn_no` INT NOT NULL,
+  `tool_name` VARCHAR(50) NOT NULL,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'PROPOSED',
+  `args_digest` VARCHAR(500) DEFAULT NULL,
+  `pending_args` TEXT DEFAULT NULL,
+  `ask_text` VARCHAR(255) DEFAULT NULL,
+  `failure_type` VARCHAR(50) DEFAULT NULL,
+  `result_summary` VARCHAR(255) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_agent_tool_call_session_status` (`session_id`, `status`),
+  KEY `idx_agent_tool_call_session_id` (`session_id`, `id`),
+  KEY `idx_agent_tool_call_user_id` (`user_id`),
+  CONSTRAINT `fk_agent_tool_call_session_id` FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_tool_call_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_tool_call_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE
 );

@@ -183,6 +183,28 @@
           AND status = 'DRAFT'
     </update>
 
+    <!-- C2：Agent 工具追加正文。status = 'DRAFT' 让封存不可变约束在 SQL 层同样成立。 -->
+    <update id="updateDraftContentByIdAndUserId">
+        UPDATE `record`
+        SET
+            content = #{content},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+    </update>
+
+    <!-- C2：Agent 工具设置解锁时间。只写 unlock_at，不改 status，因此不构成封存。 -->
+    <update id="updateDraftUnlockAtByIdAndUserId">
+        UPDATE `record`
+        SET
+            unlock_at = #{unlockAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+    </update>
+
     <update id="clearCoverAttachmentIfMatches">
         UPDATE `record`
         SET

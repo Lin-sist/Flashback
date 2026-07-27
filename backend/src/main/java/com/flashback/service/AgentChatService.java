@@ -1,14 +1,15 @@
 package com.flashback.service;
 
+import com.flashback.agent.tool.AgentToolDecision;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.vo.AgentSessionVO;
 
 /**
- * Agent 多轮对话服务（C1）。
+ * Agent 多轮对话服务（C1 + C2）。
  *
- * 范围边界：C1 只做对话 Runtime，不调用任何记录写操作，
- * Tool Calling / Memory / 后置过滤分别留给 C2 / C3 / C4。
+ * 范围边界：C2 增加受白名单约束的工具调用，
+ * Memory / 后置过滤 / 可观测查询分别留给 C3 / C4 / C5。
  */
 public interface AgentChatService {
 
@@ -31,4 +32,13 @@ public interface AgentChatService {
      * 用户主动结束会话，返回素材草稿。
      */
     AgentSessionVO finish(Long userId, Long sessionId);
+
+    /**
+     * C2：确认（接受或拒绝）一条工具提议。
+     *
+     * 这是工具执行的**唯一**入口：Agent 生成回复时只能提议，
+     * 实际写操作只发生在本方法（design.md 决策 2、9）。
+     * 重复确认幂等，不重复执行。
+     */
+    AgentSessionVO confirmToolCall(Long userId, Long sessionId, Long toolCallId, AgentToolDecision decision);
 }

@@ -9,6 +9,13 @@
         WHERE record_id = #{recordId}
     </delete>
 
+    <select id="selectTagIdsByRecordId" resultType="long">
+        SELECT tag_id
+        FROM record_tag
+        WHERE record_id = #{recordId}
+        ORDER BY tag_id
+    </select>
+
     <insert id="batchInsert">
         INSERT INTO record_tag (record_id, tag_id)
         VALUES

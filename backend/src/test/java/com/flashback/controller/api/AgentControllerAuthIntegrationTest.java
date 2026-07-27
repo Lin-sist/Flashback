@@ -1,5 +1,6 @@
 package com.flashback.controller.api;
 
+import com.flashback.agent.tool.AgentToolDecision;
 import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
@@ -12,6 +13,7 @@ import com.flashback.security.jwt.JwtTokenProvider;
 import com.flashback.service.AgentChatService;
 import com.flashback.vo.AgentMessageVO;
 import com.flashback.vo.AgentSessionVO;
+import com.flashback.vo.AgentToolCallVO;
 import com.flashback.common.exception.NotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,6 +143,69 @@ class AgentControllerAuthIntegrationTest {
                 .andExpect(jsonPath("$.data.sessionStatus").value("ENDED"))
                 .andExpect(jsonPath("$.data.materialDraft").value("工作上有点撑不住"))
                 .andExpect(jsonPath("$.data.canContinue").value(false));
+    }
+
+    // ---------- C2 工具确认端点 ----------
+
+    @Test
+    void shouldReturn401WhenConfirmToolCallWithoutLogin() throws Exception {
+        mockMvc.perform(post("/api/agent/sessions/900/tool-calls/77/confirm")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"decision\":\"ACCEPT\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(40100));
+    }
+
+    @Test
+    void shouldConfirmToolCallWhenAuthorized() throws Exception {
+        String token = authorizedToken();
+        AgentSessionVO vo = openedSession();
+        AgentToolCallVO result = new AgentToolCallVO();
+        result.setToolCallId(77L);
+        result.setTool("append_record_content");
+        result.setStatus("EXECUTED");
+        result.setResultSummary("已把这段放进正文");
+        vo.setLastToolCallResult(result);
+        when(agentChatService.confirmToolCall(eq(5001L), eq(900L), eq(77L), eq(AgentToolDecision.ACCEPT)))
+                .thenReturn(vo);
+
+        mockMvc.perform(post("/api/agent/sessions/900/tool-calls/77/confirm")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"decision\":\"ACCEPT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.lastToolCallResult.status").value("EXECUTED"));
+    }
+
+    @Test
+    void shouldRejectMissingDecision() throws Exception {
+        String token = authorizedToken();
+
+        mockMvc.perform(post("/api/agent/sessions/900/tool-calls/77/confirm")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
+    }
+
+    /**
+     * 跨用户 / 不存在的提议统一返回安全的未找到，不泄露存在性。
+     */
+    @Test
+    void shouldReturnSafeNotFoundForOtherUsersToolCall() throws Exception {
+        String token = authorizedToken();
+        when(agentChatService.confirmToolCall(eq(5001L), eq(900L), eq(77L), any()))
+                .thenThrow(new NotFoundException("操作不存在"));
+
+        mockMvc.perform(post("/api/agent/sessions/900/tool-calls/77/confirm")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"decision\":\"ACCEPT\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(40400))
+                .andExpect(jsonPath("$.message").value("操作不存在"));
     }
 
     private String authorizedToken() {

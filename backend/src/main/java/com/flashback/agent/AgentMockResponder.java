@@ -55,6 +55,33 @@ public class AgentMockResponder {
         return builder.length() == 0 ? null : builder.toString();
     }
 
+    /**
+     * C2：mock provider 下伪造原生 tool_calls，供零外调端到端测试。
+     *
+     * 形状与真实 provider 一致（function name + arguments JSON 字符串），
+     * 因此走的是同一条解析与校验路径——测试覆盖的不是一条特设分支。
+     *
+     * 触发时机刻意保守：只在 CORE_QUESTION 阶段提议一次追加正文，
+     * 避免 mock 下每轮都弹确认条影响其他测试。
+     */
+    public List<AgentRawToolCall> toolCalls(AgentStage targetStage, String userInput, boolean toolsEnabled) {
+        if (!toolsEnabled || targetStage != AgentStage.CORE_QUESTION) {
+            return List.of();
+        }
+        String material = userInput == null || userInput.isBlank() ? "先记下此刻的感受" : userInput.trim();
+        String arguments = "{\"text\":\"" + escapeJson(material)
+                + "\",\"askText\":\"要不要把这段放进正文？\"}";
+        return List.of(new AgentRawToolCall("append_record_content", arguments));
+    }
+
+    private String escapeJson(String value) {
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+    }
+
     private boolean firstTurn(String userInput) {
         return userInput == null || userInput.isBlank();
     }

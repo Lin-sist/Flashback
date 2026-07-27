@@ -61,6 +61,27 @@ public interface RecordMapper {
                         @Param("coverAttachmentId") Long coverAttachmentId,
                         @Param("updatedAt") LocalDateTime updatedAt);
 
+        /**
+         * C2：仅覆盖 content 的窄更新，供 Agent 工具追加正文使用。
+         * content 由 service 层拼装（既有正文 + 追加段），SQL 侧仍限定 DRAFT，
+         * 使封存不可变约束在数据库层同样成立。
+         */
+        int updateDraftContentByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("content") String content,
+                        @Param("updatedAt") LocalDateTime updatedAt);
+
+        /**
+         * C2：仅覆盖 unlock_at 的窄更新，供 Agent 工具建议解锁时间使用。
+         * 只写解锁时间，**不触发封存**——status 保持 DRAFT。
+         */
+        int updateDraftUnlockAtByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("unlockAt") LocalDateTime unlockAt,
+                        @Param("updatedAt") LocalDateTime updatedAt);
+
         int clearCoverAttachmentIfMatches(
                         @Param("id") Long id,
                         @Param("userId") Long userId,

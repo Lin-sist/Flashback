@@ -3,6 +3,7 @@ package com.flashback.controller.api;
 import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
+import com.flashback.dto.AgentToolCallConfirmRequest;
 import com.flashback.security.auth.AuthUser;
 import com.flashback.security.auth.CurrentUser;
 import com.flashback.service.AgentChatService;
@@ -17,10 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Agent 多轮对话接口（C1）。
+ * Agent 多轮对话接口（C1 + C2）。
  *
  * 鉴权：路径位于 /api/** 之下，由 WebMvcConfig 注册的 JWT 拦截器统一拦截。
  * 归属：会话归属校验落在 service + SQL 双层，跨用户访问返回安全的未找到。
+ * C2：新增工具确认端点，C1 四个端点的既有契约保持不变。
  */
 @Validated
 @RestController
@@ -60,5 +62,21 @@ public class AgentController {
             @CurrentUser AuthUser authUser,
             @PathVariable Long sessionId) {
         return ApiResponse.success(agentChatService.finish(authUser.getUserId(), sessionId));
+    }
+
+    /**
+     * C2：确认（接受或拒绝）一条工具提议。
+     *
+     * 这是工具执行的唯一入口——Agent 在生成回复时只能提议，
+     * 任何写操作都必须经过用户在此处的显式确认（design.md 决策 2）。
+     */
+    @PostMapping("/sessions/{sessionId}/tool-calls/{toolCallId}/confirm")
+    public ApiResponse<AgentSessionVO> confirmToolCall(
+            @CurrentUser AuthUser authUser,
+            @PathVariable Long sessionId,
+            @PathVariable Long toolCallId,
+            @Valid @RequestBody AgentToolCallConfirmRequest request) {
+        return ApiResponse.success(agentChatService.confirmToolCall(
+                authUser.getUserId(), sessionId, toolCallId, request.getDecision()));
     }
 }

@@ -3,9 +3,19 @@ package com.flashback.service.impl;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentMockResponder;
 import com.flashback.agent.AgentModelClient;
+import com.flashback.agent.AgentModelResponse;
 import com.flashback.agent.AgentPromptBuilder;
+import com.flashback.agent.AgentRawToolCall;
 import com.flashback.agent.AgentStageDecision;
 import com.flashback.agent.AgentStageMachine;
+import com.flashback.agent.tool.AgentToolCallStatus;
+import com.flashback.agent.tool.AgentToolCoordinator;
+import com.flashback.agent.tool.AgentToolDecision;
+import com.flashback.agent.tool.AgentToolName;
+import com.flashback.agent.tool.AgentToolPendingArgs;
+import com.flashback.agent.tool.AgentToolProposal;
+import com.flashback.agent.tool.AgentToolRegistry;
+import com.flashback.agent.tool.AgentToolSchemaFactory;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
@@ -15,6 +25,7 @@ import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
+import com.flashback.domain.AgentToolCall;
 import com.flashback.domain.Record;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
@@ -22,8 +33,10 @@ import com.flashback.mapper.AgentMessageMapper;
 import com.flashback.mapper.AgentSessionMapper;
 import com.flashback.mapper.RecordMapper;
 import com.flashback.service.AgentChatService;
+import com.flashback.service.TagService;
 import com.flashback.vo.AgentMessageVO;
 import com.flashback.vo.AgentSessionVO;
+import com.flashback.vo.AgentToolCallVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -35,16 +48,22 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Agent 多轮对话编排实现（C1）。
+ * Agent 多轮对话编排实现（C1 + C2）。
  *
  * 关键约定：
  * 1. 阶段推进由 AgentStageMachine 决定，不交给模型（design.md 决策 4）；
  * 2. provider 不可用/失败时返回显式 UNAVAILABLE / FAILED，不做本地兜底冒充成功（决策 5）；
  * 3. provider 失败时用户消息已落库并保留，Agent 回复不落库，允许同轮重试；
  * 4. 日志只输出结构化元数据，绝不输出对话原文或日记原文；
- * 5. C1 不调用任何记录写操作，素材回填由前端在用户确认后走既有记录接口。
+ * 5. 素材回填仍由前端在用户确认后走既有记录接口。
+ *
+ * C2 增量：
+ * 6. 工具提议经原生 function calling 产生，只落库为待确认，**不在本轮执行**（决策 2、9）；
+ * 7. 工具执行的唯一入口是 confirmToolCall，且不推进阶段、不增加轮次（决策 8）；
+ * 8. 工具不可用时只是不下发 tools，不改用任何自研提议协议（决策 1：无降级）。
  */
 @Service
 public class AgentChatServiceImpl implements AgentChatService {
@@ -62,6 +81,9 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentGuardrailPolicy guardrailPolicy;
     private final AgentModelClient modelClient;
     private final AgentMockResponder mockResponder;
+    private final AgentToolSchemaFactory toolSchemaFactory;
+    private final AgentToolCoordinator toolCoordinator;
+    private final TagService tagService;
     private final AppAgentProperties appAgentProperties;
     private final Clock clock;
 
@@ -74,6 +96,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentGuardrailPolicy guardrailPolicy,
             AgentModelClient modelClient,
             AgentMockResponder mockResponder,
+            AgentToolSchemaFactory toolSchemaFactory,
+            AgentToolCoordinator toolCoordinator,
+            TagService tagService,
             AppAgentProperties appAgentProperties,
             Clock clock) {
         this.agentSessionMapper = agentSessionMapper;
@@ -84,6 +109,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.guardrailPolicy = guardrailPolicy;
         this.modelClient = modelClient;
         this.mockResponder = mockResponder;
+        this.toolSchemaFactory = toolSchemaFactory;
+        this.toolCoordinator = toolCoordinator;
+        this.tagService = tagService;
         this.appAgentProperties = appAgentProperties;
         this.clock = clock;
     }
@@ -220,7 +248,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             return unavailable(session, history, unavailableReason);
         }
 
-        AgentReply reply = generateReply(targetStage, history, draftExcerptOf(userId, session.getRecordId()), "turn");
+        AgentToolContext toolContext = buildToolContext(session);
+        AgentReply reply = generateReply(
+                targetStage, history, draftExcerptOf(userId, session.getRecordId()), "turn", toolContext);
         if (!reply.success()) {
             return failed(session, history, reply.message());
         }
@@ -229,13 +259,49 @@ public class AgentChatServiceImpl implements AgentChatService {
                 session, AgentMessageRole.ASSISTANT, turnNo, targetStage, reply.content(), now);
         history = appended(history, assistantMessage);
 
+        // 提议只落库为待确认，**不执行**；执行只发生在 confirmToolCall（决策 2、9）。
+        AgentToolCall pendingToolCall = toolContext.toolsEnabled()
+                ? toolCoordinator.handleProposals(session, turnNo, reply.toolCalls())
+                : null;
+
         String materialDraft = null;
         if (targetStage == AgentStage.CLOSING) {
             materialDraft = generateMaterial(history);
             endSession(session, now);
         }
 
-        return toSessionVO(session, history, materialDraft, STATUS_SUCCESS);
+        AgentSessionVO vo = toSessionVO(session, history, materialDraft, STATUS_SUCCESS);
+        vo.setPendingToolCall(toToolCallVO(pendingToolCall));
+        return vo;
+    }
+
+    @Override
+    @Transactional
+    public AgentSessionVO confirmToolCall(
+            Long userId, Long sessionId, Long toolCallId, AgentToolDecision decision) {
+        AgentSession session = requireOwnedSession(userId, sessionId);
+        if (decision == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "decision不能为空");
+        }
+
+        AgentToolCall handled = toolCoordinator.confirm(userId, sessionId, toolCallId, decision);
+        if (handled == null) {
+            // 跨用户、不存在、会话不匹配统一按未找到处理，不泄露存在性。
+            throw new NotFoundException("操作不存在");
+        }
+
+        // 工具确认不推进阶段、不增加轮次（design 决策 8）：
+        // 会话进度完全不变，仅工具状态流转。
+        List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
+        AgentSessionVO vo = toSessionVO(session, history, null, statusOfConfig());
+        vo.setLastToolCallResult(toToolCallVO(handled));
+        vo.setPendingToolCall(toToolCallVO(toolCoordinator.pendingOf(sessionId)));
+        if (handled.getStatus() == AgentToolCallStatus.FAILED) {
+            // 失败必须显式，不谎报成功。
+            vo.setStatus(STATUS_FAILED);
+            vo.setMessage(handled.getResultSummary());
+        }
+        return vo;
     }
 
     @Override
@@ -261,22 +327,59 @@ public class AgentChatServiceImpl implements AgentChatService {
             List<AgentMessage> history,
             String draftExcerpt,
             String operation) {
+        return generateReply(targetStage, history, draftExcerpt, operation, null);
+    }
+
+    /**
+     * 生成一轮回复。
+     *
+     * C2 变化：走 completeWithTools 并解析 message.tool_calls。
+     * 若 provider 只返回提议而 content 为空，则用提议的 askText 作为该轮回复
+     * （design 数据流 2.1 要点二），避免出现空白气泡。
+     *
+     * 无降级：工具不可用时只是不下发 tools，**不会**改用任何自研提议协议（决策 1）。
+     */
+    private AgentReply generateReply(
+            AgentStage targetStage,
+            List<AgentMessage> history,
+            String draftExcerpt,
+            String operation,
+            AgentToolContext toolContext) {
         if (modelClient.isMockProvider()) {
             String latestUserInput = latestUserContent(history);
             String mocked = guardrailPolicy.enforceReplyLength(mockResponder.reply(targetStage, latestUserInput));
-            return AgentReply.ok(mocked);
+            List<AgentRawToolCall> mockToolCalls = toolContext == null
+                    ? List.of()
+                    : mockResponder.toolCalls(targetStage, latestUserInput, toolContext.toolsEnabled());
+            return AgentReply.ok(mocked, mockToolCalls);
         }
 
         long startedAt = System.nanoTime();
         try {
-            String raw = modelClient.complete(
-                    promptBuilder.buildConversationMessages(targetStage, history, draftExcerpt));
-            String reply = modelClient.extractText(raw, "reply");
+            boolean toolsEnabled = toolContext != null && toolContext.toolsEnabled();
+            List<Map<String, Object>> tools = toolsEnabled
+                    ? toolSchemaFactory.buildTools(modelClient.useStrictMode())
+                    : List.of();
+            List<Map<String, String>> messages = promptBuilder.buildConversationMessages(
+                    targetStage,
+                    history,
+                    draftExcerpt,
+                    toolContext == null ? null : toolContext.supplement());
+
+            AgentModelResponse response = modelClient.completeWithTools(
+                    messages, tools, toolsEnabled && modelClient.useStrictMode());
+
+            String reply = response.content();
+            if (reply == null && response.hasToolCalls()) {
+                // 只给了提议没给话：用提议自带的 askText 兜底。
+                reply = modelClient.readArgumentText(
+                        response.firstToolCall().arguments(), AgentToolRegistry.PARAM_ASK_TEXT);
+            }
             if (reply == null) {
                 logProviderIssue(operation, targetStage, startedAt, "invalid-content");
                 return AgentReply.fail("AI返回内容无效");
             }
-            return AgentReply.ok(guardrailPolicy.enforceReplyLength(reply));
+            return AgentReply.ok(guardrailPolicy.enforceReplyLength(reply), response.toolCalls());
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -284,6 +387,29 @@ public class AgentChatServiceImpl implements AgentChatService {
             logProviderIssue(operation, targetStage, startedAt, ex.getClass().getSimpleName());
             return AgentReply.fail("AI服务暂时不可用");
         }
+    }
+
+    /**
+     * 组装本轮的工具上下文：是否下发 tools，以及预注入的读工具内容。
+     *
+     * 读工具（可选标签清单、草稿快照）由后端主动注入而非模型调用（design §3.1），
+     * 因为 C2 不做单轮内 FC 循环（决策 9）。
+     */
+    private AgentToolContext buildToolContext(AgentSession session) {
+        if (session.getRecordId() == null) {
+            // 无草稿则无写工具作用对象，本轮不下发 tools。
+            return new AgentToolContext(false, null);
+        }
+        if (modelClient.toolCallingUnavailableReason() != null) {
+            return new AgentToolContext(false, null);
+        }
+        String supplement = promptBuilder.buildToolSupplement(
+                tagService.listEnabled(null),
+                toolCoordinator.recentSettled(session.getId(), appAgentProperties.getToolOutcomeWindow()));
+        return new AgentToolContext(true, supplement);
+    }
+
+    private record AgentToolContext(boolean toolsEnabled, String supplement) {
     }
 
     /**
@@ -469,6 +595,37 @@ public class AgentChatServiceImpl implements AgentChatService {
         return vo;
     }
 
+    /**
+     * 映射工具提议视图。
+     *
+     * 不暴露 argsDigest / pendingArgs：审计与瞬态执行参数属后端内部。
+     */
+    private AgentToolCallVO toToolCallVO(AgentToolCall toolCall) {
+        if (toolCall == null) {
+            return null;
+        }
+        AgentToolCallVO vo = new AgentToolCallVO();
+        vo.setToolCallId(toolCall.getId());
+        vo.setTool(toolCall.getToolName());
+        vo.setStatus(toolCall.getStatus() == null ? null : toolCall.getStatus().name());
+        vo.setAskText(toolCall.getAskText());
+        vo.setResultSummary(toolCall.getResultSummary());
+        vo.setFailureType(toolCall.getFailureType());
+
+        // 待确认期间才有 pendingArgs，据此让前端展示「加哪些标签 / 设到什么时间」。
+        AgentToolName tool = AgentToolName.fromWireName(toolCall.getToolName());
+        AgentToolProposal proposal = AgentToolPendingArgs.deserialize(
+                tool, toolCall.getAskText(), toolCall.getPendingArgs());
+        if (proposal != null) {
+            if (tool == AgentToolName.ADD_RECORD_TAGS) {
+                vo.setTagIds(proposal.tagIds());
+            } else if (tool == AgentToolName.PROPOSE_UNLOCK_AT) {
+                vo.setUnlockAt(proposal.unlockAt());
+            }
+        }
+        return vo;
+    }
+
     private List<AgentMessageVO> toMessageVOs(List<AgentMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             return List.of();
@@ -500,14 +657,26 @@ public class AgentChatServiceImpl implements AgentChatService {
                 cause);
     }
 
-    private record AgentReply(boolean success, String content, String message) {
+    private record AgentReply(
+            boolean success,
+            String content,
+            String message,
+            List<AgentRawToolCall> toolCalls) {
+
+        AgentReply {
+            toolCalls = toolCalls == null ? List.of() : List.copyOf(toolCalls);
+        }
 
         static AgentReply ok(String content) {
-            return new AgentReply(true, content, null);
+            return new AgentReply(true, content, null, List.of());
+        }
+
+        static AgentReply ok(String content, List<AgentRawToolCall> toolCalls) {
+            return new AgentReply(true, content, null, toolCalls);
         }
 
         static AgentReply fail(String message) {
-            return new AgentReply(false, null, message);
+            return new AgentReply(false, null, message, List.of());
         }
     }
 }

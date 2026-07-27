@@ -25,6 +25,17 @@ app:
     max-user-input-chars: ${AGENT_MAX_USER_INPUT_CHARS:1000}
     context-message-window: ${AGENT_CONTEXT_MESSAGE_WINDOW:12}
     draft-excerpt-chars: ${AGENT_DRAFT_EXCERPT_CHARS:300}
+    # C2 Agent Tool Calling。走 provider 原生 function calling，无自研协议降级。
+    tool-calling-enabled: ${AGENT_TOOL_CALLING_ENABLED:true}
+    # strict mode 需 provider 的 beta 端点；未配地址时启用即视为配置错误，不静默降级。
+    strict-mode-enabled: ${AGENT_STRICT_MODE_ENABLED:false}
+    strict-mode-base-url: ${AGENT_STRICT_MODE_BASE_URL:}
+    # 已确认支持 function calling 的 model；不得假设任意 provider / model 都支持。
+    function-calling-models: ${AGENT_FUNCTION_CALLING_MODELS:deepseek-v4-pro,deepseek-v4-flash}
+    # 以下两项 strict mode 无法表达（不支持 maxLength / maxItems），故由后端校验。
+    max-tool-content-chars: ${AGENT_MAX_TOOL_CONTENT_CHARS:300}
+    max-tool-tag-ids: ${AGENT_MAX_TOOL_TAG_IDS:5}
+    tool-outcome-window: ${AGENT_TOOL_OUTCOME_WINDOW:3}
   ai:
     # M4 accepted provider contract. Secrets are injected backend-side only.
     provider: ${AI_PROVIDER:mock}

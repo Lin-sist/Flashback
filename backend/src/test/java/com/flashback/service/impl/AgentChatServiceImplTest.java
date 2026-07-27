@@ -3,8 +3,13 @@ package com.flashback.service.impl;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentMockResponder;
 import com.flashback.agent.AgentModelClient;
+import com.flashback.agent.AgentModelResponse;
 import com.flashback.agent.AgentPromptBuilder;
 import com.flashback.agent.AgentStageMachine;
+import com.flashback.agent.tool.AgentToolCoordinator;
+import com.flashback.agent.tool.AgentToolRegistry;
+import com.flashback.agent.tool.AgentToolSchemaFactory;
+import com.flashback.service.TagService;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppAgentProperties;
@@ -39,6 +44,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -65,6 +71,12 @@ class AgentChatServiceImplTest {
     @Mock
     private AgentModelClient modelClient;
 
+    @Mock
+    private AgentToolCoordinator toolCoordinator;
+
+    @Mock
+    private TagService tagService;
+
     private AppAgentProperties properties;
     private AgentChatServiceImpl service;
 
@@ -80,6 +92,9 @@ class AgentChatServiceImplTest {
         AgentGuardrailPolicy guardrailPolicy = new AgentGuardrailPolicy(properties);
         Clock clock = Clock.fixed(Instant.parse("2026-07-27T02:00:00Z"), ZoneId.of("Asia/Shanghai"));
 
+        // C2 新增依赖。本类保持 C1 行为断言不变：
+        // 这些 mock 只为满足构造签名，工具语义由 AgentTool* 专项测试覆盖。
+        AgentToolRegistry toolRegistry = new AgentToolRegistry();
         service = new AgentChatServiceImpl(
                 agentSessionMapper,
                 agentMessageMapper,
@@ -89,6 +104,9 @@ class AgentChatServiceImplTest {
                 guardrailPolicy,
                 modelClient,
                 new AgentMockResponder(),
+                new AgentToolSchemaFactory(toolRegistry, properties),
+                toolCoordinator,
+                tagService,
                 properties,
                 clock);
 
@@ -168,8 +186,10 @@ class AgentChatServiceImplTest {
                 assistantMessage(0, "今天是什么让你想写下这一刻？"), pending));
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
-        when(modelClient.complete(anyList())).thenReturn("raw");
-        when(modelClient.extractText("raw", "reply")).thenReturn("是具体某件事，还是一直压着的感觉？");
+        // C2：Agent 对话路径改走 completeWithTools（原生 function calling）。
+        // 本用例断言的是 C1 的重试语义，不涉及工具，故返回无 tool_calls 的响应。
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+                .thenReturn(new AgentModelResponse("是具体某件事，还是一直压着的感觉？", List.of()));
         List<AgentMessage> stored = trackInserts();
 
         AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("工作上有点撑不住"));
@@ -310,7 +330,8 @@ class AgentChatServiceImplTest {
     void shouldReturnFailedAndKeepUserMessageWhenProviderCallFails() throws Exception {
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
-        when(modelClient.complete(anyList())).thenThrow(new java.io.IOException("boom"));
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+                .thenThrow(new java.io.IOException("boom"));
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
         List<AgentMessage> stored = trackInserts();
@@ -327,8 +348,9 @@ class AgentChatServiceImplTest {
     void shouldReturnFailedWhenProviderContentIsInvalid() throws Exception {
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
-        when(modelClient.complete(anyList())).thenReturn("{}");
-        when(modelClient.extractText(eq("{}"), eq("reply"))).thenReturn(null);
+        // 既无 content 也无 tool_calls：视为无效响应，返回显式 FAILED。
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+                .thenReturn(new AgentModelResponse(null, List.of()));
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
 
@@ -343,9 +365,9 @@ class AgentChatServiceImplTest {
         properties.setMaxReplyChars(12);
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
-        when(modelClient.complete(anyList())).thenReturn("raw");
-        when(modelClient.extractText(eq("raw"), eq("reply")))
-                .thenReturn("听起来不太容易。你要不要先说说其中最让你在意的那一部分呢");
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+                .thenReturn(new AgentModelResponse(
+                        "听起来不太容易。你要不要先说说其中最让你在意的那一部分呢", List.of()));
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
         List<AgentMessage> stored = trackInserts();

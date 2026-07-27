@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.AgentToolCallMapper">
+
+    <resultMap id="AgentToolCallResultMap" type="com.flashback.domain.AgentToolCall">
+        <id property="id" column="id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="recordId" column="record_id"/>
+        <result property="turnNo" column="turn_no"/>
+        <result property="toolName" column="tool_name"/>
+        <result property="status" column="status" javaType="com.flashback.agent.tool.AgentToolCallStatus"/>
+        <result property="argsDigest" column="args_digest"/>
+        <result property="pendingArgs" column="pending_args"/>
+        <result property="askText" column="ask_text"/>
+        <result property="failureType" column="failure_type"/>
+        <result property="resultSummary" column="result_summary"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="AgentToolCallColumns">
+        id,
+        session_id,
+        user_id,
+        record_id,
+        turn_no,
+        tool_name,
+        status,
+        args_digest,
+        pending_args,
+        ask_text,
+        failure_type,
+        result_summary,
+        created_at,
+        updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.AgentToolCall" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agent_tool_call (
+            session_id,
+            user_id,
+            record_id,
+            turn_no,
+            tool_name,
+            status,
+            args_digest,
+            pending_args,
+            ask_text,
+            failure_type,
+            result_summary,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{sessionId},
+            #{userId},
+            #{recordId},
+            #{turnNo},
+            #{toolName},
+            #{status},
+            #{argsDigest},
+            #{pendingArgs},
+            #{askText},
+            #{failureType},
+            #{resultSummary},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <select id="selectByIdAndUserId" resultMap="AgentToolCallResultMap">
+        SELECT
+        <include refid="AgentToolCallColumns"/>
+        FROM agent_tool_call
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectPendingBySessionId" resultMap="AgentToolCallResultMap">
+        SELECT
+        <include refid="AgentToolCallColumns"/>
+        FROM agent_tool_call
+        WHERE session_id = #{sessionId}
+          AND status = 'PROPOSED'
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectRecentSettledBySessionId" resultMap="AgentToolCallResultMap">
+        SELECT
+        <include refid="AgentToolCallColumns"/>
+        FROM agent_tool_call
+        WHERE session_id = #{sessionId}
+          AND status IN ('EXECUTED', 'FAILED')
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!--
+      条件更新：WHERE 带 status = 'PROPOSED'，使重复确认天然幂等——
+      第二次请求影响 0 行，调用方据此返回当前状态而不重复执行。
+    -->
+    <update id="updateStatusIfProposed">
+        UPDATE agent_tool_call
+        SET status = #{status},
+            failure_type = #{failureType},
+            result_summary = #{resultSummary},
+            <!-- 提议一经终结即清空瞬态执行参数：审计表不留日记文本的长期副本（决策 6）。 -->
+            pending_args = NULL,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'PROPOSED'
+    </update>
+
+</mapper>
