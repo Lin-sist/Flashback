@@ -31,4 +31,8 @@ Docs/学习文档
 /frontend/.env.local
 /frontend/.env.*.local
 
+# Personal teaching / interview skills (not project delivery)
+.agent/skills/Lincheck/
+.agent/skills/Linsist/
+
 /.claude
