@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `agent_message`;
+DROP TABLE IF EXISTS `agent_session`;
 DROP TABLE IF EXISTS `unlock_notice_log`;
 DROP TABLE IF EXISTS `record_reminder`;
 DROP TABLE IF EXISTS `reply`;
@@ -166,4 +168,39 @@ CREATE TABLE `reply` (
   KEY `idx_reply_user_id` (`user_id`),
   CONSTRAINT `fk_reply_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_reply_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `agent_session` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `record_id` BIGINT DEFAULT NULL,
+  `stage` VARCHAR(30) NOT NULL DEFAULT 'OPENING',
+  `status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  `turn_count` INT NOT NULL DEFAULT 0,
+  `stage_reask_count` INT NOT NULL DEFAULT 0,
+  `last_active_at` DATETIME NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_agent_session_user_status` (`user_id`, `status`),
+  KEY `idx_agent_session_record_status` (`record_id`, `status`),
+  CONSTRAINT `fk_agent_session_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_session_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `agent_message` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `session_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `role` VARCHAR(20) NOT NULL,
+  `turn_no` INT NOT NULL,
+  `stage` VARCHAR(30) NOT NULL,
+  `content` TEXT NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_agent_message_session_turn_role` (`session_id`, `turn_no`, `role`),
+  KEY `idx_agent_message_session_id` (`session_id`, `id`),
+  KEY `idx_agent_message_user_id` (`user_id`),
+  CONSTRAINT `fk_agent_message_session_id` FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_message_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );

@@ -18,6 +18,13 @@ app:
   time:
     # 业务时区，避免依赖部署机默认时区导致解锁与时间轴偏移
     zone-id: Asia/Shanghai
+  agent:
+    # C1 Agent Runtime。复用 app.ai 的 provider 与 secret，不新增凭证字段。
+    max-turns-per-session: ${AGENT_MAX_TURNS_PER_SESSION:8}
+    max-reply-chars: ${AGENT_MAX_REPLY_CHARS:120}
+    max-user-input-chars: ${AGENT_MAX_USER_INPUT_CHARS:1000}
+    context-message-window: ${AGENT_CONTEXT_MESSAGE_WINDOW:12}
+    draft-excerpt-chars: ${AGENT_DRAFT_EXCERPT_CHARS:300}
   ai:
     # M4 accepted provider contract. Secrets are injected backend-side only.
     provider: ${AI_PROVIDER:mock}

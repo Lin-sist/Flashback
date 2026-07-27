@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.AgentMessageMapper">
+
+    <resultMap id="AgentMessageResultMap" type="com.flashback.domain.AgentMessage">
+        <id property="id" column="id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="role" column="role" javaType="com.flashback.domain.AgentMessageRole"/>
+        <result property="turnNo" column="turn_no"/>
+        <result property="stage" column="stage" javaType="com.flashback.domain.AgentStage"/>
+        <result property="content" column="content"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="AgentMessageColumns">
+        id,
+        session_id,
+        user_id,
+        role,
+        turn_no,
+        stage,
+        content,
+        created_at
+    </sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.AgentMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agent_message (
+            session_id,
+            user_id,
+            role,
+            turn_no,
+            stage,
+            content,
+            created_at
+        ) VALUES (
+            #{sessionId},
+            #{userId},
+            #{role},
+            #{turnNo},
+            #{stage},
+            #{content},
+            #{createdAt}
+        )
+    </insert>
+
+    <select id="selectBySessionId" resultMap="AgentMessageResultMap">
+        SELECT
+        <include refid="AgentMessageColumns"/>
+        FROM agent_message
+        WHERE session_id = #{sessionId}
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectRecentBySessionId" resultMap="AgentMessageResultMap">
+        SELECT
+        <include refid="AgentMessageColumns"/>
+        FROM agent_message
+        WHERE session_id = #{sessionId}
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

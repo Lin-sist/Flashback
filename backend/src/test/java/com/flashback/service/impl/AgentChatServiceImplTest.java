@@ -1,0 +1,449 @@
+package com.flashback.service.impl;
+
+import com.flashback.agent.AgentGuardrailPolicy;
+import com.flashback.agent.AgentMockResponder;
+import com.flashback.agent.AgentModelClient;
+import com.flashback.agent.AgentPromptBuilder;
+import com.flashback.agent.AgentStageMachine;
+import com.flashback.common.exception.BizException;
+import com.flashback.common.exception.NotFoundException;
+import com.flashback.config.AppAgentProperties;
+import com.flashback.domain.AgentMessage;
+import com.flashback.domain.AgentMessageRole;
+import com.flashback.domain.AgentSession;
+import com.flashback.domain.AgentSessionStatus;
+import com.flashback.domain.AgentStage;
+import com.flashback.domain.Record;
+import com.flashback.domain.RecordStatus;
+import com.flashback.dto.AgentMessageRequest;
+import com.flashback.dto.AgentSessionStartRequest;
+import com.flashback.mapper.AgentMessageMapper;
+import com.flashback.mapper.AgentSessionMapper;
+import com.flashback.mapper.RecordMapper;
+import com.flashback.vo.AgentSessionVO;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class AgentChatServiceImplTest {
+
+    private static final Long USER_ID = 5001L;
+    private static final Long SESSION_ID = 900L;
+
+    @Mock
+    private AgentSessionMapper agentSessionMapper;
+
+    @Mock
+    private AgentMessageMapper agentMessageMapper;
+
+    @Mock
+    private RecordMapper recordMapper;
+
+    @Mock
+    private AgentModelClient modelClient;
+
+    private AppAgentProperties properties;
+    private AgentChatServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        properties = new AppAgentProperties();
+        properties.setMaxTurnsPerSession(4);
+        properties.setMaxReplyChars(120);
+        properties.setMaxUserInputChars(50);
+        properties.setContextMessageWindow(12);
+        properties.setDraftExcerptChars(300);
+
+        AgentGuardrailPolicy guardrailPolicy = new AgentGuardrailPolicy(properties);
+        Clock clock = Clock.fixed(Instant.parse("2026-07-27T02:00:00Z"), ZoneId.of("Asia/Shanghai"));
+
+        service = new AgentChatServiceImpl(
+                agentSessionMapper,
+                agentMessageMapper,
+                recordMapper,
+                new AgentStageMachine(),
+                new AgentPromptBuilder(properties, guardrailPolicy),
+                guardrailPolicy,
+                modelClient,
+                new AgentMockResponder(),
+                properties,
+                clock);
+
+        when(agentSessionMapper.insert(any())).thenAnswer(invocation -> {
+            invocation.getArgument(0, AgentSession.class).setId(SESSION_ID);
+            return 1;
+        });
+        when(modelClient.provider()).thenReturn("mock");
+        when(modelClient.isMockProvider()).thenReturn(true);
+        when(modelClient.unavailableReason()).thenReturn(null);
+    }
+
+    // ---------- 会话开启与恢复 ----------
+
+    @Test
+    void shouldOpenSessionWithFirstGuidingQuestion() {
+        AgentSessionVO vo = service.startOrResume(USER_ID, new AgentSessionStartRequest());
+
+        assertThat(vo.getStatus()).isEqualTo("SUCCESS");
+        assertThat(vo.getStage()).isEqualTo(AgentStage.EMOTION.name());
+        assertThat(vo.getSessionStatus()).isEqualTo(AgentSessionStatus.ACTIVE.name());
+        assertThat(vo.getMessages()).hasSize(1);
+        assertThat(vo.getMessages().get(0).getRole()).isEqualTo(AgentMessageRole.ASSISTANT.name());
+        assertThat(vo.getMessages().get(0).getContent()).isNotBlank();
+        assertThat(vo.getMaxTurns()).isEqualTo(4);
+        assertThat(vo.isCanContinue()).isTrue();
+    }
+
+    @Test
+    void shouldResumeExistingActiveSessionInsteadOfCreatingNew() {
+        AgentSession existing = activeSession(AgentStage.CONFUSION, 2);
+        when(agentSessionMapper.selectActiveByUserAndRecord(USER_ID, null)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                userMessage(1, "工作上有点撑不住"),
+                assistantMessage(1, "这种感觉是从什么时候开始的？")));
+
+        AgentSessionVO vo = service.startOrResume(USER_ID, new AgentSessionStartRequest());
+
+        assertThat(vo.getMessages()).hasSize(2);
+        assertThat(vo.getStage()).isEqualTo(AgentStage.CONFUSION.name());
+        verify(agentSessionMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldRejectStartWhenRecordNotOwned() {
+        AgentSessionStartRequest request = new AgentSessionStartRequest();
+        request.setRecordId(700L);
+        when(recordMapper.selectByIdAndUserId(700L, USER_ID)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.startOrResume(USER_ID, request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("记录不存在");
+        verify(agentSessionMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldExposePendingTurnAsRetryableFailureOnResume() {
+        AgentSession existing = activeSession(AgentStage.CONFUSION, 1);
+        when(agentSessionMapper.selectActiveByUserAndRecord(USER_ID, null)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "今天是什么让你想写下这一刻？"),
+                userMessage(1, "工作上有点撑不住")));
+
+        AgentSessionVO vo = service.startOrResume(USER_ID, new AgentSessionStartRequest());
+
+        assertThat(vo.getStatus()).isEqualTo("FAILED");
+        assertThat(vo.getMessage()).contains("重试");
+        verify(agentSessionMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldRetryPendingTurnWithoutDuplicatingUserMessage() throws Exception {
+        AgentSession existing = activeSession(AgentStage.CONFUSION, 1);
+        AgentMessage pending = userMessage(1, "工作上有点撑不住");
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "今天是什么让你想写下这一刻？"), pending));
+        when(modelClient.isMockProvider()).thenReturn(false);
+        when(modelClient.provider()).thenReturn("deepseek");
+        when(modelClient.complete(anyList())).thenReturn("raw");
+        when(modelClient.extractText("raw", "reply")).thenReturn("是具体某件事，还是一直压着的感觉？");
+        List<AgentMessage> stored = trackInserts();
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("工作上有点撑不住"));
+
+        assertThat(vo.getStatus()).isEqualTo("SUCCESS");
+        assertThat(stored).hasSize(1);
+        assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.ASSISTANT);
+        assertThat(stored.get(0).getTurnNo()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectChangingContentWhilePendingTurnNeedsRetry() {
+        AgentSession existing = activeSession(AgentStage.CONFUSION, 1);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "今天是什么让你想写下这一刻？"),
+                userMessage(1, "工作上有点撑不住")));
+
+        assertThatThrownBy(() -> service.sendMessage(USER_ID, SESSION_ID, messageRequest("我想换个话题")))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("重试原消息");
+        verify(agentMessageMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldRejectStartWhenRecordIsNotDraft() {
+        AgentSessionStartRequest request = new AgentSessionStartRequest();
+        request.setRecordId(700L);
+        Record sealed = draftRecord();
+        sealed.setStatus(RecordStatus.SEALED);
+        when(recordMapper.selectByIdAndUserId(700L, USER_ID)).thenReturn(sealed);
+
+        assertThatThrownBy(() -> service.startOrResume(USER_ID, request))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("只有草稿记录");
+        verify(agentSessionMapper, never()).insert(any());
+    }
+
+    // ---------- 归属与会话状态 ----------
+
+    @Test
+    void shouldReturnSafeNotFoundForCrossUserSessionAccess() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.getSession(USER_ID, SESSION_ID))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("会话不存在");
+    }
+
+    @Test
+    void shouldRejectAppendingMessageToEndedSession() {
+        AgentSession ended = activeSession(AgentStage.ENDED, 3);
+        ended.setStatus(AgentSessionStatus.ENDED);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(ended);
+
+        assertThatThrownBy(() -> service.sendMessage(USER_ID, SESSION_ID, messageRequest("还能再聊吗")))
+                .isInstanceOf(BizException.class);
+        verify(agentMessageMapper, never()).insert(any());
+    }
+
+    @Test
+    void shouldRejectUserInputBeyondConfiguredLimit() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+
+        assertThatThrownBy(() -> service.sendMessage(USER_ID, SESSION_ID, messageRequest("很".repeat(51))))
+                .isInstanceOf(BizException.class);
+        verify(agentMessageMapper, never()).insert(any());
+    }
+
+    // ---------- 多轮推进 ----------
+
+    @Test
+    void shouldAdvanceStageAndPersistBothMessages() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+        List<AgentMessage> stored = trackInserts();
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好，压力挺大的"));
+
+        assertThat(vo.getStatus()).isEqualTo("SUCCESS");
+        assertThat(vo.getStage()).isEqualTo(AgentStage.CONFUSION.name());
+        assertThat(vo.getTurnCount()).isEqualTo(1);
+        assertThat(stored).hasSize(2);
+        assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);
+        assertThat(stored.get(1).getRole()).isEqualTo(AgentMessageRole.ASSISTANT);
+    }
+
+    @Test
+    void shouldEndSessionAndReturnMaterialWhenClosing() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EXPECTATION, 3));
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(new ArrayList<>(List.of(
+                userMessage(1, "工作上有点撑不住"),
+                userMessage(2, "主要是不知道先做哪件事"))));
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("希望三个月后能踏实一点"));
+
+        assertThat(vo.getSessionStatus()).isEqualTo(AgentSessionStatus.ENDED.name());
+        assertThat(vo.isCanContinue()).isFalse();
+        assertThat(vo.getMaterialDraft()).contains("工作上有点撑不住");
+        // 素材只由用户说过的话组成，不含 Agent 回复
+        assertThat(vo.getMaterialDraft()).doesNotContain("你想先说");
+    }
+
+    @Test
+    void shouldForceClosingWhenTurnLimitReached() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 3));
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("还有很多话没说完呢"));
+
+        assertThat(vo.getTurnCount()).isEqualTo(4);
+        assertThat(vo.getSessionStatus()).isEqualTo(AgentSessionStatus.ENDED.name());
+    }
+
+    // ---------- 失败语义 ----------
+
+    @Test
+    void shouldReturnUnavailableWithoutFakeReplyWhenProviderNotConfigured() {
+        when(modelClient.unavailableReason()).thenReturn("AI服务未配置");
+        when(modelClient.isMockProvider()).thenReturn(false);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+        List<AgentMessage> stored = trackInserts();
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
+
+        assertThat(vo.getStatus()).isEqualTo("UNAVAILABLE");
+        assertThat(vo.getMessage()).isEqualTo("AI服务未配置");
+        assertThat(vo.getMaterialDraft()).isNull();
+        // 用户的话保留，Agent 回复不落库
+        assertThat(stored).hasSize(1);
+        assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);
+    }
+
+    @Test
+    void shouldReturnFailedAndKeepUserMessageWhenProviderCallFails() throws Exception {
+        when(modelClient.isMockProvider()).thenReturn(false);
+        when(modelClient.provider()).thenReturn("deepseek");
+        when(modelClient.complete(anyList())).thenThrow(new java.io.IOException("boom"));
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+        List<AgentMessage> stored = trackInserts();
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
+
+        assertThat(vo.getStatus()).isEqualTo("FAILED");
+        assertThat(vo.getMessage()).isEqualTo("AI服务暂时不可用");
+        assertThat(stored).hasSize(1);
+        assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);
+    }
+
+    @Test
+    void shouldReturnFailedWhenProviderContentIsInvalid() throws Exception {
+        when(modelClient.isMockProvider()).thenReturn(false);
+        when(modelClient.provider()).thenReturn("deepseek");
+        when(modelClient.complete(anyList())).thenReturn("{}");
+        when(modelClient.extractText(eq("{}"), eq("reply"))).thenReturn(null);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
+
+        assertThat(vo.getStatus()).isEqualTo("FAILED");
+        assertThat(vo.getMessage()).isEqualTo("AI返回内容无效");
+    }
+
+    @Test
+    void shouldTruncateProviderReplyBeyondLengthLimit() throws Exception {
+        properties.setMaxReplyChars(12);
+        when(modelClient.isMockProvider()).thenReturn(false);
+        when(modelClient.provider()).thenReturn("deepseek");
+        when(modelClient.complete(anyList())).thenReturn("raw");
+        when(modelClient.extractText(eq("raw"), eq("reply")))
+                .thenReturn("听起来不太容易。你要不要先说说其中最让你在意的那一部分呢");
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+        List<AgentMessage> stored = trackInserts();
+
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
+
+        AgentMessage assistant = stored.get(1);
+        assertThat(assistant.getContent()).isEqualTo("听起来不太容易。");
+    }
+
+    // ---------- 主动结束 ----------
+
+    @Test
+    void shouldFinishSessionAndReturnMaterialFromUserContentOnly() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.CONFUSION, 2));
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(1, "今天是什么让你想写下这一刻？"),
+                userMessage(1, "工作上有点撑不住")));
+
+        AgentSessionVO vo = service.finish(USER_ID, SESSION_ID);
+
+        assertThat(vo.getSessionStatus()).isEqualTo(AgentSessionStatus.ENDED.name());
+        assertThat(vo.getMaterialDraft()).isEqualTo("工作上有点撑不住");
+    }
+
+    @Test
+    void shouldNotTouchRecordWriteOperationsDuringConversation() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好，压力挺大的"));
+
+        // C1 范围约束：Agent 不得触发任何记录写操作
+        verify(recordMapper, never()).updateDraftByIdAndUserId(
+                anyLong(), anyLong(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(recordMapper, never()).sealDraftByIdAndUserId(anyLong(), anyLong(), any(), any());
+        verify(recordMapper, never()).deleteDraftByIdAndUserId(anyLong(), anyLong());
+        verify(recordMapper, never()).updateLaterReflectionByIdAndUserId(anyLong(), anyLong(), any(), any());
+    }
+
+    // ---------- helpers ----------
+
+    private List<AgentMessage> trackInserts() {
+        List<AgentMessage> stored = new ArrayList<>();
+        when(agentMessageMapper.insert(any())).thenAnswer(invocation -> {
+            stored.add(invocation.getArgument(0, AgentMessage.class));
+            return 1;
+        });
+        return stored;
+    }
+
+    private AgentMessageRequest messageRequest(String content) {
+        AgentMessageRequest request = new AgentMessageRequest();
+        request.setContent(content);
+        return request;
+    }
+
+    private AgentSession activeSession(AgentStage stage, int turnCount) {
+        AgentSession session = new AgentSession();
+        session.setId(SESSION_ID);
+        session.setUserId(USER_ID);
+        session.setStage(stage);
+        session.setStatus(AgentSessionStatus.ACTIVE);
+        session.setTurnCount(turnCount);
+        session.setStageReaskCount(0);
+        session.setCreatedAt(LocalDateTime.of(2026, 7, 27, 10, 0));
+        session.setUpdatedAt(LocalDateTime.of(2026, 7, 27, 10, 0));
+        session.setLastActiveAt(LocalDateTime.of(2026, 7, 27, 10, 0));
+        return session;
+    }
+
+    private AgentMessage userMessage(int turnNo, String content) {
+        return message(turnNo, AgentMessageRole.USER, content);
+    }
+
+    private AgentMessage assistantMessage(int turnNo, String content) {
+        return message(turnNo, AgentMessageRole.ASSISTANT, content);
+    }
+
+    private AgentMessage message(int turnNo, AgentMessageRole role, String content) {
+        AgentMessage message = new AgentMessage();
+        message.setSessionId(SESSION_ID);
+        message.setUserId(USER_ID);
+        message.setTurnNo(turnNo);
+        message.setRole(role);
+        message.setStage(AgentStage.EMOTION);
+        message.setContent(content);
+        message.setCreatedAt(LocalDateTime.of(2026, 7, 27, 10, 0));
+        return message;
+    }
+
+    private Record draftRecord() {
+        Record record = new Record();
+        record.setId(700L);
+        record.setUserId(USER_ID);
+        record.setStatus(RecordStatus.DRAFT);
+        record.setContent("已经写下的一点正文");
+        return record;
+    }
+}

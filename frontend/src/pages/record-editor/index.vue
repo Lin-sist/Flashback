@@ -3,9 +3,10 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
+import AgentChatSheet from './components/AgentChatSheet.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
 import { aiService, attachmentService, recordService } from '../../services'
-import { useRecordStore, useTagStore } from '../../stores'
+import { useAgentChatStore, useRecordStore, useTagStore } from '../../stores'
 import {
   LifeNodeType,
   RecordReminderStatus,
@@ -26,6 +27,7 @@ import {
 
 const recordStore = useRecordStore()
 const tagStore = useTagStore()
+const agentChatStore = useAgentChatStore()
 
 type EditorSource = 'home' | 'archive' | 'timeline'
 
@@ -39,6 +41,7 @@ const initFailed = ref(false)
 const initErrorMessage = ref('')
 const latestQuery = ref<Record<string, unknown>>({})
 const aiOrganizing = ref(false)
+const showAgentChat = ref(false)
 const showUnlockPicker = ref(false)
 const showLocationPanel = ref(false)
 const showCoverPicker = ref(false)
@@ -506,6 +509,80 @@ const organizeBeliefThen = async () => {
   } finally {
     aiOrganizing.value = false
   }
+}
+
+const openAgentChat = async () => {
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  showAgentChat.value = true
+  try {
+    await agentChatStore.startOrResume(recordId.value)
+  } catch (error) {
+    // 浮层保留错误态与重试入口，不用 toast 覆盖用户注意力。
+    if (!agentChatStore.errorMessage) {
+      agentChatStore.errorMessage = toUserMessage(error)
+    }
+  }
+}
+
+const sendAgentMessage = async (content: string) => {
+  try {
+    await agentChatStore.send(content)
+  } catch (error) {
+    if (!agentChatStore.errorMessage) {
+      agentChatStore.errorMessage = toUserMessage(error)
+    }
+  }
+}
+
+const finishAgentChat = async () => {
+  if (agentChatStore.finishing) return
+  try {
+    await agentChatStore.finish()
+  } catch (error) {
+    if (!agentChatStore.errorMessage) {
+      agentChatStore.errorMessage = toUserMessage(error)
+    }
+  }
+}
+
+const retryAgentChat = async () => {
+  try {
+    await agentChatStore.retry(recordId.value)
+  } catch (error) {
+    if (!agentChatStore.errorMessage) {
+      agentChatStore.errorMessage = toUserMessage(error)
+    }
+  }
+}
+
+const persistAgentMaterial = async (material: string) => {
+  if (loading.value) return
+  const normalized = material.trim()
+  if (!normalized) return
+
+  // 用户点击「用作正文」即为显式确认。已有正文时只追加并原样保留，不静默覆盖或修剪原文。
+  form.content = form.content.trim()
+    ? `${form.content}\n\n${normalized}`
+    : normalized
+  loading.value = true
+  try {
+    await persistDraft()
+    markSnapshot()
+    showAgentChat.value = false
+    uni.showToast({ title: '已放进正文', icon: 'success' })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+const discardAgentMaterial = () => {
+  showAgentChat.value = false
+  uni.showToast({ title: '正文没有改变', icon: 'none' })
 }
 
 const ensureDraftForAuxiliaryEdit = async (subject: '地点' | '图片' | '语音') => {
@@ -1592,6 +1669,14 @@ onUnload(() => {
                 />
               </view>
 
+              <view class="agent-entry" @tap="openAgentChat">
+                <view class="agent-entry-copy">
+                  <text class="agent-entry-kicker">不知道从哪里写起时</text>
+                  <text class="agent-entry-title">让它陪你聊一会儿</text>
+                </view>
+                <text class="agent-entry-arrow">›</text>
+              </view>
+
               <view class="belief-block">
                 <view class="belief-head">
                   <text class="m3-panel-label">你当时以为</text>
@@ -1849,6 +1934,21 @@ onUnload(() => {
     @confirm="onUnlockConfirm"
     @cancel="showUnlockPicker = false"
   />
+
+  <AgentChatSheet
+    :visible="showAgentChat"
+    :session="agentChatStore.session"
+    :loading="agentChatStore.loading"
+    :sending="agentChatStore.sending"
+    :finishing="agentChatStore.finishing"
+    :error-message="agentChatStore.errorMessage"
+    @close="showAgentChat = false"
+    @send="sendAgentMessage"
+    @finish="finishAgentChat"
+    @retry="retryAgentChat"
+    @use-material="persistAgentMaterial"
+    @discard-material="discardAgentMaterial"
+  />
 </template>
 
 <style scoped>
@@ -2088,6 +2188,40 @@ onUnload(() => {
 .life-node-block,
 .belief-block {
   margin-top: 24rpx;
+}
+
+.agent-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24rpx;
+  padding: 20rpx 22rpx;
+  border: 1rpx solid rgba(155, 118, 88, 0.22);
+  background: rgba(156, 100, 71, 0.045);
+}
+
+.agent-entry-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 7rpx;
+}
+
+.agent-entry-kicker {
+  color: rgba(107, 98, 87, 0.62);
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+}
+
+.agent-entry-title {
+  color: #76513d;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 27rpx;
+}
+
+.agent-entry-arrow {
+  color: rgba(154, 51, 42, 0.58);
+  font-size: 42rpx;
+  font-weight: 300;
 }
 
 .life-node-input {

@@ -5293,3 +5293,140 @@ Commit: pending
 - **Commit**: `ac2af21`
 - **Next**: 用户授权后 propose `agent-runtime-mvp`
 
+
+## 2026-07-27｜agent-runtime-mvp｜Type C（规划闸 · 闸门 1 待批准）
+
+- **Scope**: 新建 `openspec/changes/agent-runtime-mvp/{proposal.md,design.md,tasks.md}`；`openspec/changes/agent-runtime-mvp/specs/{agent-runtime,backend-core,miniapp-core,v2-product-scope}/spec.md`；重写 `.ai/ACTIVE_TASK.md`；本日志。**零业务代码改动。**
+- **Changes**:
+  1. 开工前置核对：`ACTIVE_TASK=IDLE`（无冲突）、M4 已归档、蓝图 v1.1 已冻结 → 满足 C1 规划闸开工条件。锚点 `git rev-parse --short HEAD` = `b6140b3`，`git status --short` 为空。
+  2. 现状扫描（只读）：`AiServiceImpl` / `AiController` / `AppAiProperties` / `application*.yml` / `backend/pom.xml` / `backend/sql/mysql/schema.mysql.sql` / `frontend/src/services/aiService.ts` / `frontend/src/pages/record-editor/index.vue` / `common/error/ErrorCode.java`。
+  3. `proposal.md`：Why Now、Goals(6)、Non-Goals(15+)、用户故事、场景边界表、**能力五态 F1–F16**、待确认 Q1–Q4、外调预算、提交责任、验收标准(13)、实现顺序。
+  4. `design.md`：模块分层、单轮数据流、7 阶段状态机、4 端点 API 草案、`agent_session`/`agent_message` 表草案、最小护栏 5 条、隐私落点、验证策略表，以及 **决策记录 9 条**（持久化选型 / 消息落原文 / 新模块 vs 改造 / 显式阶段机 / 不引入 FALLBACK / 不做 Tool / 不做后置过滤 / UI 形态 / delta 落点）。
+  5. `tasks.md`：P0 规划(T-01~T-10)、**T0 实现授权检查点**、P1 后端(T-11~T-21)、P2 前端(T-22~T-28)、P3 验证含 **T-32 闸门 3**(T-29~T-36)、P4 收口(T-37~T-40)。
+  6. spec delta 分四处：新建 `agent-runtime`（8 requirements，主契约）+ `backend-core`(3) + `miniapp-core`(4) + `v2-product-scope`(3) 最小可检索条款。
+  7. `ACTIVE_TASK` → `ACTIVE`（规划闸），写入 change 指针、Q1–Q4 阻塞项、Current Progress、C1 期间 Out Of Scope。
+- **关键事实（供后续会话复用，避免重扫）**:
+  - 现有 AI 为单轮 `prompt→response`，无会话/轮次；`invokeChatCompletion` 已是 OpenAI-compatible `/chat/completions` 形状（`json_object`、`stream=false`）。
+  - `spring-boot-starter-data-redis` 已在 `pom.xml` 且 dev/prod 已配 host/port，但**代码零处使用**（grep `RedisTemplate` 无匹配），连通性未被业务验证 → 因此持久化推荐 MySQL。
+  - 现有 AI 状态四态 `SUCCESS|UNAVAILABLE|FAILED|FALLBACK`；C1 决定只用前三态。
+  - DeepSeek 官方文档声明支持 OpenAI-compatible tool calls（本仓库未验证）→ 蓝图 P1 判定为不阻塞 C1，验证留 C2。
+  - M4 联调曾出现 `summarize-record` 五次中 1 次「返回内容无效」→ 结构化输出稳定性列为已知风险，也是选显式状态机的依据之一。
+- **Verification**: PASS（规划文档层）。核对项：change 目录 7 个文件齐备；`design.md` 含 `## 决策记录` 且 9 条均含「面临的选择／选了哪个+为什么／放弃的代价」三段；`tasks.md` 含 T0 实现授权检查点与闸门 3 项；`ACTIVE_TASK` 指针指向本 change。**SKIPPED 代码测试与构建**：本轮零业务代码改动，无可测目标。**SKIPPED 外调**：规划阶段 0 次 AI/OSS 调用。
+- **Risks**:
+  - Q1–Q4 未定稿前若直接开工，持久化与 UI 形态可能返工。
+  - C1 最小护栏仅 system prompt 单层 + 长度裁剪，边界输入下仍可能滑向诊断式表达（**已接受**，C4 补齐）。
+  - 对话原文落库扩大敏感数据面，依赖「只进业务表、不进日志」这一约束在实现期被严格执行（T-21 专门校验）。
+  - provider 结构化/多轮输出稳定性未经真实验证，可能在闸门 3 联调时暴露需要调 prompt。
+  - MySQL `EXPLAIN` carry-over 仍未补（M4 残留，与 C1 无依赖）。
+- **Commit**: pending
+- **Next**: 请求闸门 1 规划批准并定稿 Q1–Q4；获得闸门 2 实现授权后从 T-11（`agent_session`/`agent_message` DDL）开始。
+
+## 2026-07-27｜agent-runtime-mvp｜Type C（闸门 2 实现 · P1+P2+P3 完成）
+
+- **Scope**:
+  - 闸门：用户 2026-07-27 批准规划（Q1–Q4 全按推荐定稿）并给出实现授权 → `tasks.md` T-10 / T0 勾选。**闸门 3（真实 provider 联调）仍未授权，本轮全程 mock provider，0 次外调。**
+  - backend 新增：`agent/{AgentStageMachine,AgentStageDecision,AgentPromptBuilder,AgentGuardrailPolicy,AgentModelClient,AgentMockResponder}`；`domain/{AgentSession,AgentMessage,AgentStage,AgentSessionStatus,AgentMessageRole}`；`mapper/{AgentSessionMapper,AgentMessageMapper}` + 两份 XML；`dto/{AgentSessionStartRequest,AgentMessageRequest}`；`vo/{AgentSessionVO,AgentMessageVO}`；`service/AgentChatService(+Impl)`；`controller/api/AgentController`；`config/AppAgentProperties`
+  - backend 修改：`application.yml`（新增 `app.agent.*`，复用 app.ai provider/secret，未新增凭证字段）；`sql/mysql/schema.mysql.sql` + 新增 `sql/mysql/c1-agent-runtime.sql`；`src/test/resources/schema.sql`
+  - backend 测试新增：`AgentStageMachineTest`(10)、`AgentGuardrailPolicyTest`(5)、`AgentPromptBuilderTest`(7)、`AgentChatServiceImplTest`(19)、`AgentControllerAuthIntegrationTest`(7)、`AgentRuntimeIntegrationTest`(2)
+  - frontend 新增：`services/agentService.ts`、`stores/agentChat.ts`、`pages/record-editor/components/AgentChatSheet.vue`
+  - frontend 修改：`pages/record-editor/index.vue`（被动入口 + 浮层接入 + 素材回填）、`services/index.ts`、`stores/index.ts`
+- **Changes**:
+  1. **持久化（Q1）**：`agent_session` / `agent_message` 两张 MySQL 表，snake_case、`user_id` 归属列、FK `ON DELETE CASCADE`、`Asia/Shanghai` 时间语义，与既有 `record_*` 表一致；增量脚本可重复执行。
+  2. **状态机**：`OPENING→EMOTION→CONFUSION→CORE_QUESTION→EXPECTATION→CLOSING→ENDED` 显式推进（纯逻辑无 IO）。同阶段追问上限 1 次后前进（不逼问）；结束意图优先级高于轮次上限；达上限强制收束；`ENDED` 拒绝追加。
+  3. **最小护栏**：5 条（不诊断/不覆写/建议不代决/被动陪伴/输出克制）注入 system prompt；代码级唯一硬约束为回复长度裁剪（默认 120 字，优先句末断开）。
+  4. **失败语义（决策 5）**：只用 `SUCCESS|UNAVAILABLE|FAILED`，不引入 FALLBACK。provider 不可用/失败时用户消息已落库保留、assistant 不落库；实现期补强两点契约：① 同轮重试不重复 insert 用户消息，改内容重试被拒（`请先重试原消息`）；② `startOrResume`/`getSession` 恢复到半轮会话时显式返回 `FAILED + 请重试`，不误报 SUCCESS。
+  5. **范围守卫**：`AgentChatServiceImpl` 除自身会话/消息落库外不做任何记录写操作，并由单测 `verify(never())` 断言（update/seal/delete/reflection）。仅草稿记录可开启对话（非 DRAFT 抛 400）。
+  6. **前端（Q4）**：编辑页内半屏浮层，用户点「让它陪你聊一会儿」才开启；不弹窗、不自动展开；三 Tab 与 V2.0 命名未变。中断恢复复用 ACTIVE 会话；素材需点「用作正文」才经既有 `persistDraft` **追加**写入（不覆盖、不修剪原文），点「先不用」正文不变。
+  7. **隐私**：日志仅 `operation/stage/provider/durationMs/cause` 结构化元数据；对话原文与日记原文只进 `agent_message`/`record`。
+  8. **未新增依赖**：AgentChatSheet 初版误用 `lang="scss"` 导致 mp-weixin 构建失败（仓库未装 sass）。按 AGENTS「不改 package/lockfile」改为与全仓库一致的普通 CSS，而非安装 sass。
+- **Verification**:
+  - backend `mvn -B test`：**PASS** — Tests run **254**, Failures 0, Errors 0, Skipped 0（新增 43）
+  - frontend `npm run type-check`：**PASS**
+  - frontend `npm run build:mp-weixin`：**PASS**（DONE Build complete）
+  - mock provider 端到端：`AgentRuntimeIntegrationTest` 覆盖开场→多轮→恢复→结束→素材，并以 SQL 断言 `agent_session=ENDED`、`agent_message=3`
+  - 恢复过程中修复：`AgentSessionMapper.java` 曾在会话中断时丢失导致编译失败，已重建；`AgentModelClient` 双构造器需 `@Autowired` 才能被 Spring 实例化
+  - **SKIPPED T-32~T-35**：真实 provider 联调与微信手验需闸门 3 / 真机，本轮未授权且无设备环境
+  - **SKIPPED** MySQL 真库 DDL 执行验证：本轮未启动 MySQL，表结构仅通过 H2（MODE=MySQL）集成测试验证
+- **Risks**:
+  - `c1-agent-runtime.sql` 未在真实 MySQL 8.0 跑过；H2 与 MySQL 在 FK/TEXT 细节上仍可能有差异，上真库前需执行一次。
+  - 最小护栏仍是 prompt 单层 + 长度裁剪，边界输入下可能滑向诊断式表达（已接受，C4 补）。
+  - mock provider 的引导语是固定文案，真实 provider 的多轮语气与 JSON 稳定性未验证（M4 已知该模型结构化输出非 100% 稳定）。
+  - 对话原文落库扩大敏感数据面，依赖「只进业务表」约束在后续 change 中继续保持。
+  - 素材回填采用追加策略，长对话多次回填可能让正文变长，需手验确认体感。
+- **Commit**: pending
+- **Next**: 请求 **闸门 3** 授权后执行 T-32~T-33 真实 provider 多轮联调（预算 ≤ 30 次请求），随后 T-34/T-35 微信手验；手验通过再走 T-36~T-40 收口。
+
+## 2026-07-27｜agent-runtime-mvp｜Type C（真机手验 · 缺陷修复 · 验收归档）
+
+- **Scope**: `frontend/src/pages/record-editor/components/AgentChatSheet.vue`（布局修复）；真实 MySQL 执行 `backend/sql/mysql/c1-agent-runtime.sql`；`openspec/specs/{agent-runtime(新建),backend-core,miniapp-core,v2-product-scope}/spec.md`（delta 接受）；`openspec/changes/agent-runtime-mvp/` → `openspec/changes/archive/2026-07-27-agent-runtime-mvp/`（含新增 `closeout.md`）；`.ai/ACTIVE_TASK.md`；本日志。
+- **Changes**:
+  1. **环境修复（用户授权）**：用户本地 `Start-Service MySQL80` 因非管理员会话失败（`Cannot open 'MySQL80' service`）。排查确认真正阻塞登录的是**后端进程不存在**——此前看到的两个 java 进程是 IDE 的 `redhat.java` 语言服务器，8080 无监听，故账号登录与微信登录同时失败。启动后端后 `POST /api/auth/register`、`/api/auth/login` 均返回 `code=0` 且签发 token，`POST /api/agent/sessions` 无凭证返回 401。
+  2. **真库 DDL 执行**：在真实 MySQL 8.0 执行 C1 增量脚本，建出 `agent_session` / `agent_message`；校验 4 个外键全为 `CASCADE`、唯一键 `(session_id,turn_no,role)` 与 3 个索引齐备，与 design 一致 → **消除上一轮 SKIPPED「真库未执行 DDL」**。
+  3. **真机手验缺陷（前端布局）**：用户第 4 轮对话时页面卡住无法发送且消息重叠。查库确认后端正常（session `ACTIVE`、`turn_count=3`、7 条消息、无 `Agent provider issue`），判定为本人所写 CSS 缺陷：`.agent-sheet` 用 `max-height` + `.message-list` 用 `min-height:360rpx`，使 `scroll-view` 无确定高度不启用内部滚动，消息累积后把 composer 顶出可视区（发送按钮不可点）；小程序原生 `textarea` 层级高于普通元素，被顶位后覆盖消息形成重叠。修复：`height:78vh` 固定、`min-height:0; height:0` 使消息区可收缩、头尾 `flex-shrink:0`、composer 补背景色。
+  4. **契约补录**：将「消息累积后仍可操作」「上一轮未完成时禁止输入新内容」「失败轮可原样重试且不重复落库」「写作引导仅限草稿记录」等实现期确立的边界写入 baseline，不留隐式约定。
+  5. **收口**：tasks T-32~T-40 勾选并标注偏差；新建 `openspec/specs/agent-runtime/` baseline capability；三份 baseline 追加 `Accepted From C1 Agent Runtime MVP`；写 `closeout.md`；归档；`ACTIVE_TASK=IDLE`。
+- **流程偏差（必须记录）**: **闸门 3（外调授权）未事前取得。** 用户手验时本地脚本 `AI_PROVIDER=deepseek`，导致手验即真实 provider 调用（约 4 轮用户消息 / 7 条 Agent 回复，远低于 proposal 申明的 ≤30 次预算，未用批量真实日记）。用量与数据面均未越界，但**顺序上应先取得授权再联调**。C2 起手验前须先确认本地 `AI_PROVIDER` 取值或显式取得闸门 3 授权。
+- **Verification**:
+  - backend `mvn -B test`：**PASS** — Tests run 254, Failures 0, Errors 0, Skipped 0
+  - frontend `type-check`：**PASS**；`build:mp-weixin`：**PASS**
+  - 真实 MySQL：表/外键/索引校验 **PASS**
+  - 真实 DeepSeek 多轮：4 轮 `reply` JSON 全部解析成功，日志无 provider issue
+  - 微信手验：登录 → 开启 → 4 轮推进至 `EXPECTATION` → 修复后可滚动/可发送/无重叠，用户确认 **验收通过**
+  - 最小护栏手验：回复均 1–2 句短问句、无诊断词、未改写用户原文；长度裁剪未被触发（provider 自发输出已在上限内）
+  - 隐私：后端日志中未出现对话原文或日记原文
+  - 归档校验：archive 目录 8 个文件齐备；active `openspec/changes/` 已无 `agent-runtime-mvp`；`openspec/specs/agent-runtime/spec.md` 存在
+  - **SKIPPED**：收束/素材回填端到端未手验（手验止于第 4 轮，未达 8 轮上限触发 CLOSING）
+- **Risks**:
+  - 素材回填在 `record_id IS NULL` 且正文为空时会因内容校验失败报错——手验未触发，属已知缺口（Type B 或 C2）。
+  - 最小护栏仍为单层，边界输入下可能滑向诊断式表达（已接受，C4 补）。
+  - 真实 provider 仅验证 4 轮；M4 曾观测该模型结构化输出非 100% 稳定，长会话稳定性待 C2 继续观察。
+  - 本地 `start-dev-wechat.local.ps1` 明文存放微信/OSS/DeepSeek 凭证（已 gitignore 未进版本库），但已在会话中暴露，建议轮换并改为环境变量读取。
+  - MySQL80 StartType=Manual，重启后需手动启动。
+- **Commit**: pending（提交责任＝用户手动提交；Agent 未执行 `git add`/`commit`/`push`）
+- **Next**: 用户授权后开 C2 `agent-tool-calling` 规划闸。
+
+## 2026-07-27｜agent-runtime-mvp｜Type C（C1 全周期收束汇总）
+
+> 汇总条目。本 change 的执行细节分散在上方三条（规划闸 / 闸门 2 实现 / 真机手验·缺陷修复·验收归档），此条不重复过程，只留「一眼看清 C1 做了什么」的索引与结论。
+
+- **Change**: `agent-runtime-mvp`（C1，蓝图 v1.1 §4）｜锚点 `b6140b3`｜归档 `openspec/changes/archive/2026-07-27-agent-runtime-mvp/`
+- **闸门轨迹**: 闸门 1 规划批准（Q1–Q4 按推荐定稿）→ 闸门 2 实现授权 → **闸门 3 未事前取得（偏差，见下）** → 用户真机验收通过 → baseline 接受 → 归档 → `ACTIVE_TASK=IDLE`
+
+### 交付结论
+
+- 后端新增独立 `agent` 模块（状态机 / prompt / 护栏 / model client / mock 引导器 / 编排服务 / 4 个端点 / 2 张表），**既有三个 AI 端点契约零改动**。
+- 前端新增 service + store + 编辑页内半屏浮层，被动触发；三 Tab 与 V2.0 命名未变；未改 package/lockfile。
+- 范围守卫生效：Agent 除自身会话/消息落库外不触发任何记录写操作（单测 `verify(never())` 断言）。Tool / Memory / 后置过滤 / 可观测均未引入，留 C2–C5。
+
+### 两个必须记住的教训
+
+1. **BUG 插曲（前端布局，非 Agent 逻辑）**：用户第 4 轮对话卡死且消息重叠。**先查库再改代码**——确认后端 session `ACTIVE`、`turn_count=3`、7 条消息完整、日志无 provider issue，才定位到是本人所写 CSS：`.agent-sheet{max-height}` + `.message-list{min-height:360rpx}` 使小程序 `scroll-view` 无确定高度、不启用内部滚动，消息累积后把 composer 顶出可视区（发送按钮不可点）；小程序原生 `textarea` 层级高于普通元素，被顶位后覆盖消息形成重叠。修复为固定 `height:78vh` + `min-height:0` + 头尾 `flex-shrink:0`。
+   - **已转为契约**：`miniapp-core` 新增「消息累积后输入区仍须可点击且不覆盖消息」场景，使同类回归有依据，而不是只改一处样式了事。
+   - **教训**：小程序里 flex 容器套 `scroll-view` 必须给确定高度并允许收缩；原生组件（textarea/input/video）层级高于普通元素，布局溢出时会直接穿透遮挡。
+2. **流程偏差（闸门 3）**：手验时本地 `AI_PROVIDER=deepseek`，导致手验即真实外调（约 4 轮用户消息 / 7 条回复，远低于 ≤30 次预算，未用批量真实日记）。用量与数据面未越界，但**顺序错了：应先取得授权再联调**。未将其粉饰为 mock 验证，否则 baseline 中「真实 provider 已验证」会失去依据。
+   - **对 C2 的约束**：启动任何手验前，先确认本地 `AI_PROVIDER` 取值；若为真实 provider，须先取得闸门 3 授权。
+
+### 验证总表
+
+| 项 | 结果 |
+|---|---|
+| backend `mvn -B test` | PASS｜254 tests / 0 failures / 0 errors（新增 43） |
+| frontend `type-check` / `build:mp-weixin` | PASS / PASS |
+| mock provider 端到端 | PASS（`AgentRuntimeIntegrationTest`：开场→多轮→恢复→结束→落库计数） |
+| 真实 MySQL DDL | PASS（4 个 CASCADE 外键 + 唯一键 + 索引与 design 一致） |
+| 真实 DeepSeek 多轮 | PASS（4 轮 `reply` JSON 全部解析成功，无 provider issue） |
+| 微信手验 | PASS（修复布局缺陷后：可滚动 / 可发送 / 无重叠） |
+| 最小护栏手验 | PASS（1–2 句短问句、无诊断词、未改写原文） |
+| 日记/对话原文入日志 | 未发现泄露 |
+| 收束/素材回填端到端 | **SKIPPED**——手验止于第 4 轮，未达 8 轮上限触发 CLOSING |
+
+### 遗留（已进 ACTIVE_TASK Residual）
+
+- 素材回填在 `record_id IS NULL` 且正文为空时会因内容校验失败报错（手验未触发）→ Type B 或 C2
+- 最小护栏仅单层 prompt + 长度裁剪 → 已接受风险，C4 系统化补齐
+- 真实 provider 仅验 4 轮，长会话稳定性待 C2 观察
+- 本地：MySQL80 StartType=Manual；`start-dev-wechat.local.ps1` 明文存 secret（已 gitignore，建议轮换并改环境变量读取）
+- `agent_message` 已存真实对话数据，本地重置库时注意
+
+- **Commit**: pending（本条之后由用户授权 Agent 代为提交，提交后另条补录 hash，不回改本条）
+- **Next**: 用户授权后开 C2 `agent-tool-calling` 规划闸。
