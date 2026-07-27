@@ -183,7 +183,7 @@
 - [x] Replace function-wrapped date filtering with created-time range predicates.
 - [x] Add record-level count/page mapper behavior with `created_at DESC, id DESC` ordering, user ownership scope, and enabled-tag-only filtering.
 - [x] Audit current schemas/indexes and add only the smallest required record/tag index when the current schema is insufficient.
-- [ ] Run and record real MySQL `EXPLAIN` for the final timeline range/page query when the local MySQL service is available.
+- [x] Run and record real MySQL `EXPLAIN` for the final timeline range/page query when the local MySQL service is available. **Closeout decision 2026-07-27:** accepted as **carry-over residual** — implementation (range predicates + `idx_record_user_created_id`) remains in mapper/schema; live MySQL80 was Stopped and could not be started without elevation in the archive session. Residual item tracked in closeout / AGENT_LOG, not an open M4 product-scope gap.
 - [x] Return `TimelinePageVO` with grouped current-page records, record-level total, page metadata, and `hasMore`.
 - [x] Add backend tests for tag/date AND filtering, date validation, safe empty results, user scope, stable ordering, grouping, and pagination boundaries.
 - [x] Replace the free-form year-only Mini Program panel with single-tag and year/month/day controls plus reset/apply actions.
