@@ -1,8 +1,26 @@
 # Agent Log
 
-Use this file to record short handoffs between agents. Keep entries short.
+只追加执行证据，不改写历史。需求与设计以 OpenSpec / `design.md` 为准。  
+强制规则见 `AGENTS.md`；完整工作流见 `Docs/agent-iteration/workflow/`。
 
-## Entry Template
+不要记录 API keys、账号、余额、模型额度、密码或用户日记原文。
+
+## Entry Template（推荐 · 新条目请尽量遵循）
+
+```markdown
+## YYYY-MM-DD｜<change-id 或 task>｜Type A|B|C
+
+- **Scope**: 触及的模块/文件（可列表）
+- **Changes**: 做了什么（事实，非长篇设计）
+- **Verification**: PASS | FAIL | SKIPPED（原因与替代验证）
+- **Risks**: 剩余风险
+- **Commit**: pending  或  `<hash>`（补录条只写 hash，不回改旧文）
+- **Next**（可选）: 下一会话建议第一步
+```
+
+历史条目格式不统一时 **不要批量重写**；仅对新条目采用上表。
+
+## Legacy Template（兼容旧写法）
 
 ### YYYY-MM-DD Agent / Tool
 
@@ -26,7 +44,23 @@ Next:
 
 - ...
 
-不要记录 API keys、账号、余额、模型额度或任何敏感信息。
+## 2026-07-27｜iteration-blueprint-v1｜Type B
+
+- **Scope**: 迭代蓝图编写（方向层文档）
+  - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（新建 v1 草案，467 行）
+  - `Docs/agent-iteration/roadmap/README.md`（状态更新）
+  - `Docs/agent-iteration/README.md`（状态更新、目录结构更新）
+  - `Docs/agent-iteration/workflow/iteration-approach.md`（完成定义 checklist 更新）
+  - `.ai/ACTIVE_TASK.md`（handoff note 更新）
+  - `AGENTS.md`（蓝图引用状态更新）
+- **Changes**:
+  - 通过 grill-me 讨论确认 17 个设计决策（M4 定位、Agent 气质、主动性边界、能力范围、架构方向、拆分粒度、Memory 策略、回看交互、Guardrails、Eval、场景优先级、Provider 策略、冻结策略、治理卡片、语言风格、跨记录关联定位、友人回看定位）
+  - 编写 `iteration-blueprint.md` v1：§0 执行约定、§1 总方向、§2 已确认/待确认决策、§3 change 序列总览（C1–C5 主线 + 旁支）、§4 五张意图卡片（Runtime / Tool / Memory / Guardrails / Observability）、§5 spec delta 落点、§6 产品初心与 Agent 气质约束、§7 修订记录
+  - 同步更新 5 个关联文件的蓝图状态引用（从「待写」→「v1 草案已产出，待冻结」）
+- **Verification**: PASS（文档完整性：roadmap/README.md §6 完成定义 7 项全满足）
+- **Risks**: 蓝图仍为草案，未冻结前不得当作已批准执行序列
+- **Commit**: pending
+- **Next**: 用户审阅蓝图 → 冻结 → 开启第一个 post-M4 Type C `agent-runtime-mvp`
 
 ## 2026-06-22 - 修复阶段总结请求超时取消与 AI 返回校验
 
@@ -5139,3 +5173,74 @@ Remaining Risks:
 - 当前项目可构建、可测试，但仍处于本地/演示部署形态；正式上线前必须补齐生产域名 HTTPS、ICP备案/小程序备案、微信合法域名、线上 secret 注入、数据库/Redis/OSS/AI 实配和 smoke 验收。
 - `frontend/.env.*` 当前仍指向 `http://127.0.0.1:8080`，`manifest.json` 中 `mp-weixin.setting.urlCheck=false`，不应作为正式提审配置。
 - README 引用 `/actuator/health`，但当前 `pom.xml` 未看到 actuator 依赖；生产健康检查需要另行确认或补一个真实可用的健康端点。
+## 2026-07-25 - Docs/agent-iteration 工作流说明（RAG 优点迁移）
+
+Task:
+
+- 从 RAG 项目迭代实践中汲取 Spec 范式 vibecoding 优点，在 Flashback 建立 `Docs/agent-iteration` 工作流文档集，供后续 Claude 编写迭代蓝图参考。
+
+Modified:
+
+- `Docs/agent-iteration/README.md`（新建索引）
+- `Docs/agent-iteration/workflow/iteration-approach.md`（新建：Flashback 迭代思路）
+- `Docs/agent-iteration/workflow/vibecoding-playbook.md`（新建：协作手册）
+- `Docs/agent-iteration/workflow/agent-control-model.md`（新建：控制模型）
+- `Docs/agent-iteration/workflow/prompt-snippets/design-decision-record.md`（新建：决策记录模板）
+- `Docs/agent-iteration/roadmap/README.md`（新建：蓝图编写规格占位）
+- `Docs/agent-iteration/项目初始分析.md`（顶部增加关联文档指引）
+- `.ai/AGENT_LOG.md`（本条）
+
+Implementation:
+
+- 迁移并本地化 RAG 的控制机制：事实源优先级、Type A/B/C、事前闸门、一次一个 active change、决策记录、AGENT_LOG 证据、外调闸、提交责任、能力五态。
+- 明确不复制 RAG 业务 C 序列；区分协作 Agent 工作流与产品 Agent runtime。
+- 声明蓝图 `roadmap/iteration-blueprint.md` 有意不写，留给 Claude；本轮不修改 OpenSpec/M4 scope/业务代码。
+
+Verification:
+
+- 目录与文件存在性检查：上述路径均已写入。
+- 本轮为纯文档，未运行 Maven/前端构建/微信手验（SKIPPED：无代码变更）。
+
+Scope Safety:
+
+- 未修改 `openspec/**` baseline 或 M4 change、backend/frontend 业务代码、依赖与 lockfile、部署配置。
+- 未将 Docs 声明为高于 OpenSpec 的执行事实源；README 写明冲突以 AGENTS/OpenSpec 为准。
+
+Remaining Risks:
+
+- 工作流文档尚未被 AGENTS.md 强制引用，Agent 可能仍只读旧习惯；若需硬化可另开 Type B 在 AGENTS 增加「规划时必读 agent-iteration/workflow」。
+- 迭代蓝图尚未产出，post-M4 序列仍不能当作已批准执行计划。
+
+Commit: pending
+
+
+## 2026-07-26｜vibecoding-workflow-review-hardening｜Type B
+
+- **Scope**: `AGENTS.md`；`Docs/agent-iteration/**`；`.ai/ACTIVE_TASK.md` / `AGENT_LOG.md` / `TASK_CARD_TEMPLATE.md`；`.agent/skills/openspec-{apply,propose}-change/SKILL.md`；`.claude/skills/openspec-{apply,propose}-change/SKILL.md`
+- **Changes**: 吸收 Claude 审查：强制规则注入 AGENTS；Type B/C checklist；Current Progress 交接；AGENT_LOG 结构化模板；playbook 去重并引用 AGENTS；初始分析 CAUTION；skills 增加 vibecoding guardrails；明确蓝图于 M4 后补
+- **Verification**: SKIPPED 代码测试（纯治理文档/skill 文案）。目录与关键标题人工核对：AGENTS 含 Type/Gates/Handoff；type-c-checklist 与 Current Progress 存在
+- **Risks**: 蓝图仍空；M4 tasks 勾选未在本轮同步盘点；`.agent` 与 `.claude` skills 需保持双份同步
+- **Commit**: pending
+- **Next**: 继续 M4 或用户授权后写 iteration-blueprint
+
+
+## 2026-07-27｜m4-truth-align-and-archive｜Type B/C governance
+
+- **Scope**: `openspec/specs/{backend-core,miniapp-core,v2-product-scope}/spec.md`；`openspec/changes/archive/2026-07-27-m4-real-capability-completion/**`；`.ai/ACTIVE_TASK.md`；`AGENTS.md`；`openspec/project.md`；`Docs/agent-iteration/README.md`；`Docs/agent-iteration/roadmap/README.md`；本日志
+- **Changes**:
+  1. **真相对齐**：M4 product scope 实现 + 2026-06-30 用户手验视为完成；`tasks.md` 仅余 timeline MySQL EXPLAIN；MySQL80 Stopped 且无提权无法启动 → **carry-over residual**（非产品缺口）
+  2. **baseline 接受**：将 M4 delta 的 ADDED Requirements 原文并入三份 baseline specs（backend 17 / miniapp 15 / v2-product-scope 15 requirements）
+  3. **归档**：`m4-real-capability-completion` → `openspec/changes/archive/2026-07-27-m4-real-capability-completion/`；更新 closeout；ACTIVE_TASK=`IDLE`
+  4. **指针清理**：AGENTS/project 去掉「当前 M4 active 事实源」表述；标明蓝图未冻结不可执行
+  5. **未做**：未归档 M1/M3；未冻结蓝图；未开 Agent C1 实现；未跑 live EXPLAIN
+- **Verification**:
+  - archive path exists with proposal/design/tasks/specs/closeout
+  - active `openspec/changes/` no longer contains `m4-real-capability-completion`
+  - archived tasks unchecked product items = 0
+  - baseline contains `Accepted From M4 Real Capability Completion` section
+  - MySQL EXPLAIN: SKIPPED (service stop / no elevation) → carry-over
+  - Code tests: SKIPPED（本轮无业务代码改动）
+- **Risks**: M1/M3 目录仍可能被误认为 active；蓝图 D1 曾写「M4 视为完成」现已与 ACTIVE_TASK 对齐但仍需 Claude 修订冻结措辞；EXPLAIN 残留需有库环境时 Type B 补
+- **Commit**: pending
+- **Next**: 用户将「蓝图修订建议」发给 Claude；冻结后再决定是否 `/opsx-propose` C1
+
