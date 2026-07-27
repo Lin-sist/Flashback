@@ -48,7 +48,7 @@ Docs/agent-iteration/
 │     └─ type-b-checklist.md
 └─ roadmap/
    ├─ README.md                       # 蓝图编写规格
-   └─ iteration-blueprint.md          # 迭代蓝图 v1 草案（待用户审阅冻结）
+   └─ iteration-blueprint.md          # 迭代蓝图 v1.1（已冻结）
 ```
 
 ## 3.1 执行层 vs 参考层（防双轨道落空）
@@ -57,6 +57,7 @@ Docs/agent-iteration/
 |---|---|---|
 | **硬注入** | `AGENTS.md` | 会话规则 / 必读 |
 | **Skill** | `.agent/skills/openspec-*`、`.claude/skills/openspec-*` | `/opsx-*` 或 skill 触发 |
+| **Kiro 桥接** | `.kiro/steering/` | Kiro vibe coding 自动加载；指向 AGENTS.md，不替代 |
 | **交接** | `.ai/ACTIVE_TASK.md` Current Progress、`AGENT_LOG` | 每会话必读 |
 | **完整参考** | 本目录 `workflow/**` | 人类指示或规划时按 README 阅读顺序 |
 

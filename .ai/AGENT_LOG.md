@@ -44,6 +44,23 @@ Next:
 
 - ...
 
+## 2026-07-27｜kiro-steering-setup｜Type B
+
+- **Scope**: Kiro 桥接层与规则配置（文档/工作流）
+  - `.kiro/steering/rules.md`（新建，Kiro 规则桥接）
+  - `.kiro/steering/product.md`（新建，产品定位与气质摘要）
+  - `.kiro/steering/tech.md`（新建，技术栈与非功能约束）
+  - `.kiro/steering/structure.md`（新建，目录结构与文件索引）
+  - `AGENTS.md`（蓝图引用状态更新为已冻结 v1.1）
+  - `Docs/agent-iteration/README.md`（执行层表格补充 Kiro 桥接说明，蓝图状态更新）
+- **Changes**:
+  - 创建 `.kiro/steering/` 目录及 4 个 steering 文件，明确 Kiro vibe coding 模式直接使用 OpenSpec（`openspec/changes/`），不引入额外的 `.kiro/specs/`
+  - 将 `AGENTS.md`、`.ai/ACTIVE_TASK.md` 设为每次会话强要求首读文件
+  - 更新 `AGENTS.md` 蓝图引用文字为已冻结 v1.1
+- **Verification**: PASS（Kiro 目录文件已就绪，无破坏性变更）
+- **Risks**: 无
+- **Commit**: pending
+
 ## 2026-07-27｜iteration-blueprint-v1.1｜Type B
 
 - **Scope**: 蓝图 v1→v1.1 修订（方向层文档）

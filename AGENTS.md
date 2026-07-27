@@ -103,5 +103,5 @@ Type C 同时最多 **一个** active change。`ACTIVE_TASK=IDLE` 时禁止业�
 - 普通 bugfix / 样式精修不需要修改 OpenSpec，只需要写入 `.ai/AGENT_LOG.md`。
 - Type C 操作性清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`。
 - Type B 操作性清单：`Docs/agent-iteration/workflow/prompt-snippets/type-b-checklist.md`。
-- 长期方向蓝图：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**未冻结前不得执行**）。
+- 长期方向蓝图：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.1 已冻结**；批准方向与气质约束，仍不授权直接改业务代码）。
 - `Docs/agent-iteration/项目初始分析.md` 是产品方向评估草稿，**不是**已批准 roadmap 或 OpenSpec。
