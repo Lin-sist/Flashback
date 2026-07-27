@@ -20,6 +20,16 @@ When ready to implement, run /opsx:apply
 
 ---
 
+## Flashback Vibecoding Guardrails（强制）
+
+遵守 `AGENTS.md`。规划细节见 `Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md` 与 `design-decision-record.md`。
+
+- **并行约束**：若 `.ai/ACTIVE_TASK.md` 已指向未完成 Type C（当前常为 M4），**不得**在未获用户明确切换/收口授权时新建第二个主线 active change。
+- **规划阶段零业务代码**；创建 artifacts 后更新 `ACTIVE_TASK`（ACTIVE + Current Progress 初始化），并声明提交责任与外调预算（无则写 0）。
+- **proposal** 须含用户故事（改前坏事→改后不同）与能力五态；**design** 须含 `## 决策记录`；**tasks** 须含实现授权检查点。
+- **禁止**把 `Docs/agent-iteration/项目初始分析.md` 或未冻结 `roadmap/iteration-blueprint.md` 写成已批准 scope。
+- 规划完成只获「规划批准」；**实现须另授权**。追加 `AGENT_LOG` 记录规划产物与验证（文档门禁等）。
+
 **Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
 
 **Steps**

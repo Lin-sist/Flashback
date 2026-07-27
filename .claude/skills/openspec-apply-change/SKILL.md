@@ -13,6 +13,16 @@ Implement tasks from an OpenSpec change.
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
+## Flashback Vibecoding Guardrails（强制）
+
+在执行本 skill 前/中遵守仓库根 `AGENTS.md`。完整方法论与勾选清单见 `Docs/agent-iteration/workflow/`（尤其 `prompt-snippets/type-c-checklist.md`）。
+
+- **会话启动**：读 `.ai/ACTIVE_TASK.md`（含 **Current Progress**）→ active `tasks.md` → 最近相关 `AGENT_LOG`；冲突则停止写操作并先修正指针。
+- **闸门**：规划批准 ≠ 实现授权 ≠ 外调授权。无实现授权不得改业务代码；无外调授权不得真实批量 AI/OSS 业务调用；默认不 commit/push。
+- **范围**：只做当前 change tasks；遵守 Non-Negotiable；不把 `Docs/agent-iteration/项目初始分析.md` 或未冻结蓝图当 scope。
+- **证据**：完成后追加 `.ai/AGENT_LOG.md`（结构化模板）；更新 **Current Progress**；验证用 PASS/FAIL/SKIPPED+原因；输出 AGENTS Required Output。
+- **决策**：实现中若出现新分岔，暂停并建议更新 `design.md` 决策记录，禁止静默扩大 scope。
+
 **Steps**
 
 1. **Select the change**

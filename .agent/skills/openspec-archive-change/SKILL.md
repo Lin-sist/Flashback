@@ -13,6 +13,10 @@ Archive a completed change in the experimental workflow.
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
+## Flashback Vibecoding Guardrails
+
+遵守 `AGENTS.md`。归档仅在用户明确验收后进行；归档后将 `.ai/ACTIVE_TASK.md` 置为 `IDLE` 并清理/归档 Current Progress；追加 `AGENT_LOG`；默认不 push。未冻结的 roadmap 不得在归档时偷偷写成下一 active change。
+
 **Steps**
 
 1. **If no change name provided, prompt for selection**
