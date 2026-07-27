@@ -5549,3 +5549,13 @@ Commit: pending
   - `propose_unlock_at` 是否越界仍待手验体感确认，越界可从 registry 移除
 - **Commit**: pending（本条之后由 Agent 代为提交，提交后另条补录 hash，不回改本条）
 - **Next**: 请求**闸门 3 外调授权**（≤ 45 次，含 strict schema 验证）。授权前先确认本地 `AI_PROVIDER` 取值，避免重演 C1 偏差。
+
+## 2026-07-27｜agent-tool-calling｜Commit 补录
+
+- **Commit**: `6c363f6` — `feat(agent): C2 Agent Tool Calling 实现（原生 FC + 二段式确认）`
+- **对应条目**: 上方 C2 的规划闸 / Q1 协议翻转 / 闸门 2 实现三条（其 `Commit: pending` 由本条补录，按规则不回改历史）
+- **范围**: 61 files changed, 5978 insertions(+), 60 deletions(-)
+- **提交方式**: 用户显式授权 Agent 代为提交；按路径显式 `git add`（未用 `git add .`），保留 hooks（未加 `--no-verify`）
+- **未执行**: `git push`（未授权）。当前 `main` 领先 `origin/main` 2 个提交（C1 `602b31b` + C2 `6c363f6`），待用户决定推送
+- **密钥检查**: `backend/start-dev-wechat.local.ps1` 与 `frontend/.env.local` 经 `git check-ignore` 确认被忽略，未进入本次提交
+- **清理**: 临时脚本 `tick-tasks.ps1` 与临时 commit message 文件已删除，未留验证残留
