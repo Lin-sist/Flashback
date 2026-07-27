@@ -5430,3 +5430,12 @@ Commit: pending
 
 - **Commit**: pending（本条之后由用户授权 Agent 代为提交，提交后另条补录 hash，不回改本条）
 - **Next**: 用户授权后开 C2 `agent-tool-calling` 规划闸。
+
+## 2026-07-27｜agent-runtime-mvp｜Commit 补录
+
+- **Commit**: `602b31b` — `feat(agent): 完成 C1 Agent Runtime MVP 并归档`
+- **对应条目**: 上方 C1 的规划闸 / 闸门 2 实现 / 真机手验·缺陷修复·验收归档 / 全周期收束汇总四条（其 `Commit: pending` 均由本条补录，按规则不回改历史）
+- **范围**: 53 files changed, 5401 insertions(+), 16 deletions(-)
+- **提交方式**: 用户显式授权 Agent 代为提交；按路径显式 `git add`（未用 `git add .`），保留 hooks（未加 `--no-verify`）
+- **未执行**: `git push`（未授权）。当前 `main` 领先 `origin/main` 1 个提交，待用户自行决定推送。
+- **密钥检查**: `backend/start-dev-wechat.local.ps1` 与 `frontend/.env.local` 经 `git check-ignore` 确认被忽略，未进入本次提交；提交后 `git status` 干净。
