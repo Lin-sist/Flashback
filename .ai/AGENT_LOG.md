@@ -59,7 +59,7 @@ Next:
   - 更新 `AGENTS.md` 蓝图引用文字为已冻结 v1.1
 - **Verification**: PASS（Kiro 目录文件已就绪，无破坏性变更）
 - **Risks**: 无
-- **Commit**: pending
+- **Commit**: `ac2af21`
 
 ## 2026-07-27｜iteration-blueprint-v1.1｜Type B
 
@@ -77,7 +77,7 @@ Next:
     8. C4 change-id 更新为 `agent-guardrails-hardening`
 - **Verification**: PASS（8 项完成定义逐项核对通过）
 - **Risks**: 蓝图仍为草案，待用户确认「冻结」
-- **Commit**: pending
+- **Commit**: `ac2af21`
 
 ## 2026-07-27｜iteration-blueprint-v1｜Type B
 
@@ -94,7 +94,7 @@ Next:
   - 同步更新 5 个关联文件的蓝图状态引用（从「待写」→「v1 草案已产出，待冻结」）
 - **Verification**: PASS（文档完整性：roadmap/README.md §6 完成定义 7 项全满足）
 - **Risks**: 蓝图仍为草案，未冻结前不得当作已批准执行序列
-- **Commit**: pending
+- **Commit**: `ac2af21`
 - **Next**: 用户审阅蓝图 → 冻结 → 开启第一个 post-M4 Type C `agent-runtime-mvp`
 
 ## 2026-06-22 - 修复阶段总结请求超时取消与 AI 返回校验
@@ -5255,7 +5255,7 @@ Commit: pending
 - **Changes**: 吸收 Claude 审查：强制规则注入 AGENTS；Type B/C checklist；Current Progress 交接；AGENT_LOG 结构化模板；playbook 去重并引用 AGENTS；初始分析 CAUTION；skills 增加 vibecoding guardrails；明确蓝图于 M4 后补
 - **Verification**: SKIPPED 代码测试（纯治理文档/skill 文案）。目录与关键标题人工核对：AGENTS 含 Type/Gates/Handoff；type-c-checklist 与 Current Progress 存在
 - **Risks**: 蓝图仍空；M4 tasks 勾选未在本轮同步盘点；`.agent` 与 `.claude` skills 需保持双份同步
-- **Commit**: pending
+- **Commit**: `ac2af21`
 - **Next**: 继续 M4 或用户授权后写 iteration-blueprint
 
 
@@ -5276,7 +5276,7 @@ Commit: pending
   - MySQL EXPLAIN: SKIPPED (service stop / no elevation) → carry-over
   - Code tests: SKIPPED（本轮无业务代码改动）
 - **Risks**: M1/M3 目录仍可能被误认为 active；蓝图 D1 曾写「M4 视为完成」现已与 ACTIVE_TASK 对齐但仍需 Claude 修订冻结措辞；EXPLAIN 残留需有库环境时 Type B 补
-- **Commit**: pending
+- **Commit**: `ac2af21`
 - **Next**: 用户将「蓝图修订建议」发给 Claude；冻结后再决定是否 `/opsx-propose` C1
 
 
@@ -5290,6 +5290,6 @@ Commit: pending
   4. ACTIVE_TASK 仍 IDLE；Next=C1 规划闸
 - **Verification**: PASS（文档一致性人工核对）；无业务代码；Lincheck/Linsist 不再作为待提交交付物
 - **Risks**: 冻结后若跳过 proposal 直接编码会破坏可控性；C3 体量与 P2 持久化仍待 C1/C3 design
-- **Commit**: pending
+- **Commit**: `ac2af21`
 - **Next**: 用户授权后 propose `agent-runtime-mvp`
 
