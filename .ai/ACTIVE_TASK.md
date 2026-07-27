@@ -10,9 +10,14 @@
 
 - Change：`m4-real-capability-completion`
 - 位置：`openspec/changes/archive/2026-07-27-m4-real-capability-completion/`
-- 结果：M4 核心能力准生产可用（真实 AI、对象存储附件、位置、封面、时光轴筛选分页、preview 隔离、时间回看真实数据等）已实现并通过用户手验；delta 已接受进 baseline；正式手动归档于 2026-07-27。
-- 残留：真实 MySQL timeline `EXPLAIN` 为 **carry-over residual**（MySQL80 未启动/无提权），不阻塞 M4 归档；有环境后用 Type B 补证据即可。
-- M1 / M3 目录仍可能未归档：与 M4 主线脱钩，另排治理，**不得**当作当前 active 实现源。
+- 结果：M4 核心能力准生产可用已实现并归档；delta 已接受进 baseline。
+- 残留：timeline MySQL `EXPLAIN` carry-over（Type B 可补，不阻塞主线）。
+
+## Direction Layer
+
+- **迭代蓝图已冻结**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.1**
+- 默认主线顺序：C1 `agent-runtime-mvp` → C2 → C3 → C4 → C5（规则见蓝图 §3.2）
+- 蓝图不授权直接写代码；下一刀应先做 C1 的 **proposal/design/tasks/delta 规划闸**
 
 ## Source Of Truth (when IDLE)
 
@@ -22,21 +27,21 @@
 - `openspec/specs/miniapp-core/spec.md`（含已接受 M4 条款）
 - `openspec/specs/v2-product-scope/spec.md`（含已接受 M4 条款）
 - `openspec/specs/agent-collaboration/spec.md`
-- 方向参考（**未冻结不得执行**）：`Docs/agent-iteration/roadmap/iteration-blueprint.md`
-- 工作流参考：`Docs/agent-iteration/workflow/`
+- 方向：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**已冻结 v1.1**）
+- 工作流：`Docs/agent-iteration/workflow/`
+- 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
 
-> IDLE 时本段仅作下一会话提示，不指向 active change。
-
-- **Last session**: 2026-07-27 — M4 真相对齐与正式归档
-- **Completed**: M4 archive + baseline delta accept
-- **Blocked on**: none for M4 product scope
-- **Next step**: 用户审阅并让 Claude **修订/冻结** `iteration-blueprint.md`；冻结前 **禁止** 开 post-M4 Agent 主线实现。可选 Type B：MySQL EXPLAIN 残留证据。
-- **SKIPPED / residual**: MySQL `EXPLAIN` timeline query（carry-over）
+- **Last session**: 2026-07-27 — 工作流终验 + 蓝图 v1.1 冻结；Lincheck/Linsist 加入 `.gitignore`
+- **Completed**: M4 archive；blueprint freeze
+- **Blocked on**: none
+- **Next step**: 用户授权后启动 C1 `agent-runtime-mvp` **规划**（proposal/design/决策记录/tasks/delta）；规划批准前禁止业务代码
+- **SKIPPED / residual**: MySQL `EXPLAIN` timeline（carry-over）
 
 ## Out Of Scope While Idle
 
 - 不要在没有新 Type C 的情况下改 AI/Agent runtime 业务代码
-- 不要把 `项目初始分析.md` 或未冻结蓝图当作 ACTIVE scope
+- 不要把 `项目初始分析.md` 的 P0 表直接当 ACTIVE scope
 - 不要并行复活 M1/M3 作为隐式 active change
+- 不要跳过三道闸门直接实现 C1–C5

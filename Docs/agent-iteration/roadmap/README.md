@@ -1,9 +1,9 @@
 # Roadmap 目录说明（待 Claude 编写蓝图）
 
-> 状态：`iteration-blueprint.md` **v1 草案已产出**；**M4 已归档**；蓝图 **尚未冻结**  
+> 状态：`iteration-blueprint.md` **v1.1 已冻结**；**M4 已归档**；`ACTIVE_TASK=IDLE`  
 > 状态日期：2026-07-27  
 > 工作流见 `../workflow/`；执行硬规则见仓库根 `AGENTS.md`。  
-> **下一步**：按用户转交的「蓝图修订建议」修订并冻结 → 再开 post-M4 Type C（建议 `agent-runtime-mvp`）。冻结前禁止实现。
+> **下一步**：启动 C1 `agent-runtime-mvp` 的 **OpenSpec 规划闸**（proposal/design/tasks/delta）；规划批准前禁止业务代码。
 
 ---
 

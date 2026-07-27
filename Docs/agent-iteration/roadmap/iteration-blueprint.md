@@ -1,9 +1,11 @@
-# 《时光回序》Flashback｜迭代蓝图（Iteration Blueprint）· v1
+# 《时光回序》Flashback｜迭代蓝图（Iteration Blueprint）· v1.1
 
 > 文档性质：长期迭代的母文档 / 宪章，不是可执行 OpenSpec change  
-> 状态日期：2026-07-26（正文）；**M4 治理状态于 2026-07-27 已正式归档，见 ACTIVE_TASK=IDLE**  
-> 状态：**草案**（待按 2026-07-27 真相对齐结果修订后冻结；**冻结前禁止开 C1 实现**）  
-> 作者：人机协作（用户主导设计决策，Claude 执笔）
+> 状态日期：2026-07-27  
+> 状态：**已冻结 v1.1**（终验通过；方向层生效）  
+> 作者：人机协作（用户主导设计决策，Claude 执笔）  
+> **冻结含义**：批准 C1–C5 方向、依赖与气质约束。  
+> **仍不授权直接改业务代码**——实施须新建 Type C change，并走 `AGENTS.md` 三道闸门与 `type-c-checklist.md`。
 
 ---
 
@@ -12,7 +14,7 @@
 ### 0.1 优先级
 
 1. `AGENTS.md` Non-Negotiable → 本蓝图方向 → OpenSpec active change → baseline specs → 代码 → 旧 Docs。
-2. 本蓝图**不授权直接改业务代码**。正式实施某一项时，须在 `openspec/changes/<change-id>/` 建 proposal/design/tasks/delta，走事前闸门。
+2. 本蓝图**不授权直接改业务代码**。正式实施某一项时，须在 `openspec/changes/<change-id>/` 建 proposal/design/tasks/delta，走三道闸门（`AGENTS.md` Gates）。
 3. 本蓝图与 `AGENTS.md` 冲突时，以 `AGENTS.md` 为准。
 
 ### 0.2 Type 分级适用
@@ -21,11 +23,12 @@
 |---|---|
 | **Type A** | 可引用蓝图做规划讨论、现状扫描。不改文件。 |
 | **Type B** | 不需要蓝图授权。按 `AGENTS.md` Type B 流程走。 |
-| **Type C** | 蓝图只提供方向与意图卡片。实施须建 OpenSpec change，走三道闸门。 |
+| **Type C** | 蓝图只提供方向与意图卡片。实施须建 OpenSpec change，走三道闸门。开工清单见 `Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`。 |
 
 ### 0.3 一次一个 active change
 
-蓝图中的序列**严格串行**。同时最多一个 active Type C。上一个 change 验收归档（`ACTIVE_TASK=IDLE`）后，才可开启下一个。
+同时最多一个 active Type C。上一个 change 验收归档（`ACTIVE_TASK=IDLE`）后，才可开启下一个。  
+执行顺序与调整规则见 §3.2。
 
 ### 0.4 诚实性要求
 
@@ -38,6 +41,17 @@
 - AI provider、对象存储等真实外调须在 change proposal 中披露预算并单独授权。
 - 用户日记原文是高敏数据，不得进入普通日志、telemetry、tracked files。
 - AI API key、provider secret 只能存在于 backend-side config。
+
+### 0.6 与治理文件的交叉引用
+
+| 文件 | 蓝图中的角色 |
+|---|---|
+| `AGENTS.md` | 硬规则（Type/Gates/Handoff/Non-Negotiable）；与本文冲突时 AGENTS 优先 |
+| `Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md` | 每个 C1–C5 change 开工时的操作清单 |
+| `Docs/agent-iteration/workflow/vibecoding-playbook.md` | 六步闭环协作方法论 |
+| `Docs/agent-iteration/workflow/agent-control-model.md` | 四层控制架构与三道闸门展开 |
+| `Docs/agent-iteration/项目初始分析.md` | 产品方向评估草稿（**不是**已批准 scope；P0 表不得直接当执行序列） |
+| M1 / M3 历史目录 | 历史参考；**不是** active 实现源；清理属旁支治理，不在 Agent 主线 |
 
 ---
 
@@ -56,41 +70,36 @@
 
 两个项目覆盖 AI 应用层两大核心方向：知识密集型（ToB）与交互密集型（ToC）。
 
-### 主干依赖链（严格串行）
+### 主干依赖链
 
 ```text
-M4 收口归档（2026-07-27 已完成：archive/2026-07-27-m4-real-capability-completion）
-  → C1: Agent Runtime MVP（对话状态机 + 多轮写作引导；含最小护栏）
+M4 归档（2026-07-27 已完成；archive/2026-07-27-m4-real-capability-completion；ACTIVE_TASK=IDLE）
+  → C1: Agent Runtime MVP（对话状态机 + 多轮写作引导 + 最小护栏内嵌）
   → C2: Agent Tool Calling（草稿/标签/封存等工具白名单）
   → C3: Agent Memory & Review（历史记录检索 + 友人回看对话 + 跨记录关联）
-  → C4: Agent Guardrails（系统化护栏 hardening）
+  → C4: Agent Guardrails Hardening（系统化多层防御 + 边界用例 + 违规降级）
   → C5: Agent Observability（决策链路 thought→action→observation 可查询）
 ```
 
-**依赖逻辑：**
-- C1 是所有后续能力的载体（没有 Runtime 就没有多轮对话）
-- C2 依赖 C1 的对话状态机来触发工具调用
-- C3 依赖 C1 的对话上下文来注入记忆；友人回看强依赖 Memory 检索
-- C4 可以在 C1 之后任意位置插入，但推荐在 C3 之后（Memory 让 Guardrails 更有意义）
-- C5 是工程层，依赖 C1 有可观测的对象
+**依赖规则见 §3.2。**
 
 ---
 
 ## 2. 作者已确认的决策
 
-以下决策来自 M4 用户对话、`AGENTS.md` 禁止项、项目初始分析中的讨论，已由用户明确确认。
+以下决策来自 M4 用户对话、`AGENTS.md` 禁止项、蓝图编写讨论，已由用户明确确认。
 
 ### 2.1 已确认
 
 | # | 决策 | 来源 |
 |---|---|---|
-| D1 | M4 **已于 2026-07-27 正式归档**（baseline 已接受 delta；`ACTIVE_TASK=IDLE`）；蓝图纯聚焦 post-M4 Agent 化主线。残留仅 timeline MySQL `EXPLAIN` carry-over，不阻塞归档 | 蓝图编写讨论 + 2026-07-27 真相对齐归档 |
+| D1 | M4 **已于 2026-07-27 正式归档**（`openspec/changes/archive/2026-07-27-m4-real-capability-completion/`；delta 已接受进 baseline `backend-core` / `miniapp-core` / `v2-product-scope`；`ACTIVE_TASK=IDLE`）。残留仅 timeline MySQL `EXPLAIN` carry-over（MySQL 服务当时无法启动），不阻塞归档，不重开 M4 | 2026-07-27 归档 |
 | D2 | Agent 气质：共情型朋友——不太热情也不冷漠，主动和它聊一聊时，它永远是最懂你的朋友 | 蓝图编写讨论 |
 | D3 | Agent 主动性：被动召唤型——不主动弹窗/推送，只在用户明确操作时参与，但参与时展现深度共情和记忆能力 | 蓝图编写讨论 |
 | D4 | 架构方向：Backend 侧 Agent Runtime（Spring Boot 托管状态机/Tool/Memory/对话） | 蓝图编写讨论 |
-| D5 | 拆分粒度：每个能力独立 Type C change，严格串行 | 蓝图编写讨论 |
+| D5 | 拆分粒度：每个能力独立 Type C change，一次只 ACTIVE 一个 | 蓝图编写讨论 |
 | D6 | Runtime MVP 场景：先做「写下此刻」多轮引导；「友人回看」后置到 Memory change | 蓝图编写讨论 |
-| D7 | Memory 初期：简单检索（MySQL 全文 + 语义摘要匹配），后续可升级 | 蓝图编写讨论 |
+| D7 | Memory 初期：简单检索（MySQL 全文 + 语义摘要匹配），后续可升级；**不做第二套企业 RAG / 向量中台** | 蓝图编写讨论 |
 | D8 | 回看交互：保留现有结构化摘要 + 新增「和它聊聊」多轮对话入口 | 蓝图编写讨论 |
 | D9 | 跨记录关联合并到 Memory change 中 | 蓝图编写讨论 |
 | D10 | 友人回看对话合并到 Memory change 中 | 蓝图编写讨论 |
@@ -102,17 +111,18 @@ M4 收口归档（2026-07-27 已完成：archive/2026-07-27-m4-real-capability-c
 | D16 | secret 仅 backend | `AGENTS.md` |
 | D17 | 真实路径不得 mock success 冒充真实成功 | `AGENTS.md` |
 | D18 | 不做大规模 backend rewrite | `AGENTS.md` |
+| D19 | C1 必须内嵌最小护栏（不诊断 / 不覆写 / 建议不代决 / 被动召唤 / 输出克制）；C4 是系统化 hardening 而非「从零第一次有护栏」 | v1.1 修订 |
 
 ### 2.2 待确认
 
 | # | 待确认事项 | 影响范围 | 决策时机 |
 |---|---|---|---|
 | P1 | 当前 DeepSeek / OpenAI-compatible provider 是否支持 Function Calling；若不支持，Runtime 是否用 prompt 模拟还是切换 provider | C1 / C2 | C1 proposal 阶段 |
-| P2 | Agent 对话状态持久化方式：MySQL 新表 / Redis session / 内存 | C1 | C1 design 阶段 |
+| P2 | Agent 对话状态持久化方式（候选：MySQL 新表 / Redis session / 内存 session） | C1 | C1 design 阶段 |
 | P3 | Tool Calling 白名单具体范围（哪些操作允许 Agent 调用，哪些禁止） | C2 | C2 proposal 阶段 |
 | P4 | Memory 检索的具体实现（MySQL FULLTEXT / LIKE / 外部搜索引擎） | C3 | C3 design 阶段 |
 | P5 | 友人回看对话的 UI 交互形式（浮窗 / 新页面 / 页内展开） | C3 | C3 proposal 阶段 |
-| P6 | Guardrails 的实现方式（system prompt 约束 / 后置过滤 / 两者结合） | C4 | C4 design 阶段 |
+| P6 | Guardrails hardening 的实现方式（system prompt 约束 / 后置过滤 / 两者结合） | C4 | C4 design 阶段 |
 | P7 | 可观测数据的存储与查询方式（日志文件 / 数据库 / 管理界面） | C5 | C5 design 阶段 |
 
 ---
@@ -121,33 +131,37 @@ M4 收口归档（2026-07-27 已完成：archive/2026-07-27-m4-real-capability-c
 
 ### 3.1 主线序列
 
-| 顺序 | 建议 change-id | 一句话目标 | Type | 依赖 |
+| 顺序 | 建议 change-id | 一句话目标 | Type | 硬依赖 |
 |---|---|---|---|---|
-| **C1** | `agent-runtime-mvp` | Backend Agent Runtime 基底 + 「写下此刻」多轮写作引导 | C | M4 归档 |
+| **C1** | `agent-runtime-mvp` | Backend Agent Runtime 基底 + 「写下此刻」多轮写作引导 + 最小护栏内嵌 | C | M4 归档（已完成） |
 | **C2** | `agent-tool-calling` | Agent 可调用工具（草稿/标签/封存等），对话过程自然产生行动 | C | C1 |
 | **C3** | `agent-memory-and-review` | 基于历史记录的 Memory 检索 + 友人回看多轮对话 + 跨记录关联 | C | C1 |
-| **C4** | `agent-guardrails` | 产品 Agent 护栏：不诊断、不篡改、建议不代决、输出克制 | C | C1（推荐 C3 后） |
+| **C4** | `agent-guardrails-hardening` | 系统化多层护栏 hardening：边界用例、违规降级、防御深度 | C | C1（推荐 C3 后） |
 | **C5** | `agent-observability` | Agent 决策链路 thought→action→observation 可查询（工程向） | C | C1 |
 
-### 3.2 依赖关系图
+### 3.2 依赖规则与执行顺序
 
 ```text
-M4 归档
+M4 归档（已完成）
   │
   ▼
- C1 (Runtime MVP)
+ C1 (Runtime MVP + 最小护栏)
   │
   ├──▶ C2 (Tool Calling)
   │
   ├──▶ C3 (Memory & Review)
   │
-  ├──▶ C4 (Guardrails)  ← 推荐 C3 之后
+  ├──▶ C4 (Guardrails Hardening)  ← 推荐 C3 之后
   │
   └──▶ C5 (Observability)
 ```
 
-> C2–C5 均依赖 C1。C2/C3/C4/C5 之间**无硬依赖**，但推荐按序执行以降低并行风险。
-> 若实施中发现 C4 应前置（如 Runtime 测试时发现 Agent 行为越界），可调整顺序但须更新蓝图修订记录。
+**依赖规则（消除歧义）：**
+
+- **硬依赖**：C2 / C3 / C4 / C5 均硬依赖 C1 完成。C2 / C3 / C4 / C5 彼此之间无硬依赖。
+- **默认执行顺序**：C1 → C2 → C3 → C4 → C5（一次只 ACTIVE 一个）。
+- **可调整**：若 C1 联调中出现 Agent 气质越界或行为失控问题，允许将 **C4 前移至 C2 之前**。顺序调整须更新本文 §7 修订记录。
+- 所有 change 不得并行：上一个验收归档后才可开启下一个。
 
 ### 3.3 旁支（明确不在主线）
 
@@ -161,6 +175,8 @@ M4 归档
 | 完整 RAG 中台化 Memory | 与 RAG 项目重复，Flashback Memory 叙事重心是「Agent 如何使用记忆」 |
 | 通用多租户 Agent 平台 | 过度工程化，不符合个人项目定位 |
 | Major 视觉重建 | `AGENTS.md` 禁止 |
+| M1 / M3 未归档目录清理 | 旁支治理 Type B；与 Agent 主线脱钩 |
+| MySQL `EXPLAIN` carry-over | Type B 补证据；不阻塞 Agent 主线 |
 
 ---
 
@@ -168,30 +184,39 @@ M4 归档
 
 ### C1 · `agent-runtime-mvp`
 
-**Backend Agent Runtime 基底 + 「写下此刻」多轮写作引导**
+**Backend Agent Runtime 基底 + 「写下此刻」多轮写作引导 + 最小护栏内嵌**
 
 #### 现状事实
 
 - 当前所有 AI 能力均为单轮 `prompt → response` 模式（`AiServiceImpl.java`）：构造 prompt → 调用 `invokeChatCompletion` → 解析 JSON → 返回 VO → 结束。**无对话状态、无多轮交互**。`confirmed`
 - 现有 `generateWritingPrompts` 一次性生成写作提示列表，用户看到后自主选择。**不是**引导式对话。`confirmed`
 - 后端已有 AI provider 适配层（MOCK / DEEPSEEK / OPENAI_COMPATIBLE）。`confirmed`
-- Provider 是否支持 Function Calling：`unknown`（待 C1 proposal 调研）。
+- Provider 是否支持 Function Calling：`unknown`（待 C1 proposal 调研）。C1 多轮对话不依赖 FC；FC 放到 C2。
+- 对话状态持久化方案：`unknown`（候选：MySQL 新表 / Redis session / 内存 session），**待 C1 design 阶段确认**。蓝图不冻结技术选型。
 
 #### 目标
 
 1. 在 Spring Boot 后端建立 Agent Runtime：对话状态机、轮次管理、上下文维护。
 2. 实现第一个用户场景：用户新建记录时，Agent 以多轮对话形式引导用户展开内容（从情绪 → 困惑 → 核心问题 → 期望，逐步引导而非一次性提问）。
-3. 前端提供对话式 UI 入口（被动触发：用户主动点击「让它帮我写」或类似入口）。
+3. 前端提供对话式 UI 入口——**被动触发**：用户主动点击「让它帮我写」或类似入口，**不弹窗、不自动展开**。
+4. **内嵌最小护栏**（摘要级，不等待 C4 才首次出现护栏）：
+   - 不诊断：system prompt 明确禁止心理诊断和医学建议
+   - 不覆写：不篡改或替换用户原文
+   - 建议不代决：不代替用户执行封存/解锁/删除
+   - 被动召唤：不主动推送或弹窗
+   - 输出克制：回复长度与用户表达相称
+5. 对话可随时中断，已产生的内容可保留为草稿素材。
 
 #### 用户故事
 
 - **改前**：用户新建记录后面对空白页面，点击 AI 写作提示得到一组静态提示词列表，仍然不知道从何写起。Agent 不了解用户此刻状态。
-- **改后**：用户点击「让它帮我写」后，Agent 以温和的问题引导对话——"今天是什么让你想写下这一刻？"——用户回答后 Agent 继续追问，逐步帮用户展开思绪。对话可随时中断，已产生的内容可保留为草稿素材。
+- **改后**：用户点击「让它帮我写」后，Agent 以温和的问题引导对话——"今天是什么让你想写下这一刻？"——用户回答后 Agent 继续追问，逐步帮用户展开思绪。对话可随时中断，已产生的内容可保留为草稿素材。Agent 不会做心理诊断，回复简洁温暖。
 
 #### 非目标 / out_of_scope
 
-- 不在此 change 中实现 Tool Calling（C2）。
-- 不在此 change 中实现 Memory / 历史记录检索（C3）。
+- 不在此 change 中实现 Tool Calling（留 C2）。
+- 不在此 change 中实现 Memory / 历史记录检索（留 C3）。
+- 不做系统化 Guardrails hardening（多层防御 / 边界用例测试 / 违规降级——留 C4）；C1 仅做 system prompt 级最小护栏。
 - 不做主动推送 / 弹窗。
 - 不改三 Tab 结构。
 - 不做大规模 backend rewrite——增量新增 Agent 模块。
@@ -202,15 +227,17 @@ M4 归档
 - [ ] 后端 Agent 状态机单元测试
 - [ ] 多轮对话 API 集成测试（mock provider）
 - [ ] 真实 AI provider 联调（外调授权后）
-- [ ] 微信小程序手验：对话流程、中断恢复、内容保留
+- [ ] 微信小程序手验：对话流程、中断恢复、草稿素材保留
+- [ ] 最小护栏验证：至少验证不诊断、不覆写、输出克制三项的基本行为
 
 #### 关键风险
 
 | 风险 | 缓解 |
 |---|---|
 | Provider 不支持 Function Calling | C1 仅需多轮对话，不需要 FC；FC 在 C2 调研 |
-| 对话状态持久化方案复杂 | MVP 可用内存/session，design 阶段决策 |
+| 对话状态持久化方案复杂 | MVP 可用内存/session，design 阶段决策（P2 待确认） |
 | 前端对话 UI 与现有记录编辑器冲突 | 对话 UI 可作为独立入口/浮层，不改编辑器主路径 |
+| 最小护栏仅靠 system prompt，防御深度不足 | C1 接受此风险；系统化 hardening 在 C4 |
 
 ---
 
@@ -237,7 +264,7 @@ M4 归档
 
 #### 非目标 / out_of_scope
 
-- Agent 不得**代替**用户做封存/解锁等重要决策，只能**建议**。
+- Agent 不得**代替**用户做封存/解锁等重要决策，只能**建议**（C1 最小护栏延续）。
 - 不开放危险操作（如批量删除记录、修改已封存记录）。
 - 不实现支付、通知等与 Agent 无关的 Tool。
 - 不改写用户原文。
@@ -262,6 +289,14 @@ M4 归档
 ### C3 · `agent-memory-and-review`
 
 **基于历史记录的 Memory 检索 + 友人回看多轮对话 + 跨记录关联**
+
+#### 体量说明与可选拆分退路
+
+C3 包含三个子能力（Memory 检索、友人回看、跨记录关联），体量较大。默认作为单一 change 实施。**若实现过程中发现体量过重**，允许拆分为：
+- `agent-memory-retrieval`：Memory 检索 + 写作引导中的记忆注入
+- `agent-review-chat`：友人回看多轮对话 + 跨记录关联
+
+拆分须新建 change 并更新本文 §7 修订记录。**不做第二套企业 RAG / 向量中台**——与 RAG 项目叙事分工。
 
 #### 现状事实
 
@@ -305,55 +340,60 @@ M4 归档
 | Memory 上下文过长导致 token 消耗 | 限制注入的历史记录数量和摘要长度 |
 | 跨记录关联准确性 | 基于已有结构化摘要的关键词匹配，而非复杂语义 |
 | 用户隐私——检索结果是否可能泄露 | Memory 严格用户隔离；日记原文不进日志 |
+| C3 体量过重 | 见「可选拆分退路」；实施中发现过重则拆分 |
 
 ---
 
-### C4 · `agent-guardrails`
+### C4 · `agent-guardrails-hardening`
 
-**产品 Agent 护栏：不诊断、不篡改、建议不代决、输出克制**
+**系统化多层护栏 hardening：边界用例、违规降级、防御深度**
 
-#### 现状事实
+> C1 已内嵌最小护栏（system prompt 级）。C4 不是「从零第一次有护栏」，而是在已有基础上做系统化加固。
 
-- 当前 AI 行为仅受 prompt 模板约束，无系统化的 Guardrails 机制。`confirmed`
+#### 现状事实（C4 启动时预期）
+
+- C1 已通过 system prompt 实现最小护栏：不诊断、不覆写、建议不代决、被动召唤、输出克制。`planned`（依赖 C1 完成）
+- C1 最小护栏仅为 system prompt 单层防御，无后置检查、无边界用例测试、无违规降级机制。`planned`
 - `AGENTS.md` 已禁止「complex AI scoring / diagnosis / dashboard」。`confirmed`
 - 产品初心要求「安静、私密、克制、温柔」。`confirmed`
 
 #### 目标
 
-1. 建立系统化的产品 Agent 护栏机制，确保 Agent 行为符合产品气质。
-2. 实现以下 Guardrails：
-   - **不诊断**：Agent 不得做心理诊断或医学建议。
-   - **不篡改**：Agent 不得篡改或覆写用户原文。
-   - **建议不代决**：Agent 不得代替用户做封存/解锁等重要决策，只能建议。
-   - **输出克制**：Agent 的输出有长度限制，避免写得比用户还多。
-   - **隐私保护**：用户日记原文不得进入普通日志/telemetry。
-3. Guardrails 违反时的降级行为定义。
+1. 将 C1 的 system prompt 单层护栏升级为**多层防御**：system prompt 约束 + 后置输出检查 + 违规兜底回复。
+2. 建立边界用例测试集：
+   - 诊断性输入（用户描述疑似心理问题 → Agent 应共情而非诊断）
+   - 篡改尝试（prompt injection 试图让 Agent 修改用户原文）
+   - 过长输出（用户写两行 → Agent 不应回复长篇大论）
+   - 代决尝试（用户问「帮我封存吧」→ Agent 只能建议确认）
+3. 定义 Guardrails 违反时的降级行为（检测到越界 → 回退到安全兜底回复）。
+4. 为护栏规则产出可维护的配置/文档，而非散落在 system prompt 中。
 
 #### 用户故事
 
-- **改前**：Agent 可能在对话中说"根据你最近的记录，我判断你可能有轻度抑郁"，或者在用户只写了两行时回复一大段分析。
-- **改后**：Agent 在检测到用户情绪低落时说"听起来你最近过得不太容易。如果你愿意，可以多写一些——我在这里"，而不是做心理诊断。Agent 的回复简洁温暖，与用户表达的长度相称。
+- **改前**（C1 完成后）：Agent 有 system prompt 约束不做诊断，但偶尔在边界场景下仍然滑入「你可能是焦虑症」式的回复，且开发者无法系统性地发现和修复这些越界。
+- **改后**：Agent 即使收到诱导性输入也能保持共情而非诊断——后置检查会拦截含诊断关键词的输出并替换为安全兜底回复。开发者可以通过边界用例测试集持续回归验证护栏有效性。
 
 #### 非目标 / out_of_scope
 
 - 不做复杂的 AI 内容审查系统。
 - 不做用户行为风控。
-- 不做 Agent 行为的自动化评分。
+- 不做 Agent 行为的自动化评分 dashboard。
+- 不重复 C1 最小护栏的基本功能——C4 是在其之上的 hardening。
 
 #### 验收证据类型
 
-- [ ] Guardrails 规则文档与设计决策记录
-- [ ] 边界场景测试用例（诊断性输入、篡改尝试、过长输出等）
-- [ ] system prompt / 后置过滤机制的有效性验证
+- [ ] 多层防御机制实现与设计决策记录
+- [ ] 边界用例测试集（至少覆盖上述 4 类场景）
+- [ ] 违规降级行为验证
 - [ ] 微信小程序手验：边界场景对话
 
 #### 关键风险
 
 | 风险 | 缓解 |
 |---|---|
-| LLM 固有不可控性——Guardrails 无法 100% 阻止越界 | 多层防御：system prompt + 后置检查 + 兜底回复 |
+| LLM 固有不可控性——Guardrails 无法 100% 阻止越界 | 多层防御 + 兜底回复，降低概率而非追求绝对 |
 | 过度限制导致 Agent 「无话可说」 | 护栏定义正向行为（可以做什么），而不仅是负面清单 |
-| Guardrails 实现方式的选择 | design 阶段评估 system prompt 约束 vs 后置过滤 vs 两者结合 |
+| Guardrails 实现方式的选择 | design 阶段评估 system prompt + 后置过滤 + 两者结合（P6 待确认） |
 
 ---
 
@@ -408,7 +448,7 @@ M4 归档
 | C1 `agent-runtime-mvp` | Agent API 端点、对话状态模型 | 对话 UI 组件、入口交互 | 多轮引导产品行为 | Agent 执行规范 | ✦ `agent-runtime` |
 | C2 `agent-tool-calling` | Tool 执行层、白名单机制 | Tool 确认 UI | — | Tool 安全约束 | — |
 | C3 `agent-memory-and-review` | Memory 检索 API、对话上下文注入 | 友人回看对话 UI、「和它聊聊」入口 | 友人回看产品行为 | Memory 隐私约束 | — |
-| C4 `agent-guardrails` | Guardrails 实现 | — | Agent 气质约束 | Guardrails 规则 | — |
+| C4 `agent-guardrails-hardening` | 多层防御实现 | — | Agent 气质约束 | Guardrails 规则 | — |
 | C5 `agent-observability` | 可观测日志、查询接口 | — | — | 可观测规范 | — |
 
 > ✦ 标记建议新建的 spec 模块。C1 可能需要新建 `openspec/specs/agent-runtime/spec.md` 来承载 Agent 核心契约。具体在 C1 proposal 阶段决定。
@@ -462,5 +502,6 @@ Agent 是一个**共情型朋友**：
 
 | 版本 | 日期 | 状态 | 说明 |
 |---|---|---|---|
-| v1 | 2026-07-26 | **草案** | 初版蓝图，基于 grill-me 讨论的设计决策编写 |
-| v1.1 待修订 | 2026-07-27 | **草案（待 Claude 修订）** | M4 已正式归档并对齐 ACTIVE_TASK；主干图注明 C1 最小护栏；完整修订项见用户转交 brief，**勿在未冻结时开实现** |
+| v1 | 2026-07-26 | 草案 | 初版蓝图，基于 grill-me 讨论的设计决策编写 |
+| v1.1 | 2026-07-27 | 草案修订 | **相对 v1**：① M4 真相对齐 ② 依赖规则去歧义 ③ C1 最小护栏 + C4 hardening ④ C3 拆分退路 ⑤ C1 意图卡片补强 ⑥ §0.6 治理交叉引用 ⑦ 旁支含 M1/M3 与 EXPLAIN ⑧ C4 id=`agent-guardrails-hardening` |
+| v1.1 | 2026-07-27 | **已冻结** | 实现前终验通过：工作流可控、M4 已归档、方向与非目标清晰；P1–P7 保留至各 change design。下一动作：按 checklist 启动 `agent-runtime-mvp` 的 **proposal 规划闸**（非直接写业务代码） |

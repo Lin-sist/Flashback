@@ -4,7 +4,7 @@
 
 - 项目：时光回序 Flashback V2.0。
 - 技术栈：Uniapp + Vue 3 + Pinia + WeChat Mini Program；backend 为 Spring Boot / MyBatis / MySQL 方向。
-- 当前阶段：**M4 已归档**（核心 Mini Program 准生产能力）。下一主线候选为 post-M4 陪伴式 Agent 化，须蓝图冻结后另开 Type C。
+- 当前阶段：**M4 已归档**（核心 Mini Program 准生产能力）。post-M4 方向蓝图 **v1.1 已冻结**；实施须另开 Type C（默认下一刀 `agent-runtime-mvp` 规划闸）。
 - 产品初心：帮助用户写下当下，并让未来的自己重新理解这一刻；不是效率仪表盘、社交流或管理后台。
 
 ## Source of Truth
@@ -20,7 +20,9 @@
   - `openspec/specs/v2-product-scope/spec.md`
   - `openspec/specs/agent-collaboration/spec.md`
 - **M4 归档位置（历史，非 active）**：`openspec/changes/archive/2026-07-27-m4-real-capability-completion/`
-- **方向蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（v1 草案；**未冻结前不得当作已批准执行序列**）
+- **方向蓝图（已冻结 v1.1）**：`Docs/agent-iteration/roadmap/iteration-blueprint.md`  
+  - 批准方向、依赖、气质与意图卡片；**仍不授权直接改业务代码**  
+  - 实现必须新建 `openspec/changes/<change-id>/` 并走三道闸门
 
 ## Non-Negotiable Rules
 

@@ -5,7 +5,7 @@
 - 项目名称： 《时光回序》Flashback。
 - 当前稳定基线： V1.0.1 之上的 **V2.0 M4 已接受能力**（真实 AI / 私有对象存储附件 / 位置 / 封面 / 时光轴筛选分页 / preview 隔离等，见 baseline specs）。
 - 当前工程状态： **M4 已于 2026-07-27 归档**（`openspec/changes/archive/2026-07-27-m4-real-capability-completion/`）。`.ai/ACTIVE_TASK.md` 为 `IDLE`。
-- 当前目标： V2.0 产品能力在 M4 准生产底座上继续演进；下一主线候选为陪伴式 Agent 化（见 `Docs/agent-iteration/roadmap/iteration-blueprint.md` 草案，**未冻结不可执行**）。
+- 当前目标： V2.0 产品能力在 M4 准生产底座上继续演进；post-M4 陪伴式 Agent 化方向见已冻结蓝图 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.1**（方向生效；实现仍须 Type C OpenSpec change）。
 - V2.0 核心表达： 写下此刻。
 - V2.0 版本性质： 用于展示与评审的 WeChat Mini Program 演示版，不是生产上线版本。
 - 当前验收目标： 仅验收 WeChat Mini Program。

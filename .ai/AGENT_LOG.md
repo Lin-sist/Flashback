@@ -44,6 +44,24 @@ Next:
 
 - ...
 
+## 2026-07-27｜iteration-blueprint-v1.1｜Type B
+
+- **Scope**: 蓝图 v1→v1.1 修订（方向层文档）
+  - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（v1.1 修订，全文重写）
+- **Changes**:
+  - 审查并采纳 Grok 修改建议 8 项（全部合理）：
+    1. M4 真相对齐——D1 写明已归档日期/路径/IDLE/carry-over
+    2. 消除依赖歧义——§0.3 不再写「严格串行」，§3.2 统一为硬依赖 C1 + 默认执行顺序 + 可调整规则
+    3. C1 内嵌最小护栏（新增 D19）；C4 重定义为系统化 hardening
+    4. C3 增加可选拆分退路（体量过重时可拆 memory-retrieval + review-chat）
+    5. C1 意图卡片补强（入口文案原则、中断保留验收、Provider FC/状态持久化标注 unknown、最小护栏验收）
+    6. 新增 §0.6 治理文件交叉引用
+    7. 旁支表补充 M1/M3 清理和 EXPLAIN carry-over
+    8. C4 change-id 更新为 `agent-guardrails-hardening`
+- **Verification**: PASS（8 项完成定义逐项核对通过）
+- **Risks**: 蓝图仍为草案，待用户确认「冻结」
+- **Commit**: pending
+
 ## 2026-07-27｜iteration-blueprint-v1｜Type B
 
 - **Scope**: 迭代蓝图编写（方向层文档）
@@ -5243,4 +5261,18 @@ Commit: pending
 - **Risks**: M1/M3 目录仍可能被误认为 active；蓝图 D1 曾写「M4 视为完成」现已与 ACTIVE_TASK 对齐但仍需 Claude 修订冻结措辞；EXPLAIN 残留需有库环境时 Type B 补
 - **Commit**: pending
 - **Next**: 用户将「蓝图修订建议」发给 Claude；冻结后再决定是否 `/opsx-propose` C1
+
+
+## 2026-07-27｜blueprint-v1.1-freeze-and-gitignore｜Type B
+
+- **Scope**: `.gitignore`；`Docs/agent-iteration/roadmap/iteration-blueprint.md`；`Docs/agent-iteration/README.md`；`Docs/agent-iteration/roadmap/README.md`；`AGENTS.md`；`.ai/ACTIVE_TASK.md`；`openspec/project.md`；本日志
+- **Changes**:
+  1. 终验：工作流（Type/Gates/Handoff/证据/skills）与蓝图 v1.1（M4 对齐、依赖规则、C1 最小护栏、C3 拆分退路、P1–P7 待确认）判定 **通过、可控**
+  2. 蓝图状态改为 **已冻结 v1.1**；明确冻结≠可写业务代码
+  3. `.gitignore` 忽略 `.agent/skills/Lincheck/` 与 `Linsist/`
+  4. ACTIVE_TASK 仍 IDLE；Next=C1 规划闸
+- **Verification**: PASS（文档一致性人工核对）；无业务代码；Lincheck/Linsist 不再作为待提交交付物
+- **Risks**: 冻结后若跳过 proposal 直接编码会破坏可控性；C3 体量与 P2 持久化仍待 C1/C3 design
+- **Commit**: pending
+- **Next**: 用户授权后 propose `agent-runtime-mvp`
 
