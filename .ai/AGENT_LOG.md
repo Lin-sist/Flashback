@@ -5597,3 +5597,34 @@ Commit: pending
   - **[安全] 本轮操作中我的 grep 范围过宽，将本地 `AI_API_KEY` 与阿里云 OSS AK/SK 打印到了终端输出**。文件本身已 gitignore、未进仓库，但值已出现在会话记录中。**已向用户披露并建议轮换这三项凭证**，并改为环境变量/密钥管理读取（原 ACTIVE_TASK 中「建议轮换」的遗留项已升级为应当执行）
 - **Commit**: pending
 - **Next**: 用户真机复验对话回复是否已为自然文本 + 工具提议链路；并决定是否将 C4 前移。
+
+## 2026-07-28｜agent-tool-calling｜Type B（secret 外移）+ 手验问题归档
+
+- **Scope**:
+  - `.gitignore`（新增 `secrets.local.env` / `*.local.ps1.bak` / `*.local.env` 忽略规则，显式放行 `.example`）
+  - `backend/secrets.local.env.example`（新增，入库模板）
+  - `backend/secrets.local.env`（新增，**gitignore，未提交**）
+  - `backend/start-dev-wechat.local.ps1`（**gitignore，未提交**）：注入 `Get-LocalSecret`，5 处明文改为读取
+  - `.ai/ACTIVE_TASK.md`、`.ai/AGENT_LOG.md`
+  - 一次性脚本（migrate / audit / check-loader / verify-fix）均已删除，未提交
+- **Changes**:
+  - **secret 外移（用户授权）**：明文凭证从启动脚本迁至 `secrets.local.env`，脚本改为 `Get-LocalSecret 'KEY'`。迁移 5 项：`AI_API_KEY` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_SESSION_TOKEN` / `WECHAT_MINI_PROGRAM_SECRET`
+  - 设计取舍：缺键时 **throw 快速失败**，不回退空值——空值会让 provider 配置「看起来正常」而实际不可用，与既有「不得伪装成功」的立场一致；但**允许键存在而值为空**（S3 用长期 AK/SK 时无需 session token）
+  - 执行顺序上的谨慎：**先备份启动脚本 → 先补 `.gitignore` 并验证 `git check-ignore` 生效 → 才写入 secret 文件**。避免出现「凭证已落盘但尚未被忽略」的窗口
+  - 迁移中发现并修正 2 个自身缺陷：① `S3_SESSION_TOKEN` 原值为空未被搬运，会导致启动即抛错 → 补写空值键；② `WECHAT_MINI_PROGRAM_SECRET` 是裸变量而非 `$env:` 赋值，未被首轮匹配到 → 手工补迁
+- **Verification**:
+  - secret 读取：**PASS**｜5 键全部可读（AI 35 / S3_AK 24 / S3_SK 30 / TOKEN 0 / WECHAT 32，仅长度不打印取值）；缺失键按预期抛错
+  - 明文残留审计：**PASS**｜启动脚本内已无凭证形态明文（剩余长串为模板 ID 与 `Assert-Filled` 的标签字符串，非凭证）
+  - git 安全：**PASS**｜`secrets.local.env` / `*.bak` / 启动脚本 三者 `git check-ignore` 均命中；`git status` 待提交内容仅 `.gitignore` 与 `.example` 模板
+  - **JSON 缺陷复验：PASS（真实外调 1 次，累计 6/45）**｜修复后 prompt 返回 `starts_with_brace=False`、无 `reply` 字段
+- **Findings（手验问题归档，按用户要求不在 C2 优化）**:
+  - **JSON 仍显示的真因＝运行实例未重启，非修复无效**。证据：JSON 消息落库 `2026-07-28 09:21`（`agent_message` id=21, turn_no=0），而 class 编译于 `08:56`。**先查库与时间戳再下结论，未据表象改代码**。库中 6 条历史 JSON 消息为修复前既有数据，不会自动清理
+  - **引导问题突兀 + 素材拼接生硬**（用户评「比上一版还突兀」）：天气比喻开场 → 用户答不上并反问「你为什么要这样问」→ 素材把用户的**反问与困惑本身**也拼进正文。两层问题＝引导策略（比喻式提问在受阻时未退回具体情境）+ 素材合成（不区分「用户的表达」与「用户对提问的抵触」）
+  - 关联：问题 ① 与 `stageGoal` 中「不要问抽象的大问题」的意图相悖，属 prompt 与阶段目标的落差，非代码缺陷
+  - 用户决定：接近微调范畴，**C1–C5 全部完工后统一收集处理**
+- **Risks**:
+  - **凭证仍需用户轮换**：外移只解决「未来不再明文存放」，不消除本次已泄露的取值（我的 grep 范围过宽所致）。`*.bak` 中仍含旧明文，轮换后建议删除
+  - `start-dev-wechat.local.ps1` 与 `secrets.local.env` 均不入库，故本次改造在其他机器上需先复制 `.example` 并填值，否则启动即抛错（这是刻意行为）
+  - 素材与引导质量问题未解决，C2 验收时应视为**已知且被接受**的限制，不应记为已完成
+- **Commit**: pending
+- **Next**: 用户重启后端复验 JSON 已消失；轮换 5 项凭证并删除 `.bak`；决定 C4 是否前移。

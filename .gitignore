@@ -31,6 +31,14 @@ Docs/学习文档
 /frontend/.env.local
 /frontend/.env.*.local
 
+# Local secrets moved out of start script (C2)。示例模板 secrets.local.env.example 需要入库，故显式放行。
+/backend/secrets.local.env
+!/backend/secrets.local.env.example
+# 本地脚本备份与一次性验证脚本，可能含明文凭证
+*.local.ps1.bak
+/backend/*.local.env
+!/backend/*.local.env.example
+
 # Personal teaching / interview skills (not project delivery)
 .agent/skills/Lincheck/
 .agent/skills/Linsist/
