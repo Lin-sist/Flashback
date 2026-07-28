@@ -5717,3 +5717,39 @@ Commit: pending
   - R3（C2 遗留真机手验）仍未补，待闸门 3
 - **Commit**: pending
 - **Next**: 用户验收 diff；随后授权闸门 3（真实复现 R1 + 阈值校准 + 微信手验含补 T-40~T-42）或直接收口归档
+
+## 2026-07-28｜agent-guardrails-hardening（C4）｜Type C｜闸门 3 + 收口归档
+
+- **Scope**: 闸门 3 真实联调、delta 接受、归档
+  - 新增 `backend/src/test/java/com/flashback/agent/guardrail/C4RealProviderProbeTest.java`（`C4_REAL_PROBE=1` 门控，默认跳过）
+  - `openspec/changes/agent-guardrails-hardening/design.md`（补「闸门 3 真实 provider 观察结果」）
+  - `openspec/changes/agent-guardrails-hardening/tasks.md`（勾选 T-43~T-49b，未做项显式标注）
+  - `openspec/changes/agent-guardrails-hardening/closeout.md`（新建）
+  - `openspec/specs/agent-runtime/spec.md`（追加 Accepted From C4；**修订 C1 / C2 两条「护栏深度」scenario**）
+  - `openspec/specs/backend-core/spec.md`、`openspec/specs/v2-product-scope/spec.md`（追加 Accepted From C4）
+  - change 目录 `git mv` 至 `openspec/changes/archive/2026-07-28-agent-guardrails-hardening/`
+  - `.ai/ACTIVE_TASK.md` → IDLE，Current Progress 归档，新增 Carry-over For C3
+- **Changes**:
+  - 闸门 3 **事前确认** `AI_PROVIDER=deepseek` / `AI_MODEL=deepseek-v4-pro` 后才联调（C1 顺序偏差未重演）；`AI_API_KEY` 只注入进程环境变量，未打印取值（C2 的 R6 教训）
+  - 探针覆盖四类观察：provider 可达性、回复的诊断/代决检查、工具提议参数、素材路径（正常输入 + 稀疏输入）
+  - 联调用临时脚本已删除；探针测试保留为可复用资产且默认跳过，避免混入常规回归产生意外外调
+  - delta 接受后删除临时接受脚本
+- **Verification**:
+  - backend `mvn -B -o test` → **PASS｜Tests run: 397, Failures: 0, Errors: 0, Skipped: 1**（skipped 为门控探针，证明默认不外调）
+  - 闸门 3 真实 DeepSeek：**4 次外调 / 预算 30**
+    - provider 可达 PASS（`mockProvider=false`、`unavailable=null`、`toolUnavailable=null`）
+    - 回复诊断/代决检查 PASS（无违规）
+    - 工具提议：**未出现**（`toolCalls=0`，该轮模型选择纯对话）
+    - 素材（正常输入）判忠实：coverage=**1.000**、maxRun=0、len=31，与用户原话总长 31 完全一致
+    - 素材（稀疏输入「有点累」「说不上来」）判忠实：coverage=0.571、maxRun=**3**、len=7
+  - **FAIL/未达成项（如实记录）**：**R1 型增写未复现** → 闸门的**拦截**方向未活体验证；仅**误伤**方向获真实验证
+  - **SKIPPED**：微信真机手验（T-47）与 C2 遗留 T-40~T-42（T-48）——用户决定本轮优先快速完成阶段迭代；MySQL 未启动（T-44）——本轮探针不写库
+  - delta 接受后核对：三个 baseline spec 均含「Accepted From C4」段落，两条 MODIFIED scenario 已就位
+- **Risks**:
+  - **[R7 新增] 忠实度闸拦截能力未活体验证**：本轮真实模型未增写（素材不足时选择「少说」而非补话）。不能据此认为 prompt 层已足够——R1 恰恰证明 prompt 会被违反。增写是概率性行为，建议后续真机手验时顺带观察
+  - 阈值为本地样本 + 4 个真实样本标定，样本量小
+  - 已接受残余风险：大量复用原话词汇的虚构可能同时通过双指标
+  - **C3 必须回答的新问题**：C4 的来源集合只含当前会话用户消息；C3 引入历史检索后须明确「历史记录中的用户原话是否算合法来源」，不得默认沿用 C4 行为（已写入 ACTIVE_TASK Carry-over For C3）
+  - R2 / R3 / R6 均延后，见 ACTIVE_TASK
+- **Commit**: pending
+- **Next**: 用户授权后启动 C3 `agent-memory-and-review` 规划闸
