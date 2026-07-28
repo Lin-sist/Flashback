@@ -33,7 +33,37 @@ class AgentPromptBuilderTest {
 
         assertThat(systemPrompt).contains("不诊断", "不覆写", "建议不代决", "被动陪伴", "输出克制");
         assertThat(systemPrompt).contains("120 个字符以内");
-        assertThat(systemPrompt).contains("只输出 JSON");
+    }
+
+    /**
+     * C2 起对话回复取自 message.content，不再包 JSON。
+     * 回归守门：若 prompt 又要求模型输出 JSON，模型会照做而后端不再剥壳，
+     * {"reply":"..."} 原文会直接进入对话气泡（C2 手验实际发生过）。
+     */
+    @Test
+    void shouldNotAskModelForJsonWrappedReply() {
+        String systemPrompt = promptBuilder.buildSystemPrompt(AgentStage.EMOTION, null);
+
+        assertThat(systemPrompt).doesNotContain("只输出 JSON");
+        assertThat(systemPrompt).doesNotContain("{\"reply\"");
+        assertThat(systemPrompt).contains("不要输出 JSON");
+    }
+
+    @Test
+    void shouldStripJsonWrapperWhenModelIgnoresFormatInstruction() {
+        assertThat(promptBuilder.normalizeReplyShape("{\"reply\":\"今天是什么让你想写下这一刻？\"}"))
+                .isEqualTo("今天是什么让你想写下这一刻？");
+        assertThat(promptBuilder.normalizeReplyShape("  {\"reply\":\"嗯，说到这里已经很好。\"}  "))
+                .isEqualTo("嗯，说到这里已经很好。");
+    }
+
+    @Test
+    void shouldKeepPlainTextReplyUnchanged() {
+        assertThat(promptBuilder.normalizeReplyShape("今天是什么让你想写下这一刻？"))
+                .isEqualTo("今天是什么让你想写下这一刻？");
+        // 正常口语中出现花括号的极端情况：无法解析则原样保留，不误伤内容。
+        assertThat(promptBuilder.normalizeReplyShape("{这不是 JSON}")).isEqualTo("{这不是 JSON}");
+        assertThat(promptBuilder.normalizeReplyShape(null)).isNull();
     }
 
     @Test

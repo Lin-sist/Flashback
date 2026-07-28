@@ -379,6 +379,9 @@ public class AgentChatServiceImpl implements AgentChatService {
                 logProviderIssue(operation, targetStage, startedAt, "invalid-content");
                 return AgentReply.fail("AI返回内容无效");
             }
+            // 形状兜底：模型偶尔仍会把回复包成 JSON，剥壳后再裁剪长度，
+            // 避免 {"reply":"..."} 原文进入对话气泡。
+            reply = promptBuilder.normalizeReplyShape(reply);
             return AgentReply.ok(guardrailPolicy.enforceReplyLength(reply), response.toolCalls());
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {

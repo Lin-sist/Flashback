@@ -1,5 +1,7 @@
 package com.flashback.agent;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
@@ -29,6 +31,11 @@ public class AgentPromptBuilder {
             你的气质是安静、私密、克制、温柔：不热情也不冷漠，用户找你时你就在。
             你的任务是用温和的提问，帮用户把此刻的感受一点点说出来，而不是替他写、替他总结、替他决定。
             """;
+
+    /** 形状兜底时尝试剥离的字段名，覆盖 C1 遗留约定与常见变体。 */
+    private static final List<String> REPLY_FIELD_CANDIDATES = List.of("reply", "askText", "content", "message");
+
+    private static final ObjectMapper SHAPE_MAPPER = new ObjectMapper();
 
     private final AppAgentProperties appAgentProperties;
     private final AgentGuardrailPolicy guardrailPolicy;
@@ -85,9 +92,13 @@ public class AgentPromptBuilder {
         builder.append(guardrailPolicy.guardrailClause()).append("\n\n");
         builder.append("回复长度硬上限：").append(guardrailPolicy.maxReplyChars()).append(" 个字符以内。\n\n");
         builder.append("当前引导目标：").append(stageGoal(targetStage)).append("\n\n");
+        // C2 起走原生 function calling：回复取自 message.content，不再包一层 JSON。
+        // 若这里仍要求模型输出 {"reply":...}，模型会照做，而后端不再剥壳，
+        // JSON 原文就会直接显示在对话气泡里（C2 手验实际发生过）。
         builder.append("""
-                输出要求：只输出 JSON，格式为 {"reply":"你要说的话"}。
-                JSON 之外不要输出任何文本。reply 中不要包含分析、标签、评分或诊断。
+                输出要求：直接输出你要对用户说的那句话本身，就像在聊天里说话一样。
+                不要输出 JSON、不要加引号包裹、不要写字段名或任何格式标记。
+                不要输出分析、标签、评分或诊断。
                 """.trim());
 
         String excerpt = excerptOf(draftExcerpt);
@@ -95,6 +106,51 @@ public class AgentPromptBuilder {
             builder.append("\n\n用户已经写下的正文（只读参考，禁止改写或替换）：\n").append(excerpt);
         }
         return builder.toString();
+    }
+
+    /**
+     * 形状兜底：若模型仍把回复包成 {"reply":"..."} 之类的 JSON，剥出其中的文本。
+     *
+     * 边界说明：这是**格式**兜底，不是 C4 的内容合规过滤——
+     * 它只处理「模型没听懂输出格式要求」这一种确定性问题，不判断语义、不改写措辞。
+     * 保留它的理由：M4 已观察到结构化输出遵从率并非 100%，
+     * 且一旦不遵从，用户会直接看到 JSON 原文（C2 手验实际发生过）。
+     */
+    public String normalizeReplyShape(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+            return trimmed;
+        }
+        for (String field : REPLY_FIELD_CANDIDATES) {
+            String extracted = extractJsonStringField(trimmed, field);
+            if (extracted != null) {
+                return extracted;
+            }
+        }
+        return trimmed;
+    }
+
+    /**
+     * 从 JSON 文本中取出指定字符串字段。解析失败返回 null，由调用方保留原文。
+     */
+    private String extractJsonStringField(String json, String field) {
+        try {
+            JsonNode node = SHAPE_MAPPER.readTree(json);
+            if (!node.isObject()) {
+                return null;
+            }
+            JsonNode value = node.get(field);
+            if (value == null || !value.isTextual()) {
+                return null;
+            }
+            String text = value.asText().trim();
+            return text.isEmpty() ? null : text;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     /**

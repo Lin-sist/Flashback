@@ -5559,3 +5559,41 @@ Commit: pending
 - **未执行**: `git push`（未授权）。当前 `main` 领先 `origin/main` 2 个提交（C1 `602b31b` + C2 `6c363f6`），待用户决定推送
 - **密钥检查**: `backend/start-dev-wechat.local.ps1` 与 `frontend/.env.local` 经 `git check-ignore` 确认被忽略，未进入本次提交
 - **清理**: 临时脚本 `tick-tasks.ps1` 与临时 commit message 文件已删除，未留验证残留
+
+## 2026-07-27｜agent-tool-calling｜Type C（手验缺陷修复 + 闸门 3 外调验证）
+
+- **Scope**:
+  - `backend/src/main/java/com/flashback/agent/AgentPromptBuilder.java`（删除 JSON 输出要求，新增 `normalizeReplyShape` 形状兜底）
+  - `backend/src/main/java/com/flashback/service/impl/AgentChatServiceImpl.java`（回复接入形状兜底）
+  - `backend/src/test/java/com/flashback/agent/AgentPromptBuilderTest.java`（改 1 处过期断言 + 新增 3 个用例）
+  - 真实 MySQL `flashback` 库：执行 `c2-agent-tool-call.sql`
+  - 临时探针脚本（`fc-probe.local.ps1` / `run-fc-probe.local.ps1` / `decode.local.ps1`）已在验证后删除，未提交
+- **Changes（缺陷修复）**:
+  - **BUG：对话气泡显示 `{"reply":"..."}` 原文**（用户真机手验发现）。根因＝**C2 自身引入的不一致**：C2 把 Agent 回复解析从 `extractText(raw,"reply")` 改为直接读 `message.content`，但 `buildSystemPrompt` 仍保留 C1 的「只输出 JSON，格式为 {"reply":...}」要求。模型忠实照做，后端不再剥壳 → JSON 原文直接进气泡。**不是模型问题，是我漏改**
+  - 修复一：输出要求改为「直接输出你要说的那句话本身，不要输出 JSON / 引号包裹 / 字段名」
+  - 修复二：新增 `normalizeReplyShape`——若模型仍返回 JSON 包裹则剥出文本，解析失败保留原文（不误伤含花括号的正常口语）。定位为**格式**兜底，非 C4 的内容合规过滤
+  - 修复三：新增回归守门测试 `shouldNotAskModelForJsonWrappedReply`，断言 prompt 不含「只输出 JSON」且含「不要输出 JSON」，防止同类回归
+  - 未动素材路径：`buildMaterialMessages` 仍走 `complete()` + `extractText(raw,"material")`，其 JSON 约定依然成立，故保持不变（已核对）
+- **Verification（闸门 3，用户 2026-07-27 授权）**:
+  - **前置检查 PASS**：先确认本地 `AI_PROVIDER=deepseek`、`AI_MODEL=deepseek-v4-pro`（在 FC 白名单内）、`AI_BASE_URL=https://api.deepseek.com`。**未重演 C1「先联调后授权」的顺序偏差**
+  - **T-38 真实 MySQL DDL PASS**：MySQL80 已在 RUNNING（无需手动启动）。`agent_tool_call` 建表成功，校验 14 列（含 `pending_args TEXT`）、3 个 CASCADE 外键（→ `agent_session` / `user` / `record`）、`status` 默认 `PROPOSED`，与设计一致
+  - **T-39 真实 provider FC PASS**（外调 5 次，预算 ≤ 45，**实际用量 5**）：
+    - 第 1 次：**失败但非 provider 问题**——探针脚本 PowerShell 默认编码把中文 prompt 送成乱码，模型返回完全无关内容（晶体学）。定位为探针缺陷，改为显式 UTF-8 编码请求体后正常。**记录此项以免误判为模型不可用**
+    - 第 2 次：中文正常，`content` 有值、`tool_calls` 字段**不存在**
+    - 第 3 次：修正统计逻辑后复核——原先用 `@($message.tool_calls).Count` 统计，`@($null).Count` 也返回 1，产生**假阳性**。改为显式判断字段是否存在，确认第 2 次实为 `tool_calls` 缺失（模型判断此刻无需提议）。**差点据假阳性得出错误结论，已修正**
+    - 第 4 次：用户明确表达「想留下来」后，模型返回 `finish_reason=tool_calls`、`tool_calls[0].function.name=append_record_content`、参数含 `text` 与 `askText`。**原生 FC 在本仓库首次实测可用**
+    - 第 5 次：**strict mode PASS**——`https://api.deepseek.com/beta` + `strict:true`，服务端**接受**我们由 `AgentToolSchemaFactory` 生成的同形 schema（全属性 required + `additionalProperties:false`，不含 `maxLength`/`maxItems`）。design §4 的降级处置顺序**无需启用**
+    - **附带确认**：第 4、5 次均为 `content` 为空、仅有 `tool_calls` → 证实 `askText` 兜底逻辑（design 数据流 2.1 要点二）是**真实必要**而非防御性冗余
+  - 后端全量测试：**PASS｜339 tests / 0 failures / 0 errors**（较上轮 329 增 10：形状兜底 3 + coordinator 7）
+  - **SKIPPED｜微信小程序端到端手验（T-40 / T-41 部分）**：原因＝本轮 JSON 显示缺陷刚修复，需用户重新真机验证提议→确认→执行链路与气质表现；后端侧链路已由 mock 集成测试与真实 FC 探针分别覆盖
+  - **SKIPPED｜T-42 审计表真实数据核验**：原因＝真机手验未进行，`agent_tool_call` 真实库中暂无数据；H2 集成测试已断言摘要脱敏与 `pending_args` 终结后为 NULL
+- **Risks / 新发现**:
+  - **[严重｜新发现] 工具提议参数越过「不改写原文」边界**：真实返回的 `text` 把用户两轮口语改写重组，并**增写了用户从未说过的内容**（详见 ACTIVE_TASK Residual）。`askText` 也自称「我帮你整理了一下」。这触碰 `AGENTS.md` Non-Negotiable 与 `agent-runtime` spec 的「原样引用」条款
+    - C2 的白名单 + 二段式确认**拦不住它**：它们校验「能否执行」，不校验「参数是否忠实」。属 C4 内容忠实度范畴（design 决策 7 已划清边界）
+    - 与用户提出的「素材生硬」是同一根源两面：要么逐句拼接（生硬），要么自行润色（越界）
+    - **建议：按蓝图 §3.2 将 C4 前移至 C3 之前。本次已构成该条款所需的气质越界实证**
+  - 提议时机：模型在用户未明确表达留存意图时不提议，明确后才提议——时机判断合理，但样本仅 2 次，频率是否恰当仍需真机长会话观察
+  - 本轮修复后尚未真机验证，JSON 显示问题是否彻底消失需用户确认
+  - **[安全] 本轮操作中我的 grep 范围过宽，将本地 `AI_API_KEY` 与阿里云 OSS AK/SK 打印到了终端输出**。文件本身已 gitignore、未进仓库，但值已出现在会话记录中。**已向用户披露并建议轮换这三项凭证**，并改为环境变量/密钥管理读取（原 ACTIVE_TASK 中「建议轮换」的遗留项已升级为应当执行）
+- **Commit**: pending
+- **Next**: 用户真机复验对话回复是否已为自然文本 + 工具提议链路；并决定是否将 C4 前移。
