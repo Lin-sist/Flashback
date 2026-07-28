@@ -5628,3 +5628,29 @@ Commit: pending
   - 素材与引导质量问题未解决，C2 验收时应视为**已知且被接受**的限制，不应记为已完成
 - **Commit**: pending
 - **Next**: 用户重启后端复验 JSON 已消失；轮换 5 项凭证并删除 `.bak`；决定 C4 是否前移。
+
+## 2026-07-28｜agent-tool-calling｜Type C（验收收口与归档）
+
+- **Scope**:
+  - `openspec/specs/agent-runtime/spec.md`（MODIFIED 条款就地修订 + 追加 C2 ADDED 段落）
+  - `openspec/specs/backend-core/spec.md`、`miniapp-core/spec.md`、`v2-product-scope/spec.md`（各追加 C2 ADDED 段落）
+  - `openspec/changes/agent-tool-calling/` → `openspec/changes/archive/2026-07-28-agent-tool-calling/`（`git mv`，保留历史）
+  - 新增 `closeout.md`；`tasks.md` 勾选 T-37~T-39b、T-43~T-49
+  - `.ai/ACTIVE_TASK.md` → IDLE 并重写 carry-over
+- **Changes**:
+  - delta 接受采用**脚本原样搬运**而非手工转写，避免契约在接受过程中漂移；接受后校验 4 份 baseline 的「Accepted From C2」段落各 1 处、Requirement **无重名**（重名即意味重复追加）
+  - `agent-runtime` 的 MODIFIED 条款做**就地修订**而非追加：原「C1 范围内的工具调用」scenario 收窄为 C1 历史约束，并新增「C2 之后的工具调用」scenario，避免 baseline 中出现自相矛盾的两条工具边界
+  - **T-40/T-41/T-42 刻意保持未勾选**并在 tasks 中逐条写明未完成原因。理由：微信端到端工具链路确实未走通，勾选即为谎报验证结果。closeout §3 亦以 SKIPPED 显式列出
+  - **顺序调整：C4 前移至 C3 之前**（用户 2026-07-28 批准）。依据＝蓝图 §3.2「若 C1 联调出现气质越界则允许 C4 前移」，而 C2 闸门 3 已取得越界实证（R1）。C2–C5 彼此无硬依赖，调整不破坏依赖链
+- **Verification**:
+  - delta 接受：PASS｜4 份 baseline 各 1 处 C2 段落，Requirement 重名 0
+  - 归档：PASS｜`git mv` 保留重命名历史（status 显示为 R），closeout 已入库
+  - backend `mvn -B test`：PASS｜339 tests / 0 failures
+  - 一次性脚本（accept-delta / verify-delta / tick2）已全部删除，无验证残留
+- **Risks（移交下一刀）**:
+  - **R1 → C4 核心动机**：工具参数改写并增写用户原话，触碰 Non-Negotiable。C4 需回答「如何机械判定忠实」——候选：与会话历史做覆盖率比对 / 拒绝增写部分 / 参数改为消息 id 引用而非自由文本
+  - R2 → 引导与素材质量，用户明确要求全部阶段完工后统一优化
+  - R3 → 微信端到端工具链路手验待补
+  - R6 → 5 项凭证待用户轮换（Agent grep 过宽所致），`.bak` 待删
+- **Commit**: pending
+- **Next**: 用户授权后启动 C4 `agent-guardrails-hardening` 规划闸。

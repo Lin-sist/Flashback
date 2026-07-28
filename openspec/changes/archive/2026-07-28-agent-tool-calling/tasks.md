@@ -89,25 +89,28 @@
 
 ## Gate 2 · 外调授权后（闸门 3）
 
-- [ ] T-37 取得用户明确 **外调授权**（闸门 3），确认预算上限 ≤ 45 次；**并先确认本地 `AI_PROVIDER` 取值**（C1 流程偏差不得重演）
-- [ ] T-38 启动本地 MySQL80（StartType=Manual），执行 `c2-agent-tool-call.sql` 并校验表结构
-- [ ] T-39 真实 provider FC 联调：strict schema 被服务端接受、`tool_calls` 与 `content` 并存确认、`content` 为空时 `askText` 兜底、连续多轮中的提议时机
-- [ ] T-39b strict mode 失败时按 design §4 处置顺序：修 schema → 关 `strict-mode-enabled` → 升级请示；**任何情况下不退回自研 JSON 提议协议**
+- [x] T-37 取得用户明确 **外调授权**（闸门 3），确认预算上限 ≤ 45 次；**并先确认本地 `AI_PROVIDER` 取值**（C1 流程偏差不得重演）
+- [x] T-38 启动本地 MySQL80（StartType=Manual），执行 `c2-agent-tool-call.sql` 并校验表结构
+- [x] T-39 真实 provider FC 联调：strict schema 被服务端接受、`tool_calls` 与 `content` 并存确认、`content` 为空时 `askText` 兜底、连续多轮中的提议时机
+- [x] T-39b strict mode 失败时按 design §4 处置顺序：修 schema → 关 `strict-mode-enabled` → 升级请示；**任何情况下不退回自研 JSON 提议协议**
 - [ ] T-40 微信小程序手验：提议 → 确认执行 → 拒绝 → 重复确认幂等 → 记录已封存时执行失败
+  - **归档时仍未完成（刻意不勾选）**：手验期间运行实例未重启，注意力集中在 JSON 显示缺陷上，真机工具链路未走通。后端侧已由 mock 集成测试 + 真实 FC 探针分别覆盖。见 closeout §3 SKIPPED 与 §6 R3
 - [ ] T-41 气质手验：Agent 未自动封存、未改写原文、提议话术克制
+  - **归档时未完成，且已发现反例**：真实返回的工具参数改写并增写用户原话（closeout §6 R1）→ 移交 C4
 - [ ] T-42 验证审计表与应用日志均无日记原文 / 对话原文
-- [ ] T-43 全部验证结果（PASS/FAIL/SKIPPED+原因）追加 `.ai/AGENT_LOG.md`
+  - **归档时未在真实库核验**（真机链路未走通，`agent_tool_call` 真实库无数据）；H2 集成测试已断言摘要脱敏与 `pending_args` 终结后为 NULL
+- [x] T-43 全部验证结果（PASS/FAIL/SKIPPED+原因）追加 `.ai/AGENT_LOG.md`
 
 ---
 
 ## Gate 3 · 收口
 
-- [ ] T-44 输出 `AGENTS.md` Required Output 全字段（modified files / what changed / verification / skipped reason / `git diff --stat` / scope safety / remaining risks）
-- [ ] T-45 用户审 diff 与验收
-- [ ] T-46 delta 接受进 `openspec/specs/`
-- [ ] T-47 change 归档到 `openspec/changes/archive/<date>-agent-tool-calling/` + 写 `closeout.md`
-- [ ] T-48 `.ai/ACTIVE_TASK.md` → IDLE，Current Progress 归档
-- [ ] T-49 提交责任**已于 2026-07-27 变更为 Agent 代为提交**（用户授权，验收仍由用户进行）；`push` 未授权，不执行
+- [x] T-44 输出 `AGENTS.md` Required Output 全字段（modified files / what changed / verification / skipped reason / `git diff --stat` / scope safety / remaining risks）
+- [x] T-45 用户审 diff 与验收
+- [x] T-46 delta 接受进 `openspec/specs/`
+- [x] T-47 change 归档到 `openspec/changes/archive/<date>-agent-tool-calling/` + 写 `closeout.md`
+- [x] T-48 `.ai/ACTIVE_TASK.md` → IDLE，Current Progress 归档
+- [x] T-49 提交责任**已于 2026-07-27 变更为 Agent 代为提交**（用户授权，验收仍由用户进行）；`push` 未授权，不执行
 
 ---
 
