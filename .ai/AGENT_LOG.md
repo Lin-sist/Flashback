@@ -5654,3 +5654,32 @@ Commit: pending
   - R6 → 5 项凭证待用户轮换（Agent grep 过宽所致），`.bak` 待删
 - **Commit**: pending
 - **Next**: 用户授权后启动 C4 `agent-guardrails-hardening` 规划闸。
+
+## 2026-07-28｜agent-guardrails-hardening（C4）｜Type C
+
+- **Scope**: C4 规划闸产出（**零业务代码**）
+  - `openspec/changes/agent-guardrails-hardening/proposal.md`（新建）
+  - `openspec/changes/agent-guardrails-hardening/design.md`（新建，含决策记录 10 条）
+  - `openspec/changes/agent-guardrails-hardening/tasks.md`（新建，T-00~T-55）
+  - `openspec/changes/agent-guardrails-hardening/specs/agent-runtime/spec.md`（新建，7 条 ADDED + 2 条 MODIFIED）
+  - `openspec/changes/agent-guardrails-hardening/specs/backend-core/spec.md`（新建，4 条 ADDED）
+  - `openspec/changes/agent-guardrails-hardening/specs/v2-product-scope/spec.md`（新建，4 条 ADDED）
+  - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（§3.2 + §7 登记 C4 前移）
+  - `.ai/ACTIVE_TASK.md`（IDLE → ACTIVE，指针指向本 change，初始化 Current Progress）
+- **Changes**:
+  - 依蓝图 §3.2 与 2026-07-28 用户批准，登记 **C4 前移至 C3 之前**；触发实证为 C2 闸门 3 的 R1（工具参数增写用户原话）
+  - proposal：归因 R1 为何穿透 C1/C2 两层防御（白名单与二段式只校验「能否执行」，不校验「参数是否忠实」）；能力五态 G1–G27（其中 G16 诊断越界标 `unknown` 而非「未发生」）；核心问题「怎么机械判定忠实」列出三候选方向与取舍，标为 Q1 待用户确认；验收标准 25 条；外调预算 ≤ 30（低于 C2 的 45，因核心机制为纯后端确定性逻辑）
+  - design：忠实度机制定为**双指标**——整体覆盖率 + 最长连续未覆盖片段。给出「仅覆盖率拦不住 R1」的推算（真话 30 字 + 虚构 45 字，整体覆盖率仍约 50%），故双指标为必要而非冗余；来源集合只取本会话 `role=USER` 消息（守 C3 边界）；诊断检查只作用于「新增区段」以避免误伤用户自述病名
+  - design §3.5 按用户要求说明 C4 与 R2 的关系：**顺语序算忠实、增写不算**；C4 只在出口拦截，不调引导 prompt 与素材合成策略
+  - spec delta 含 2 条 MODIFIED——修订 baseline 中「后置输出过滤与违规降级留给后续 change」的两条 scenario（C1 与 C2 各一条）
+- **Verification**: PASS（规划阶段无代码验证项）
+  - 文档一致性：proposal Q1–Q7 ↔ design 决策记录 ↔ tasks Gate 0 逐项对应；验收标准 ↔ tasks 测试切片对应
+  - `git diff --stat`：见收口输出；本条目提交时一并记录
+  - 范围守护：零业务代码改动；未触碰 `backend/src/**`、`frontend/src/**`
+- **Risks**:
+  - 阈值初值（n-gram=4 / min-coverage=0.60 / max-uncovered-run=12）为**保守推断而非实测标定**，须在闸门 3 用真实样本校准；不得当作已验证阈值
+  - 已接受残余风险：大量复用用户原话词汇的虚构可能绕过双指标，须写入 closeout
+  - 字符级 n-gram 对同义替换较钝（「后端」vs「服务端」），与产品「原样引用」意图同向，不视为损失
+  - Q1 若用户改选「消息 id 引用」方案，需 MODIFIED C2 刚接受的工具参数契约，且素材会更生硬（与 R2 抱怨同向恶化）
+- **Commit**: pending
+- **Next**: 用户对 Q1–Q7 定稿并批准闸门 1；随后勾选 T-02 / T-02d，取得实现授权（T-03）后从 tasks A 段（忠实度判定核心）起步
