@@ -3,6 +3,7 @@ package com.flashback.agent.tool;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentRawToolCall;
+import com.flashback.agent.guardrail.AgentSourceCorpus;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentToolCall;
 import com.flashback.mapper.AgentToolCallMapper;
@@ -26,6 +27,10 @@ import java.util.List;
  * - 单轮至多保留一个提议，其余记审计后丢弃（design 决策 10）；
  * - 重复确认幂等：依赖 updateStatusIfProposed 的条件更新，而非先查后写；
  * - 审计只存结构化摘要，不存参数原文（design 决策 6）。
+ *
+ * C4 增量：校验时传入来源集合（本会话用户原话），使内容忠实度成为提议合法性的一个维度。
+ * 忠实度不通过的提议走既有 persistGuardRejected 通道落 REJECTED_BY_GUARD，
+ * **本轮 Agent 回复照常返回**——沿用「校验失败不毁掉整轮对话」的既有语义。
  */
 @Component
 public class AgentToolCoordinator {
@@ -65,7 +70,8 @@ public class AgentToolCoordinator {
     public AgentToolCall handleProposals(
             AgentSession session,
             int turnNo,
-            List<AgentRawToolCall> rawToolCalls) {
+            List<AgentRawToolCall> rawToolCalls,
+            AgentSourceCorpus corpus) {
 
         if (rawToolCalls == null || rawToolCalls.isEmpty()) {
             return null;
@@ -80,7 +86,7 @@ public class AgentToolCoordinator {
                 continue;
             }
             AgentToolRawArguments args = parseArguments(raw);
-            AgentToolValidationResult result = validator.validate(raw.name(), args, hasDraft);
+            AgentToolValidationResult result = validator.validate(raw.name(), args, hasDraft, corpus);
             if (!result.isAccepted()) {
                 persistGuardRejected(session, turnNo, raw.name(), result.rejectReason());
                 continue;

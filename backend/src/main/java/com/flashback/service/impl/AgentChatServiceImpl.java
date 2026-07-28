@@ -8,6 +8,11 @@ import com.flashback.agent.AgentPromptBuilder;
 import com.flashback.agent.AgentRawToolCall;
 import com.flashback.agent.AgentStageDecision;
 import com.flashback.agent.AgentStageMachine;
+import com.flashback.agent.guardrail.AgentContentChecker;
+import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
+import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
+import com.flashback.agent.guardrail.AgentGuardrailVerdict;
+import com.flashback.agent.guardrail.AgentSourceCorpus;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolDecision;
@@ -83,6 +88,9 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentMockResponder mockResponder;
     private final AgentToolSchemaFactory toolSchemaFactory;
     private final AgentToolCoordinator toolCoordinator;
+    private final AgentFaithfulnessChecker faithfulnessChecker;
+    private final AgentContentChecker contentChecker;
+    private final AgentGuardrailDowngrade guardrailDowngrade;
     private final TagService tagService;
     private final AppAgentProperties appAgentProperties;
     private final Clock clock;
@@ -98,6 +106,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentMockResponder mockResponder,
             AgentToolSchemaFactory toolSchemaFactory,
             AgentToolCoordinator toolCoordinator,
+            AgentFaithfulnessChecker faithfulnessChecker,
+            AgentContentChecker contentChecker,
+            AgentGuardrailDowngrade guardrailDowngrade,
             TagService tagService,
             AppAgentProperties appAgentProperties,
             Clock clock) {
@@ -111,6 +122,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.mockResponder = mockResponder;
         this.toolSchemaFactory = toolSchemaFactory;
         this.toolCoordinator = toolCoordinator;
+        this.faithfulnessChecker = faithfulnessChecker;
+        this.contentChecker = contentChecker;
+        this.guardrailDowngrade = guardrailDowngrade;
         this.tagService = tagService;
         this.appAgentProperties = appAgentProperties;
         this.clock = clock;
@@ -249,8 +263,11 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
 
         AgentToolContext toolContext = buildToolContext(session);
+        // C4：来源集合在生成回复前构造一次，回复检查与工具提议校验共用同一份，
+        // 保证「Agent 说的话」与「要写进正文的文字」判定基准一致。
+        AgentSourceCorpus corpus = corpusOf(history);
         AgentReply reply = generateReply(
-                targetStage, history, draftExcerptOf(userId, session.getRecordId()), "turn", toolContext);
+                targetStage, history, draftExcerptOf(userId, session.getRecordId()), "turn", toolContext, corpus);
         if (!reply.success()) {
             return failed(session, history, reply.message());
         }
@@ -261,7 +278,7 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         // 提议只落库为待确认，**不执行**；执行只发生在 confirmToolCall（决策 2、9）。
         AgentToolCall pendingToolCall = toolContext.toolsEnabled()
-                ? toolCoordinator.handleProposals(session, turnNo, reply.toolCalls())
+                ? toolCoordinator.handleProposals(session, turnNo, reply.toolCalls(), corpus)
                 : null;
 
         String materialDraft = null;
@@ -327,7 +344,18 @@ public class AgentChatServiceImpl implements AgentChatService {
             List<AgentMessage> history,
             String draftExcerpt,
             String operation) {
-        return generateReply(targetStage, history, draftExcerpt, operation, null);
+        return generateReply(targetStage, history, draftExcerpt, operation, null, corpusOf(history));
+    }
+
+    /**
+     * C4：构造忠实度判定的来源集合——**只含本会话用户自己说过的话**。
+     *
+     * 边界（design.md 关键不变量 5）：不含 Agent 自己的表达（否则 Agent 上一轮说的话
+     * 会成为下一轮增写的「合法来源」，忠实度闸自我失效），
+     * 也不含跨记录历史检索结果（那是 C3 的边界）。
+     */
+    private AgentSourceCorpus corpusOf(List<AgentMessage> history) {
+        return AgentSourceCorpus.of(history, faithfulnessChecker.ngramSize());
     }
 
     /**
@@ -344,10 +372,12 @@ public class AgentChatServiceImpl implements AgentChatService {
             List<AgentMessage> history,
             String draftExcerpt,
             String operation,
-            AgentToolContext toolContext) {
+            AgentToolContext toolContext,
+            AgentSourceCorpus corpus) {
         if (modelClient.isMockProvider()) {
             String latestUserInput = latestUserContent(history);
-            String mocked = guardrailPolicy.enforceReplyLength(mockResponder.reply(targetStage, latestUserInput));
+            String mocked = guardrailPolicy.enforceReplyLength(
+                    applyReplyGuardrail(mockResponder.reply(targetStage, latestUserInput), corpus, operation));
             List<AgentRawToolCall> mockToolCalls = toolContext == null
                     ? List.of()
                     : mockResponder.toolCalls(targetStage, latestUserInput, toolContext.toolsEnabled());
@@ -382,6 +412,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             // 形状兜底：模型偶尔仍会把回复包成 JSON，剥壳后再裁剪长度，
             // 避免 {"reply":"..."} 原文进入对话气泡。
             reply = promptBuilder.normalizeReplyShape(reply);
+            // C4：后置内容检查在形状兜底之后、长度裁剪之前。
+            // 长度硬上限在多层叠加后仍然生效（agent-runtime delta 要求）。
+            reply = applyReplyGuardrail(reply, corpus, operation);
             return AgentReply.ok(guardrailPolicy.enforceReplyLength(reply), response.toolCalls());
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
@@ -416,11 +449,36 @@ public class AgentChatServiceImpl implements AgentChatService {
     }
 
     /**
+     * C4：回复路径的后置内容检查与降级。
+     *
+     * 回复**不进忠实度闸**——Agent 提问本来就是它自己的话，
+     * 用「必须源自用户原话」判定会把一切提问判死。
+     * 回复受诊断 / 代决检查约束；命中则替换为安全兜底回复（design 决策 3），
+     * 因为用户提交了一轮消息必须得到回应，拒绝或丢弃会让对话看起来挂了。
+     */
+    private String applyReplyGuardrail(String reply, AgentSourceCorpus corpus, String operation) {
+        if (reply == null) {
+            return null;
+        }
+        AgentGuardrailVerdict verdict = contentChecker.check(reply, corpus);
+        if (verdict.isPassed()) {
+            return reply;
+        }
+        guardrailDowngrade.trace("reply:" + operation, null, null, verdict);
+        return guardrailDowngrade.safeFallbackReply();
+    }
+
+    /**
      * 素材整理失败不影响会话结束：素材为可选产物，缺失时前端不展示回填入口。
+     *
+     * C4：素材同为「模型产出且会进入用户正文」的文本，与工具正文参数结构完全同质，
+     * 因此走同一道忠实度闸（design 决策 6）。不忠实的素材等同于「没生成出来」——
+     * 复用既有的可选产物语义，前端零改动。
      */
     private String generateMaterial(List<AgentMessage> history) {
+        AgentSourceCorpus corpus = corpusOf(history);
         if (modelClient.isMockProvider()) {
-            return mockResponder.material(history);
+            return applyMaterialGuardrail(mockResponder.material(history), corpus);
         }
         if (modelClient.unavailableReason() != null) {
             return null;
@@ -428,7 +486,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         long startedAt = System.nanoTime();
         try {
             String raw = modelClient.complete(promptBuilder.buildMaterialMessages(history));
-            return modelClient.extractText(raw, "material");
+            return applyMaterialGuardrail(modelClient.extractText(raw, "material"), corpus);
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -436,6 +494,26 @@ public class AgentChatServiceImpl implements AgentChatService {
             logProviderIssue("material", AgentStage.CLOSING, startedAt, ex.getClass().getSimpleName());
             return null;
         }
+    }
+
+    /**
+     * C4：素材路径的忠实度闸与降级。不忠实即丢弃，用户看不到回填入口。
+     */
+    private String applyMaterialGuardrail(String material, AgentSourceCorpus corpus) {
+        if (material == null || material.isBlank()) {
+            return material;
+        }
+        AgentGuardrailVerdict faithfulness = faithfulnessChecker.check(material, corpus);
+        if (!faithfulness.isPassed()) {
+            guardrailDowngrade.trace("material", null, null, faithfulness);
+            return null;
+        }
+        AgentGuardrailVerdict content = contentChecker.check(material, corpus);
+        if (!content.isPassed()) {
+            guardrailDowngrade.trace("material", null, null, content);
+            return null;
+        }
+        return material;
     }
 
     private AgentMessage persistMessage(

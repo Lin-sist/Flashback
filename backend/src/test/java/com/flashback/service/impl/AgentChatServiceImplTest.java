@@ -6,6 +6,10 @@ import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentModelResponse;
 import com.flashback.agent.AgentPromptBuilder;
 import com.flashback.agent.AgentStageMachine;
+import com.flashback.agent.guardrail.AgentContentChecker;
+import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
+import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
+import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
@@ -89,23 +93,30 @@ class AgentChatServiceImplTest {
         properties.setContextMessageWindow(12);
         properties.setDraftExcerptChars(300);
 
-        AgentGuardrailPolicy guardrailPolicy = new AgentGuardrailPolicy(properties);
+        AgentGuardrailRules guardrailRules = new AgentGuardrailRules();
+        AgentGuardrailPolicy guardrailPolicy = new AgentGuardrailPolicy(properties, guardrailRules);
         Clock clock = Clock.fixed(Instant.parse("2026-07-27T02:00:00Z"), ZoneId.of("Asia/Shanghai"));
 
         // C2 新增依赖。本类保持 C1 行为断言不变：
         // 这些 mock 只为满足构造签名，工具语义由 AgentTool* 专项测试覆盖。
         AgentToolRegistry toolRegistry = new AgentToolRegistry();
+        // C4 新增依赖：护栏检查层用真实实现（纯逻辑、零外调），
+        // 忠实度与内容检查的专项语义由 guardrail 包下的专项测试覆盖。
+        AgentFaithfulnessChecker faithfulnessChecker = new AgentFaithfulnessChecker(properties);
         service = new AgentChatServiceImpl(
                 agentSessionMapper,
                 agentMessageMapper,
                 recordMapper,
                 new AgentStageMachine(),
-                new AgentPromptBuilder(properties, guardrailPolicy),
+                new AgentPromptBuilder(properties, guardrailPolicy, guardrailRules),
                 guardrailPolicy,
                 modelClient,
                 new AgentMockResponder(),
                 new AgentToolSchemaFactory(toolRegistry, properties),
                 toolCoordinator,
+                faithfulnessChecker,
+                new AgentContentChecker(properties, faithfulnessChecker),
+                new AgentGuardrailDowngrade(),
                 tagService,
                 properties,
                 clock);

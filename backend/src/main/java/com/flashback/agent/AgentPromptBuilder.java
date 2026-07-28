@@ -2,6 +2,7 @@ package com.flashback.agent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
@@ -39,10 +40,15 @@ public class AgentPromptBuilder {
 
     private final AppAgentProperties appAgentProperties;
     private final AgentGuardrailPolicy guardrailPolicy;
+    private final AgentGuardrailRules guardrailRules;
 
-    public AgentPromptBuilder(AppAgentProperties appAgentProperties, AgentGuardrailPolicy guardrailPolicy) {
+    public AgentPromptBuilder(
+            AppAgentProperties appAgentProperties,
+            AgentGuardrailPolicy guardrailPolicy,
+            AgentGuardrailRules guardrailRules) {
         this.appAgentProperties = appAgentProperties;
         this.guardrailPolicy = guardrailPolicy;
+        this.guardrailRules = guardrailRules;
     }
 
     /**
@@ -166,13 +172,8 @@ public class AgentPromptBuilder {
      */
     public String buildToolSupplement(List<TagVO> availableTags, List<AgentToolCall> recentToolCalls) {
         StringBuilder builder = new StringBuilder();
-        builder.append("""
-                关于你可以做的小动作：
-                - 你可以在合适的时候提议帮用户做一件小事（把他说过的话整理进正文、加个标签、设一个解锁时间）。
-                - 提议就只是提议：由用户点确认才会发生，你不能替他决定，也不要反复追问同一件事。
-                - 封存、解锁、删除这些事你做不了，只能建议用户自己在页面上确认。
-                - 你永远不能改写、替换或“修正”用户已经写下的文字，只能追加他自己说过的内容。
-                """.trim());
+        // C4：文案取自 AgentGuardrailRules 唯一声明源（design 决策 5），避免与后置检查规则漂移。
+        builder.append(guardrailRules.toolUsageClause());
 
         if (availableTags != null && !availableTags.isEmpty()) {
             builder.append("\n\n可选标签（只能从这里挑，不能新建）：\n");
@@ -199,16 +200,10 @@ public class AgentPromptBuilder {
      */
     public List<Map<String, String>> buildMaterialMessages(List<AgentMessage> history) {
         List<Map<String, String>> messages = new ArrayList<>();
+        // C4：素材约束文案同样取自唯一声明源（design 决策 5）；文字内容未改动。
         String system = ROLE_SETTING.trim() + "\n\n"
                 + guardrailPolicy.guardrailClause() + "\n\n"
-                + """
-                        现在请把这段对话中【用户自己说过的内容】整理成一小段可以放进记录正文的素材。
-                        硬性要求：
-                        - 只使用用户说过的内容，不添加你的分析、评价、建议或诊断；
-                        - 不改变用户的意思，尽量保留用户自己的措辞；
-                        - 语气安静克制，不要写成总结报告；
-                        - 只输出 JSON，格式为 {"material":"整理后的素材"}，JSON 之外不要有任何文本。
-                        """.trim();
+                + guardrailRules.materialClause();
         messages.add(Map.of("role", "system", "content", system));
 
         // 素材必须覆盖用户在整段会话里说过的话；会话最多 8 轮，全部用户消息可控。

@@ -1,17 +1,24 @@
 package com.flashback.agent;
 
+import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.config.AppAgentProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * C1 最小护栏。
+ * 护栏策略入口（C1 + C4）。
  *
- * 边界（design.md 决策 7）：
- * - 本类只承载 system prompt 级护栏文案 + 回复长度硬裁剪；
- * - C1 不做后置语义过滤、不做违规降级，系统化 hardening 留给 C4；
- * - 长度裁剪是唯一确定性强、不误伤语义的机械约束，因此在 C1 就实现。
+ * C1 边界：本类只承载 system prompt 级护栏文案 + 回复长度硬裁剪；
+ * 长度裁剪是唯一确定性强、不误伤语义的机械约束，因此在 C1 就实现。
+ *
+ * C4 变化（design.md 决策 5）：护栏规则的**声明**迁移到 AgentGuardrailRules
+ * 作为唯一事实源，本类的 guardrailClause() 改为委托它。
+ * 迁移目的是防漂移——prompt 文案与后置检查规则必须派生自同一份声明，
+ * 否则会出现「prompt 允许但检查拦」或「检查放过但 prompt 禁止」的自相矛盾状态。
+ *
+ * enforceReplyLength 的行为**未改动**：它是 C1 已接受的护栏，
+ * 且在多层叠加后仍必须生效（agent-runtime delta 的长度上限条款）。
  */
 @Component
 public class AgentGuardrailPolicy {
@@ -19,29 +26,28 @@ public class AgentGuardrailPolicy {
     /** 句末标点，裁剪时优先在此断开，保持语义完整可读。 */
     private static final List<Character> SENTENCE_ENDINGS = List.of('。', '！', '？', '…', '.', '!', '?', '；', ';');
 
-    /** 五条最小护栏，注入 system prompt。 */
-    static final List<String> MINIMUM_GUARDRAILS = List.of(
-            "不诊断：不使用任何心理或医学诊断词，不判断病症，不给医学建议。",
-            "不覆写：不改写、不替换、不“修正”用户的原话；需要引用时原样引用。",
-            "建议不代决：封存、解锁、删除只能建议，由用户自己在页面确认，你不能代替用户决定。",
-            "被动陪伴：不主动开启新话题分析用户，不催促，不追问已被回避的问题。",
-            "输出克制：一次只说一到两句，不长于用户的表达，不说教、不总结陈词。");
+    /**
+     * 五条最小护栏。
+     *
+     * @deprecated C4 起以 {@link AgentGuardrailRules#MINIMUM_GUARDRAILS} 为唯一声明源，
+     *             本常量仅为兼容既有引用而保留同一份数据。
+     */
+    @Deprecated(since = "C4")
+    static final List<String> MINIMUM_GUARDRAILS = AgentGuardrailRules.MINIMUM_GUARDRAILS;
 
     private final AppAgentProperties appAgentProperties;
+    private final AgentGuardrailRules guardrailRules;
 
-    public AgentGuardrailPolicy(AppAgentProperties appAgentProperties) {
+    public AgentGuardrailPolicy(AppAgentProperties appAgentProperties, AgentGuardrailRules guardrailRules) {
         this.appAgentProperties = appAgentProperties;
+        this.guardrailRules = guardrailRules;
     }
 
     /**
-     * 护栏条款文本，供 prompt 组装使用。
+     * 护栏条款文本，供 prompt 组装使用。C4 起委托唯一声明源。
      */
     public String guardrailClause() {
-        StringBuilder builder = new StringBuilder("你必须始终遵守以下边界：\n");
-        for (int i = 0; i < MINIMUM_GUARDRAILS.size(); i++) {
-            builder.append(i + 1).append(". ").append(MINIMUM_GUARDRAILS.get(i)).append('\n');
-        }
-        return builder.toString().trim();
+        return guardrailRules.guardrailClause();
     }
 
     public int maxReplyChars() {

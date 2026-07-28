@@ -6,9 +6,10 @@
 
 - Change：`agent-guardrails-hardening`（C4）
 - 位置：`openspec/changes/agent-guardrails-hardening/`
-- 阶段：**规划闸（闸门 1）—— 已产出 proposal / design / tasks / spec delta，待用户批准 Q1–Q7 并放行**
-- 开工锚点：`b64296d`（工作树干净；仅未跟踪 `.kiro/skills/`，非本 change 产物）
-- **本阶段零业务代码**。闸门 2（实现）与闸门 3（真实外调）需另行授权
+- 阶段：**实现已完成（闸门 2 内）—— 待用户验收；闸门 3（真实外调）未授权**
+- 开工锚点：`b64296d`；规划闸提交 `a2c1075`
+- Q1–Q7 已于 2026-07-28 按推荐全部定稿；闸门 2 已授权并完成后端实现
+- **闸门 3 未授权** → 全程零外调，真实 provider 复现 R1 与阈值校准仍待授权
 
 ## Why C4 Now（顺序前移）
 
@@ -44,10 +45,15 @@
 
 ## Current Progress
 
-- **Last session**: 2026-07-28 — C4 规划闸产出完成：`proposal.md`（含 R1 归因、能力五态 G1–G27、Q1–Q7、验收 25 条）、`design.md`（架构 + 忠实度双指标机制 + 决策记录 10 条）、`tasks.md`（T-00~T-55 + 范围守护）、spec delta 三份（`agent-runtime` 含 2 条 MODIFIED、`backend-core`、`v2-product-scope`）；蓝图 §3.2 / §7 已登记 C4 前移
-- **Blocked on**: **闸门 1 待批准**——用户需对 Q1–Q7 定稿（核心是 Q1 忠实度判定机制），并放行进入闸门 2
-- **Next step**: 用户确认 Q1–Q7 → 勾选 T-02 / T-02d → 取得实现授权（T-03）后按 tasks A 段起步（忠实度判定核心，纯逻辑零外调）
-- **Commit**: C4 规划文档待提交（提交责任＝Agent 代为提交）；`main` 仍领先 `origin/main`，**未 push**
+- **Last session**: 2026-07-28 — C4 规划闸 + 实现全部完成
+  - 规划：proposal / design（决策记录 10 条）/ tasks / spec delta 三份；蓝图 §3.2 + §7 登记 C4 前移；提交 `a2c1075`
+  - 实现：新建 `agent/guardrail/` 包 8 个类（归一化、来源语料、覆盖画像、忠实度判定、内容检查、规则声明源、判定结果、降级处置）；接入工具提议 / 素材 / 回复三条路径；护栏规则从三处收敛到单一声明源
+  - 验证：**396 tests / 0 failures**（339 基线不回归，未改动任何 C1/C2 既有断言）；全程零外调
+  - **实测校准推翻一项规划初值**：`min-coverage` 0.60 → 0.35（合法整理实测覆盖率仅 0.500，0.60 会误伤正常能力）
+  - **实现期补记 design 决策 13**：引号片段需专用严判据——实测发现 11 字伪造引用会从「短文本跳过覆盖率判定」的缝隙漏放
+- **Blocked on**: 无（闸门 3 未授权属预期，非阻塞）
+- **Next step**: 用户验收 diff；随后可选择 ① 授权闸门 3 做真实 provider 复现 R1 + 阈值校准 + 微信手验（含补 C2 遗留 T-40~T-42），或 ② 直接进入收口与归档
+- **Commit**: 规划 `a2c1075`；实现待提交（提交责任＝Agent 代为提交）；`main` 领先 `origin/main`，**未 push**
 
 ## C4 待用户确认（Q1–Q7 摘要，详见 proposal §8）
 

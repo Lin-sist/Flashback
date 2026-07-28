@@ -1,5 +1,9 @@
 package com.flashback.agent.tool;
 
+import com.flashback.agent.guardrail.AgentContentChecker;
+import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
+import com.flashback.agent.guardrail.AgentGuardrailVerdict;
+import com.flashback.agent.guardrail.AgentSourceCorpus;
 import com.flashback.config.AppAgentProperties;
 import org.springframework.stereotype.Component;
 
@@ -12,25 +16,41 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 提议校验（C2）。
+ * 提议校验（C2 + C4）。
  *
- * 职责分层（design.md §3.2）：
+ * 职责分层（C2 design.md §3.2）：
  * - provider 侧 strict mode 负责**类型与形状**（工具名、参数类型、unlockAt 形状）；
  * - 本类负责 strict mode 无法表达的**业务边界**：字符长度、数量上限、时序、草稿上下文。
  *
  * 因此即便 provider 已做 schema 校验，本类的校验也**不得跳过**——
  * strict mode 是 Beta 且可被配置关闭，白名单的最终强制点始终在后端。
+ *
+ * C4 增量（C4 design.md 决策 2）：新增**内容忠实度**维度。
+ * C2 的三道校验（白名单 / 类型 / 边界）全部只问「能否执行」，
+ * 没有任何一层问「这段文字是不是用户说过的」——这正是 R1 穿透两层防御的缝隙。
+ * 忠实度闸放在本类而非执行层，是因为 C2 已把「提议是否合法」的全部判断
+ * 收敛在这一个校验点上；放在同一处才能保证系统里不存在
+ * 「绕过忠实度检查即可产生待确认提议」的路径。
  */
 @Component
 public class AgentToolValidator {
 
     private final AgentToolRegistry registry;
     private final AppAgentProperties appAgentProperties;
+    private final AgentFaithfulnessChecker faithfulnessChecker;
+    private final AgentContentChecker contentChecker;
     private final Clock clock;
 
-    public AgentToolValidator(AgentToolRegistry registry, AppAgentProperties appAgentProperties, Clock clock) {
+    public AgentToolValidator(
+            AgentToolRegistry registry,
+            AppAgentProperties appAgentProperties,
+            AgentFaithfulnessChecker faithfulnessChecker,
+            AgentContentChecker contentChecker,
+            Clock clock) {
         this.registry = registry;
         this.appAgentProperties = appAgentProperties;
+        this.faithfulnessChecker = faithfulnessChecker;
+        this.contentChecker = contentChecker;
         this.clock = clock;
     }
 
@@ -40,8 +60,10 @@ public class AgentToolValidator {
      * @param wireName 模型给出的工具名
      * @param rawArgs  已解析的参数载体
      * @param hasDraft 当前会话是否绑定了可编辑草稿
+     * @param corpus   C4：来源集合（本会话用户原话），用于忠实度判定
      */
-    public AgentToolValidationResult validate(String wireName, AgentToolRawArguments rawArgs, boolean hasDraft) {
+    public AgentToolValidationResult validate(
+            String wireName, AgentToolRawArguments rawArgs, boolean hasDraft, AgentSourceCorpus corpus) {
         if (!registry.isProposable(wireName)) {
             // 白名单外，或模型试图调用后端预注入的读工具。
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_NOT_ALLOWLISTED);
@@ -60,15 +82,35 @@ public class AgentToolValidator {
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_INVALID_ARGUMENT);
         }
 
+        // C4：askText 是唯一显示在确认条上的文本（R1 里它自称「我帮你整理了一下」）。
+        // 它天然含 Agent 自己的话，故不做覆盖率判定，只查伪引用与诊断 / 代决表述。
+        String askTextRejection = validateAskText(askText, corpus);
+        if (askTextRejection != null) {
+            return AgentToolValidationResult.rejected(askTextRejection);
+        }
+
         return switch (tool) {
-            case APPEND_RECORD_CONTENT -> validateAppendContent(askText, rawArgs);
+            case APPEND_RECORD_CONTENT -> validateAppendContent(askText, rawArgs, corpus);
             case ADD_RECORD_TAGS -> validateAddTags(askText, rawArgs);
             case PROPOSE_UNLOCK_AT -> validateUnlockAt(askText, rawArgs);
             default -> AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_NOT_ALLOWLISTED);
         };
     }
 
-    private AgentToolValidationResult validateAppendContent(String askText, AgentToolRawArguments rawArgs) {
+    private String validateAskText(String askText, AgentSourceCorpus corpus) {
+        AgentGuardrailVerdict quoteVerdict = contentChecker.checkQuotes(askText, corpus);
+        if (!quoteVerdict.isPassed()) {
+            return AgentToolValidationResult.REASON_FABRICATED_QUOTE;
+        }
+        AgentGuardrailVerdict contentVerdict = contentChecker.check(askText, corpus);
+        if (!contentVerdict.isPassed()) {
+            return AgentToolValidationResult.REASON_ASK_TEXT_VIOLATION;
+        }
+        return null;
+    }
+
+    private AgentToolValidationResult validateAppendContent(
+            String askText, AgentToolRawArguments rawArgs, AgentSourceCorpus corpus) {
         String text = normalize(rawArgs.text());
         if (text == null) {
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_INVALID_ARGUMENT);
@@ -76,6 +118,12 @@ public class AgentToolValidator {
         // strict mode 不支持 maxLength，长度上限只能在此把关。
         if (text.length() > appAgentProperties.getMaxToolContentChars()) {
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_OUT_OF_BOUNDS);
+        }
+        // C4 核心：这段文字会进入用户日记正文，必须忠实于用户自己说过的话。
+        // 判定不通过则提议根本不落库，用户看不到那个确认条。
+        AgentGuardrailVerdict verdict = faithfulnessChecker.check(text, corpus);
+        if (!verdict.isPassed()) {
+            return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_UNFAITHFUL_ARGS);
         }
         return AgentToolValidationResult.accepted(AgentToolProposal.appendContent(askText, text));
     }

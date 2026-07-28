@@ -1,5 +1,6 @@
 package com.flashback.agent;
 
+import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.config.AppAgentProperties;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +11,8 @@ class AgentGuardrailPolicyTest {
     private AgentGuardrailPolicy policyWithLimit(int limit) {
         AppAgentProperties properties = new AppAgentProperties();
         properties.setMaxReplyChars(limit);
-        return new AgentGuardrailPolicy(properties);
+        // C4：护栏文案改由 AgentGuardrailRules 单一声明源提供（design 决策 5）。
+        return new AgentGuardrailPolicy(properties, new AgentGuardrailRules());
     }
 
     @Test

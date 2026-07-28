@@ -78,6 +78,116 @@ public class AppAgentProperties {
     @Positive
     private int toolOutcomeWindow = 3;
 
+    // ---------- C4 agent-guardrails-hardening ----------
+
+    /** 护栏加固配置。阈值全部走配置，且不引入任何凭证字段。 */
+    private Guardrail guardrail = new Guardrail();
+
+    public Guardrail getGuardrail() {
+        return guardrail;
+    }
+
+    public void setGuardrail(Guardrail guardrail) {
+        this.guardrail = guardrail == null ? new Guardrail() : guardrail;
+    }
+
+    /**
+     * 护栏阈值与开关（C4）。
+     *
+     * 阈值初值为**保守推断而非实测标定**（design.md §3.3），
+     * 须在闸门 3 用真实样本校准；校准前不得当作已验证阈值使用。
+     */
+    public static class Guardrail {
+
+        /**
+         * 忠实度判定总开关。关闭时后端会记录结构化日志说明判定未生效，
+         * **不静默表现为判定通过**（backend-core delta 要求）。
+         */
+        private boolean faithfulnessEnabled = true;
+
+        /** 后置内容检查（诊断 / 代决）总开关。 */
+        private boolean contentCheckEnabled = true;
+
+        /**
+         * 忠实度比对的 n-gram 长度。
+         * 取 4 的理由：中文 4-gram 足以避免「单字碰巧命中」的假覆盖，又不过分严格。
+         */
+        @Positive
+        private int faithfulnessNgramSize = 4;
+
+        /**
+         * 候选文本被来源覆盖的最低比例。
+         * 留出整理引入连接词与删减的空间；**不承担拦增写的主要职责**（见 maxUncoveredRun）。
+         *
+         * 实测校准（2026-07-28）：合法的「去口头语」整理实测覆盖率仅 0.500
+         * （原话「嗯，那个，我最近就是那种睡不好，然后白天也没精神」→「我最近睡不好，白天也没精神」），
+         * 因此规划阶段推断的 0.60 会误伤正常整理，下调为 0.35。
+         */
+        private double minCoverage = 0.35d;
+
+        /**
+         * 允许的最长连续未覆盖字符数——**增写的主判据**。
+         * R1 的虚构句约 45 字远超此值；正常整理的接缝插入通常在 10 字以内。
+         */
+        @Positive
+        private int maxUncoveredRun = 12;
+
+        /**
+         * 低于该长度的候选文本不做覆盖率判定，避免小样本抖动。
+         * 注意：最长连续未覆盖片段判据仍然生效。
+         */
+        @Positive
+        private int minCheckedLength = 12;
+
+        public boolean isFaithfulnessEnabled() {
+            return faithfulnessEnabled;
+        }
+
+        public void setFaithfulnessEnabled(boolean faithfulnessEnabled) {
+            this.faithfulnessEnabled = faithfulnessEnabled;
+        }
+
+        public boolean isContentCheckEnabled() {
+            return contentCheckEnabled;
+        }
+
+        public void setContentCheckEnabled(boolean contentCheckEnabled) {
+            this.contentCheckEnabled = contentCheckEnabled;
+        }
+
+        public int getFaithfulnessNgramSize() {
+            return faithfulnessNgramSize;
+        }
+
+        public void setFaithfulnessNgramSize(int faithfulnessNgramSize) {
+            this.faithfulnessNgramSize = faithfulnessNgramSize;
+        }
+
+        public double getMinCoverage() {
+            return minCoverage;
+        }
+
+        public void setMinCoverage(double minCoverage) {
+            this.minCoverage = minCoverage;
+        }
+
+        public int getMaxUncoveredRun() {
+            return maxUncoveredRun;
+        }
+
+        public void setMaxUncoveredRun(int maxUncoveredRun) {
+            this.maxUncoveredRun = maxUncoveredRun;
+        }
+
+        public int getMinCheckedLength() {
+            return minCheckedLength;
+        }
+
+        public void setMinCheckedLength(int minCheckedLength) {
+            this.minCheckedLength = minCheckedLength;
+        }
+    }
+
     public boolean isToolCallingEnabled() {
         return toolCallingEnabled;
     }

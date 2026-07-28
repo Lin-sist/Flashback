@@ -1,5 +1,7 @@
 package com.flashback.agent.tool;
 
+import com.flashback.agent.guardrail.AgentContentChecker;
+import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
@@ -55,7 +57,14 @@ class AgentToolExecutorTest {
     void setUp() {
         AppAgentProperties properties = new AppAgentProperties();
         Clock clock = Clock.fixed(Instant.parse("2026-07-27T02:00:00Z"), ZoneId.of("Asia/Shanghai"));
-        AgentToolValidator validator = new AgentToolValidator(new AgentToolRegistry(), properties, clock);
+        // C4：validator 新增护栏依赖；执行层本身不做忠实度判定（判定已在提议校验阶段完成）。
+        AgentFaithfulnessChecker faithfulnessChecker = new AgentFaithfulnessChecker(properties);
+        AgentToolValidator validator = new AgentToolValidator(
+                new AgentToolRegistry(),
+                properties,
+                faithfulnessChecker,
+                new AgentContentChecker(properties, faithfulnessChecker),
+                clock);
         executor = new AgentToolExecutor(recordService, validator);
     }
 

@@ -29,6 +29,20 @@ public record AgentToolValidationResult(
     /** 同轮已有一个合法提议，本条被丢弃（design 决策 10）。 */
     public static final String REASON_SUPERSEDED = "superseded";
 
+    /**
+     * C4：参数内容不忠实于用户原话（增写了用户没说过的内容）。
+     *
+     * 与上面几个原因的区别：它们校验「能否执行」（工具权限、参数形状、业务边界），
+     * 本原因校验「内容是否忠实」——这正是 C2 拦不住 R1 的那道缝隙。
+     */
+    public static final String REASON_UNFAITHFUL_ARGS = "unfaithful-args";
+
+    /** C4：提议话术中引号包裹的伪引用在用户原话中无来源。 */
+    public static final String REASON_FABRICATED_QUOTE = "fabricated-quote";
+
+    /** C4：提议话术中出现诊断性或谎报代决的表述。 */
+    public static final String REASON_ASK_TEXT_VIOLATION = "ask-text-violation";
+
     public static AgentToolValidationResult accepted(AgentToolProposal proposal) {
         return new AgentToolValidationResult(proposal, null);
     }

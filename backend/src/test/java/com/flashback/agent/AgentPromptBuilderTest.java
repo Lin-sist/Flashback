@@ -1,5 +1,6 @@
 package com.flashback.agent;
 
+import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
@@ -24,7 +25,10 @@ class AgentPromptBuilderTest {
         properties.setMaxReplyChars(120);
         properties.setContextMessageWindow(4);
         properties.setDraftExcerptChars(20);
-        promptBuilder = new AgentPromptBuilder(properties, new AgentGuardrailPolicy(properties));
+        // C4：护栏与工具/素材文案统一取自 AgentGuardrailRules 单一声明源（design 决策 5）。
+        AgentGuardrailRules rules = new AgentGuardrailRules();
+        promptBuilder = new AgentPromptBuilder(
+                properties, new AgentGuardrailPolicy(properties, rules), rules);
     }
 
     @Test

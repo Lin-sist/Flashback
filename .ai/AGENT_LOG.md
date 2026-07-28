@@ -5683,3 +5683,37 @@ Commit: pending
   - Q1 若用户改选「消息 id 引用」方案，需 MODIFIED C2 刚接受的工具参数契约，且素材会更生硬（与 R2 抱怨同向恶化）
 - **Commit**: pending
 - **Next**: 用户对 Q1–Q7 定稿并批准闸门 1；随后勾选 T-02 / T-02d，取得实现授权（T-03）后从 tasks A 段（忠实度判定核心）起步
+
+## 2026-07-28｜agent-guardrails-hardening（C4）｜Type C｜闸门 2 实现
+
+- **Scope**: 后端护栏检查层（新增 `com.flashback.agent.guardrail` 包）+ 三条落地路径接入
+  - 新增：`AgentTextNormalizer` / `AgentSourceCorpus` / `AgentCoverageProfile` / `AgentFaithfulnessChecker` / `AgentContentChecker` / `AgentGuardrailRules` / `AgentGuardrailVerdict` / `AgentGuardrailViolation` / `AgentGuardrailDowngrade`
+  - 改动：`AgentGuardrailPolicy`（文案改为委托规则源，`enforceReplyLength` 未动）、`AgentPromptBuilder`（文案取自规则源）、`AgentToolValidator`（扩签名 + 忠实度闸）、`AgentToolValidationResult`（新增 3 个拒绝原因常量）、`AgentToolCoordinator`（传入来源语料）、`AgentChatServiceImpl`（回复检查 + 素材闸）、`AppAgentProperties`（新增 `guardrail` 子配置）
+  - 测试新增：`AgentFaithfulnessCheckerTest`(15) / `AgentContentCheckerTest`(13) / `AgentTextNormalizerTest`(6) / `AgentGuardrailBoundaryCaseTest`(15) / `AgentMaterialGuardrailTest`(3)；既有 5 个测试类按新签名补参
+  - 文档：`design.md` 补实测校准表 + 决策 13；`tasks.md` 勾选 T-03~T-42
+- **Changes**:
+  - 忠实度判定落地为**双指标**：整体覆盖率 + 最长连续未覆盖片段。判定确定性、零外调、可单测
+  - 忠实度闸接在 `AgentToolValidator`（与白名单 / 类型 / 边界同层），**刻意不提供无语料重载**——那会造出绕过检查的提议路径
+  - 覆盖范围＝工具正文参数 + 素材草稿 + `askText`（后者用伪引用 + 诊断/代决的宽判定）
+  - 处置分路径：提议拒绝（走既有 `REJECTED_BY_GUARD` 通道）/ 素材丢弃（复用「可选产物」语义，零前端改动）/ 回复替换本地兜底
+  - 诊断与代决检查**只在「新增区段」匹配**，用户自述病症词被 Agent 复述不误伤
+  - 护栏规则从三处（`AgentGuardrailPolicy` 常量 + `buildToolSupplement` + `buildMaterialMessages`）收敛到 `AgentGuardrailRules` 单一声明源，并含正向行为清单
+  - 前端零改动（Q6 定稿：护栏对用户不可见）
+- **Verification**: PASS
+  - `mvn -B -o test` → **Tests run: 396, Failures: 0, Errors: 0**（C1+C2 基线 339 不回归；**未改动任何既有断言**，仅按新构造签名补参）
+  - R1 真实样本回归 PASS：两句真话 + 45 字虚构 → 判 UNFAITHFUL，提议不落库、无确认条、本轮 reply 正常返回
+  - 双指标必要性测试 PASS：R1 在「仅覆盖率」判据下通过、加 `maxUncoveredRun` 后被拦
+  - 不误伤测试 PASS：语序调整 / 去口头语 / 标点变化 / 多消息拼接 / 接缝插连接词 全部放行
+  - fail-closed PASS；隐私断言 PASS（`metrics()` 只含数值）
+  - 外调：**0 次**（闸门 3 未授权，全程 mock provider）
+  - **阈值实测校准（零外调，本地样本）**：R1 增写 coverage=0.449 / maxRun=38；合法去口头语整理 coverage=0.500 / maxRun=6；伪造引用 coverage=0.000（11 字）；合法引用 coverage=1.000
+  - 前端：无改动，故未执行 `type-check` / `build:mp-weixin`
+- **Risks**:
+  - **规划初值 `min-coverage=0.60` 被实测推翻**：合法整理覆盖率仅 0.500，该阈值会误伤正常能力，已下调为 0.35。覆盖率因此退化为兜底辅判据，主判据完全落在 `maxUncoveredRun`（R1 38 vs 合法 6）
+  - 已接受残余风险：大量复用用户原话词汇的虚构可能绕过双指标，须写入 closeout
+  - 阈值仍为**本地样本标定**，未经真实 provider 多样本验证；闸门 3 仍需校准
+  - `QUOTE_MIN_COVERAGE=0.80` 为经验值，理论上引用内一两字改动可能放行
+  - R2（引导突兀 / 素材生硬）**未处理**，按用户要求延后；C4 期间手验仍会遇到该体感问题
+  - R3（C2 遗留真机手验）仍未补，待闸门 3
+- **Commit**: pending
+- **Next**: 用户验收 diff；随后授权闸门 3（真实复现 R1 + 阈值校准 + 微信手验含补 T-40~T-42）或直接收口归档
