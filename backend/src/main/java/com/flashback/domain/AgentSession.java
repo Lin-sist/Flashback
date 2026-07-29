@@ -12,6 +12,11 @@ public class AgentSession {
     private Long id;
     private Long userId;
     private Long recordId;
+    /**
+     * C3：会话用途。本刀只产生 WRITING_GUIDANCE；
+     * 变更前创建的历史会话按 DDL 默认值同样视为 WRITING_GUIDANCE。
+     */
+    private AgentSessionPurpose purpose = AgentSessionPurpose.WRITING_GUIDANCE;
     private AgentStage stage;
     private AgentSessionStatus status;
     private int turnCount;
@@ -42,6 +47,15 @@ public class AgentSession {
 
     public void setRecordId(Long recordId) {
         this.recordId = recordId;
+    }
+
+    public AgentSessionPurpose getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(AgentSessionPurpose purpose) {
+        // null 兜底为写作引导：读取历史数据或列缺失时不应得到一个无用途的会话。
+        this.purpose = purpose == null ? AgentSessionPurpose.WRITING_GUIDANCE : purpose;
     }
 
     public AgentStage getStage() {

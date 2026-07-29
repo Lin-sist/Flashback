@@ -175,6 +175,8 @@ CREATE TABLE `agent_session` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT NOT NULL,
   `record_id` BIGINT DEFAULT NULL,
+  -- C3 agent-memory-retrieval：会话用途。默认值使历史会话自动视为写作引导。
+  `purpose` VARCHAR(30) NOT NULL DEFAULT 'WRITING_GUIDANCE',
   `stage` VARCHAR(30) NOT NULL DEFAULT 'OPENING',
   `status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
   `turn_count` INT NOT NULL DEFAULT 0,

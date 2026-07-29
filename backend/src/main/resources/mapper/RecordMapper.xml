@@ -323,4 +323,64 @@
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
+    <!--
+      C3 agent-memory-retrieval：记忆检索候选集。
+
+      刻意不匹配 r.content（design 决策 5 / 决策 11）——正文是最高敏字段且无索引；
+      本查询只匹配 title / core_question / ai_summary / belief_then 这些
+      已经是「关于这条记录的说明性文字」的字段。
+
+      status 条件排除 SEALED：已封存未解锁的内容用户自己都还看不到（design 决策 7）。
+      user_id 谓词无条件存在，不放在任何 <if> 里——跨用户泄露是严重缺陷等级。
+    -->
+    <select id="selectMemoryCandidates" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record` r
+        WHERE r.user_id = #{userId}
+          AND r.status &lt;&gt; 'SEALED'
+        <if test="excludeRecordId != null">
+            AND r.id &lt;&gt; #{excludeRecordId}
+        </if>
+        <if test="createdFrom != null">
+            AND r.created_at &gt;= #{createdFrom}
+        </if>
+        <!--
+          无任何检索线索时恒不命中，而不是退化成「按时间倒序取最近几条」。
+          后者不是记忆关联，是随机翻旧账，正好违反「不得为显得有记忆而编造关联」。
+          调用方本已拦住无线索的请求，这里是第二道防线。
+        -->
+        AND (
+            <trim prefixOverrides="OR ">
+                <if test="(tagIds == null or tagIds.size() == 0) and (keywords == null or keywords.size() == 0)">
+                    1 = 0
+                </if>
+                <if test="tagIds != null and tagIds.size() > 0">
+                    EXISTS (
+                        SELECT 1
+                        FROM record_tag rt
+                        INNER JOIN tag t
+                            ON t.id = rt.tag_id
+                           AND t.status = 'ENABLED'
+                        WHERE rt.record_id = r.id
+                          AND rt.tag_id IN
+                        <foreach item="tagId" collection="tagIds" open="(" separator="," close=")">
+                            #{tagId}
+                        </foreach>
+                    )
+                </if>
+                <if test="keywords != null and keywords.size() > 0">
+                    <foreach item="keyword" collection="keywords" open="OR (" separator=" OR " close=")">
+                        r.title LIKE CONCAT('%', #{keyword}, '%')
+                        OR r.core_question LIKE CONCAT('%', #{keyword}, '%')
+                        OR r.ai_summary LIKE CONCAT('%', #{keyword}, '%')
+                        OR r.belief_then LIKE CONCAT('%', #{keyword}, '%')
+                    </foreach>
+                </if>
+            </trim>
+        )
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

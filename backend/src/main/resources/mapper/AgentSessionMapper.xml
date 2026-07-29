@@ -8,6 +8,7 @@
         <id property="id" column="id"/>
         <result property="userId" column="user_id"/>
         <result property="recordId" column="record_id"/>
+        <result property="purpose" column="purpose" javaType="com.flashback.domain.AgentSessionPurpose"/>
         <result property="stage" column="stage" javaType="com.flashback.domain.AgentStage"/>
         <result property="status" column="status" javaType="com.flashback.domain.AgentSessionStatus"/>
         <result property="turnCount" column="turn_count"/>
@@ -21,6 +22,7 @@
         id,
         user_id,
         record_id,
+        purpose,
         stage,
         status,
         turn_count,
@@ -34,6 +36,7 @@
         INSERT INTO agent_session (
             user_id,
             record_id,
+            purpose,
             stage,
             status,
             turn_count,
@@ -44,6 +47,7 @@
         ) VALUES (
             #{userId},
             #{recordId},
+            #{purpose},
             #{stage},
             #{status},
             #{turnCount},

@@ -124,4 +124,23 @@ public interface RecordMapper {
                         @Param("createdBefore") LocalDateTime createdBefore,
                         @Param("offset") int offset,
                         @Param("pageSize") int pageSize);
+
+        /**
+         * C3 agent-memory-retrieval：检索与当前对话相关的历史记录。
+         *
+         * 契约要点（agent-runtime / backend-core delta）：
+         * - userId 谓词无条件存在，无任何跨用户分支；
+         * - **不匹配 content**——正文是最高敏字段且无索引，全表扫描代价与隐私面都最高
+         * （design 决策 5、决策 11）；
+         * - 排除已封存尚未解锁的记录：用户自己都还没到能看的时刻，
+         * Agent 提前复述等于替时间拆封（design 决策 7）；
+         * - excludeRecordId 排除当前会话正在写的那条，避免把此刻的内容当旧事。
+         */
+        List<Record> selectMemoryCandidates(
+                        @Param("userId") Long userId,
+                        @Param("keywords") List<String> keywords,
+                        @Param("tagIds") List<Long> tagIds,
+                        @Param("excludeRecordId") Long excludeRecordId,
+                        @Param("createdFrom") LocalDateTime createdFrom,
+                        @Param("limit") int limit);
 }
