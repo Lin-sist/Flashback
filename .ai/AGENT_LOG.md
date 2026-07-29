@@ -5971,3 +5971,33 @@ Commit: pending
   - 用户手验暴露一个流程风险：**增量 DDL 未执行时报错表现为通用 500**，且会波及既有功能。建议后续 change 若含 DDL，把「本地执行」列为实现期第一步而非联调前置
 - **Commit**: `b6327df`（规划）/ `fe7e644`（后端实现）/ `ec76e8d`（后端测试）/ `8a0d02b`（前端）+ 本条对应的文档提交
 - **Next**: 闸门 3 合并联调（本刀 + C3a 顺延 T-20~T-23）
+
+## 2026-07-29｜agent-review-chat｜Type C（闸门 3 合并联调，用户已授权外调）
+
+- **Scope**:
+  - 新增 `backend/src/test/java/com/flashback/agent/guardrail/C3RealProviderProbeTest.java`（`C3_REAL_PROBE=1` 门控，默认跳过）
+  - 更新 `openspec/changes/agent-review-chat/tasks.md`（T-31~T-34、T-36 结论）
+  - 临时运行脚本 `run-c3-probe.local.ps1` 用后删除（含密钥装载逻辑，未提交、未写入任何 tracked file）
+- **Changes**:
+  - C3a 与 C3b 的闸门 3 合并为一个探针：两者本质是同一层护栏的两种压力（偶发注入 vs 几乎每轮复述），放一起才能对比
+  - 探针覆盖 T-31 观感、T-32 误伤率、T-33 fail-closed、T-34 C3a 顺延，并**自行补了一项拦截方向验证**
+- **Verification**: **PASS**
+  - 真实调用 **15 次**（3 轮运行 × 5 次），预算 ≤ 20；provider=deepseek；仅自造内容，**未使用用户真实日记**；不写库
+  - **T-32 误伤 0 次**（9 轮观察）。memory-only 片段实测 0~22 字，多次超阈值 8，说明判定被真实触发而非空过
+  - **关键核实**：不止看 `attribution=null`，还打印命中的时间归属词。实测命中「那时/过去/以前/你说过/四月/去年」，均为真实时间归属表述，**不是词表偶然命中**——放行理由正确。**结论：阈值 8 无需调整**
+  - **T-36 拦截方向首次活体验证 `flipped=true`**：取模型真实产出、memory-only 片段最长（15 字）的回复，只删时间指示语、其余逐字不动 → 判定从放行翻转为 `missing-time-attribution`。被判文本仍是模型真实句子，非构造样本
+  - T-31：回复 29~58 字（上限 120），用户 14~18 字，形态为一句话＋一个问题，未话痨；三轮均自发带时间锚点；无诊断/代决表述
+  - T-34：写作引导注入 memory 后 `memoryOnlyRun=0`（未复述）；`memoryAsContent=false`（memory 未被当成正文素材）
+  - 全量回归 **496 PASS / 2 skipped**（两个探针均环境变量门控）
+- **Verification SKIPPED / 诚实结论**:
+  - **T-33 fail-closed 未活体验证**：三轮模型均未返回 tool_calls，该分支未被真实触发，正确性仅由单测覆盖。**不写成已验证**
+  - **T-35 R3 微信真机手验未做**：需用户在真机操作。前置 DDL 已就绪
+- **自我修正（过程记录）**:
+  - 拦截验证第一版取「最后一轮」回复，而它恰好 `memoryOnlyRun=0`（没在复述），剥离时间词后自然不翻转。这是**样本选错**而非护栏失效；已改为按 memory-only 片段最长挑选后翻转成功。教训：验证拦截方向必须先确认样本确实处于该被拦的状态
+- **Risks**:
+  - **R8 可关闭**：时间归属阈值经真实样本验证，误伤与拦截两方向均已覆盖
+  - **R7（C4 遗留）实质缓解**：C4 只验到误伤方向，本轮的 flipped 实验补上了拦截方向（同一层机制）
+  - 新增残余：fail-closed 分支未活体触发（概率性行为，不单独开 change）
+  - 样本量仍小（9 轮观察、单一 provider/model），不声称杜绝
+- **Commit**: pending
+- **Next**: T-35 用户真机手验 → 收口 T-37~T-40（closeout + delta 接受 + 归档 → ACTIVE_TASK=IDLE，C3 两刀完成，下一刀 C5）
