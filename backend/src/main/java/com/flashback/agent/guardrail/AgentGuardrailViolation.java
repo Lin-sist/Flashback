@@ -20,6 +20,14 @@ public enum AgentGuardrailViolation {
     /** Agent 谎称已代替用户完成封存 / 解锁 / 删除等不可逆操作。 */
     FAKE_ACTION("fake-action"),
 
+    /**
+     * C3：Agent 复述了历史记录中的内容，却没有说清那是过去哪个时候的事。
+     *
+     * 危害具体而非抽象：读起来像用户刚刚说的话，等于把三个月前的心情
+     * 冒充成此刻的心情。
+     */
+    MISSING_TIME_ATTRIBUTION("missing-time-attribution"),
+
     /** 判定过程自身异常，按 fail-closed 处理。 */
     CHECK_ERROR("check-error");
 

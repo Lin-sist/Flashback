@@ -91,6 +91,117 @@ public class AppAgentProperties {
         this.guardrail = guardrail == null ? new Guardrail() : guardrail;
     }
 
+    // ---------- C3 agent-memory-retrieval ----------
+
+    /** 记忆检索与注入配置。同样不引入任何凭证字段。 */
+    private Memory memory = new Memory();
+
+    public Memory getMemory() {
+        return memory;
+    }
+
+    public void setMemory(Memory memory) {
+        this.memory = memory == null ? new Memory() : memory;
+    }
+
+    /**
+     * 记忆检索与注入配置（C3）。
+     *
+     * 全部为预算与范围约束，不含任何相关性「魔法参数」——
+     * 检索策略在代码中显式表达，便于测试与审查。
+     */
+    public static class Memory {
+
+        /**
+         * 记忆能力总开关。关闭时行为等价于 C4 现状，
+         * 且后端会留下结构化痕迹说明记忆未生效，**不静默表现为检索无命中**。
+         */
+        private boolean enabled = true;
+
+        /** 单轮最多注入的记忆片段条数。控制 token 预算与噪声。 */
+        @Positive
+        private int maxFragments = 3;
+
+        /** 单条记忆片段注入时的最大字符数，超出截断。 */
+        @Positive
+        private int maxFragmentChars = 120;
+
+        /** 检索的时间窗口（月）。超出窗口的记录不参与检索。 */
+        @Positive
+        private int lookbackMonths = 24;
+
+        /**
+         * 用于生成检索线索的最近用户消息条数。
+         * 只取用户自己的表达，不含 Agent 的提问——否则会用 Agent 的措辞去检索用户的历史。
+         */
+        @Positive
+        private int cueMessageWindow = 3;
+
+        /** 单个检索关键词的最短长度，过滤掉无区分度的短词。 */
+        @Positive
+        private int minKeywordLength = 2;
+
+        /** 单次检索最多使用的关键词数量。 */
+        @Positive
+        private int maxKeywords = 6;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getMaxFragments() {
+            return maxFragments;
+        }
+
+        public void setMaxFragments(int maxFragments) {
+            this.maxFragments = maxFragments;
+        }
+
+        public int getMaxFragmentChars() {
+            return maxFragmentChars;
+        }
+
+        public void setMaxFragmentChars(int maxFragmentChars) {
+            this.maxFragmentChars = maxFragmentChars;
+        }
+
+        public int getLookbackMonths() {
+            return lookbackMonths;
+        }
+
+        public void setLookbackMonths(int lookbackMonths) {
+            this.lookbackMonths = lookbackMonths;
+        }
+
+        public int getCueMessageWindow() {
+            return cueMessageWindow;
+        }
+
+        public void setCueMessageWindow(int cueMessageWindow) {
+            this.cueMessageWindow = cueMessageWindow;
+        }
+
+        public int getMinKeywordLength() {
+            return minKeywordLength;
+        }
+
+        public void setMinKeywordLength(int minKeywordLength) {
+            this.minKeywordLength = minKeywordLength;
+        }
+
+        public int getMaxKeywords() {
+            return maxKeywords;
+        }
+
+        public void setMaxKeywords(int maxKeywords) {
+            this.maxKeywords = maxKeywords;
+        }
+    }
+
     /**
      * 护栏阈值与开关（C4）。
      *
@@ -138,6 +249,26 @@ public class AppAgentProperties {
          */
         @Positive
         private int minCheckedLength = 12;
+
+        /**
+         * C3：触发时间归属要求的「仅记忆层覆盖」最短连续片段长度。
+         *
+         * 取 8 的理由：短于此长度的记忆命中多半是措辞巧合
+         * （用户此刻与过去用了同一个常见短语），要求这种情况也带时间归属会大面积误伤。
+         * 真正的复述——把过去写下的一句话说出来——通常远超此长度。
+         *
+         * **未经真实样本校准**（闸门 3 待办）；校准前不得当作已验证阈值。
+         */
+        @Positive
+        private int minMemoryOnlyRunForAttribution = 8;
+
+        public int getMinMemoryOnlyRunForAttribution() {
+            return minMemoryOnlyRunForAttribution;
+        }
+
+        public void setMinMemoryOnlyRunForAttribution(int minMemoryOnlyRunForAttribution) {
+            this.minMemoryOnlyRunForAttribution = minMemoryOnlyRunForAttribution;
+        }
 
         public boolean isFaithfulnessEnabled() {
             return faithfulnessEnabled;

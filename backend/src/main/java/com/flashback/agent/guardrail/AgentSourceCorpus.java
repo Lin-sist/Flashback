@@ -95,6 +95,31 @@ public final class AgentSourceCorpus {
         return new AgentSourceCorpus(Set.copyOf(ngrams), ngramSize, totalLength);
     }
 
+    /**
+     * 合并两个来源集合（C3 新增）。
+     *
+     * 用途：分层来源中「允许引用记忆」的路径需要一个能同时命中两层的语料对象，
+     * 而覆盖画像只接受单个 corpus。本方法纯增量，不改变既有构造入口的语义。
+     *
+     * 两侧 n-gram 长度必须一致——否则合并后的集合里会混入不同粒度的片段，
+     * containsNgram 的命中语义会失真。不一致时快速失败，不静默取其一。
+     */
+    public static AgentSourceCorpus merge(AgentSourceCorpus first, AgentSourceCorpus second) {
+        if (first == null || first.isEmpty()) {
+            return second == null ? EMPTY : second;
+        }
+        if (second == null || second.isEmpty()) {
+            return first;
+        }
+        if (first.ngramSize != second.ngramSize) {
+            throw new IllegalArgumentException("cannot merge corpora with different ngram sizes");
+        }
+        Set<String> merged = new HashSet<>(first.ngrams);
+        merged.addAll(second.ngrams);
+        return new AgentSourceCorpus(
+                Set.copyOf(merged), first.ngramSize, first.sourceLength + second.sourceLength);
+    }
+
     private static void collectNgrams(String normalized, int ngramSize, Set<String> sink) {
         if (normalized.length() < ngramSize) {
             // 短于 n-gram 长度的来源整体入集，避免极短发言完全无法命中。

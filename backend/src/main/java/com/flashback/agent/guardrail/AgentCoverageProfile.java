@@ -75,6 +75,40 @@ public final class AgentCoverageProfile {
         return new AgentCoverageProfile(normalized, covered, coveredCount, maxRun);
     }
 
+    /**
+     * 计算「只被 wider 覆盖、不被 narrower 覆盖」的最长连续片段（C3 新增）。
+     *
+     * 用途（design.md 决策 2）：narrower 传会话层画像、wider 传两层合并画像，
+     * 得到的就是「只来自记忆层」的最长连续片段——即 Agent 正在复述过去内容的长度证据。
+     * 这是时间归属检查的唯一输入。
+     *
+     * 之所以用两个画像相减而不是给本类加第二个位图：两个画像各自都是既有构造路径的产物，
+     * 相减是纯读操作，不改变 of() 的行为，也不影响任何既有断言。
+     *
+     * 两个画像必须来自**同一段候选文本**——归一化是确定性的，因此长度一致即可校验。
+     */
+    static int longestExclusiveRun(AgentCoverageProfile narrower, AgentCoverageProfile wider) {
+        if (narrower == null || wider == null) {
+            return 0;
+        }
+        if (narrower.covered.length != wider.covered.length) {
+            // 不同候选文本的画像不可比较；按无片段处理而非抛错，
+            // 因为调用方是护栏路径，抛错会把可判定的轮次变成 fail-closed。
+            return 0;
+        }
+        int maxRun = 0;
+        int currentRun = 0;
+        for (int i = 0; i < wider.covered.length; i++) {
+            if (wider.covered[i] && !narrower.covered[i]) {
+                currentRun++;
+                maxRun = Math.max(maxRun, currentRun);
+            } else {
+                currentRun = 0;
+            }
+        }
+        return maxRun;
+    }
+
     /** 归一化后的候选文本。仅供同包内判定使用，不对外泄露到日志或审计。 */
     String normalized() {
         return normalized;
