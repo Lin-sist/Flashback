@@ -5753,3 +5753,134 @@ Commit: pending
   - R2 / R3 / R6 均延后，见 ACTIVE_TASK
 - **Commit**: pending
 - **Next**: 用户授权后启动 C3 `agent-memory-and-review` 规划闸
+
+## 2026-07-28｜agent-direction-docs｜Type B｜架构宪法 + 选型草稿 + 蓝图 v1.2 草案
+
+- **Scope**: 仅文档参考层，无业务代码、无 OpenSpec change、未改 ACTIVE_TASK
+  - 新增 `Docs/agent-iteration/architecture/README.md`
+  - 新增 `Docs/agent-iteration/architecture/agent-architecture-constitution.md`（Draft v0.1）
+  - 新增 `Docs/agent-iteration/architecture/tech-selection-draft.md`（Draft v0.1）
+  - 新增 `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2-draft.md`（DRAFT，未冻结）
+  - 更新 `Docs/agent-iteration/README.md`、`Docs/agent-iteration/roadmap/README.md` 索引与权威性说明
+- **Changes**:
+  - 锚定 C1/C2/C4 已落地事实（自研 Loop、AgentModelClient、FC 白名单、C4 前移等）
+  - 定义六大稳定端口与反推倒原则；Phase 2 默认序 C6→C7→C8
+  - 明确 **v1.1 仍为 Phase 1 冻结源**；v1.2 仅草案，**建议 C5 归档后校准再冻结**
+  - 写入 C3 必答项 P-F（历史原文 vs 忠实度来源）与漂移登记表模板
+- **Verification**: SKIPPED（纯方法论文档，无编译/测试对象）；人工核对：未修改 `iteration-blueprint.md` 冻结正文、未改 backend
+- **Risks**: 草案可能被误当作已冻结执行源——文内与 README 已反复标注 DRAFT；C3–C5 实现后须回填漂移表，否则 v1.2 冻结会失真
+- **Commit**: pending
+- **Next**: 用户继续 C3 规划/实现时以 v1.1 + OpenSpec 为准；C5 后按草案 §8 清单校准冻结 v1.2
+
+## 2026-07-29｜agent-memory-retrieval｜Type C（规划闸，零业务代码）
+
+- **Scope**:
+  - 新增 `openspec/changes/agent-memory-retrieval/proposal.md`
+  - 新增 `openspec/changes/agent-memory-retrieval/design.md`
+  - 新增 `openspec/changes/agent-memory-retrieval/tasks.md`
+  - 新增 `openspec/changes/agent-memory-retrieval/specs/agent-runtime/spec.md`（delta）
+  - 新增 `openspec/changes/agent-memory-retrieval/specs/backend-core/spec.md`（delta）
+  - 新增 `openspec/changes/agent-memory-retrieval/specs/v2-product-scope/spec.md`（delta）
+  - 改写 `.ai/ACTIVE_TASK.md`（IDLE → ACTIVE 指向本 change）
+- **Changes**:
+  - Type A 现状扫描（只读）：核对上下文注入点（`AgentPromptBuilder.buildConversationMessages` 的 system 追加位，C1 注释即预留给 C3）、C4 来源集合结构（`AgentSourceCorpus` 为扁平 n-gram 集合、不带出处，消费方三处）、检索基础设施（`record` 全为 B-tree 索引、**无 FULLTEXT / 无 ngram**、`ai_summary` 由前端回传而非后端自动生成）、会话模型（`agent_session` 无用途字段，开会话硬校验 DRAFT）、前端现状（`AgentChatSheet.vue` / `record-detail` 静态回看区块）
+  - 依用户 2026-07-29 定稿把蓝图 C3 拆两刀，本刀为 `agent-memory-retrieval`
+  - 落 Q1–Q7 定稿，并新提 N1–N5 待确认（分层来源实现形态 / 记录状态范围 / 是否留扫 content 开关 / purpose 列归属 / 是否下发 memory 标识）
+  - design 写 13 条决策记录，含四条 out_of_scope 边界决策（不做回看、不做扫 content 开关、不动 R2、不引 embedding）
+  - 标注 spec 债：须以 MODIFIED 修订 `agent-runtime` 中四条「跨记录检索留给后续 change」的 scenario
+- **Verification**: **SKIPPED（规划阶段无代码改动，无可运行验证）**
+  - 事实核对方式：读 `agent/**`、`AgentChatServiceImpl`、`AppAgentProperties`、`backend/sql/mysql/*.sql`、`frontend/src/**`，proposal §2 每条标注 confirmed / unknown / out_of_scope
+  - **未执行的核对**：`ai_summary` / 标签覆盖率统计 —— 本机 MySQL80 当前 **Stopped**（StartType=Manual），未擅自启动服务；已列为实现期第一个 task（T-01），并在 proposal 标 `unknown`（M16/M18），未据此写检索权重
+- **Risks**:
+  - 分层来源要改 `AgentCoverageProfile`，既有 397 项基线中有断言依赖现结构（N1 选包装式实现以规避）
+  - 时间归属检查为本刀新判定，中文时间指示语形态多，误伤风险须闸门 3 用真实样本校准
+  - `ai_summary` 覆盖率若过低，检索相关性会弱于蓝图预期（蓝图关键风险栏已接受，closeout 须诚实记录）
+  - R7（C4 忠实度闸拦截方向未活体验证）仍未关闭，本刀闸门 3 顺带观察
+- **Commit**: pending（提交责任=用户手动提交，Agent 未执行 git 写操作）
+- **Next**: 闸门 1 批准 + N1–N5 定稿 → 闸门 2 实现授权 → T-01 覆盖率实测（需先手动启动 MySQL80）
+
+## 2026-07-29｜agent-memory-retrieval｜Type C（闸门 2 实现，阶段 1–5）
+
+- **Scope**:
+  - **新增（main）**：`agent/guardrail/AgentLayeredCorpus.java`、`agent/guardrail/AgentTimeAttributionChecker.java`、`agent/memory/{MemoryPort,MemoryQuery,MemoryFragment,MySqlMemoryPort,MemoryCueExtractor}.java`、`domain/AgentSessionPurpose.java`、`sql/mysql/c3-agent-memory.sql`
+  - **改动（main）**：`agent/AgentPromptBuilder.java`、`agent/guardrail/{AgentCoverageProfile,AgentSourceCorpus,AgentGuardrailRules,AgentGuardrailViolation}.java`、`agent/tool/{AgentToolValidator,AgentToolCoordinator,AgentToolValidationResult}.java`、`config/AppAgentProperties.java`、`domain/AgentSession.java`、`mapper/RecordMapper.java`、`service/impl/AgentChatServiceImpl.java`、`resources/application.yml`、`resources/mapper/{AgentSessionMapper,RecordMapper}.xml`
+  - **新增（test）**：`agent/guardrail/{AgentLayeredCorpusTest,AgentTimeAttributionCheckerTest,AgentMemoryReplyGuardrailTest}.java`、`agent/memory/{MemoryCueExtractorTest,MySqlMemoryPortTest}.java`、`mapper/RecordMemoryRetrievalIntegrationTest.java`、`service/impl/AgentMemoryIntegrationTest.java`
+  - **改动（test）**：`agent/tool/{AgentToolValidatorTest,AgentToolCoordinatorTest,AgentToolExecutorTest}.java`、`service/impl/AgentChatServiceImplTest.java`、`resources/schema.sql`
+  - **文档**：`openspec/changes/agent-memory-retrieval/tasks.md`（勾选）、`.ai/ACTIVE_TASK.md`
+  - **前端**：零改动（N5=(a)，已用 `git status` 核对）
+- **Changes**:
+  - 来源分层：`AgentLayeredCorpus` 包装两个 `AgentSourceCorpus`（N1=(b)，既有类语义与既有测试零改动）；`AgentSourceCorpus.merge` 纯增量，ngram 不一致快速失败；`AgentCoverageProfile.longestExclusiveRun` 用两画像相减识别「仅记忆层覆盖」片段
+  - 时间归属护栏：新增 `MISSING_TIME_ATTRIBUTION`；memory-only 片段 ≥ 阈值且无时间归属表述 → 降级为安全兜底回复；词表进 `AgentGuardrailRules` 单一声明源；确定性、零外调、fail-closed
+  - 权限不对等落地：正文（工具 `text` / 素材）**只认会话层**且不可配置；回复 / `askText` / 引号认合并层 + 时间归属。新增 `REASON_MEMORY_AS_CONTENT` 与 `REASON_UNFAITHFUL_ARGS` 分开留痕
+  - 检索：`MemoryPort` 抽象（带 `purpose` 维度供后一刀复用）+ MySQL 实现。SQL 无 `content` 谓词、`user_id` 谓词无条件、排除 SEALED、排除当前草稿、时间窗、条数上限、无线索 `1=0`
+  - 注入：`buildMemorySupplement` 走 C2 同形态 system 追加位；带可读时间锚点；无命中返回空串不注入占位段；`layeredCorpusOf` 与注入**共用同一份片段列表**
+  - 检索失败 fail-open（不注入、对话继续）＋ 护栏 fail-closed，两方向不互相污染
+  - `agent_session.purpose` 列（幂等 DDL + H2 schema 同步），默认 `WRITING_GUIDANCE`；`REVIEW_CHAT` 仅声明无行为分支
+  - 配置：`app.agent.memory` 7 项 + `guardrail.min-memory-only-run-for-attribution`，**无新增凭证字段**
+  - 清理：规划期一度新建的 `AgentSourceLayer` 枚举因无引用已删除（层级语义由 `AgentLayeredCorpus` 方法表达）
+- **Verification**: **PASS**
+  - 后端全量 `mvn -o test`：**472 tests PASS / 0 failures / 0 errors / 1 skipped**（397 基线 + 75 新增；skipped 为 `C4RealProviderProbeTest`，`C4_REAL_PROBE=1` 门控）
+  - 真实 SQL 集成测试（H2）覆盖两个严重缺陷方向：跨用户零命中、`content` 中的关键词不命中；另覆盖 SEALED 排除、四字段命中、停用标签不命中、时间窗、排除指定记录、无线索零命中、limit
+  - 端到端集成测试覆盖：`purpose` 落库、零 `REVIEW_CHAT` 会话、注入文本含时间锚点与两条约束文案、记忆文本作正文被拒（`memory-as-content`）、本次说过的话仍通过、未注入历史不构成来源、无记忆层等价 C4、记忆开关关闭对话正常
+  - 阈值未被放宽：`AgentMemoryReplyGuardrailTest` 直接断言 `minCoverage=0.35` / `maxUncoveredRun=12` / `minCheckedLength=12` 与两个开关默认值
+  - **既有断言零修改**：测试侧改动仅为构造参数补齐、import、H2 `schema.sql` 加 `purpose` 列，均在文件内注释说明理由
+  - 前端：零改动，未跑 `type-check` / `build:mp-weixin`（无改动，非跳过验证）
+- **Verification SKIPPED**:
+  - **T-01 覆盖率实测**：MySQL80 已由用户启动，但 `root` 空密码被 `Access denied` 拒绝；DB 密码由 `start-dev.ps1` 启动参数提供，不在 `secrets.local.env`（仅含 `AI_API_KEY` / `WECHAT_MINI_PROGRAM_SECRET`）。**未猜测密码、未启用任何绕过**。已改用「四字段并列 LIKE + 固定取材优先级降级」设计使其不阻塞实现
+  - **闸门 3 真实联调（T-20~T-23）**：未申请授权，本轮外调实际 **0 次**
+  - **生产库 DDL**：`c3-agent-memory.sql` 未在本地 MySQL 执行（测试走 H2）
+- **Risks**:
+  - **[R8] 时间归属阈值 8 未经真实样本校准**，误伤与拦截两个方向均未活体验证
+  - **[R9] 检索相关性弱**：无字段权重、无分词、无向量（蓝图已接受，closeout 须诚实记录）
+  - `ai_summary` 本地覆盖率未知，若偏低则片段会降级到更短字段，信息密度下降
+  - **[R7｜C4 遗留]** 忠实度闸拦截方向仍未活体验证
+  - **[R3｜C2 遗留]** 微信真机工具链路手验未走通；本刀前端零改动故不承接，留给 `agent-review-chat`
+- **Commit**: pending（提交责任=用户手动提交；Agent 未执行 `git add` / `commit` / `push`）
+- **Next**: ① 用户验收 diff；② 提供 DB 凭证补 T-01；③ 授权闸门 3 做真实联调与阈值校准；④ 收口 T-24~T-28（closeout + 蓝图 §7 拆刀登记 + delta 接受归档）
+
+## 2026-07-29｜agent-memory-retrieval｜Type C（收口 T-24~T-27 + diff 污染修正）
+
+- **Scope**:
+  - 新增 `openspec/changes/agent-memory-retrieval/closeout.md`
+  - 改动 `Docs/agent-iteration/roadmap/iteration-blueprint.md`（§7 新增一行）
+  - 改动 `openspec/changes/agent-memory-retrieval/tasks.md`、`.ai/ACTIVE_TASK.md`
+  - 修正 `backend/src/main/java/com/flashback/agent/guardrail/AgentGuardrailRules.java`、`backend/src/test/java/com/flashback/agent/tool/AgentToolValidatorTest.java`、`backend/src/test/java/com/flashback/agent/tool/AgentToolCoordinatorTest.java`（去除格式化污染，内容改动不变）
+- **Changes**:
+  - **diff 污染修正**：上述三个既有文件在编辑保存时被自动格式化，缩进由 4 空格变为 8 空格，`git diff --stat` 虚增到 229 / 529 / 374 行。处理：从 HEAD 恢复三文件 → 改用脚本直写重新施加同样的内容改动 → 实际改动回落到 **39 / 5 / 4 行**。功能行为未变，回归仍全绿
+  - 蓝图 §7 登记 C3 拆两刀（含拆分理由与新执行顺序 C1→C2→C4→C3a→C3b→C5），并登记一项规划期核实的事实修正：§4 C3 曾称 `summarizeRecord` 已为记录生成摘要可作检索索引，实际 `record.ai_summary` 由前端回传写入、后端不自动生成，覆盖率为 `unknown`
+  - closeout 记录 5 处实现期偏离规划：T-01 受阻改为不依赖覆盖率的设计、保留单层签名重载的真实理由、新增 `REASON_MEMORY_AS_CONTENT` 分开留痕、删除无引用的 `AgentSourceLayer`、diff 污染修正
+  - closeout 给后一刀 7 条 carry-over，其中两条是必须处理的硬约束：`shouldNotCreateAnyReviewChatSession` 断言需在实现回看时修改（预期变更非回归）；`buildToolContext` 当前只按有无 recordId 判断，回看会话恰好绑定记录，必须按 purpose 显式短路否则会误发 tools
+- **Verification**: **PASS**
+  - 修正后重跑后端全量：**472 tests PASS / 0 failures / 0 errors / 1 skipped**（与修正前一致）
+  - `git diff --numstat` 复核三文件：39 / 4 / 5 行，与 `--ignore-all-space` 结果一致，确认污染已清除
+  - 蓝图改动经 `--stat` 复核为 1 insertion，无格式化污染
+  - 临时脚本（`eol-check.ps1`、`apply-c3-edits.ps1`）已删除
+- **Verification SKIPPED**（与上一条一致，未新增）:
+  - T-01 覆盖率实测：DB 凭证不可得（`root` 空密码被拒，密码由启动脚本参数提供）
+  - 闸门 3 真实联调 T-20~T-23：未申请授权
+  - `c3-agent-memory.sql` 未在本地 MySQL 执行（测试走 H2）
+- **Risks**（无新增，沿用上一条）: R8 时间归属阈值未校准、R9 检索相关性弱、`ai_summary` 覆盖率未知、R7 / R3 前序遗留
+- **Commit**: pending（提交责任=用户手动提交；Agent 未执行 `git add` / `commit` / `push`）
+- **Next**: T-28 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE
+
+## 2026-07-29｜agent-memory-retrieval｜Type C（T-01 补测 + 死代码清理）
+
+- **Scope**:
+  - `openspec/changes/agent-memory-retrieval/tasks.md`（T-01 填入实测结果并勾选）
+  - `openspec/changes/agent-memory-retrieval/closeout.md`（§3.1 改写、残余风险表更新、待执行事项勾选）
+  - `backend/src/main/java/com/flashback/agent/guardrail/AgentGuardrailViolation.java`（删除未被引用的枚举值）
+- **Changes**:
+  - **T-01 覆盖率实测完成**（用户提供 DB 凭证）：26 条记录中 `ai_summary` 62% / `belief_then` 62% / `title` 85% / **`core_question` 0%**；任一说明性字段非空 85%；状态 DRAFT 2 + UNLOCKED 24 + SEALED 0；**`tag` 表 0 行、`record_tag` 0 绑定**
+  - 实测结论**未导致任何代码改动**，且反向验证了实现期的设计选择：`core_question` 恒为空，若当初按覆盖率配权重就会为一个空字段调参；「四字段并列无权重 + 固定优先级降级」自动跳过它
+  - 新发现并记入风险：本地标签维度当前完全不可用（表为空），检索线索实际只有关键词一条；标签路径已有集成测试覆盖，闸门 3 若要验标签关联须先建标签并绑定记录
+  - **死代码清理**：`AgentGuardrailViolation.MEMORY_AS_CONTENT` 声明后未被任何代码引用（拒绝实际走 `AgentToolValidationResult.REASON_MEMORY_AS_CONTENT` 字符串常量），已删除
+  - 临时统计脚本 `t01-coverage.local.sql` 用后删除；统计 SQL 只输出计数与比例，**未输出任何记录内容**
+- **Verification**: **PASS**
+  - 删除枚举值后重跑后端全量：**472 tests PASS / 0 failures / 0 errors / 1 skipped**
+  - `AgentGuardrailViolation.java` diff 复核为 8 行新增（无格式化污染）
+  - T-01 统计过程未将日记原文写入任何输出、文件或日志；DB 密码未写入任何 tracked file
+- **Risks**（新增两条，均无需处置）:
+  - 本地 `tag` 表为空 → 标签关联在当前数据下零命中（非代码缺陷）
+  - `core_question` 本地 0% → 该字段在检索与取材中恒不贡献（降级逻辑自动跳过）
+- **Commit**: pending
+- **Next**: 分阶段提交（用户已授权本次提交）→ 判定是否进入 C3 后半刀
