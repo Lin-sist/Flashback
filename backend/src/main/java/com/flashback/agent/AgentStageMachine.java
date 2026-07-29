@@ -56,7 +56,10 @@ public class AgentStageMachine {
             int stageReaskCount,
             int turnCount,
             int maxTurns) {
-        if (currentStage == null || currentStage == AgentStage.ENDED) {
+        // C3b：REVIEW 与 ENDED 一样不可推进。回看会话刻意不经本状态机
+        // （design 决策 2），若它走到这里说明编排层的模式判定出了问题，
+        // 应当快速失败而不是静默按引导阶段处理。
+        if (currentStage == null || currentStage == AgentStage.ENDED || currentStage == AgentStage.REVIEW) {
             throw new IllegalArgumentException("stage not advanceable: " + currentStage);
         }
 

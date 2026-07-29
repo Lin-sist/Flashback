@@ -1,5 +1,6 @@
 package com.flashback.service.impl;
 
+import com.flashback.agent.AgentChatMode;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentMockResponder;
 import com.flashback.agent.AgentModelClient;
@@ -154,10 +155,20 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Transactional
     public AgentSessionVO startOrResume(Long userId, AgentSessionStartRequest request) {
         Long recordId = request == null ? null : request.getRecordId();
-        // 校验归属与草稿状态；返回值本身不参与后续编排。
-        requireOwnedRecordIfPresent(userId, recordId);
+        // C3b：模式在最开始定一次，之后编排只问模式、不问 purpose（design 决策 1）。
+        AgentSessionPurpose purpose = request == null
+                ? AgentSessionPurpose.WRITING_GUIDANCE
+                : request.purposeOrDefault();
+        AgentChatMode mode = AgentChatMode.of(purpose);
 
-        AgentSession existing = agentSessionMapper.selectActiveByUserAndRecord(userId, recordId);
+        if (mode.requiresRecord() && recordId == null) {
+            // 回看没有可回看的对象。
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "回看对话需要指定记录");
+        }
+        // 校验归属与记录状态；返回值本身不参与后续编排。
+        requireOwnedRecordIfPresent(userId, recordId, mode);
+
+        AgentSession existing = agentSessionMapper.selectActiveByUserAndRecord(userId, recordId, purpose);
         if (existing != null) {
             List<AgentMessage> existingMessages = agentMessageMapper.selectBySessionId(existing.getId());
             // 正常中断恢复：若最后一条用户消息尚无同轮 Agent 回复，显式提示重试，
@@ -177,8 +188,9 @@ public class AgentChatServiceImpl implements AgentChatService {
                 return unavailable(existing, existingMessages, unavailableReason);
             }
             LocalDateTime retryAt = LocalDateTime.now(clock);
-            AgentStage openingStage = stageMachine.firstStage();
-            AgentReply openingReply = generateReply(openingStage, List.of(), null, "opening-retry");
+            AgentStage openingStage = openingStageOf(mode);
+            AgentReply openingReply = generateReply(
+                    openingStage, List.of(), reviewFragmentsOf(userId, existing, mode), "opening-retry", mode);
             if (!openingReply.success()) {
                 return failed(existing, existingMessages, openingReply.message());
             }
@@ -193,9 +205,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentSession session = new AgentSession();
         session.setUserId(userId);
         session.setRecordId(recordId);
-        // C3：本刀只产生写作引导会话；REVIEW_CHAT 留给 agent-review-chat。
-        session.setPurpose(AgentSessionPurpose.WRITING_GUIDANCE);
-        session.setStage(AgentStage.OPENING);
+        session.setPurpose(purpose);
+        // 回看恒为 REVIEW（不经阶段机）；写作引导从 OPENING 起。
+        session.setStage(mode.isStageMachineDriven() ? AgentStage.OPENING : AgentStage.REVIEW);
         session.setStatus(AgentSessionStatus.ACTIVE);
         session.setTurnCount(0);
         session.setStageReaskCount(0);
@@ -210,8 +222,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             return unavailable(session, List.of(), unavailableReason);
         }
 
-        AgentStage openingStage = stageMachine.firstStage();
-        AgentReply reply = generateReply(openingStage, List.of(), null, "opening");
+        AgentStage openingStage = openingStageOf(mode);
+        AgentReply reply = generateReply(
+                openingStage, List.of(), reviewFragmentsOf(userId, session, mode), "opening", mode);
         if (!reply.success()) {
             return failed(session, List.of(), reply.message());
         }
@@ -246,6 +259,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         LocalDateTime now = LocalDateTime.now(clock);
         List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
 
+        AgentChatMode mode = AgentChatMode.of(session.getPurpose());
+        int maxTurns = maxTurnsOf(mode);
+
         AgentMessage pendingUserMessage = findPendingUserMessage(history, session.getTurnCount());
         int turnNo;
         AgentStage targetStage;
@@ -259,14 +275,14 @@ public class AgentChatServiceImpl implements AgentChatService {
             }
             turnNo = pendingUserMessage.getTurnNo();
             targetStage = session.getStage();
-        } else {
+        } else if (mode.isStageMachineDriven()) {
             turnNo = session.getTurnCount() + 1;
             AgentStageDecision decision = stageMachine.decide(
                     session.getStage(),
                     content,
                     session.getStageReaskCount(),
                     turnNo,
-                    appAgentProperties.getMaxTurnsPerSession());
+                    maxTurns);
 
             // 用户的话先落库：即使随后 provider 失败，用户输入也不丢。
             AgentMessage userMessage = persistMessage(
@@ -277,6 +293,17 @@ public class AgentChatServiceImpl implements AgentChatService {
             session.setStage(decision.nextStage() == AgentStage.ENDED ? AgentStage.CLOSING : decision.nextStage());
             updateProgress(session, now);
             targetStage = session.getStage();
+        } else {
+            // C3b：回看无阶段机（design 决策 2）。阶段恒为 REVIEW，
+            // stageReaskCount 不被回看逻辑改写——回看不追问，没有「同阶段再问一次」的概念。
+            turnNo = session.getTurnCount() + 1;
+            AgentMessage userMessage = persistMessage(
+                    session, AgentMessageRole.USER, turnNo, AgentStage.REVIEW, content, now);
+            history = appended(history, userMessage);
+            session.setTurnCount(turnNo);
+            session.setStage(AgentStage.REVIEW);
+            updateProgress(session, now);
+            targetStage = AgentStage.REVIEW;
         }
 
         String unavailableReason = modelClient.unavailableReason();
@@ -284,20 +311,27 @@ public class AgentChatServiceImpl implements AgentChatService {
             return unavailable(session, history, unavailableReason);
         }
 
-        AgentToolContext toolContext = buildToolContext(session);
+        AgentToolContext toolContext = buildToolContext(session, mode);
 
         // C3：先检索，再用**同一份注入列表**构造来源集合（不变量 1）。
         // 检索与建语料必须共用这个列表——若各取一次，
         // 就会出现「注入了 A 但来源集合装着 B」或「来源里有没注入的片段」，
         // 后者会让忠实度闸退化成「用户这辈子说过就放行」。
-        List<MemoryFragment> injectedMemory = retrieveMemory(session, history);
+        // C3b：回看时，被回看记录自身的内容也是「过去的表达」，与检索到的历史片段
+        // 一同进入 MEMORY 层（design 决策 4）。放进 SESSION 层会让 Agent 复述那时的话
+        // 时**不需要**带时间归属，于是「你觉得撑不住」读起来就像用户此刻说的——
+        // 那正是 C3a 整层护栏要防的事。
+        List<MemoryFragment> injectedMemory = mergedMemoryOf(
+                reviewFragmentsOf(userId, session, mode), retrieveMemory(session, history));
         // C4 + C3：来源集合在生成回复前构造一次，回复检查与工具提议校验共用同一份，
         // 保证「Agent 说的话」与「要写进正文的文字」判定基准一致。
         AgentLayeredCorpus corpus = layeredCorpusOf(history, injectedMemory);
         AgentReply reply = generateReply(
                 targetStage,
                 history,
-                draftExcerptOf(userId, session.getRecordId()),
+                // 回看不注入「草稿正文只读引用」——记录内容已在 MEMORY 层，
+                // 且那段 prompt 的措辞（用户已经写下的正文）对已解锁记录是错的。
+                mode.isStageMachineDriven() ? draftExcerptOf(userId, session.getRecordId()) : null,
                 "turn",
                 toolContext,
                 corpus,
@@ -310,14 +344,25 @@ public class AgentChatServiceImpl implements AgentChatService {
                 session, AgentMessageRole.ASSISTANT, turnNo, targetStage, reply.content(), now);
         history = appended(history, assistantMessage);
 
-        // 提议只落库为待确认，**不执行**；执行只发生在 confirmToolCall（决策 2、9）。
-        AgentToolCall pendingToolCall = toolContext.toolsEnabled()
-                ? toolCoordinator.handleProposals(session, turnNo, reply.toolCalls(), corpus)
-                : null;
+        // 提议只落库为待确认，**不执行**；执行只发生在 confirmToolCall（C2 决策 2、9）。
+        AgentToolCall pendingToolCall = null;
+        if (toolContext.toolsEnabled()) {
+            pendingToolCall = toolCoordinator.handleProposals(session, turnNo, reply.toolCalls(), corpus);
+        } else if (reply.hasToolCalls()) {
+            // C3b：回看不挂 tools，但模型仍可能自作主张返回提议。fail-closed——
+            // 丢弃并留结构化审计，不落待确认记录、不下发确认条，本轮回复照常返回。
+            log.warn("agent tool call discarded fail-closed sessionId={} turnNo={} mode={} count={}",
+                    session.getId(), turnNo, mode, reply.toolCalls().size());
+        }
 
         String materialDraft = null;
-        if (targetStage == AgentStage.CLOSING) {
+        // C3b：素材是否产出由模式决定（design 决策 8）。往已解锁记录的正文里追加
+        // 此刻的整理会破坏它的时间完整性——用户几个月后无法分辨哪句是当时写的。
+        if (mode.isMaterialProduced() && targetStage == AgentStage.CLOSING) {
             materialDraft = generateMaterial(history);
+            endSession(session, now);
+        } else if (!mode.isStageMachineDriven() && session.getTurnCount() >= maxTurns) {
+            // 回看没有 CLOSING 阶段，达到轮次上限即温和收束（design 决策 2）。
             endSession(session, now);
         }
 
@@ -360,28 +405,41 @@ public class AgentChatServiceImpl implements AgentChatService {
     public AgentSessionVO finish(Long userId, Long sessionId) {
         AgentSession session = requireOwnedSession(userId, sessionId);
         List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
+        AgentChatMode mode = AgentChatMode.of(session.getPurpose());
 
+        // C3b：回看主动结束不产素材（design 决策 8），也不调 provider。
         if (session.getStatus() == AgentSessionStatus.ENDED) {
-            return toSessionVO(session, history, generateMaterial(history), statusOfConfig());
+            return toSessionVO(
+                    session, history, mode.isMaterialProduced() ? generateMaterial(history) : null,
+                    statusOfConfig());
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
-        String materialDraft = generateMaterial(history);
+        String materialDraft = mode.isMaterialProduced() ? generateMaterial(history) : null;
         endSession(session, now);
         return toSessionVO(session, history, materialDraft, statusOfConfig());
     }
 
     // ---------- 内部实现 ----------
 
+    /**
+     * 开场与开场重试。
+     *
+     * C3b：写作引导的开场没有任何来源（用户还没说话，也没有 memory 线索）；
+     * 回看的开场则要带上被回看记录的内容，否则 Agent 第一句就无从提起那时的事。
+     * 记录内容进 MEMORY 层，故开场引用它同样要带时间归属。
+     */
     private AgentReply generateReply(
             AgentStage targetStage,
             List<AgentMessage> history,
-            String draftExcerpt,
-            String operation) {
-        // 开场与开场重试没有 memory：此时用户还没说过任何话，无检索线索。
+            List<MemoryFragment> reviewFragments,
+            String operation,
+            AgentChatMode mode) {
+        List<MemoryFragment> fragments = reviewFragments == null ? List.of() : reviewFragments;
         return generateReply(
-                targetStage, history, draftExcerpt, operation, null,
-                AgentLayeredCorpus.sessionOnly(corpusOf(history)), List.of());
+                targetStage, history, null, operation,
+                new AgentToolContext(false, null),
+                layeredCorpusOf(history, fragments), fragments);
     }
 
     /**
@@ -453,6 +511,87 @@ public class AgentChatServiceImpl implements AgentChatService {
                     session.getId(), ex.getClass().getSimpleName());
             return List.of();
         }
+    }
+
+    /**
+     * C3b：模式对应的开场阶段。
+     */
+    private AgentStage openingStageOf(AgentChatMode mode) {
+        return mode.isStageMachineDriven() ? stageMachine.firstStage() : AgentStage.REVIEW;
+    }
+
+    /**
+     * C3b：模式对应的轮次上限。回看单列配置，默认比写作引导更短——
+     * 回看是读后闲聊，没有要抵达的终点，聊到不想聊就该停。
+     */
+    private int maxTurnsOf(AgentChatMode mode) {
+        return mode.isStageMachineDriven()
+                ? appAgentProperties.getMaxTurnsPerSession()
+                : appAgentProperties.getReview().getMaxTurnsPerSession();
+    }
+
+    /**
+     * C3b：把被回看记录自身的内容做成记忆片段。
+     *
+     * 取 content + ai_summary + belief_then 三个字段（design 决策 3）——
+     * 它们的时间语义统一，都属于「封存那一刻的表达与当时的整理」。
+     * 刻意**不取** reality_later 与 reply：那是用户解锁**之后**写的，
+     * 与正文不在同一个时间点上，而时间归属检查只区分「会话层 / 记忆层」，
+     * 区分不了记忆层内部的两个时间点——混进来 Agent 就可能把后来的感想
+     * 当成那时的想法复述。
+     *
+     * 写作引导模式下恒返回空列表。
+     */
+    private List<MemoryFragment> reviewFragmentsOf(Long userId, AgentSession session, AgentChatMode mode) {
+        if (mode.isStageMachineDriven() || session.getRecordId() == null) {
+            return List.of();
+        }
+        Record record = recordMapper.selectByIdAndUserId(session.getRecordId(), userId);
+        if (record == null) {
+            return List.of();
+        }
+        int limit = appAgentProperties.getReview().getRecordExcerptChars();
+        LocalDateTime occurredAt = record.getCreatedAt();
+        String timeLabel = occurredAt == null
+                ? "那时候"
+                : occurredAt.getYear() + "年" + occurredAt.getMonthValue() + "月";
+
+        List<MemoryFragment> fragments = new ArrayList<>();
+        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getContent(), limit);
+        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getAiSummary(), limit);
+        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getBeliefThen(), limit);
+        return List.copyOf(fragments);
+    }
+
+    private void addReviewFragment(
+            List<MemoryFragment> sink,
+            Long recordId,
+            LocalDateTime occurredAt,
+            String timeLabel,
+            String text,
+            int limit) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        String normalized = text.trim();
+        String clipped = normalized.length() <= limit ? normalized : normalized.substring(0, limit);
+        sink.add(new MemoryFragment(recordId, occurredAt, timeLabel, clipped));
+    }
+
+    /**
+     * C3b：合并被回看记录的片段与检索到的历史片段。
+     *
+     * 两者都进 MEMORY 层，因为都是「过去的表达」。合并后的列表既用于注入 prompt，
+     * 也用于构造来源集合——**必须是同一份列表**（C3a 不变量 1）。
+     */
+    private List<MemoryFragment> mergedMemoryOf(
+            List<MemoryFragment> reviewFragments, List<MemoryFragment> retrieved) {
+        if (reviewFragments.isEmpty()) {
+            return retrieved;
+        }
+        List<MemoryFragment> merged = new ArrayList<>(reviewFragments);
+        merged.addAll(retrieved);
+        return List.copyOf(merged);
     }
 
     /**
@@ -541,7 +680,15 @@ public class AgentChatServiceImpl implements AgentChatService {
      * 读工具（可选标签清单、草稿快照）由后端主动注入而非模型调用（design §3.1），
      * 因为 C2 不做单轮内 FC 循环（决策 9）。
      */
-    private AgentToolContext buildToolContext(AgentSession session) {
+    private AgentToolContext buildToolContext(AgentSession session, AgentChatMode mode) {
+        // C3b（tasks T-09）：这一处必须放在最前面。
+        // 下面那个「无 recordId 则不下发 tools」的判断对回看会给出**错误答案**——
+        // 回看会话恰好绑定一条记录，于是「回看无工具」不会自动成立。
+        // 已解锁记录没有任何合法写操作（封存后 location/attachments/cover 不可变，
+        // 正文也不该被回看追加），所以按模式显式短路，而不是依赖恰好没配。
+        if (!mode.areToolsAvailable()) {
+            return new AgentToolContext(false, null);
+        }
         if (session.getRecordId() == null) {
             // 无草稿则无写工具作用对象，本轮不下发 tools。
             return new AgentToolContext(false, null);
@@ -682,7 +829,15 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
     }
 
-    private Record requireOwnedRecordIfPresent(Long userId, Long recordId) {
+    /**
+     * 校验记录归属与状态。
+     *
+     * C3b：状态要求由模式给出，不再硬编码 DRAFT。
+     * 写作引导仍只允许 DRAFT（封存后不可变契约的延续）；
+     * 回看只允许 UNLOCKED——SEALED 未解锁的记录用户自己都还没到能看的时刻，
+     * Agent 陪他聊它等于替时间拆封。
+     */
+    private Record requireOwnedRecordIfPresent(Long userId, Long recordId, AgentChatMode mode) {
         if (recordId == null) {
             return null;
         }
@@ -690,11 +845,13 @@ public class AgentChatServiceImpl implements AgentChatService {
         if (record == null) {
             throw new NotFoundException("记录不存在");
         }
-        if (record.getStatus() != com.flashback.domain.RecordStatus.DRAFT) {
+        if (record.getStatus() != mode.requiredRecordStatus()) {
             throw new BizException(
                     ErrorCode.BAD_REQUEST,
                     HttpStatus.BAD_REQUEST,
-                    "只有草稿记录可以开启写作对话");
+                    mode.isStageMachineDriven()
+                            ? "只有草稿记录可以开启写作对话"
+                            : "只有已解锁的记录可以开启回看对话");
         }
         return record;
     }
@@ -877,6 +1034,11 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         static AgentReply fail(String message) {
             return new AgentReply(false, null, message, List.of());
+        }
+
+        /** C3b：用于回看路径的 fail-closed 留痕——模型在无工具模式下仍返回了提议。 */
+        boolean hasToolCalls() {
+            return !toolCalls.isEmpty();
         }
     }
 }

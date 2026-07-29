@@ -27,6 +27,11 @@ public class AgentMockResponder {
             case CORE_QUESTION -> "如果只留一个最想弄明白的问题，你会怎么问它？";
             case EXPECTATION -> "你希望接下来变成什么样？";
             case CLOSING -> "好的，这些已经很好了。";
+            // C3b：回看没有阶段推进，开场先接住「那时候」，之后顺着用户往下聊。
+            // 刻意带上时间指示语，使 mock 路径也符合时间归属护栏的要求。
+            case REVIEW -> firstTurn(userInput)
+                    ? "那时候你写下这些的时候，一定挺不容易的。现在回过头看，你怎么想？"
+                    : "那时候的你大概也没想到会走到今天吧。";
             case ENDED -> "这次就聊到这里。";
         };
     }

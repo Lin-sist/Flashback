@@ -47,6 +47,10 @@ app:
       cue-message-window: ${AGENT_MEMORY_CUE_MESSAGE_WINDOW:3}
       min-keyword-length: ${AGENT_MEMORY_MIN_KEYWORD_LENGTH:2}
       max-keywords: ${AGENT_MEMORY_MAX_KEYWORDS:6}
+    # C3b 友人回看对话。无阶段机、无工具、无素材；轮次上限比写作引导更短。
+    review:
+      max-turns-per-session: ${AGENT_REVIEW_MAX_TURNS:6}
+      record-excerpt-chars: ${AGENT_REVIEW_RECORD_EXCERPT_CHARS:400}
   ai:
     # M4 accepted provider contract. Secrets are injected backend-side only.
     provider: ${AI_PROVIDER:mock}

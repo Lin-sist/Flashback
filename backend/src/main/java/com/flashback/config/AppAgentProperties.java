@@ -91,6 +91,53 @@ public class AppAgentProperties {
         this.guardrail = guardrail == null ? new Guardrail() : guardrail;
     }
 
+    // ---------- C3b agent-review-chat ----------
+
+    /** 友人回看对话配置。 */
+    private Review review = new Review();
+
+    public Review getReview() {
+        return review;
+    }
+
+    public void setReview(Review review) {
+        this.review = review == null ? new Review() : review;
+    }
+
+    /**
+     * 回看对话配置（C3b）。
+     *
+     * 单列轮次上限而不复用 maxTurnsPerSession 的理由：回看是读后闲聊，
+     * 节奏与「把此刻一点点说出来」的写作引导不同——引导需要走完情绪 → 困惑 →
+     * 核心问题 → 期望四个阶段，回看没有要抵达的终点，聊到不想聊就该停。
+     */
+    public static class Review {
+
+        /** 回看会话的轮次上限。默认比写作引导（8）更短。 */
+        @Positive
+        private int maxTurnsPerSession = 6;
+
+        /** 注入 prompt 的回看记录内容最大字符数（正文 + 摘要 + 当时以为共用此上限）。 */
+        @Positive
+        private int recordExcerptChars = 400;
+
+        public int getMaxTurnsPerSession() {
+            return maxTurnsPerSession;
+        }
+
+        public void setMaxTurnsPerSession(int maxTurnsPerSession) {
+            this.maxTurnsPerSession = maxTurnsPerSession;
+        }
+
+        public int getRecordExcerptChars() {
+            return recordExcerptChars;
+        }
+
+        public void setRecordExcerptChars(int recordExcerptChars) {
+            this.recordExcerptChars = recordExcerptChars;
+        }
+    }
+
     // ---------- C3 agent-memory-retrieval ----------
 
     /** 记忆检索与注入配置。同样不引入任何凭证字段。 */

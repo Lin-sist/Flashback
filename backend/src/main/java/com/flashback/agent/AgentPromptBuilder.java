@@ -280,6 +280,8 @@ public class AgentPromptBuilder {
     private String buildTurnInstruction(AgentStage targetStage) {
         return switch (targetStage) {
             case CLOSING -> "请温和地收束这次对话，让用户知道说到这里已经够了，不要再提新问题。";
+            // C3b：回看没有引导目标，本轮指令换成「陪他看那时的自己」。
+            case REVIEW -> "请顺着他刚说的往下聊，可以提起他过去写过的事，但必须说清那是哪个时候的。";
             default -> "请基于上面的对话，围绕当前引导目标问一个具体、温和、好回答的问题。";
         };
     }
@@ -291,6 +293,8 @@ public class AgentPromptBuilder {
             case CORE_QUESTION -> "帮用户把困惑收敛成一个他真正想弄明白的问题。";
             case EXPECTATION -> "问用户希望接下来变成什么样，或者希望未来的自己怎么看这一刻。";
             case CLOSING -> "温和收束，不再追问，让用户知道可以停在这里。";
+            // C3b：回看不是引导，目标是陪他重新理解那时的自己。
+            case REVIEW -> "陪他一起看那时写下的东西，帮他自己发现变化，不替他下结论。";
             case ENDED -> "对话已结束，不要再发问。";
         };
     }

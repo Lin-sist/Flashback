@@ -73,6 +73,7 @@
         FROM agent_session
         WHERE user_id = #{userId}
           AND status = 'ACTIVE'
+          AND purpose = #{purpose}
         <choose>
             <when test="recordId != null">
                 AND record_id = #{recordId}
