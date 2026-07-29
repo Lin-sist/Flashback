@@ -23,6 +23,7 @@ import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentSession;
+import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
 import com.flashback.domain.Record;
@@ -169,7 +170,9 @@ class AgentChatServiceImplTest {
     @Test
     void shouldResumeExistingActiveSessionInsteadOfCreatingNew() {
         AgentSession existing = activeSession(AgentStage.CONFUSION, 2);
-        when(agentSessionMapper.selectActiveByUserAndRecord(USER_ID, null)).thenReturn(existing);
+        // C3b：查询新增 purpose 谓词；写作引导传 WRITING_GUIDANCE。
+        when(agentSessionMapper.selectActiveByUserAndRecord(
+                USER_ID, null, AgentSessionPurpose.WRITING_GUIDANCE)).thenReturn(existing);
         when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
                 userMessage(1, "工作上有点撑不住"),
                 assistantMessage(1, "这种感觉是从什么时候开始的？")));
@@ -196,7 +199,8 @@ class AgentChatServiceImplTest {
     @Test
     void shouldExposePendingTurnAsRetryableFailureOnResume() {
         AgentSession existing = activeSession(AgentStage.CONFUSION, 1);
-        when(agentSessionMapper.selectActiveByUserAndRecord(USER_ID, null)).thenReturn(existing);
+        when(agentSessionMapper.selectActiveByUserAndRecord(
+                USER_ID, null, AgentSessionPurpose.WRITING_GUIDANCE)).thenReturn(existing);
         when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
                 assistantMessage(0, "今天是什么让你想写下这一刻？"),
                 userMessage(1, "工作上有点撑不住")));

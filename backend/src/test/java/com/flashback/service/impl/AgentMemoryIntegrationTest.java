@@ -99,20 +99,23 @@ class AgentMemoryIntegrationTest {
     }
 
     @Test
-    void shouldNotCreateAnyReviewChatSession() {
+    /**
+     * C3b 改写（原 shouldNotCreateAnyReviewChatSession）。
+     *
+     * 原断言是 C3a 的**范围守护**——「本刀不实现回看」。C3b 实现回看后该原意失效，
+     * 但它守护的另一半仍然有效且更有价值：**写作引导会话不得被误标为回看用途**。
+     * 因此改为正向断言而非删除，否则「写作引导误标 purpose」这个真实风险会失去覆盖。
+     */
+    void writingGuidanceSessionMustNeverBeMarkedAsReviewChat() {
         agentChatService.startOrResume(USER_ID, new AgentSessionStartRequest());
-        agentChatService.sendMessage(
-                USER_ID,
-                jdbcTemplate.queryForObject(
-                        "SELECT MAX(id) FROM agent_session WHERE user_id = ?", Long.class, USER_ID),
-                request("最近工作上有点撑不住"));
+        Long sessionId = jdbcTemplate.queryForObject(
+                "SELECT MAX(id) FROM agent_session WHERE user_id = ?", Long.class, USER_ID);
+        agentChatService.sendMessage(USER_ID, sessionId, request("最近工作上有点撑不住"));
 
-        Integer reviewChatCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM agent_session WHERE purpose = 'REVIEW_CHAT'", Integer.class);
+        String purpose = jdbcTemplate.queryForObject(
+                "SELECT purpose FROM agent_session WHERE id = ?", String.class, sessionId);
 
-        assertThat(reviewChatCount)
-                .as("回看会话属后一刀 agent-review-chat，本刀不得产生任何该用途的会话")
-                .isZero();
+        assertThat(purpose).isEqualTo("WRITING_GUIDANCE");
     }
 
     // ---------- 注入文本 ----------
