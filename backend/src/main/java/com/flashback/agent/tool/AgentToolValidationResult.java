@@ -43,6 +43,19 @@ public record AgentToolValidationResult(
     /** C4：提议话术中出现诊断性或谎报代决的表述。 */
     public static final String REASON_ASK_TEXT_VIOLATION = "ask-text-violation";
 
+    /**
+     * C3：正文参数的内容来自注入的历史记忆，而不是用户在本次对话中的表达。
+     *
+     * 与 REASON_UNFAITHFUL_ARGS 分开的理由：两者都不该放行，但成因不同。
+     * 前者是「模型编了一句话」，后者是「模型把三个月前写的句子搬到今天的记录里」。
+     * 分开留痕才能在闸门 3 观察到后者是否真的会发生——
+     * 混成一个原因就只能看到「又被拒了一次」。
+     */
+    public static final String REASON_MEMORY_AS_CONTENT = "memory-as-content";
+
+    /** C3：提议话术复述了历史内容却没说清那是过去哪个时候的事。 */
+    public static final String REASON_MISSING_TIME_ATTRIBUTION = "missing-time-attribution";
+
     public static AgentToolValidationResult accepted(AgentToolProposal proposal) {
         return new AgentToolValidationResult(proposal, null);
     }

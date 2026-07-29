@@ -3,6 +3,7 @@ package com.flashback.agent.tool;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentRawToolCall;
+import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentSourceCorpus;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentToolCall;
@@ -72,6 +73,19 @@ public class AgentToolCoordinator {
             int turnNo,
             List<AgentRawToolCall> rawToolCalls,
             AgentSourceCorpus corpus) {
+        // C4 签名保留：无记忆层是真实的常见运行状态（检索无命中 / 失败 / 开关关闭），
+        // 此时行为与 C4 完全一致。
+        return handleProposals(session, turnNo, rawToolCalls, AgentLayeredCorpus.sessionOnly(corpus));
+    }
+
+    /**
+     * C3 重载：使用分层来源集合处理提议。
+     */
+    public AgentToolCall handleProposals(
+            AgentSession session,
+            int turnNo,
+            List<AgentRawToolCall> rawToolCalls,
+            AgentLayeredCorpus corpus) {
 
         if (rawToolCalls == null || rawToolCalls.isEmpty()) {
             return null;

@@ -36,6 +36,17 @@ app:
     max-tool-content-chars: ${AGENT_MAX_TOOL_CONTENT_CHARS:300}
     max-tool-tag-ids: ${AGENT_MAX_TOOL_TAG_IDS:5}
     tool-outcome-window: ${AGENT_TOOL_OUTCOME_WINDOW:3}
+    # C3 Agent Memory Retrieval。只做标签 + 时间窗 + 说明性字段匹配，
+    # 不加全文索引、不引外部引擎、默认不匹配记录正文。无新增凭证字段。
+    memory:
+      # 关闭时行为等价于引入记忆之前，且后端会留痕说明未生效（不静默表现为无命中）。
+      enabled: ${AGENT_MEMORY_ENABLED:true}
+      max-fragments: ${AGENT_MEMORY_MAX_FRAGMENTS:3}
+      max-fragment-chars: ${AGENT_MEMORY_MAX_FRAGMENT_CHARS:120}
+      lookback-months: ${AGENT_MEMORY_LOOKBACK_MONTHS:24}
+      cue-message-window: ${AGENT_MEMORY_CUE_MESSAGE_WINDOW:3}
+      min-keyword-length: ${AGENT_MEMORY_MIN_KEYWORD_LENGTH:2}
+      max-keywords: ${AGENT_MEMORY_MAX_KEYWORDS:6}
   ai:
     # M4 accepted provider contract. Secrets are injected backend-side only.
     provider: ${AI_PROVIDER:mock}

@@ -12,7 +12,13 @@ import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
 import com.flashback.agent.guardrail.AgentGuardrailVerdict;
+import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentSourceCorpus;
+import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
+import com.flashback.agent.memory.MemoryCueExtractor;
+import com.flashback.agent.memory.MemoryFragment;
+import com.flashback.agent.memory.MemoryPort;
+import com.flashback.agent.memory.MemoryQuery;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolDecision;
@@ -28,6 +34,7 @@ import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentSession;
+import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
 import com.flashback.domain.AgentToolCall;
@@ -37,6 +44,7 @@ import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.mapper.AgentMessageMapper;
 import com.flashback.mapper.AgentSessionMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.RecordTagMapper;
 import com.flashback.service.AgentChatService;
 import com.flashback.service.TagService;
 import com.flashback.vo.AgentMessageVO;
@@ -91,6 +99,10 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentFaithfulnessChecker faithfulnessChecker;
     private final AgentContentChecker contentChecker;
     private final AgentGuardrailDowngrade guardrailDowngrade;
+    private final AgentTimeAttributionChecker timeAttributionChecker;
+    private final MemoryPort memoryPort;
+    private final MemoryCueExtractor memoryCueExtractor;
+    private final RecordTagMapper recordTagMapper;
     private final TagService tagService;
     private final AppAgentProperties appAgentProperties;
     private final Clock clock;
@@ -109,6 +121,10 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentFaithfulnessChecker faithfulnessChecker,
             AgentContentChecker contentChecker,
             AgentGuardrailDowngrade guardrailDowngrade,
+            AgentTimeAttributionChecker timeAttributionChecker,
+            MemoryPort memoryPort,
+            MemoryCueExtractor memoryCueExtractor,
+            RecordTagMapper recordTagMapper,
             TagService tagService,
             AppAgentProperties appAgentProperties,
             Clock clock) {
@@ -125,6 +141,10 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.faithfulnessChecker = faithfulnessChecker;
         this.contentChecker = contentChecker;
         this.guardrailDowngrade = guardrailDowngrade;
+        this.timeAttributionChecker = timeAttributionChecker;
+        this.memoryPort = memoryPort;
+        this.memoryCueExtractor = memoryCueExtractor;
+        this.recordTagMapper = recordTagMapper;
         this.tagService = tagService;
         this.appAgentProperties = appAgentProperties;
         this.clock = clock;
@@ -173,6 +193,8 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentSession session = new AgentSession();
         session.setUserId(userId);
         session.setRecordId(recordId);
+        // C3：本刀只产生写作引导会话；REVIEW_CHAT 留给 agent-review-chat。
+        session.setPurpose(AgentSessionPurpose.WRITING_GUIDANCE);
         session.setStage(AgentStage.OPENING);
         session.setStatus(AgentSessionStatus.ACTIVE);
         session.setTurnCount(0);
@@ -263,11 +285,23 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
 
         AgentToolContext toolContext = buildToolContext(session);
-        // C4：来源集合在生成回复前构造一次，回复检查与工具提议校验共用同一份，
+
+        // C3：先检索，再用**同一份注入列表**构造来源集合（不变量 1）。
+        // 检索与建语料必须共用这个列表——若各取一次，
+        // 就会出现「注入了 A 但来源集合装着 B」或「来源里有没注入的片段」，
+        // 后者会让忠实度闸退化成「用户这辈子说过就放行」。
+        List<MemoryFragment> injectedMemory = retrieveMemory(session, history);
+        // C4 + C3：来源集合在生成回复前构造一次，回复检查与工具提议校验共用同一份，
         // 保证「Agent 说的话」与「要写进正文的文字」判定基准一致。
-        AgentSourceCorpus corpus = corpusOf(history);
+        AgentLayeredCorpus corpus = layeredCorpusOf(history, injectedMemory);
         AgentReply reply = generateReply(
-                targetStage, history, draftExcerptOf(userId, session.getRecordId()), "turn", toolContext, corpus);
+                targetStage,
+                history,
+                draftExcerptOf(userId, session.getRecordId()),
+                "turn",
+                toolContext,
+                corpus,
+                injectedMemory);
         if (!reply.success()) {
             return failed(session, history, reply.message());
         }
@@ -344,18 +378,92 @@ public class AgentChatServiceImpl implements AgentChatService {
             List<AgentMessage> history,
             String draftExcerpt,
             String operation) {
-        return generateReply(targetStage, history, draftExcerpt, operation, null, corpusOf(history));
+        // 开场与开场重试没有 memory：此时用户还没说过任何话，无检索线索。
+        return generateReply(
+                targetStage, history, draftExcerpt, operation, null,
+                AgentLayeredCorpus.sessionOnly(corpusOf(history)), List.of());
     }
 
     /**
-     * C4：构造忠实度判定的来源集合——**只含本会话用户自己说过的话**。
+     * C4：构造忠实度判定的会话层来源——**只含本会话用户自己说过的话**。
      *
-     * 边界（design.md 关键不变量 5）：不含 Agent 自己的表达（否则 Agent 上一轮说的话
-     * 会成为下一轮增写的「合法来源」，忠实度闸自我失效），
-     * 也不含跨记录历史检索结果（那是 C3 的边界）。
+     * 边界（C4 design.md 关键不变量 5）：不含 Agent 自己的表达（否则 Agent 上一轮说的话
+     * 会成为下一轮增写的「合法来源」，忠实度闸自我失效）。
+     * C3 起跨记录片段进入独立的记忆层，见 {@link #layeredCorpusOf}。
      */
     private AgentSourceCorpus corpusOf(List<AgentMessage> history) {
         return AgentSourceCorpus.of(history, faithfulnessChecker.ngramSize());
+    }
+
+    /**
+     * C3：构造分层来源集合。
+     *
+     * @param injectedFragments 本轮**实际注入** prompt 的片段；空表示无记忆层，
+     *                          此时判定行为与 C4 现状完全一致
+     */
+    private AgentLayeredCorpus layeredCorpusOf(
+            List<AgentMessage> history, List<MemoryFragment> injectedFragments) {
+        if (injectedFragments == null || injectedFragments.isEmpty()) {
+            return AgentLayeredCorpus.sessionOnly(corpusOf(history));
+        }
+        List<String> texts = new ArrayList<>();
+        for (MemoryFragment fragment : injectedFragments) {
+            if (fragment != null && fragment.text() != null && !fragment.text().isBlank()) {
+                texts.add(fragment.text());
+            }
+        }
+        return AgentLayeredCorpus.of(history, texts, faithfulnessChecker.ngramSize());
+    }
+
+    /**
+     * C3：检索本轮要注入的记忆片段。
+     *
+     * fail-open**仅对能力**（design.md 决策 6）：检索异常时返回空列表，
+     * 本轮退回无记忆行为、对话正常继续。
+     * 护栏方向相反——没有记忆层就没有 MEMORY 来源，判定照旧严格，
+     * 绝不会因为「检索失败了所以宽容一点」。
+     *
+     * 记忆能力是增强而非依赖：让一次 LIKE 查询的超时毁掉用户正在进行的写作对话，
+     * 违反 baseline「Agent 可用性 SHALL NOT 成为记录生命周期的依赖」的精神。
+     */
+    private List<MemoryFragment> retrieveMemory(AgentSession session, List<AgentMessage> history) {
+        AppAgentProperties.Memory config = appAgentProperties.getMemory();
+        if (!config.isEnabled()) {
+            // 开关关闭必须留痕，不静默表现为检索无命中（backend-core delta 要求）。
+            log.info("agent memory retrieval disabled by config sessionId={}", session.getId());
+            return List.of();
+        }
+        try {
+            List<String> keywords = memoryCueExtractor.extractKeywords(history);
+            List<Long> tagIds = memoryTagIdsOf(session);
+            MemoryQuery query = new MemoryQuery(
+                    session.getUserId(),
+                    session.getPurpose(),
+                    keywords,
+                    tagIds,
+                    session.getRecordId(),
+                    config.getMaxFragments());
+            if (!query.hasCue()) {
+                return List.of();
+            }
+            return memoryPort.retrieve(query);
+        } catch (RuntimeException ex) {
+            // 只记异常类型，不记检索线索或片段内容。
+            log.warn("agent memory retrieval failed sessionId={} cause={}",
+                    session.getId(), ex.getClass().getSimpleName());
+            return List.of();
+        }
+    }
+
+    /**
+     * 当前草稿已绑定的标签，用作同标签关联的检索线索。
+     */
+    private List<Long> memoryTagIdsOf(AgentSession session) {
+        if (session.getRecordId() == null) {
+            return List.of();
+        }
+        List<Long> tagIds = recordTagMapper.selectTagIdsByRecordId(session.getRecordId());
+        return tagIds == null ? List.of() : tagIds;
     }
 
     /**
@@ -373,7 +481,8 @@ public class AgentChatServiceImpl implements AgentChatService {
             String draftExcerpt,
             String operation,
             AgentToolContext toolContext,
-            AgentSourceCorpus corpus) {
+            AgentLayeredCorpus corpus,
+            List<MemoryFragment> injectedMemory) {
         if (modelClient.isMockProvider()) {
             String latestUserInput = latestUserContent(history);
             String mocked = guardrailPolicy.enforceReplyLength(
@@ -394,7 +503,8 @@ public class AgentChatServiceImpl implements AgentChatService {
                     targetStage,
                     history,
                     draftExcerpt,
-                    toolContext == null ? null : toolContext.supplement());
+                    toolContext == null ? null : toolContext.supplement(),
+                    promptBuilder.buildMemorySupplement(injectedMemory));
 
             AgentModelResponse response = modelClient.completeWithTools(
                     messages, tools, toolsEnabled && modelClient.useStrictMode());
@@ -456,16 +566,25 @@ public class AgentChatServiceImpl implements AgentChatService {
      * 回复受诊断 / 代决检查约束；命中则替换为安全兜底回复（design 决策 3），
      * 因为用户提交了一轮消息必须得到回应，拒绝或丢弃会让对话看起来挂了。
      */
-    private String applyReplyGuardrail(String reply, AgentSourceCorpus corpus, String operation) {
+    private String applyReplyGuardrail(String reply, AgentLayeredCorpus corpus, String operation) {
         if (reply == null) {
             return null;
         }
-        AgentGuardrailVerdict verdict = contentChecker.check(reply, corpus);
-        if (verdict.isPassed()) {
-            return reply;
+        // 内容检查用合并层：Agent 可以合法地提起过去的事，
+        // 若只用会话层，「我记得你三月份也写过」里的复述部分会被当成 Agent 新增表述，
+        // 诊断 / 代决的分区判定会因此失准。
+        AgentGuardrailVerdict verdict = contentChecker.check(reply, corpus.combined());
+        if (!verdict.isPassed()) {
+            guardrailDowngrade.trace("reply:" + operation, null, null, verdict);
+            return guardrailDowngrade.safeFallbackReply();
         }
-        guardrailDowngrade.trace("reply:" + operation, null, null, verdict);
-        return guardrailDowngrade.safeFallbackReply();
+        // C3：复述记忆内容必须带时间归属，否则三个月前的心情会被读成此刻的心情。
+        AgentGuardrailVerdict attribution = timeAttributionChecker.check(reply, corpus);
+        if (!attribution.isPassed()) {
+            guardrailDowngrade.trace("reply-attribution:" + operation, null, null, attribution);
+            return guardrailDowngrade.safeFallbackReply();
+        }
+        return reply;
     }
 
     /**

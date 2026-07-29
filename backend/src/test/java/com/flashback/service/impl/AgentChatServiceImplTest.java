@@ -10,6 +10,9 @@ import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
+import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
+import com.flashback.agent.memory.MemoryCueExtractor;
+import com.flashback.agent.memory.MemoryPort;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
@@ -29,6 +32,7 @@ import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.mapper.AgentMessageMapper;
 import com.flashback.mapper.AgentSessionMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.mapper.RecordTagMapper;
 import com.flashback.vo.AgentSessionVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,6 +85,16 @@ class AgentChatServiceImplTest {
     @Mock
     private TagService tagService;
 
+    /**
+     * C3 新增依赖。默认不打桩 → 返回空列表，
+     * 即「检索无命中」，本类既有 C1/C2/C4 行为断言因此完全不变。
+     */
+    @Mock
+    private MemoryPort memoryPort;
+
+    @Mock
+    private RecordTagMapper recordTagMapper;
+
     private AppAgentProperties properties;
     private AgentChatServiceImpl service;
 
@@ -117,6 +131,12 @@ class AgentChatServiceImplTest {
                 faithfulnessChecker,
                 new AgentContentChecker(properties, faithfulnessChecker),
                 new AgentGuardrailDowngrade(),
+                // C3 新增依赖：时间归属检查与记忆检索。检索 mock 默认无命中，
+                // 因此本类断言的仍是「无记忆层」路径 —— 与 C4 现状等价。
+                new AgentTimeAttributionChecker(properties),
+                memoryPort,
+                new MemoryCueExtractor(properties),
+                recordTagMapper,
                 tagService,
                 properties,
                 clock);

@@ -3,6 +3,7 @@ package com.flashback.agent.tool;
 import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.agent.guardrail.AgentSourceCorpus;
+import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.config.AppAgentProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,10 @@ class AgentToolValidatorTest {
         AgentFaithfulnessChecker faithfulnessChecker = new AgentFaithfulnessChecker(properties);
         AgentContentChecker contentChecker = new AgentContentChecker(properties, faithfulnessChecker);
         validator = new AgentToolValidator(
-                new AgentToolRegistry(), properties, faithfulnessChecker, contentChecker, clock);
+                new AgentToolRegistry(), properties, faithfulnessChecker, contentChecker,
+                // C3：新增时间归属检查依赖。本类用例均不注入记忆层，
+                // 故该检查恒判通过，既有断言语义不变。
+                new AgentTimeAttributionChecker(properties), clock);
         corpus = AgentSourceCorpus.ofTexts(
                 List.of("撑不住"), properties.getGuardrail().getFaithfulnessNgramSize());
     }

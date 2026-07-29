@@ -3,7 +3,9 @@ package com.flashback.agent.tool;
 import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.agent.guardrail.AgentGuardrailVerdict;
+import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentSourceCorpus;
+import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.config.AppAgentProperties;
 import org.springframework.stereotype.Component;
 
@@ -39,6 +41,7 @@ public class AgentToolValidator {
     private final AppAgentProperties appAgentProperties;
     private final AgentFaithfulnessChecker faithfulnessChecker;
     private final AgentContentChecker contentChecker;
+    private final AgentTimeAttributionChecker timeAttributionChecker;
     private final Clock clock;
 
     public AgentToolValidator(
@@ -46,24 +49,41 @@ public class AgentToolValidator {
             AppAgentProperties appAgentProperties,
             AgentFaithfulnessChecker faithfulnessChecker,
             AgentContentChecker contentChecker,
+            AgentTimeAttributionChecker timeAttributionChecker,
             Clock clock) {
         this.registry = registry;
         this.appAgentProperties = appAgentProperties;
         this.faithfulnessChecker = faithfulnessChecker;
         this.contentChecker = contentChecker;
+        this.timeAttributionChecker = timeAttributionChecker;
         this.clock = clock;
     }
 
     /**
      * 校验一条原始提议。
      *
+     * C3 的来源分层在此体现（design.md §2.4、不变量 2）：
+     * - 正文参数只认**会话层**——记忆内容不得成为正文来源；
+     * - 提议话术认**两层**，因为它天然可以提起过去的事，但须带时间归属。
+     *
      * @param wireName 模型给出的工具名
      * @param rawArgs  已解析的参数载体
      * @param hasDraft 当前会话是否绑定了可编辑草稿
-     * @param corpus   C4：来源集合（本会话用户原话），用于忠实度判定
+     * @param corpus   分层来源集合
      */
     public AgentToolValidationResult validate(
             String wireName, AgentToolRawArguments rawArgs, boolean hasDraft, AgentSourceCorpus corpus) {
+        // C4 签名保留：只有会话层来源时等价于未注入记忆，判定行为与 C4 完全一致。
+        // 保留它不是为了兼容测试，而是因为「无记忆」是一个真实且常见的运行状态
+        // （检索无命中、检索失败、记忆开关关闭），调用方不该被迫先包一层。
+        return validate(wireName, rawArgs, hasDraft, AgentLayeredCorpus.sessionOnly(corpus));
+    }
+
+    /**
+     * C3 重载：使用分层来源集合校验。
+     */
+    public AgentToolValidationResult validate(
+            String wireName, AgentToolRawArguments rawArgs, boolean hasDraft, AgentLayeredCorpus corpus) {
         if (!registry.isProposable(wireName)) {
             // 白名单外，或模型试图调用后端预注入的读工具。
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_NOT_ALLOWLISTED);
@@ -97,20 +117,32 @@ public class AgentToolValidator {
         };
     }
 
-    private String validateAskText(String askText, AgentSourceCorpus corpus) {
-        AgentGuardrailVerdict quoteVerdict = contentChecker.checkQuotes(askText, corpus);
+    /**
+     * 提议话术的检查。
+     *
+     * 用**合并层**：话术可以合法地提起过去的事（「我记得你三月份也写过……要不要……」），
+     * 若只用会话层，这类正确表述会被判成伪引用。
+     * 代价由时间归属检查补上——提起过去必须说清是过去。
+     */
+    private String validateAskText(String askText, AgentLayeredCorpus corpus) {
+        AgentSourceCorpus combined = corpus.combined();
+        AgentGuardrailVerdict quoteVerdict = contentChecker.checkQuotes(askText, combined);
         if (!quoteVerdict.isPassed()) {
             return AgentToolValidationResult.REASON_FABRICATED_QUOTE;
         }
-        AgentGuardrailVerdict contentVerdict = contentChecker.check(askText, corpus);
+        AgentGuardrailVerdict contentVerdict = contentChecker.check(askText, combined);
         if (!contentVerdict.isPassed()) {
             return AgentToolValidationResult.REASON_ASK_TEXT_VIOLATION;
+        }
+        AgentGuardrailVerdict attributionVerdict = timeAttributionChecker.check(askText, corpus);
+        if (!attributionVerdict.isPassed()) {
+            return AgentToolValidationResult.REASON_MISSING_TIME_ATTRIBUTION;
         }
         return null;
     }
 
     private AgentToolValidationResult validateAppendContent(
-            String askText, AgentToolRawArguments rawArgs, AgentSourceCorpus corpus) {
+            String askText, AgentToolRawArguments rawArgs, AgentLayeredCorpus corpus) {
         String text = normalize(rawArgs.text());
         if (text == null) {
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_INVALID_ARGUMENT);
@@ -119,10 +151,16 @@ public class AgentToolValidator {
         if (text.length() > appAgentProperties.getMaxToolContentChars()) {
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_OUT_OF_BOUNDS);
         }
-        // C4 核心：这段文字会进入用户日记正文，必须忠实于用户自己说过的话。
-        // 判定不通过则提议根本不落库，用户看不到那个确认条。
-        AgentGuardrailVerdict verdict = faithfulnessChecker.check(text, corpus);
+        // C4 核心 + C3 收紧：这段文字会进入用户日记正文，
+        // 必须忠实于用户**在本次对话中**说过的话——只认会话层（不变量 2，不可配置）。
+        AgentGuardrailVerdict verdict = faithfulnessChecker.check(text, corpus.sessionOnly());
         if (!verdict.isPassed()) {
+            // C3：区分「编了一句」与「把旧记录搬过来」。
+            // 若这段文字在合并层忠实、只在会话层不忠实，说明它来自注入的记忆。
+            if (corpus.hasMemory() && faithfulnessChecker.check(text, corpus.combined()).isPassed()) {
+                return AgentToolValidationResult.rejected(
+                        AgentToolValidationResult.REASON_MEMORY_AS_CONTENT);
+            }
             return AgentToolValidationResult.rejected(AgentToolValidationResult.REASON_UNFAITHFUL_ARGS);
         }
         return AgentToolValidationResult.accepted(AgentToolProposal.appendContent(askText, text));

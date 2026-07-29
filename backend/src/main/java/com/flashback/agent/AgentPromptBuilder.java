@@ -3,6 +3,7 @@ package com.flashback.agent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
+import com.flashback.agent.memory.MemoryFragment;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
@@ -75,10 +76,30 @@ public class AgentPromptBuilder {
             List<AgentMessage> history,
             String draftExcerpt,
             String toolSupplement) {
+        return buildConversationMessages(targetStage, history, draftExcerpt, toolSupplement, null);
+    }
+
+    /**
+     * C3 重载：附带记忆补充上下文。
+     *
+     * 沿用 C2 的 system 段追加位形态，不改既有重载的语义——
+     * 既有调用方无需改动，这是 C3 选择「新增追加位」而非「重构组装流程」的直接收益。
+     *
+     * @param memorySupplement 本轮实际注入的历史记忆片段段落，可为 null
+     */
+    public List<Map<String, String>> buildConversationMessages(
+            AgentStage targetStage,
+            List<AgentMessage> history,
+            String draftExcerpt,
+            String toolSupplement,
+            String memorySupplement) {
         List<Map<String, String>> messages = new ArrayList<>();
         String system = buildSystemPrompt(targetStage, draftExcerpt);
         if (toolSupplement != null && !toolSupplement.isBlank()) {
             system = system + "\n\n" + toolSupplement.trim();
+        }
+        if (memorySupplement != null && !memorySupplement.isBlank()) {
+            system = system + "\n\n" + memorySupplement.trim();
         }
         messages.add(Map.of("role", "system", "content", system));
 
@@ -191,6 +212,43 @@ public class AgentPromptBuilder {
                         .append(toolCall.getStatus() == AgentToolCallStatus.EXECUTED ? "已完成" : "没有成功")
                         .append('\n');
             }
+        }
+        return builder.toString().trim();
+    }
+
+    /**
+     * C3：构造记忆补充上下文。
+     *
+     * 三条约束都写在文本里，且都有代码层的对应硬拦（design.md §2.2）：
+     * 1. 每个片段带可读时间锚点 —— 它是时间归属护栏的语义目标；
+     * 2. 明写「不是正文素材」 —— 对应「正文只认会话层」的不可配置硬约束；
+     * 3. 约束文案取自 AgentGuardrailRules 单一声明源（C4 决策 5 的既有约定），
+     * 不在本类内联新规则，避免 prompt 与后置检查随时间分叉。
+     *
+     * 无片段时返回空串：**不注入占位段**。
+     * 一个说「你没有相关的旧事」的段落会诱导模型解释为什么没有，
+     * 而产品要的是无命中时安静地不提。
+     *
+     * @param fragments 本轮实际要注入的片段；调用方须传入与来源集合完全相同的列表
+     */
+    public String buildMemorySupplement(List<MemoryFragment> fragments) {
+        if (fragments == null || fragments.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(guardrailRules.memoryUsageClause());
+        builder.append("\n\n他以前写下的片段：\n");
+        for (MemoryFragment fragment : fragments) {
+            if (fragment == null || fragment.text() == null || fragment.text().isBlank()) {
+                continue;
+            }
+            builder.append("- [")
+                    .append(fragment.timeLabel())
+                    .append('·')
+                    .append("记录")
+                    .append(fragment.recordId())
+                    .append("] ")
+                    .append(fragment.text().trim())
+                    .append('\n');
         }
         return builder.toString().trim();
     }

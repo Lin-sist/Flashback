@@ -2,6 +2,7 @@ package com.flashback.agent.tool;
 
 import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
+import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.common.error.ErrorCode;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
@@ -64,6 +65,8 @@ class AgentToolExecutorTest {
                 properties,
                 faithfulnessChecker,
                 new AgentContentChecker(properties, faithfulnessChecker),
+                // C3：新增时间归属检查依赖；执行层不涉及记忆层。
+                new AgentTimeAttributionChecker(properties),
                 clock);
         executor = new AgentToolExecutor(recordService, validator);
     }

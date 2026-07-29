@@ -6,6 +6,7 @@ import com.flashback.agent.AgentRawToolCall;
 import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
+import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.guardrail.AgentSourceCorpus;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.config.AppAiProperties;
@@ -73,7 +74,9 @@ class AgentToolCoordinatorTest {
         coordinator = new AgentToolCoordinator(
                 agentToolCallMapper,
                 new AgentToolValidator(
-                        new AgentToolRegistry(), agentProperties, faithfulnessChecker, contentChecker, clock),
+                        new AgentToolRegistry(), agentProperties, faithfulnessChecker, contentChecker,
+                        // C3：新增时间归属检查依赖；本类用例不注入记忆层，检查恒通过。
+                        new AgentTimeAttributionChecker(agentProperties), clock),
                 executor,
                 new AgentModelClient(aiProperties, agentProperties),
                 new AgentGuardrailPolicy(agentProperties, guardrailRules),
