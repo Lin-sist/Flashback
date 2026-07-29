@@ -8,8 +8,8 @@
 
 - Change：`agent-review-chat`（C3 后半刀）
 - 位置：`openspec/changes/agent-review-chat/`
-- 开工锚点：待 C3a 归档提交后记录
-- 阶段：**闸门 1 规划批准待用户确认**。批准前禁止改业务代码；批准 ≠ 实现授权
+- 开工锚点：`b76f221`
+- 阶段：**规划闸产出完成，N1–N6 已定稿；闸门 2 实现授权待用户明确允许**。授权前禁止改业务代码
 - 提交责任：**用户手动提交**（除用户当轮明确授权外，Agent 不执行 `git add` / `commit` / `push`）
 - 外调预算：规划 0；实现 0（走 mock）；闸门 3 单独授权后 ≤ 20 次
 
@@ -64,12 +64,32 @@
 - 方向：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（已冻结 v1.1，§7 含 C3 拆刀登记）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
+## N1–N6 已定稿（2026-07-29 用户按推荐批准）
+
+| # | 定稿 |
+|---|---|
+| N1 | 同一 `AgentChatServiceImpl` + purpose 分支，**差异收敛到单一模式判定点**（不散落 `if`） |
+| N2 | `stage` 用专用常量 `REVIEW`；结束 = 轮次上限或用户 `finish`；轮次上限单列配置默认 6 |
+| N3 | 注入 `content` + `ai_summary` + `belief_then`（**不注入** `reality_later` / `reply`），全部进 MEMORY 层 |
+| N4 | 时间归属阈值**不动**，靠合并联调实测；不为回看单开阈值，不在回看关掉该检查 |
+| N5 | 复用 `POST /api/agent/sessions`，请求体加 `purpose`（缺省 `WRITING_GUIDANCE`） |
+| N6 | `selectActiveByUserAndRecord` 补 purpose 谓词 |
+
 ## Current Progress
 
-- **Last session**: 2026-07-29 — C3a 全流程完成：规划闸 → 实现（分层来源 + 时间归属护栏 + MemoryPort + MySQL 检索 + 注入接入）→ 472 tests PASS / 1 skipped → 分 5 个 commit 提交 → T-01 补测 → delta 接受进 baseline → 归档
-- **Blocked on**: 闸门 1 用户批准（C3b 规划产出待审）
-- **Next step**: 产出 `agent-review-chat` 的 proposal / design / tasks / delta，并提出本轮待确认项
-- **Commit**: C3a 五个 commit 已落（`db2174f` / `8fdcdc1` / `131dfd3` / `7bf9190` / `4bb4515`）；归档与 delta 接受待提交；**未 push**
+- **Last session**: 2026-07-29 —
+  ① C3a 全流程完成并归档（分层来源 + 时间归属护栏 + MemoryPort + MySQL 检索 + 注入接入；472 tests PASS / 1 skipped；5 个 commit；T-01 覆盖率补测；delta 接受进 baseline）
+  ② C3b 规划闸产出：`proposal.md`（现状 V1–V23 + 37 条验收）、`design.md`（**11 条决策记录**，按用户要求不铺架构图）、`tasks.md`（T-01~T-40，8 阶段 + 范围守护自检）
+  ③ N1–N6 按推荐定稿
+- **Blocked on**: 闸门 2 实现授权
+- **Next step**: 获授权后按 tasks 实现，第一步是 T-01 单一模式判定点（design 决策 1 的硬约束）
+- **Commit**: C3a 六个 commit 已落（`db2174f` / `8fdcdc1` / `131dfd3` / `7bf9190` / `4bb4515` / `b76f221`）；C3b 规划产物待提交；**未 push**
+
+## 本刀最易漏的三处（实现期逐条核对）
+
+1. **`buildToolContext` 会给出错误答案**（tasks T-09）：它只按「有无 recordId」判断是否下发 tools，而回看会话恰好绑定一条记录 → **「回看无工具」不会自动成立**，必须按 purpose 显式短路
+2. **`CLOSING` 阶段会触发素材生成**（tasks T-11）：这是决策 2 不复用 `CLOSING` 常量的原因之一；回看路径须短路 `generateMaterial`
+3. **`AgentStage` 新增 `REVIEW` 后要逐个检查既有 switch**（tasks T-02）：`stageGoal` / `buildTurnInstruction` / `AgentStageMachine`，不靠 default 混过去
 
 ## Residual / Carry-over（技术与环境）
 

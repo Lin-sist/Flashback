@@ -5909,3 +5909,65 @@ Commit: pending
 - **Risks**: R8（已随 baseline 生效）、R9 检索相关性弱、R7（C4）、R3（C2，本刀补齐）、本地 tag 表为空导致标签路径零命中
 - **Commit**: pending
 - **Next**: 产出 C3b `agent-review-chat` 规划闸（proposal / design / tasks / delta + 待确认项）
+
+## 2026-07-29｜agent-review-chat｜Type C（规划闸，零业务代码）
+
+- **Scope**:
+  - 新增 `openspec/changes/agent-review-chat/proposal.md`
+  - 新增 `openspec/changes/agent-review-chat/design.md`
+  - 新增 `openspec/changes/agent-review-chat/tasks.md`
+  - 改动 `.ai/ACTIVE_TASK.md`（N1–N6 定稿、进度、三处易漏点）
+  - delta 未在规划期产出，列为 tasks T-26~T-29（实现期与代码同步落地）
+- **Changes**:
+  - Type A 现状扫描（只读）：核实 `AgentChatServiceImpl` 的开会话校验 / 轮次推进 / 工具上下文 / 素材触发四处，`record-detail` 的 `reply-overlay` 状态机，`AgentChatSheet` 与工具确认的耦合度，`miniapp-core` 既有 4 条 Agent UI 条款
+  - **扫出三处「既有实现会给出错误答案」的陷阱**，全部写进 tasks 与 ACTIVE_TASK：
+    ① `buildToolContext` 只按有无 recordId 判断 → 回看恰好绑定记录，「无工具」不会自动成立；
+    ② `targetStage == CLOSING` 会触发 `generateMaterial` → 回看若复用 CLOSING 常量会意外产出素材；
+    ③ `selectActiveByUserAndRecord` 不含 purpose 条件 → 契约上不该依赖 DRAFT/UNLOCKED 互斥这个巧合
+  - design 按用户要求**只保留决策记录**（11 条），不铺架构图与数据流——共享部分与 C1/C2/C4/C3a 一致，差异全在决策里
+  - 记录了本刀最大风险与其取舍：回看几乎每轮都在复述过去，会把 C3a 未校准的时间归属阈值（R8）放到最高频场景。定稿选择是阈值不动、靠实测（决策 5），拒绝「为回看单开更宽阈值」与「回看关掉该检查」两个方向——后者等于在护栏最该生效的地方关掉它
+  - 明确本刀是**时间归属护栏的第一次真实压力测试**，写进验收标准与闸门 3 观察项
+- **Verification**: **SKIPPED（规划阶段无代码改动，无可运行验证）**
+  - 事实核对方式：grep + 定点读 `AgentChatServiceImpl` / `record-detail/index.vue` / `AgentChatSheet.vue` / `agentService.ts` / `miniapp-core` spec，proposal §2 每条标注 confirmed / out_of_scope
+  - 未跑测试（零代码改动，当前基线仍为 472 PASS / 1 skipped）
+- **Risks**:
+  - 时间归属在回看高频触发，未校准阈值可能导致频繁误伤（观感为「突然失忆」）；缓解靠失败方向选择而非调参
+  - `AgentStage` 新增枚举值需检查既有 switch，遗漏会走 default 而非编译报错
+  - 唯一允许修改的既有断言是 `shouldNotCreateAnyReviewChatSession`（改为正向断言，须披露）
+  - `c3-agent-memory.sql` 仍未在本地 MySQL 执行，真机手验前置
+- **Commit**: pending（提交责任=用户手动提交）
+- **Next**: 闸门 2 实现授权 → T-01 单一模式判定点
+
+## 2026-07-29｜agent-review-chat｜Type C（闸门 2 实现 + T-30 修复用户手验报错）
+
+- **Scope**:
+  - **新增（main）**：`agent/AgentChatMode.java`
+  - **改动（main）**：`domain/AgentStage.java`（新增 `REVIEW`）、`agent/AgentStageMachine.java`、`agent/AgentMockResponder.java`、`agent/AgentPromptBuilder.java`、`config/AppAgentProperties.java`、`dto/AgentSessionStartRequest.java`、`mapper/AgentSessionMapper.java`(+XML)、`service/impl/AgentChatServiceImpl.java`、`resources/application.yml`
+  - **新增（test）**：`service/impl/AgentReviewChatIntegrationTest.java`、`agent/guardrail/AgentReviewGuardrailTest.java`
+  - **改动（test）**：`service/impl/AgentChatServiceImplTest.java`、`service/impl/AgentMemoryIntegrationTest.java`
+  - **新增（frontend）**：`pages/record-detail/components/ReviewChatSheet.vue`
+  - **改动（frontend）**：`pages/record-detail/index.vue`、`services/agentService.ts`
+  - **delta**：`specs/{agent-runtime,backend-core,miniapp-core,v2-product-scope}/spec.md`
+  - **本地库**：执行 `backend/sql/mysql/c3-agent-memory.sql`
+- **Changes**:
+  - 单一模式判定点 `AgentChatMode`：一处回答四个问题（记录状态要求 / 是否走阶段机 / 是否下发工具 / 是否产素材），编排只问模式不问 purpose，避免五层护栏在两条链路分叉
+  - 三处规划期预判的陷阱全部确认真实存在并处理：① `buildToolContext` 的模式短路放在 `recordId == null` 判断**之前**；② 不复用 `CLOSING`（会触发 `generateMaterial`），改新增 `REVIEW`；③ `selectActiveByUserAndRecord` 补 purpose 谓词
+  - 新增 `REVIEW` 时 `AgentMockResponder` 的穷尽 switch 直接编译报错，逼出显式处理（验证了 tasks T-02「不靠 default 混过去」的必要性）；`AgentStageMachine` 对 `REVIEW` 快速失败
+  - 被回看记录 `content` + `ai_summary` + `belief_then` 进 MEMORY 层；刻意不注入 `reality_later` / `reply`（解锁后写的，时间语义不同）
+  - 回看：无阶段机、轮次上限单列（默认 6）、tool_calls fail-closed、不产素材、`finish` 也不产素材
+  - 前端新建 `ReviewChatSheet`（不复用带工具确认的 `AgentChatSheet`）+ 与 `reply-overlay` 双向互斥
+  - **T-30 修复用户手验报错**：用户手验报「系统异常: api/agent/sessions」，根因是 C3a 的 mapper 已把 `purpose` 写进列清单与 insert，而本地库无该列 → **写作引导对话也一起 500**，不只回看。执行幂等 DDL 后修复
+- **Verification**: **PASS**
+  - 后端全量：**495 tests PASS / 0 failures / 0 errors / 1 skipped**（472 基线 + 23 新增）
+  - 前端：`vue-tsc --noEmit` PASS；`build:mp-weixin` PASS
+  - 本地 MySQL：`purpose` 列已建、脚本幂等验证 PASS、回看会话真实插入 + 按 purpose 查询命中 PASS
+  - **既有断言改写披露**：仅 `AgentMemoryIntegrationTest.shouldNotCreateAnyReviewChatSession` → 改为正向断言 `writingGuidanceSessionMustNeverBeMarkedAsReviewChat`。原断言是 C3a 范围守护（本刀不实现回看），C3b 落地后原意失效；改而非删是因为它守护的另一半（写作引导不得误标 purpose）仍有效。其余既有断言零修改
+  - **自我修正**：`AgentMemoryIntegrationTest` 又被编辑器自动格式化 + 改行尾，diff 从 17 行虚增到 262 行；已重新施加改动并对齐行尾，回落 17/14。修正过程中我还写错一版检测脚本（用 `git show | Out-String` 判断 HEAD 行尾，而 PowerShell 管道自身会加 CRLF，导致误判方向白修一轮），最终按 `--ignore-cr-at-eol` 的收敛幅度判断才正确
+- **Verification SKIPPED**:
+  - 闸门 3（T-31~T-36）：**本轮用户已授权，紧接着执行**
+  - 微信真机手验（R3 + 回看浮层）：需用户在真机操作
+- **Risks**:
+  - **R8 仍未校准**：回看几乎每轮触发时间归属判定，误伤率待实测。若严重须作为校准单独请示，**不在实现期自行调松**
+  - 用户手验暴露一个流程风险：**增量 DDL 未执行时报错表现为通用 500**，且会波及既有功能。建议后续 change 若含 DDL，把「本地执行」列为实现期第一步而非联调前置
+- **Commit**: `b6327df`（规划）/ `fe7e644`（后端实现）/ `ec76e8d`（后端测试）/ `8a0d02b`（前端）+ 本条对应的文档提交
+- **Next**: 闸门 3 合并联调（本刀 + C3a 顺延 T-20~T-23）
