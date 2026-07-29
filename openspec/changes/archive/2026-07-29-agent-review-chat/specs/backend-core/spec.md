@@ -6,17 +6,12 @@
 
 ## MODIFIED Requirements
 
-### 修订：C3a 条款「本刀未实现的用途」
+**无。**
 
-#### Scenario: C3a 未实现的用途
-
-> C3b 修订：C3a 原文「除写作引导以外的用途 SHALL NOT 存在任何行为分支」
-> 已由 C3b 落实为回看行为，改写为 C3a 阶段范围声明。
-
-- GIVEN 仅 C3 前半刀实现存在
-- WHEN 审查后端行为
-- THEN 该阶段除写作引导以外的用途 SHALL NOT 存在任何行为分支
-- AND 回看用途的行为 SHALL 自 C3 后半刀起由本 spec 的回看条款约束
+规划期本文件曾计划修订一条 C3a 的「本刀未实现的用途」scenario，但接受 C3a delta 时
+会话用途条款实际落在了 `agent-runtime`（`Agent Session Must Declare Its Purpose`），
+且未保留该范围声明 scenario——因此没有可修订的目标。
+本刀在 `backend-core` 只做纯新增；用途相关的两条 MODIFIED 全部落在 `agent-runtime` delta。
 
 ---
 

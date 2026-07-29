@@ -6001,3 +6001,41 @@ Commit: pending
   - 样本量仍小（9 轮观察、单一 provider/model），不声称杜绝
 - **Commit**: pending
 - **Next**: T-35 用户真机手验 → 收口 T-37~T-40（closeout + delta 接受 + 归档 → ACTIVE_TASK=IDLE，C3 两刀完成，下一刀 C5）
+
+## 2026-07-29｜agent-review-chat｜Type C（真机手验 + 收口归档，C3 两刀完成）
+
+- **Scope**:
+  - `openspec/specs/agent-runtime/spec.md`（两条 MODIFIED + 新增「回看对话的记录状态要求」scenario + 追加 C3b 已接受段落）
+  - `openspec/specs/backend-core/spec.md`、`miniapp-core/spec.md`、`v2-product-scope/spec.md`（各追加 C3b 已接受段落）
+  - 新增 `openspec/changes/agent-review-chat/closeout.md`；change 目录 `git mv` 归档到 `archive/2026-07-29-agent-review-chat/`
+  - 归档目录内 `tasks.md`（T-35 真机结论、收口段勾选、去重）
+  - `.ai/ACTIVE_TASK.md` 改写为 IDLE，指向下一刀 C5
+- **Changes**:
+  - **T-35 微信真机手验 PASS（用户执行）**：回看对话可开启 / 多轮 / 温和收束；截图证据显示 Agent 自发表述
+    「去年六月你想坚持锻炼与学习，现在你在跑步、去健身房、学编程」与「去年六月写下那句话的你……」
+    ——**均带时间归属**，与探针 T-32 结论一致；回看浮层**无工具确认条、无素材回填入口**；
+    写作引导的素材二段式确认（「先不用 / 用作正文」）可用 → **R3 关闭**
+  - 用户评价「体验比之前好不少，Agent 有点『说人话』了，但还需要进步，当前够用」→ 质量诉求归 R2，仍延后
+  - **规划与实际的一处不符已修正**：C3b delta 原计划修订一条 `backend-core` 的 C3a「本刀未实现的用途」scenario，
+    但接受 C3a delta 时会话用途条款实际落在 `agent-runtime` 且未保留该范围声明 → **没有可修订的目标**。
+    已把该 delta 的 MODIFIED 段改为显式说明「无」并交代原因，未硬套一条不存在的修订
+  - `agent-runtime` 的两条 MODIFIED 均落地：①「对话关联已封存或已解锁记录」措辞收紧为「写作引导」，
+    并**另加一条回看状态要求 scenario**，否则「回看只能作用于 UNLOCKED」在契约上无处体现；
+    ②「C3a 范围内的回看对话」改为阶段范围声明 + 指向 C3b 条款
+  - closeout 记录 3 处偏离规划（三处陷阱确认、DDL 流程失误、两次自我修正）与给 C5 的 6 条 carry-over
+- **Verification**: **PASS**
+  - 真机手验 PASS（用户执行，截图证据）
+  - baseline 四份 spec 的 C3b 段落与归档 delta 逐条对照，条款无遗漏、无擅自增删
+  - `git status` 确认归档为 R（rename）而非删除新增，change 历史保留
+  - 未改业务代码，故未重跑测试（当前状态仍为 **496 PASS / 2 skipped**）
+- **Verification SKIPPED / 诚实结论**:
+  - **回看 fail-closed 分支未活体触发**：真实联调中模型未在无工具模式下返回 tool_calls，
+    正确性仅由单测覆盖。概率性行为，不单开 change；已记入 Residual 并建议 C5 补
+  - 闸门 3 样本量小（9 轮观察、单一 provider/model），不声称杜绝
+- **Risks**:
+  - **已关闭**：R8（时间归属阈值未校准）、R3（微信真机工具链路手验）、R7（实质缓解，拦截方向已验证）
+  - **仍在**：R2（引导与素材质量，延后）、R9（检索相关性弱）、R6（凭证轮换待用户执行）、回看 fail-closed 未活体验证
+  - 已把四条流程教训写入 ACTIVE_TASK：含 DDL 的 change 须把本地执行列为实现期第一步；
+    禁止波及未跟踪文件的 git 操作；警惕格式化造成的 diff 污染；验证拦截方向须先确认样本状态
+- **Commit**: pending（本轮用户明确授权 Agent 代为提交）
+- **Next**: `ACTIVE_TASK=IDLE`。**C3 两刀全部完成**；下一刀为 C5 `agent-observability`，须用户授权后开规划闸
