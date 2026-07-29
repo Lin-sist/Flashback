@@ -5884,3 +5884,28 @@ Commit: pending
   - `core_question` 本地 0% → 该字段在检索与取材中恒不贡献（降级逻辑自动跳过）
 - **Commit**: pending
 - **Next**: 分阶段提交（用户已授权本次提交）→ 判定是否进入 C3 后半刀
+
+## 2026-07-29｜agent-memory-retrieval｜Type C（delta 接受 + 归档，闸门 3 跳过）
+
+- **Scope**:
+  - `openspec/specs/agent-runtime/spec.md`（四条 MODIFIED + 新增「进入用户正文的文本的来源层」+ 追加 C3a 已接受段落）
+  - `openspec/specs/backend-core/spec.md`、`openspec/specs/v2-product-scope/spec.md`（各追加 C3a 已接受段落）
+  - `openspec/changes/agent-memory-retrieval/` → `openspec/changes/archive/2026-07-29-agent-memory-retrieval/`（`git mv`，保留历史）
+  - 归档目录内 `tasks.md` T-28 勾选、`closeout.md` 状态与 R8 表述更新
+  - `.ai/ACTIVE_TASK.md` 改写为指向 C3b `agent-review-chat` 规划闸
+- **Changes**:
+  - 四条 MODIFIED 全部落地，未绕过：C1 / C2 / C4 三条「范围内的记忆能力」改写为阶段范围声明 + 指向 C3 条款；C4「来源集合的边界」**实质改写**为分层表述
+  - 修订时刻意保留了更严的一侧：C2 条款改写后仍明写「跨记录检索结果 SHALL NOT 成为工具正文参数的合法来源」，并新增独立 scenario「进入用户正文的文本的来源层」把「正文只认会话层、不可配置放宽」写成契约，避免分层被误读为整体放宽
+  - baseline C3a 段落顶部显式声明闸门 3 未执行与 R8 未验证状态
+  - `ACTIVE_TASK` 把 C3a closeout 的 7 条 carry-over 前移为「本刀必须处理」，其中两条是实现期易漏的陷阱：`REVIEW_CHAT` 零行为分支导致的既有断言需改（预期变更）、`buildToolContext` 只按 recordId 判断导致「回看无工具」不会自动成立
+  - 同时把本轮的流程教训写入 Residual：禁止使用波及未跟踪文件的 git 操作
+- **Verification**: **PASS（文档级）**
+  - baseline 三份 spec 的 C3a 段落与归档 delta 逐条对照，条款无遗漏、无擅自增删
+  - `git status` 确认归档为 R（rename）而非删除新增，change 历史保留
+  - 未改动任何业务代码，故未重跑测试（上一条记录的 472 PASS / 1 skipped 仍为当前状态）
+- **Verification SKIPPED**:
+  - **闸门 3 真实联调（C3a T-20~T-23）**：**用户明确同意跳过并延后**至 C3 两刀全部完成后合并进行。后果：R8「时间归属阈值未校准」随 baseline 生效，已在 baseline C3a 段落顶部、closeout 顶部与残余风险表三处显式标注**未验证**，未粉饰
+  - `c3-agent-memory.sql` 仍未在本地 MySQL 执行
+- **Risks**: R8（已随 baseline 生效）、R9 检索相关性弱、R7（C4）、R3（C2，本刀补齐）、本地 tag 表为空导致标签路径零命中
+- **Commit**: pending
+- **Next**: 产出 C3b `agent-review-chat` 规划闸（proposal / design / tasks / delta + 待确认项）

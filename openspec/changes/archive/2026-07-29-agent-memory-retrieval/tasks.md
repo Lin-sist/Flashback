@@ -120,7 +120,10 @@
 - [x] **T-26** `closeout.md`：偏离规划的 5 处、残余风险、给 `agent-review-chat` 的 7 条 carry-over、待执行事项
   - T-01 结论与阈值校准结果**未填**（受 DB 凭证与闸门 3 阻塞），已在 closeout §6 列为待执行
 - [x] **T-27** 蓝图 §7 已加 C3 拆两刀登记，并附带登记一项事实修正（`ai_summary` 非后端自动生成）
-- [ ] **T-28** 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE
+- [x] **T-28** 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE
+  - **闸门 3 经用户明确同意跳过并延后**（2026-07-29）：与后半刀 `agent-review-chat` 完成后合并进行。
+    因此 T-20~T-23 保持未勾选，R8「时间归属阈值未校准」带着未验证状态进 baseline，已在
+    baseline `agent-runtime` 的 C3a 段落顶部与 closeout §4 显式声明，**未粉饰为已验证**。
 
 ---
 

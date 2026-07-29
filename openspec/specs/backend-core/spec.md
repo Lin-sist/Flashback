@@ -790,3 +790,80 @@ Agent 触发的记录写入 SHALL 经由记录业务层完成，SHALL NOT 直接
 - WHEN 用户保存草稿或封存记录
 - THEN 记录保存与封存 SHALL 正常完成
 - AND 护栏可用性 SHALL NOT 成为记录生命周期的依赖
+
+
+## Accepted From C3a agent-memory-retrieval
+
+> 来源：`openspec/changes/archive/2026-07-29-agent-memory-retrieval/`（C3 前半刀，2026-07-29 用户验收）。
+> 范围：记忆检索的后端实现约束、配置项与会话用途标识。
+
+### Requirement: Memory Retrieval Must Be Implemented Behind A Replaceable Port
+
+记忆检索 SHALL 以抽象接口暴露给 Agent Runtime，实现细节 SHALL NOT 泄漏到调用方。
+
+#### Scenario: 调用方依赖
+
+- GIVEN Agent Runtime 需要历史记录片段
+- WHEN Runtime 获取片段
+- THEN Runtime SHALL 只依赖记忆检索接口
+- AND Runtime SHALL NOT 直接依赖检索的持久化实现
+
+#### Scenario: 接口的用途维度
+
+- GIVEN 后续场景也需要消费记忆
+- WHEN 检索接口被调用
+- THEN 接口 SHALL 接受会话用途作为入参
+- AND 后续场景 SHALL 复用同一接口而非另建检索实现
+
+#### Scenario: 片段的结构
+
+- GIVEN 检索返回结果
+- WHEN 结果被传递给上下文组装
+- THEN 每个片段 SHALL 携带记录标识、发生时间与可读的时间标签
+- AND 每个片段的文本长度 SHALL 受配置上限约束
+
+#### Scenario: 片段文本的取材范围
+
+- GIVEN 后端为命中记录选取可注入的片段文本
+- WHEN 片段被构造
+- THEN 片段 SHALL 取自记录的说明性字段
+- AND 片段 SHALL NOT 取自记录正文
+- AND 无任何可用说明性字段时该记录 SHALL 被跳过
+
+### Requirement: Memory Retrieval Must Not Introduce Full Text Indexes Or External Engines
+
+记忆检索 SHALL 基于既有关系型存储与既有索引结构实现。
+
+#### Scenario: 索引与依赖边界
+
+- GIVEN 记忆检索实现完成
+- WHEN 审查数据库结构与项目依赖
+- THEN 数据库 SHALL NOT 新增全文索引
+- AND 数据库 SHALL NOT 引入分词器配置
+- AND 项目 SHALL NOT 新增用于检索、分词或相似度计算的第三方依赖
+
+#### Scenario: 检索谓词的字段范围
+
+- GIVEN 检索查询被构造
+- WHEN 查询条件被检查
+- THEN 查询 SHALL 包含用户标识谓词
+- AND 查询 SHALL NOT 包含记录正文的匹配谓词
+- AND 查询结果条数 SHALL 有上限
+
+### Requirement: Memory Configuration Must Come From Backend Side Config Without New Credentials
+
+记忆能力的开关与阈值 SHALL 来自 backend-side 配置。
+
+#### Scenario: 配置项范围
+
+- GIVEN 记忆能力存在开关、片段条数上限、单片段长度上限、时间范围与时间归属阈值
+- WHEN 配置被声明
+- THEN 这些配置 SHALL 位于 backend-side 配置中
+- AND 配置 SHALL NOT 引入任何新的凭证字段
+
+#### Scenario: 开关关闭时的可见痕迹
+
+- GIVEN 记忆能力开关被关闭
+- WHEN 后端处理一轮对话
+- THEN 后端 SHALL 记录结构化痕迹说明记忆未生效
+- AND 后端 SHALL NOT 静默表现为检索无命中
