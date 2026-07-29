@@ -6,8 +6,9 @@ import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import EmptyState from '../../components/common/EmptyState.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import ReadOnlyRecordMedia from './components/ReadOnlyRecordMedia.vue'
+import ReviewChatSheet from './components/ReviewChatSheet.vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
-import { recordService, replyService } from '../../services'
+import { agentService, recordService, replyService, type AgentSession } from '../../services'
 import { useRecordStore } from '../../stores'
 import { RecordReminderStatus, RecordStatus, ReplyType, type ReplyVO } from '../../types'
 import { formatDateTime, getToken, hasAuthenticatedSession, toUserMessage } from '../../utils'
@@ -27,6 +28,13 @@ const detailErrorState = ref<'NONE' | 'INVALID_ID' | 'NOT_FOUND' | 'LOAD_FAILED'
 const showReplySheet = ref(false)
 const laterReflectionDraft = ref('')
 const submittingLaterReflection = ref(false)
+
+// C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
+const showReviewChat = ref(false)
+const reviewSession = ref<AgentSession | null>(null)
+const reviewLoading = ref(false)
+const reviewSending = ref(false)
+const reviewError = ref('')
 
 // ── 倒计时 ──
 const countdownH = ref('--')
@@ -341,7 +349,83 @@ const submitLaterReflection = async () => {
   }
 }
 
+/* ══════ C3b 友人回看对话 ══════ */
+
+/** 回看对话只在已解锁记录上可用；与后端的记录状态校验保持一致。 */
+const canOpenReviewChat = computed(() => isUnlocked.value && Boolean(detail.value?.id))
+
+const applyReviewSession = (session: AgentSession) => {
+  reviewSession.value = session
+  // 显式失败与不可用都告知用户，不伪装成功。
+  reviewError.value = session.status === 'SUCCESS' ? '' : (session.message || '现在聊不了，待会儿再试试')
+}
+
+const openReviewChat = async () => {
+  if (!canOpenReviewChat.value || !detail.value?.id) {
+    return
+  }
+  if (hasPreviewSession() && !getToken()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  // 与回应浮层互斥：同时开两个 bottom sheet 会叠在一起，交互上也不该同时进行。
+  showReplySheet.value = false
+  showReviewChat.value = true
+  if (reviewSession.value) {
+    return
+  }
+  reviewLoading.value = true
+  reviewError.value = ''
+  try {
+    applyReviewSession(await agentService.startOrResumeReview(detail.value.id))
+  } catch (error) {
+    reviewError.value = toUserMessage(error)
+  } finally {
+    reviewLoading.value = false
+  }
+}
+
+const closeReviewChat = () => {
+  showReviewChat.value = false
+}
+
+const sendReviewMessage = async (content: string) => {
+  const sessionId = reviewSession.value?.sessionId
+  if (!sessionId || reviewSending.value) {
+    return
+  }
+  reviewSending.value = true
+  reviewError.value = ''
+  try {
+    applyReviewSession(await agentService.sendMessage(sessionId, content))
+  } catch (error) {
+    reviewError.value = toUserMessage(error)
+  } finally {
+    reviewSending.value = false
+  }
+}
+
+/** 重试：会话尚未建立时重开，否则重发上一轮由后端按同轮重试语义处理。 */
+const retryReviewChat = async () => {
+  reviewError.value = ''
+  if (!reviewSession.value) {
+    await openReviewChat()
+    return
+  }
+  const sessionId = reviewSession.value.sessionId
+  reviewLoading.value = true
+  try {
+    applyReviewSession(await agentService.getSession(sessionId))
+  } catch (error) {
+    reviewError.value = toUserMessage(error)
+  } finally {
+    reviewLoading.value = false
+  }
+}
+
 const openReplySheet = () => {
+  // 与回看浮层互斥。
+  showReviewChat.value = false
   if (!canSubmitReply.value) {
     uni.showToast({ title: '当前无法留下回应', icon: 'none' })
     return
@@ -634,6 +718,15 @@ onLoad(async (query) => {
               <view class="unlock-cta-dot" />
               <text class="unlock-cta-text">留 下 回 应</text>
             </view>
+
+            <!--
+              C3b 回看对话入口。被动召唤：只在用户点击时开启，
+              不弹窗、不自动展开。表达刻意比「留下回应」更轻，
+              避免抢掉回应这个既有主动作。
+            -->
+            <view v-if="canOpenReviewChat" class="review-entry" @tap="openReviewChat">
+              <text class="review-entry-text">和它聊聊那时候</text>
+            </view>
           </view>
         </view>
 
@@ -646,6 +739,21 @@ onLoad(async (query) => {
       </view>
 
     </view>
+
+    <!--
+      C3b 回看对话浮层。结构上不存在工具确认条与素材回填入口——
+      后端在回看模式下完全不产出它们，不是前端隐藏。
+    -->
+    <ReviewChatSheet
+      :visible="showReviewChat"
+      :session="reviewSession"
+      :loading="reviewLoading"
+      :sending="reviewSending"
+      :error-message="reviewError"
+      @close="closeReviewChat"
+      @send="sendReviewMessage"
+      @retry="retryReviewChat"
+    />
 
     <!-- 回应浮层（UNLOCKED 可回应状态） -->
     <view
@@ -1587,6 +1695,21 @@ onLoad(async (query) => {
   font-weight: 300;
   letter-spacing: 0.12em;
   color: var(--ink-faint);
+}
+
+/* C3b 回看对话入口：比「留下回应」更轻，不抢主动作 */
+.review-entry {
+  margin-top: 28rpx;
+  padding: 18rpx 0;
+  text-align: center;
+}
+
+.review-entry-text {
+  font-size: 25rpx;
+  letter-spacing: 2rpx;
+  color: rgba(28, 25, 23, 0.42);
+  border-bottom: 1rpx solid rgba(28, 25, 23, 0.14);
+  padding-bottom: 6rpx;
 }
 
 /* ═══════════════════════════════════════

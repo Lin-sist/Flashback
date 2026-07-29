@@ -11,7 +11,18 @@ export type AgentStage =
     | 'CORE_QUESTION'
     | 'EXPECTATION'
     | 'CLOSING'
+    /** C3b：友人回看对话的固定阶段。回看无阶段推进，恒为该值。 */
+    | 'REVIEW'
     | 'ENDED'
+
+/**
+ * C3b 会话用途。
+ *
+ * 回看对话复用同一套会话端点（后端 design 决策 6）——读取、追加消息、结束
+ * 三个端点在两种用途下语义完全一致，另开一套只会产生近乎重复的接口。
+ * 缺省不传即写作引导，既有调用无需改动。
+ */
+export type AgentSessionPurpose = 'WRITING_GUIDANCE' | 'REVIEW_CHAT'
 export type AgentMessageRole = 'USER' | 'ASSISTANT'
 
 export interface AgentMessage {
@@ -44,6 +55,12 @@ export interface AgentToolCall {
 export interface AgentSession {
     sessionId: number
     recordId?: number | null
+    /**
+     * C3b：会话用途。
+     * 回看会话恒不会带 pendingToolCall 与 materialDraft——后端完全不产出它们，
+     * 不是前端隐藏（回看无工具、不产可回填素材）。
+     */
+    purpose?: AgentSessionPurpose
     stage: AgentStage
     sessionStatus: AgentSessionStatus
     turnCount: number
@@ -77,6 +94,19 @@ export const agentService = {
             url: '/api/agent/sessions',
             method: 'POST',
             data: recordId ? { recordId } : {},
+        }))
+    },
+    /**
+     * C3b：在已解锁记录上开启或恢复回看对话。
+     *
+     * 与 startOrResume 分成两个方法而非加可选参数，是为了让调用点读起来就知道
+     * 自己开的是哪种对话——两者的记录状态要求、是否有工具、是否产素材都不同。
+     */
+    startOrResumeReview(recordId: number) {
+        return requireRealSession(() => httpRequest<AgentSession>({
+            url: '/api/agent/sessions',
+            method: 'POST',
+            data: { recordId, purpose: 'REVIEW_CHAT' },
         }))
     },
     getSession(sessionId: number) {
