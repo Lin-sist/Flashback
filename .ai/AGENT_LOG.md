@@ -6106,3 +6106,45 @@ Commit: pending
   - R2 / R9 / R6 未动；轨迹表增长依赖手动清理（无定时任务）
 - **Commit**: pending（**未执行任何 git 写操作**；未跟踪产物 `Docs/agent-iteration/architecture/`、`iteration-blueprint-v1.2-draft.md`、`.kiro/skills/` 未被触碰）
 - **Next**: 用户验收 → delta 接受进 baseline（`agent-runtime` 四条 MODIFIED 逐条落）→ 归档 → `ACTIVE_TASK` → IDLE → **Phase 1 收官，进入蓝图 v1.2 校准会**
+
+## 2026-07-30｜Agent 对话请求超时修复｜Type B
+
+- **Scope**:
+  - `frontend/src/services/agentService.ts`
+  - `backend/src/main/resources/application.yml` / `application-dev.yml` / `application-prod.yml`
+- **改前 / 改后（大白话）**: 手验时记录页与回看页使用 Agent 都报 `request: fail timeout`。
+  改后前端给 AI 相关请求 30 秒，后端 AI 调用 20 秒，超时先发生在后端，用户看到的是设计好的显式失败态。
+- **Changes**:
+  - 根因是**前后端超时值相等（都是 10000ms），前端必然先断**：
+    `httpClient` 默认 10000ms，而 `agentService` 六个方法**一个都没传 timeout**；
+    后端 `app.ai.timeout-millis` 默认同为 10000。C5 闸门 3 实测 provider 单次
+    4571~8467ms（均值 6476ms），加上编排、护栏与落库开销，一轮越过 10 秒是常态
+  - 后果不只是「慢」：前端断开时后端那一轮**仍在正常处理**，用户看到 `uni.request` 的原始
+    errMsg（浮层走 `toUserMessage(error)`），而 C1 精心设计的 `UNAVAILABLE` / `FAILED`
+    显式失败语义被网络错误抢先覆盖
+  - 前端：新增 `AGENT_AI_TIMEOUT_MS = 30000`，只给四个会触发 provider 调用的方法传入
+    （`startOrResume` / `startOrResumeReview` / `sendMessage` / `finish`）
+  - 前端：`getSession` / `confirmToolCall` **刻意不改**，沿用默认 10 秒——它们是纯数据库操作，
+    放宽只会让真正的网络故障晚 20 秒才暴露
+  - 后端：三个 profile 的 `AI_TIMEOUT_MILLIS` 默认值 10000 → 20000。
+    **关键是顺序而非数值**：前端 30000 > 后端 20000 > 实测 max 8467ms，
+    前端要给后端留出「自己先超时并返回显式失败」的窗口
+  - `application-test.yml` 的 `timeout-millis: 1000` **未动**：测试刻意要快速失败
+- **同类参照**: `stageSummaryService` 同样调 AI，早已显式指定 15000ms。
+  Agent 是仓库里唯一漏配超时的 AI 调用方
+- **已知不精确处（如实记录）**: `finish` 在写作引导下会触发素材生成（又一次 provider 调用），
+  回看下则不调 AI。前端分不清这个区别，统一取较宽值——回看白留余量不产生副作用；
+  按 purpose 分流的额外复杂度不值得
+- **Verification**:
+  - 前端 `type-check` **PASS**；`build:mp-weixin` **PASS**
+  - 构建产物核对：`agentService.js` 中 `i=3e4` 用于四个 AI 方法，
+    `getSession` / `confirmToolCall` 确认无 timeout 字段
+  - 后端回归 **534 tests PASS / 3 skipped**，BUILD SUCCESS（无回归）
+  - **SKIPPED —— 微信真机复验**：需用户在真机上确认 `request: fail timeout` 不再出现。
+    本地无法替代真机验证该现象
+- **Risks**:
+  - 真机复验未做，修复有效性**未经用户实测确认**
+  - 20 秒仍是有限值：若 provider 偶发超过 20 秒，用户会看到后端的 `FAILED`（可重试），
+    这是预期行为而非缺陷
+  - 未改 `httpClient` 的全局默认值——其他非 AI 请求的 10 秒不变，避免波及无关调用
+- **Commit**: pending

@@ -63,7 +63,12 @@ app:
     base-url: ${AI_BASE_URL:https://api.deepseek.com}
     api-key: ${AI_API_KEY:}
     model: ${AI_MODEL:deepseek-v4-pro}
-    timeout-millis: ${AI_TIMEOUT_MILLIS:10000}
+    # Type B 修复：原值 10000 与前端默认超时相等，导致前端总是先断，
+    # 用户看到 request: fail timeout 而不是后端的 UNAVAILABLE / FAILED 显式态。
+    # C5 闸门 3 实测 provider max 8467ms，10 秒只剩 1.5 秒余量。
+    # 提到 20000 留够余量，且**必须小于前端的 30000**——
+    # 超时要先发生在后端，才能把显式失败语义交还给用户。
+    timeout-millis: ${AI_TIMEOUT_MILLIS:20000}
     real-mode-mock-enabled: ${AI_REAL_MODE_MOCK_ENABLED:false}
     fallback:
       writing-prompts:
