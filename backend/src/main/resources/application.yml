@@ -51,6 +51,12 @@ app:
     review:
       max-turns-per-session: ${AGENT_REVIEW_MAX_TURNS:6}
       record-excerpt-chars: ${AGENT_REVIEW_RECORD_EXCERPT_CHARS:400}
+    # C5 决策轨迹。工程向、不面向用户；只有开关与保留期，无采样率（design 决策 3）。
+    # 关闭时留痕说明未生效，不静默表现为轨迹无数据。无新增凭证字段。
+    observability:
+      enabled: ${AGENT_OBSERVABILITY_ENABLED:true}
+      # 供手动清理脚本使用；本刀不引入定时任务。0 表示不清理（非「删除全部」）。
+      retention-days: ${AGENT_OBSERVABILITY_RETENTION_DAYS:90}
   ai:
     # M4 accepted provider contract. Secrets are injected backend-side only.
     provider: ${AI_PROVIDER:mock}

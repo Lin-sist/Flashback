@@ -138,6 +138,62 @@ public class AppAgentProperties {
         }
     }
 
+    // ---------- C5 agent-observability ----------
+
+    /** 决策轨迹配置。只有开关与保留期，不引入任何凭证字段。 */
+    private Observability observability = new Observability();
+
+    public Observability getObservability() {
+        return observability;
+    }
+
+    public void setObservability(Observability observability) {
+        this.observability = observability == null ? new Observability() : observability;
+    }
+
+    /**
+     * 决策轨迹配置（C5）。
+     *
+     * **刻意没有采样率**（design.md 决策 3）：采样的失效方式很具体——
+     * 排查时最想看的那一轮，恰好可能没被采到。当前每轮一行的写入量距离
+     * 构成容量问题还很远，为一个不存在的问题引入一个真实的排查盲区不划算。
+     * 蓝图缓解措施提到过采样率，这处偏离已在规划闸获批。
+     */
+    public static class Observability {
+
+        /**
+         * 决策轨迹总开关。
+         *
+         * 关闭时行为等价于引入 C5 之前，且后端会留痕说明未生效
+         * （不静默表现为轨迹无数据——沿用 C3a memory 开关的既有语义）。
+         */
+        private boolean enabled = true;
+
+        /**
+         * 轨迹保留天数，供**手动**清理使用（N7 / 决策 11）。
+         *
+         * 0 或负值表示不清理。刻意不把它解释成「删除全部」——那个误读的代价太大。
+         * 本刀不引入定时任务：自动删数据在无备份策略的环境里风险不对称。
+         */
+        private int retentionDays = 90;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getRetentionDays() {
+            return retentionDays;
+        }
+
+        public void setRetentionDays(int retentionDays) {
+            this.retentionDays = retentionDays;
+        }
+    }
+
     // ---------- C3 agent-memory-retrieval ----------
 
     /** 记忆检索与注入配置。同样不引入任何凭证字段。 */

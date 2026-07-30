@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.AgentTurnTraceMapper">
+
+    <resultMap id="AgentTurnTraceResultMap" type="com.flashback.domain.AgentTurnTrace">
+        <id property="id" column="id"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="recordId" column="record_id"/>
+        <result property="turnNo" column="turn_no"/>
+        <result property="attemptNo" column="attempt_no"/>
+        <result property="purpose" column="purpose"/>
+        <result property="stage" column="stage"/>
+        <result property="stageReason" column="stage_reason"/>
+        <result property="model" column="model"/>
+        <result property="promptVersion" column="prompt_version"/>
+        <result property="policyVersion" column="policy_version"/>
+        <result property="outcome" column="outcome"/>
+        <result property="providerDurationMs" column="provider_duration_ms"/>
+        <result property="causeType" column="cause_type"/>
+        <result property="downgradePath" column="downgrade_path"/>
+        <result property="violation" column="violation"/>
+        <result property="stepsJson" column="steps_json"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="AgentTurnTraceColumns">
+        id,
+        trace_id,
+        session_id,
+        user_id,
+        record_id,
+        turn_no,
+        attempt_no,
+        purpose,
+        stage,
+        stage_reason,
+        model,
+        prompt_version,
+        policy_version,
+        outcome,
+        provider_duration_ms,
+        cause_type,
+        downgrade_path,
+        violation,
+        steps_json,
+        created_at
+    </sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.AgentTurnTrace" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO agent_turn_trace (
+            trace_id,
+            session_id,
+            user_id,
+            record_id,
+            turn_no,
+            attempt_no,
+            purpose,
+            stage,
+            stage_reason,
+            model,
+            prompt_version,
+            policy_version,
+            outcome,
+            provider_duration_ms,
+            cause_type,
+            downgrade_path,
+            violation,
+            steps_json,
+            created_at
+        ) VALUES (
+            #{traceId},
+            #{sessionId},
+            #{userId},
+            #{recordId},
+            #{turnNo},
+            #{attemptNo},
+            #{purpose},
+            #{stage},
+            #{stageReason},
+            #{model},
+            #{promptVersion},
+            #{policyVersion},
+            #{outcome},
+            #{providerDurationMs},
+            #{causeType},
+            #{downgradePath},
+            #{violation},
+            #{stepsJson},
+            #{createdAt}
+        )
+    </insert>
+
+    <select id="selectBySessionId" resultMap="AgentTurnTraceResultMap">
+        SELECT
+        <include refid="AgentTurnTraceColumns"/>
+        FROM agent_turn_trace
+        WHERE session_id = #{sessionId}
+        ORDER BY turn_no ASC, attempt_no ASC, id ASC
+    </select>
+
+    <select id="selectRecentByUserId" resultMap="AgentTurnTraceResultMap">
+        SELECT
+        <include refid="AgentTurnTraceColumns"/>
+        FROM agent_turn_trace
+        WHERE user_id = #{userId}
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countBySessionAndTurn" resultType="int">
+        SELECT COUNT(1)
+        FROM agent_turn_trace
+        WHERE session_id = #{sessionId}
+          AND turn_no = #{turnNo}
+    </select>
+
+    <delete id="deleteCreatedBefore">
+        DELETE FROM agent_turn_trace
+        WHERE created_at &lt; #{threshold}
+    </delete>
+
+</mapper>
