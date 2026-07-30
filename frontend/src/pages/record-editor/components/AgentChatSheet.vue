@@ -85,8 +85,16 @@ const submit = () => {
 </script>
 
 <template>
-  <view v-if="visible" class="agent-layer" @tap="emit('close')">
-    <view class="agent-sheet" @tap.stop>
+  <!--
+    关闭手势挂在**独立的背景层**上，而不是挂在包住内容的外层容器上。
+    原先写法是外层 `@tap="close"` + 内层 `@tap.stop`，在小程序里不可靠：
+    textarea 是原生组件，它的触摸事件会穿透 `catchtap` 冒泡到外层，
+    被当成「点击遮罩」而触发 close —— 输入框因此永远拿不到焦点。
+    拆成兄弟层后，内容区与关闭手势没有祖先关系，穿透不再有影响。
+  -->
+  <view v-if="visible" class="agent-layer">
+    <view class="agent-mask" @tap="emit('close')" />
+    <view class="agent-sheet">
       <view class="sheet-handle" aria-hidden="true" />
       <view class="sheet-head">
         <view class="head-copy">
@@ -172,6 +180,10 @@ const submit = () => {
       </scroll-view>
 
       <view v-if="!isEnded" class="composer">
+        <!--
+          cursor-spacing 让键盘弹起时输入框不被遮住（小程序 textarea 默认贴键盘顶边）。
+          adjust-position 保持默认 true，由小程序自动上推页面。
+        -->
         <textarea
           v-model="input"
           class="composer-input"
@@ -179,6 +191,7 @@ const submit = () => {
           :disabled="sending || loading || awaitingRetry"
           :maxlength="1000"
           :show-confirm-bar="false"
+          :cursor-spacing="24"
           :placeholder="awaitingRetry ? '请先重试上一轮回复' : '想说什么都可以...'"
           placeholder-class="composer-placeholder"
           @confirm="submit"
@@ -203,6 +216,13 @@ const submit = () => {
   z-index: 1200;
   display: flex;
   align-items: flex-end;
+}
+
+/* 背景层独立成兄弟节点：承载遮罩视觉与关闭手势，不包裹内容。 */
+.agent-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   background: rgba(25, 22, 18, 0.32);
   backdrop-filter: blur(3px);
 }
@@ -212,6 +232,8 @@ const submit = () => {
  * 否则消息累积后会撑开容器并把 composer 顶出可视区（发送按钮点不到）。
  */
 .agent-sheet {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 78vh;
   box-sizing: border-box;

@@ -59,8 +59,16 @@ const submit = () => {
 </script>
 
 <template>
-  <view v-if="visible" class="review-layer" @tap="emit('close')">
-    <view class="review-sheet" @tap.stop>
+  <!--
+    关闭手势挂在**独立的背景层**上，而不是挂在包住内容的外层容器上。
+    原先写法是外层 `@tap="close"` + 内层 `@tap.stop`，在小程序里不可靠：
+    textarea 是原生组件，它的触摸事件会穿透 `catchtap` 冒泡到外层，
+    被当成「点击遮罩」而触发 close —— 输入框因此永远拿不到焦点。
+    拆成兄弟层后，内容区与关闭手势没有祖先关系，穿透不再有影响。
+  -->
+  <view v-if="visible" class="review-layer">
+    <view class="review-mask" @tap="emit('close')" />
+    <view class="review-sheet">
       <view class="sheet-handle" aria-hidden="true" />
       <view class="sheet-head">
         <view class="head-copy">
@@ -113,12 +121,15 @@ const submit = () => {
       </scroll-view>
 
       <view v-if="!isEnded" class="composer">
+        <!-- cursor-spacing 让键盘弹起时输入框不被遮住。 -->
         <textarea
           v-model="input"
           class="composer-input"
           placeholder="想说点什么就写下来"
           :maxlength="500"
           :disabled="sending"
+          :cursor-spacing="24"
+          :show-confirm-bar="false"
           auto-height
         />
         <view
@@ -138,10 +149,19 @@ const submit = () => {
   z-index: 60;
   display: flex;
   align-items: flex-end;
+}
+
+/* 背景层独立成兄弟节点：承载遮罩视觉与关闭手势，不包裹内容。 */
+.review-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   background: rgba(28, 25, 23, 0.42);
 }
 
 .review-sheet {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-height: 78vh;
   display: flex;

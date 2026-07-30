@@ -6190,3 +6190,54 @@ Commit: pending
 - 下一步不是新 Type C，而是 v1.2 校准会。本轮实测**证伪了草案里两条假设**，
   校准时须一并处理：① 新表需同步三份 schema（实际项目约定是全量脚本不随增量维护）；
   ② `/admin` 端点可行（实际 `AuthRole.ADMIN` 无签发路径，端点不可达）
+
+## 2026-07-30｜Agent 对话输入框无法聚焦修复｜Type B
+
+- **Scope**:
+  - `frontend/src/pages/record-editor/components/AgentChatSheet.vue`
+  - `frontend/src/pages/record-detail/components/ReviewChatSheet.vue`
+  - 新增 `backend/src/test/java/com/flashback/agent/trace/C5MysqlTraceProbeTest.java`（只读排查探针）
+- **改前 / 改后（大白话）**: 超时修好后，两个 Agent 浮层都能开、能收到 Agent 说话，
+  但输入框点不动、打不了字。改后输入框可正常聚焦输入。
+- **根因**:
+  - 两个浮层的写法都是「外层容器 `@tap="close"` + 内层 sheet `@tap.stop`」。
+    在小程序里 `textarea` 是**原生组件**，其触摸事件会穿透 `catchtap` 继续冒泡到外层容器，
+    被当成「点击遮罩」从而触发 `close` —— 输入框因此永远拿不到焦点
+  - 内层的 `.stop`（编译为 `catchtap`）挡不住原生组件的事件穿透，这是小程序原生组件的既知行为
+  - **两个浮层同时中招且症状一致**，而它们的 `disabled` 条件并不相同
+    （写作引导多一个 `awaitingRetry`），这一点排除了状态机/状态复位方向
+- **修复**:
+  - 把关闭手势从「包裹内容的外层容器」移到**独立的兄弟背景层**（`.agent-mask` / `.review-mask`）：
+    遮罩视觉与关闭手势都挂在它身上，内容区 sheet 与它是兄弟关系而非后代
+  - 于是 `textarea` 不再有任何绑定 tap 的祖先，穿透与否都不再影响聚焦
+  - 层级用 `position: absolute; inset: 0; z-index: 0` 与 `sheet` 的 `z-index: 1` 分离，视觉完全不变
+  - 顺带补 `cursor-spacing=24`：小程序 textarea 默认贴键盘顶边，键盘弹起会遮住输入框
+- **对照物**（本次定位的关键）: 同页面的回应浮层与 `DateTimeWheelPicker` 结构几乎相同却一直可用，
+  差别在它们的遮罩带了 `.stop`/自身处理。这提示问题在事件绑定层次而非组件内部逻辑
+- **排查过程中用 C5 轨迹核实的事实（可观测能力的第二次收益）**:
+  - 会话 10 / 11 均 `ACTIVE` 且 `turn_count=1`，`agent_message` 中 USER/ASSISTANT **完整配对**
+    → 后端侧两轮都成功完成，`awaitingRetry` 不成立、`sending` 已复位，
+    确认「输入框不可用」纯属前端渲染/事件问题，不是状态残留
+  - 这一步排除了三个错误方向（store 状态未复位、后端半轮卡死、disabled 条件误判），
+    没有轨迹与消息表就只能靠猜
+- **新发现的残余（未修，如实记录）**:
+  - **真实 MySQL 上轨迹落库不完整**：`agent_turn_trace` 仅 1 行且 `steps_json` 只有 `mode` 一步，
+    `provider_duration_ms` / `model` 为 NULL；自增 id 已到 2 但只剩 1 行（有一条被回滚）。
+    另有一轮（会话 11 回看）完全没有轨迹
+  - 这正是 closeout 中列为残余的「MySQL 上的轨迹落库未经真实联调」。
+    **本轮只做只读探针定位，未改轨迹代码**——它属 C5 范围，超出本 Type B，
+    且当前不影响用户功能（轨迹是工程设施，fail-open）
+  - 新增 `C5MysqlTraceProbeTest`（`C5_MYSQL_PROBE=1` 门控，**只读、不插不删**）作为后续排查资产
+- **Verification**:
+  - 前端 `type-check` **PASS**；`build:mp-weixin` **PASS**
+  - **产物结构核对**：`ReviewChatSheet.wxml` 中 `review-layer` 自身无事件绑定，
+    `review-mask` 为独立兄弟节点承载 `bindtap`，`textarea` 无绑定 tap 的祖先；
+    `cursor-spacing="{{24}}"` 已生效
+  - 后端回归 **535 tests PASS / 3 skipped**，BUILD SUCCESS（新增探针默认跳过，已在干净环境验证门控）
+  - **SKIPPED —— 微信真机复验**：输入框能否聚焦只能由真机确认，本地无法替代
+- **Risks**:
+  - 真机复验未做，修复有效性**未经用户实测确认**
+  - 若真机仍不可聚焦，下一个可疑方向是 sheet 的固定高度与键盘上推的交互
+    （`agent-sheet` 用 `height: 78vh`），而非事件绑定
+  - MySQL 轨迹落库不完整的问题仍在（见上），需要单独处理
+- **Commit**: pending
