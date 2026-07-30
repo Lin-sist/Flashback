@@ -16,6 +16,8 @@ import com.flashback.agent.memory.MemoryPort;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
+import com.flashback.agent.trace.AgentTraceSink;
+import com.flashback.agent.trace.AgentTraceVersions;
 import com.flashback.service.TagService;
 import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
@@ -96,6 +98,13 @@ class AgentChatServiceImplTest {
     @Mock
     private RecordTagMapper recordTagMapper;
 
+    /**
+     * C5 新增依赖。默认不打桩 → {@code isEnabled()} 返回 false，
+     * 即「可观测关闭」，本类既有 C1/C2/C3/C4 行为断言因此完全不变。
+     */
+    @Mock
+    private AgentTraceSink traceSink;
+
     private AppAgentProperties properties;
     private AgentChatServiceImpl service;
 
@@ -139,6 +148,14 @@ class AgentChatServiceImplTest {
                 new MemoryCueExtractor(properties),
                 recordTagMapper,
                 tagService,
+                // C5 新增依赖：决策轨迹。sink 用 mock（默认 isEnabled()=false → 不采集），
+                // 因此本类断言的仍是与 C5 之前完全等价的路径。
+                // 轨迹语义由 AgentTrace* 与 AgentObservabilityIntegrationTest 覆盖。
+                traceSink,
+                new AgentTraceVersions(
+                        new AgentPromptBuilder(properties, guardrailPolicy, guardrailRules),
+                        guardrailPolicy,
+                        guardrailRules),
                 properties,
                 clock);
 
