@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `agent_turn_trace`;
 DROP TABLE IF EXISTS `agent_tool_call`;
 DROP TABLE IF EXISTS `agent_message`;
 DROP TABLE IF EXISTS `agent_session`;
@@ -230,4 +231,36 @@ CREATE TABLE `agent_tool_call` (
   CONSTRAINT `fk_agent_tool_call_session_id` FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_agent_tool_call_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_agent_tool_call_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE
+);
+
+-- C5 agent-observability：每轮决策轨迹。
+-- 隐私：本表只承载结构化标识、数值指标与不可还原摘要，禁止日记原文 / 对话原文 / 记忆片段。
+CREATE TABLE `agent_turn_trace` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `trace_id` CHAR(32) NOT NULL,
+  `session_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `record_id` BIGINT DEFAULT NULL,
+  `turn_no` INT NOT NULL,
+  `attempt_no` INT NOT NULL DEFAULT 1,
+  `purpose` VARCHAR(30) NOT NULL,
+  `stage` VARCHAR(30) NOT NULL,
+  `stage_reason` VARCHAR(30) DEFAULT NULL,
+  `model` VARCHAR(100) DEFAULT NULL,
+  `prompt_version` VARCHAR(20) DEFAULT NULL,
+  `policy_version` VARCHAR(20) DEFAULT NULL,
+  `outcome` VARCHAR(20) NOT NULL,
+  `provider_duration_ms` BIGINT DEFAULT NULL,
+  `cause_type` VARCHAR(100) DEFAULT NULL,
+  `downgrade_path` VARCHAR(50) DEFAULT NULL,
+  `violation` VARCHAR(50) DEFAULT NULL,
+  `steps_json` TEXT DEFAULT NULL,
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_agent_turn_trace_session` (`session_id`, `turn_no`, `attempt_no`),
+  KEY `idx_agent_turn_trace_user_id` (`user_id`, `id`),
+  KEY `idx_agent_turn_trace_created_at` (`created_at`),
+  CONSTRAINT `fk_agent_turn_trace_session_id` FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_turn_trace_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_turn_trace_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE
 );

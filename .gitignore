@@ -36,6 +36,9 @@ Docs/学习文档
 !/backend/secrets.local.env.example
 # 本地脚本备份与一次性验证脚本，可能含明文凭证
 *.local.ps1.bak
+# C5：一次性联调脚本会把凭证读进环境变量，一律不入库。
+# 原先只点名 start-dev-wechat.local.ps1，新增的本地脚本不会被覆盖，故改为通配。
+*.local.ps1
 /backend/*.local.env
 !/backend/*.local.env.example
 
