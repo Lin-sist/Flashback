@@ -6241,3 +6241,55 @@ Commit: pending
     （`agent-sheet` 用 `height: 78vh`），而非事件绑定
   - MySQL 轨迹落库不完整的问题仍在（见上），需要单独处理
 - **Commit**: pending
+
+## 2026-07-30｜修复 C5 轨迹落库导致每轮卡满 50 秒锁等待｜Type B（C5 缺陷修复）
+
+- **Scope**:
+  - `backend/src/main/java/com/flashback/agent/trace/AgentTraceSink.java`
+  - `backend/src/test/java/com/flashback/service/impl/AgentGuardrailTraceCorrelationTest.java`（+1 项回归）
+- **改前 / 改后（大白话）**: 打字修好后仍然 timeout。实测一轮 55 秒，修完 2.9~6.4 秒。
+- **结论：既不是 DeepSeek 的问题，也不是 C1 旧代码的问题，是我 C5 引入的缺陷。**
+- **定位过程（关键是先排除外部因素）**:
+  1. 直连 DeepSeek 实测：裸调用 2.4~4.2s；带工具 schema + 真实会话上下文 4.8~7.2s。
+     **provider 侧完全正常**，排除官方问题
+  2. 真实链路实测：`startOrResume` 3.5s、`finish` 4.5s（都调 provider），
+     但 `sendMessage` **55 秒**。差异只在 `sendMessage` 独有的代码路径上
+  3. 后端日志给出决定性证据：
+     `WARN AgentTraceSink : agent trace persist failed sessionId=12 turnNo=2 cause=CannotAcquireLockException`
+  4. `SHOW VARIABLES LIKE 'innodb_lock_wait_timeout'` = **50**，与实测 55 秒
+     （50 秒锁等待 + 5 秒 provider）完全吻合
+- **根因（自锁）**:
+  - `sendMessage` 事务内 `updateProgress` 刚 UPDATE 过 `agent_session`，**持有该行写锁且未提交**
+  - `persist` 标 `REQUIRES_NEW` → 挂起外层事务、另开连接插 `agent_turn_trace`
+  - 该表有指向 `agent_session` 的外键，InnoDB 插入时需对父行加锁
+  - 父行锁被尚未提交的外层事务持有 → 新事务等到 50 秒锁超时才放弃
+  - 结果：用户 30 秒前端超时，后端仍在等锁；**且轨迹一条都写不进去**
+    （这解释了此前「MySQL 上只有 1 行残缺轨迹」的现象——那 1 行是恰好没触发外键锁的早退路径）
+- **为什么测试没抓到（最该记住的一条）**:
+  - 全部集成测试跑在 **H2** 上，H2 没有 InnoDB 的行级锁语义，**该缺陷在 H2 上不可能复现**
+  - closeout 里我把「MySQL 上的轨迹落库未经真实联调」列为残余风险，但**低估了它的严重性**——
+    当时判断「不影响用户功能，因为轨迹是 fail-open 的」。实际上 fail-open 只保证了不报错，
+    没保证不阻塞：它在失败**之前**先卡了 50 秒
+- **修复**:
+  - `persist` 改为通过 `TransactionSynchronizationManager.registerSynchronization`
+    注册 `afterCompletion` 回调，**等外层事务提交、锁释放之后**再写轨迹
+  - 用 `afterCompletion` 而非 `afterCommit`：业务事务回滚时那一轮的轨迹同样有排查价值
+    （早退路径覆盖是 C5 验收项）
+  - 这同时比原方案更彻底地达到了「轨迹失败不回滚业务数据」——此时业务事务已提交完毕
+  - 无事务上下文时（测试/工具直接调用）退回立即写入
+  - `nextAttemptNo` 保留在业务事务内：它是 SELECT，不与父行写锁冲突
+- **Verification**:
+  - **真实 MySQL 实测**：修复前 `sendMessage` 54755 / 56744ms → 修复后 **2890 / 6396ms**
+  - **轨迹现在正常落库**：`provider_duration_ms` 2844 / 6370ms，`model=deepseek-v4-pro`，
+    `stage` / `stage_reason` 全部就位 —— C5 的可观测能力这才真正在生产环境可用
+  - 后端全量回归 **536 tests PASS / 4 skipped**，BUILD SUCCESS。
+    4 个 skip 全为环境门控探针（C3/C4/C5Real/C5Mysql），**无既有测试被跳过**
+  - 新增回归 `tracePersistMustBeDeferredUntilAfterBusinessTransaction`：
+    断言**调用时机**而非结果（persist 必须走延后、编排层不得直接调 persistNow）。
+    这样即便测试仍在 H2 上，也能守住这个不变量
+- **Risks**:
+  - 真机复验待用户执行
+  - 轨迹现在写在业务事务之后，理论上存在「业务成功但轨迹丢失」的窗口（进程崩溃）。
+    可接受：轨迹是辅助设施，且原方案的代价是每轮卡 50 秒
+  - 本地一次性脚本 `probe-turn-latency.local.ps1` 已 gitignore（`*.local.ps1`）
+- **Commit**: pending

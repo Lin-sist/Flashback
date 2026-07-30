@@ -56,6 +56,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -270,6 +271,29 @@ class AgentGuardrailTraceCorrelationTest {
         assertThat(trace.violation()).isEqualTo("check-error");
         assertThat(trace.sessionId()).isEqualTo(SESSION_ID);
         assertThat(trace.turnNo()).isEqualTo(1);
+    }
+
+    /**
+     * 轨迹落库**不得**在业务事务持锁期间发生。
+     *
+     * 这条守的是一次真实故障：最初 persist 用 REQUIRES_NEW 直接写，H2 测试全绿，
+     * 但真实 MySQL 上每轮卡满 50 秒——业务事务刚 UPDATE agent_session 持有行锁，
+     * 而 agent_turn_trace 的外键要求对该父行加锁，新事务只能等到锁超时。
+     *
+     * H2 没有这种行级锁语义，所以**任何走 H2 的测试都不可能复现它**。
+     * 这里改为断言「调用时机」而非「结果」：persist 必须在有事务同步上下文时
+     * 注册回调延后执行，而不是当场写库。时机对了，锁冲突就不可能发生。
+     */
+    @Test
+    void tracePersistMustBeDeferredUntilAfterBusinessTransaction() {
+        when(contentChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.pass());
+
+        service.sendMessage(USER_ID, SESSION_ID, message("随便说一句"));
+
+        // persist 被调用（收集器已交给 sink），但真正的写库由 sink 内部延后。
+        verify(traceSink).persist(any(AgentTraceCollector.class));
+        // 关键：编排层不得直接调 persistNow —— 那会绕过延后机制。
+        verify(traceSink, never()).persistNow(any());
     }
 
     /**

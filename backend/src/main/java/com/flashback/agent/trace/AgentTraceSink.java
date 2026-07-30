@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -85,6 +87,8 @@ public class AgentTraceSink {
             return 1;
         }
         try {
+            // 只读同一张表，不加写锁，因此可以留在业务事务内——
+            // 与 persist 的写入不同，SELECT 不会与父行的写锁冲突。
             return agentTurnTraceMapper.countBySessionAndTurn(sessionId, turnNo) + 1;
         } catch (RuntimeException ex) {
             log.warn("agent trace attempt lookup failed sessionId={} turnNo={} cause={}",
@@ -96,10 +100,51 @@ public class AgentTraceSink {
     /**
      * 落库一条轨迹。
      *
+     * <h3>为什么必须等外层事务提交后再写（这是一处真实故障的修复）</h3>
+     * 最初的实现用 {@code REQUIRES_NEW} 直接写。它在 H2 测试里全绿，
+     * 但在真实 MySQL 上导致**每轮对话卡满 50 秒**（`innodb_lock_wait_timeout` 默认值）：
+     * <ol>
+     * <li>{@code sendMessage} 的事务里刚 UPDATE 过 {@code agent_session}，持有该行写锁；</li>
+     * <li>{@code REQUIRES_NEW} 挂起外层事务、另开一条连接插 {@code agent_turn_trace}；</li>
+     * <li>该表有指向 {@code agent_session} 的外键，InnoDB 插入时需对父行加锁；</li>
+     * <li>父行锁被尚未提交的外层事务持有 → 新事务一直等到锁超时。</li>
+     * </ol>
+     * 于是用户看到 30 秒前端超时，而后端还在等锁。H2 不复现是因为它没有这种行级锁语义。
+     *
+     * 改为注册事务提交后的回调：外层事务提交、锁释放之后才写轨迹。
+     * 这同时保住了原本的目的——轨迹写入失败绝不回滚业务数据，
+     * 因为此时业务事务**已经提交完成**，比 {@code REQUIRES_NEW} 更彻底。
+     *
+     * 无事务上下文时（例如从测试或工具直接调用）退回立即写入。
+     *
      * @param collector 本轮收集器；null 表示可观测关闭，直接返回
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void persist(AgentTraceCollector collector) {
+        if (collector == null) {
+            return;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    // 无论业务事务提交还是回滚都留痕：一轮失败的轨迹同样有排查价值
+                    // （早退路径的覆盖是 C5 的验收项之一）。
+                    persistNow(collector);
+                }
+            });
+            return;
+        }
+        persistNow(collector);
+    }
+
+    /**
+     * 真正执行写入。独立事务 + fail-open。
+     *
+     * 此处的 {@code REQUIRES_NEW} 是安全的：调用点已在事务之外（afterCompletion），
+     * 不存在与业务事务争锁的问题。保留它是为了让写入自成一个提交单元。
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void persistNow(AgentTraceCollector collector) {
         if (collector == null) {
             return;
         }
