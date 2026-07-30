@@ -34,6 +34,22 @@ public class AgentPromptBuilder {
             你的任务是用温和的提问，帮用户把此刻的感受一点点说出来，而不是替他写、替他总结、替他决定。
             """;
 
+    /**
+     * 输出格式要求。
+     *
+     * C5：由 buildSystemPrompt 内联的文本块提取为常量，**文字逐字未改**。
+     * 提取的唯一目的是让它能被提示词版本指纹覆盖——留在方法体内则改了它版本号不会变，
+     * 那正是决策 6 要避免的脏版本。
+     */
+    private static final String OUTPUT_REQUIREMENT = """
+            输出要求：直接输出你要对用户说的那句话本身，就像在聊天里说话一样。
+            不要输出 JSON、不要加引号包裹、不要写字段名或任何格式标记。
+            不要输出分析、标签、评分或诊断。
+            """;
+
+    /** 草稿正文只读引用的标签文案。C5 同上：提取为常量以纳入版本指纹，文字未改。 */
+    private static final String DRAFT_EXCERPT_LABEL = "用户已经写下的正文（只读参考，禁止改写或替换）：";
+
     /** 形状兜底时尝试剥离的字段名，覆盖 C1 遗留约定与常见变体。 */
     private static final List<String> REPLY_FIELD_CANDIDATES = List.of("reply", "askText", "content", "message");
 
@@ -122,15 +138,11 @@ public class AgentPromptBuilder {
         // C2 起走原生 function calling：回复取自 message.content，不再包一层 JSON。
         // 若这里仍要求模型输出 {"reply":...}，模型会照做，而后端不再剥壳，
         // JSON 原文就会直接显示在对话气泡里（C2 手验实际发生过）。
-        builder.append("""
-                输出要求：直接输出你要对用户说的那句话本身，就像在聊天里说话一样。
-                不要输出 JSON、不要加引号包裹、不要写字段名或任何格式标记。
-                不要输出分析、标签、评分或诊断。
-                """.trim());
+        builder.append(OUTPUT_REQUIREMENT.trim());
 
         String excerpt = excerptOf(draftExcerpt);
         if (excerpt != null) {
-            builder.append("\n\n用户已经写下的正文（只读参考，禁止改写或替换）：\n").append(excerpt);
+            builder.append("\n\n").append(DRAFT_EXCERPT_LABEL).append('\n').append(excerpt);
         }
         return builder.toString();
     }
@@ -275,6 +287,32 @@ public class AgentPromptBuilder {
         }
         messages.add(Map.of("role", "user", "content", "请整理素材。"));
         return List.copyOf(messages);
+    }
+
+    /**
+     * C5：提示词版本指纹的原料。
+     *
+     * 只读、不改变任何组装行为——它把本类里所有会影响模型输入的**文案**拼在一起，
+     * 供 {@code AgentTraceVersions} 派生版本号。
+     *
+     * 为什么不直接哈希某一次组装好的 system prompt：那份文本里混着草稿摘录、
+     * 标签清单、记忆片段等**随会话变化**的内容，哈希会每轮都不同，
+     * 版本号就失去了「同一版提示词」的含义。这里只取常量文案。
+     *
+     * 维护约定：**新增或修改任何会进入 prompt 的常量文案时，须一并列进本方法**，
+     * 否则版本号会在文案已变时保持不变——那正是决策 6 要避免的脏版本。
+     */
+    public String promptTemplateFingerprintSource() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(ROLE_SETTING).append('\n');
+        for (AgentStage stage : AgentStage.values()) {
+            builder.append(stage.name()).append('=').append(stageGoal(stage)).append('\n');
+            builder.append(stage.name()).append('>').append(buildTurnInstruction(stage)).append('\n');
+        }
+        builder.append(OUTPUT_REQUIREMENT).append('\n');
+        builder.append(DRAFT_EXCERPT_LABEL).append('\n');
+        builder.append(String.join("|", REPLY_FIELD_CANDIDATES)).append('\n');
+        return builder.toString();
     }
 
     private String buildTurnInstruction(AgentStage targetStage) {

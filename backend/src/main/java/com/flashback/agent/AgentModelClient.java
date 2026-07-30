@@ -118,6 +118,17 @@ public class AgentModelClient {
         return provider == null ? "unknown" : provider.getConfigValue();
     }
 
+    /**
+     * C5：当前配置的 model 标识，供决策轨迹的版本锚点使用。
+     *
+     * 只读**配置值**，不涉及凭证；未配置时返回 unknown 而非空串，
+     * 使轨迹里「没配 model」与「字段没采集到」可区分。
+     */
+    public String model() {
+        String model = appAiProperties.getModel();
+        return isBlank(model) ? "unknown" : model.trim();
+    }
+
     public boolean isMockProvider() {
         return resolveProviderType() == AppAiProperties.Provider.MOCK;
     }

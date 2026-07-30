@@ -5,6 +5,7 @@ import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentRawToolCall;
 import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentSourceCorpus;
+import com.flashback.agent.trace.AgentTraceCollector;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentToolCall;
 import com.flashback.mapper.AgentToolCallMapper;
@@ -86,6 +87,22 @@ public class AgentToolCoordinator {
             int turnNo,
             List<AgentRawToolCall> rawToolCalls,
             AgentLayeredCorpus corpus) {
+        return handleProposals(session, turnNo, rawToolCalls, corpus, null);
+    }
+
+    /**
+     * C5 重载：附带决策轨迹收集器。
+     *
+     * 只**记录**校验结果，不改变任何判定或落库行为——工具生命周期与 C2/C4 完全一致。
+     *
+     * @param trace 轨迹收集器；null 表示可观测关闭或调用方不采集
+     */
+    public AgentToolCall handleProposals(
+            AgentSession session,
+            int turnNo,
+            List<AgentRawToolCall> rawToolCalls,
+            AgentLayeredCorpus corpus,
+            AgentTraceCollector trace) {
 
         if (rawToolCalls == null || rawToolCalls.isEmpty()) {
             return null;
@@ -97,17 +114,39 @@ public class AgentToolCoordinator {
             if (accepted != null) {
                 // 已有一个合法提议，其余丢弃但留痕，便于观察模型是否倾向批量提议。
                 persistGuardRejected(session, turnNo, raw.name(), AgentToolValidationResult.REASON_SUPERSEDED);
+                traceRejected(trace, AgentToolValidationResult.REASON_SUPERSEDED);
                 continue;
             }
             AgentToolRawArguments args = parseArguments(raw);
             AgentToolValidationResult result = validator.validate(raw.name(), args, hasDraft, corpus);
             if (!result.isAccepted()) {
                 persistGuardRejected(session, turnNo, raw.name(), result.rejectReason());
+                traceRejected(trace, result.rejectReason());
                 continue;
             }
             accepted = persistProposed(session, turnNo, result.proposal());
         }
         return accepted;
+    }
+
+    /**
+     * 记录一条提议被拒。
+     *
+     * 只写结构化常量短标识（{@code AgentToolValidationResult} 的 REASON_*），
+     * 不写工具名以外的参数内容——工具名本身可能是模型幻觉出的任意字符串，
+     * 已由审计表的截断处理，此处不重复带入轨迹。
+     *
+     * 采集失败不影响工具流程：可观测是辅助设施。
+     */
+    private void traceRejected(AgentTraceCollector trace, String reason) {
+        if (trace == null) {
+            return;
+        }
+        try {
+            trace.toolRejected(reason);
+        } catch (RuntimeException ex) {
+            log.warn("agent trace tool reject collect failed cause={}", ex.getClass().getSimpleName());
+        }
     }
 
     /**
