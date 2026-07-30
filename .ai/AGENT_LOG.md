@@ -6039,3 +6039,70 @@ Commit: pending
     禁止波及未跟踪文件的 git 操作；警惕格式化造成的 diff 污染；验证拦截方向须先确认样本状态
 - **Commit**: pending（本轮用户明确授权 Agent 代为提交）
 - **Next**: `ACTIVE_TASK=IDLE`。**C3 两刀全部完成**；下一刀为 C5 `agent-observability`，须用户授权后开规划闸
+
+## 2026-07-30｜agent-observability（C5）规划闸｜Type C
+
+- **Scope**: 新建 `openspec/changes/agent-observability/`（`proposal.md` / `design.md` / `tasks.md` + 四份 delta：`agent-runtime` / `backend-core` / `agent-collaboration` / `v2-product-scope`）；更新 `.ai/ACTIVE_TASK.md`。**零业务代码改动**
+- **Changes**:
+  - 开工前状态检查通过：`ACTIVE_TASK=IDLE` 无冲突；C5 唯一硬依赖 C1 已归档；蓝图 v1.1（已冻结）§4 已批准 C5 方向与非目标；开工锚点 `a834d85`
+  - 只读现状调查：`agent/**` 40 个文件职责、`sendMessage` 方法级调用链、三份增量 DDL 与 entity/mapper、9 处既有埋点、脱敏范式、探针门控方式、鉴权与 `/admin/**` 路径现状
+  - `proposal.md`：30 条现状事实（能力五态 V1–V30）、两处岔路（存储选型 / 「可查询」形式）、Goals 10 项、Non-Goals 15 项、场景边界 13 条、N1–N7、外调预算、33 条验收标准、delta 落点、10 条风险
+  - `design.md`：痕迹挂载架构（per-turn 收集器 + 单一落库出口 + fail-open）+ **11 条决策记录**
+  - `tasks.md`：T-01~T-41 分 9 阶段 + 收口 + 范围守护自检；三道闸门检查点分离
+  - delta：`agent-runtime` 4 条 MODIFIED（C2/C4/C3a/C3b 的「范围内的可观测能力」scenario）+ 8 条 ADDED Requirement；`backend-core` 7 条；`agent-collaboration` 3 条；`v2-product-scope` 2 条；`miniapp-core` 确认无 delta
+- **规划期核实到的关键事实**（三条改变了方案方向）:
+  - **`AuthRole.ADMIN` 全仓无签发路径**：`UserServiceImpl.buildLoginResponse` 固定签 `AuthRole.USER`，无其他 `createToken` 调用点 → `/admin/**` 查询端点**在真实环境不可达**，故 N4 不推荐做端点
+  - **`AgentGuardrailDowngrade.trace` 形参含 sessionId/turnNo，但两个调用点全传 null** → 回复与素材路径的降级痕迹当前关联不到会话，属既有缺陷，纳入 C5 补齐（决策 5）
+  - **`agent_tool_call` 无法承载 trace**：它只在有工具提议时才有行，回复路径 / 素材路径 / thought 侧无行可挂，回看模式更是完全无工具 → 排除「扩既有表」方案
+- **两处对已冻结蓝图缓解措施的偏离（已呈现请示，未自行决定）**:
+  - N1 存储：推荐 MySQL 表，偏离蓝图「MVP 可用结构化 JSON 日志文件」。依据是蓝图同卡片要求「可查询」而本地无日志聚合，且 C6 要求字段级关联
+  - N3 采样：推荐默认全量不采样，偏离蓝图「可配置采样率」。依据是采样会制造排查盲区
+- **Verification**: **SKIPPED（符合闸门 1 语义）**——本阶段产出为规划文档，无业务代码可测。既有 496 tests / 2 skipped 基线未触碰。已核对：新建目录不与既有 change 冲突、delta 引用的四条既有 scenario 标题与措辞逐条比对 baseline 原文无误、`miniapp-core` 无 delta 的判断基于「前端零改动」
+- **Risks**:
+  - N1–N7 未定稿前 `design.md` / `tasks.md` 以推荐方案书写；若定稿不同须先回改文档再实现（已在 `tasks.md` 前提中声明）
+  - 若 N1 定为 MySQL 表，含 DDL 的 change 有明确流程教训：本地执行 DDL 必须是实现期第一步（T-02），不得推迟到联调前
+  - `agent-runtime` 的四条 MODIFIED scenario 分散在四个「Accepted From」段落，实现期须逐条核对，漏改会留下自相矛盾的契约
+  - C5 最高风险是隐私（痕迹混入原文），已定为 T-25 的直接断言测试而非代码审查
+- **Commit**: pending（**未执行任何 git 写操作**；工作区未跟踪产物 `Docs/agent-iteration/architecture/`、`iteration-blueprint-v1.2-draft.md`、`.kiro/skills/` 未被触碰或移动）
+- **Next**: 用户批准闸门 1 并定稿 N1–N7 → 再单独授权闸门 2 → 实现从 T-01（DDL 前置）开始
+
+## 2026-07-30｜agent-observability（C5）实现｜Type C
+
+- **Scope**:
+  - 新增主代码：`agent/trace/`（`AgentTraceCollector` / `AgentTraceSink` / `AgentTraceVersions` / `AgentTraceLayer` / `AgentTraceOutcome`）、`domain/AgentTurnTrace`、`mapper/AgentTurnTraceMapper` + XML
+  - 新增 SQL：`sql/mysql/c5-agent-turn-trace.sql`（DDL）、`sql/mysql/c5-trace-queries.sql`（9 条只读排查查询）
+  - 修改主代码：`AgentChatServiceImpl`、`AgentPromptBuilder`、`AgentModelClient`、`AgentToolCoordinator`、`AppAgentProperties`、`application.yml`
+  - 新增测试 4 个类共 37 项；修改 `AgentChatServiceImplTest`（仅构造签名）、`src/test/resources/schema.sql`
+  - **前端零文件改动**
+- **Changes**:
+  - N1–N7 按推荐定稿（用户 2026-07-30 批准），闸门 2 授权后实施
+  - **T-01/02 DDL 第一步执行**（C3b 流程教训）：`agent_turn_trace` 20 列 + 3 索引 + 3 外键 CASCADE；本地 MySQL 已执行，**幂等已验证**（重复执行 exit=0）
+  - 收集器 + 单一落库出口：`sendMessage` 用 try/finally 包住整轮，`persist` 是唯一 insert 点；`REQUIRES_NEW` + fail-open，痕迹写失败不回滚用户消息
+  - thought：mode / 阶段判定 reason（**`AgentStageDecision.Reason` 第一次被真正使用**）/ 记忆检索与注入 / prompt 规模
+  - action：provider 结果与耗时（**成功路径耗时不再被丢弃**）/ tool_calls 处置 / fail-closed 丢弃
+  - observation：六层护栏结论与指标（新增 `AgentTraceLayer` 标明「哪一道闸」）/ 降级可区分本地兜底 / 回复裁剪
+  - 版本锚点由内容哈希派生；顺带把两处内联 prompt 文案提取为常量以纳入指纹，**文字逐字未改**
+  - 配置 `app.agent.observability.{enabled,retention-days}`，**无采样率**，无新增 secret 字段
+- **既有缺陷补齐（按 design 决策 5 单列披露）**:
+  - **V4**：`AgentGuardrailDowngrade.trace` 的两个调用点（`applyReplyGuardrail` / `applyMaterialGuardrail`）此前**恒传 null sessionId/turnNo**，降级痕迹关联不到任何一轮。现改为传真实值，由 `AgentGuardrailTraceCorrelationTest` 用 ArgumentCaptor 直接断言
+  - **V5**：改为用轨迹解决，**未改三个 checker 的签名**。`CHECK_ERROR` 本就以 verdict 返回调用方，而调用方现在会记进轨迹，关联天然成立。改签名会让全部调用点与单测跟着改，diff 混入与可观测无关的护栏改动
+- **实现期与规划不符的三处（诚实记录）**:
+  - **V19 被证伪**：`schema.mysql.sql` 只到 C1，**既无 `agent_tool_call`（C2）也无 `purpose`（C3）**——项目既有约定是全量脚本不随增量维护。刻意未动它（只加 C5 会造出「有 C5 表却无 C2 表」的更怪状态），**待用户决定是否另开 Type B**
+  - **不需要哈希前缀**：轨迹里无「指向某段具体文本」的字段，长度与计数已足够；不引入哈希是更强的隐私姿态
+  - **记忆采集拆成两步**（`memory-retrieval` / `memory-injected`）：回看模式下被回看记录的片段进 MEMORY 层但**不来自检索**，合成一条会让「检索命中 0 却注入 3 条」看起来自相矛盾
+- **Verification**:
+  - 后端全量回归 **533 tests PASS / 2 skipped，BUILD SUCCESS**（496 基线 + 37 新增，**零回归**；2 skipped 为环境门控的真实 provider 探针）
+  - **既有断言零修改**：已核 `AgentChatServiceImplTest` 的 diff，只有 import / `@Mock` / 两个构造参数
+  - 范围守护逐行核实：`AgentPromptBuilder` diff 确认 prompt 文案逐字未改；`AgentChatServiceImpl` 全部删除行均为「同语句加 trace 参数」或「分支重排但语义等价」，无业务逻辑被删
+  - 隐私断言双层：实体字段 + 直接 SQL 查全部文本列，断言特征串不出现；回看路径单独用例
+  - **SKIPPED —— 闸门 3 未授权**：真实 provider 轨迹完整性、耗时量级、fail-closed 活体触发（T-35~T-37）**全部未执行**
+  - **SKIPPED —— 前端构建**：前端零改动，无需 `type-check` / `build:mp-weixin`
+- **Risks**:
+  - 真实 provider 下的轨迹完整性与耗时量级**未验证**（mock 实测 0~1ms）
+  - 回看 fail-closed **仍未活体触发**：C5 只做到「它真发生时能被记下」，不等于已观察到它发生。C3b 同一残余保持未验证状态
+  - mock 路径无 `prompt` 步骤（mock 不组装提示词），已写进 delta scenario 条件，非采集遗漏
+  - 可观测关闭时降级痕迹 sessionId 仍为 null —— 刻意如此，已由测试固定
+  - `schema.mysql.sql` 落后于增量脚本（见上），待用户决定
+  - R2 / R9 / R6 未动；轨迹表增长依赖手动清理（无定时任务）
+- **Commit**: pending（**未执行任何 git 写操作**；未跟踪产物 `Docs/agent-iteration/architecture/`、`iteration-blueprint-v1.2-draft.md`、`.kiro/skills/` 未被触碰）
+- **Next**: 用户验收 → delta 接受进 baseline（`agent-runtime` 四条 MODIFIED 逐条落）→ 归档 → `ACTIVE_TASK` → IDLE → **Phase 1 收官，进入蓝图 v1.2 校准会**

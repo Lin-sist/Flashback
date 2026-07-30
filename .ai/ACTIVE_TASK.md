@@ -2,9 +2,33 @@
 
 ## Status
 
-`IDLE`
+`ACTIVE`
 
-当前无活动 Type C change。开始新的重大实现前，必须先创建 OpenSpec change 并更新本文件。
+- Change：`agent-observability`（C5）
+- 位置：`openspec/changes/agent-observability/`
+- 阶段：**实现与验证完成，待用户验收**（闸门 1 已批准 + 闸门 2 已授权，2026-07-30）
+- 开工锚点：`a834d85`
+- **闸门 3 未授权、未执行**：T-35~T-37（真实 provider 轨迹完整性、耗时量级、fail-closed 活体触发）全部未做
+- 产物：`proposal.md` / `design.md`（11 条决策）/ `tasks.md`（T-01~T-40 已完成，T-41 待验收）/ `closeout.md` / 四份 delta
+- delta 落点：`agent-runtime`（4 条 MODIFIED + 8 条 ADDED）、`backend-core`（7）、`agent-collaboration`（3）、`v2-product-scope`（2）；`miniapp-core` **无 delta**（前端零改动）
+- 验证：后端 **533 tests PASS / 2 skipped**（496 基线 + 37 新增，零回归）；**既有断言零修改**；本地 DDL 已执行且幂等已验证
+
+### N1–N7 定稿（用户按推荐批准）
+
+MySQL 表 / 每轮一条聚合 + 单一落库出口 / 全量不采样 / 只落库不加端点 / 补齐 V4·V5 / 版本由内容哈希派生 / 级联删除 + 保留期 + 手动清理
+
+### 两处已获批的对已冻结蓝图的偏离
+
+- **存储**：蓝图 v1.1 §4 C5 风险栏写「MVP 可用结构化 JSON 日志文件」，实际建 MySQL 表。
+  依据：蓝图同卡片要求「可查询」而本地无日志聚合；C6 要求字段级关联
+- **采样**：蓝图缓解措施提「可配置采样率」，实际默认全量无采样。
+  依据：采样会制造排查盲区——最想看的那一轮可能恰好没被采到
+
+### 规划期核实到的关键事实（决定了 N4 不做端点）
+
+- **`AuthRole.ADMIN` 全仓没有任何签发路径**：`UserServiceImpl.buildLoginResponse` 固定签 `AuthRole.USER`，
+  全仓无其他 `createToken` 调用点。因此 `/admin/**` 下的查询端点**在真实环境不可达**——
+  这推翻了「做个 admin 端点」的直觉方案。改为只落库 + `c5-trace-queries.sql` + 集成测试实证
 
 ## Previous Completed
 
@@ -18,11 +42,12 @@
 ## Direction Layer
 
 - **迭代蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` v1.1 已冻结（C4 前移与 C3 拆两刀均已登记于 §7）
-- 主线进度：M4 → C1 → C2 → C4 → C3a → **C3b 已归档** → 下一刀 **C5 `agent-observability`**
-- C5 只硬依赖 C1，无其他硬依赖
+- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b 已归档 → **C5 `agent-observability` 规划闸中**
+- C5 只硬依赖 C1，无其他硬依赖；依赖前提已满足
 - 蓝图 v1.2 草案（未跟踪文件）建议 C5 归档后再做一次校准并冻结 v1.2；**当前权威仍是 v1.1**
+- **C5 是 Phase 1 收官刀**：归档后进入 v1.2 校准会（草案 §0.2 与 §8 的清单）
 
-## Source Of Truth (when IDLE)
+## Source Of Truth
 
 - `AGENTS.md`
 - `openspec/project.md`
@@ -36,13 +61,20 @@
 
 ## Current Progress
 
+- **This session**: 2026-07-30 — C5 规划闸 + 实现全流程完成
+  - 规划：30 条现状事实（V1–V30）、11 条决策、T-01~T-41、四份 delta；N1–N7 按推荐定稿
+  - 实现：`agent/trace/` 五个类 + 实体/mapper/XML + DDL + 9 条排查查询 + 37 项测试
+  - thought / action / observation 三段齐备；**`AgentStageDecision.Reason` 第一次被真正使用**；
+    **成功路径的 provider 耗时不再被丢弃**
+  - 既有缺陷补齐：**V4**（降级痕迹此前恒传 null sessionId）；**V5** 改用轨迹解决，未动 checker 签名
+  - 三处与规划不符已如实记录（见 `closeout.md` §4）：V19 被证伪、不需要哈希前缀、记忆采集拆两步
+- **Blocked on**: 待用户验收 diff
+- **Next step**: 验收 → delta 接受进 baseline（**`agent-runtime` 四条 MODIFIED 要逐条落，它们分散在四个「Accepted From」段落**）→ 归档 → `ACTIVE_TASK` → IDLE → **Phase 1 收官，进入蓝图 v1.2 校准会**
 - **Last session**: 2026-07-29 — C3 两刀全流程完成
   - C3a：分层来源 + 时间归属护栏 + `MemoryPort` + MySQL 检索 + 写作引导注入；T-01 覆盖率实测；归档
   - C3b：`AgentChatMode` 单一模式判定点 + 回看会话（无阶段机 / 无工具 / 无素材）+ `ReviewChatSheet`；归档
   - 闸门 3 合并执行：真实 provider 15 次 + 微信真机手验 PASS
-- **Blocked on**: none
-- **Next step**: 用户授权后启动 **C5 `agent-observability` 规划闸**；规划批准前禁止业务代码
-- **Commit**: C3b 六个 commit 已落（`b6327df` / `fe7e644` / `ec76e8d` / `8a0d02b` / `0eb4d7a` / `df88795`）+ 归档提交；**未 push**，`main` 领先 `origin/main`
+- **Commit**: C3b 六个 commit 已落（`b6327df` / `fe7e644` / `ec76e8d` / `8a0d02b` / `0eb4d7a` / `df88795`）+ 归档提交；**未 push**，`main` 领先 `origin/main`。C5 规划产物 **未提交**
 
 ## C3 闸门 3 的关键结论（对 C5 有参考价值）
 
@@ -92,9 +124,11 @@
 - `.kiro/skills/`
 - `Docs/agent-iteration/README.md` 与 `roadmap/README.md` 的未提交改动
 
-## Out Of Scope While Idle
+## Out Of Scope（C5 待验收期间）
 
-- 不要在没有新 Type C 的情况下改 Agent runtime / 工具 / 护栏 / 记忆 / 回看 / AI 业务代码
-- 不要跳过三道闸门直接实现 C5
-- 不要并行复活已归档 change 作为隐式 active change
+- **闸门 3 仍未授权**：不得发起真实 provider 调用、不得真机联调
+- 不要在验收前归档，也不要自行把 delta 接受进 baseline
+- 不要并行开 C6（蓝图 v1.2 草案 §10 明确「C6 不要偷跑」）
 - 不要在 C5 之外顺手改引导 / 素材 prompt（R2 已明确延后）
+- 不改 Agent 对话行为、不改前端、不改认证签发、不引入 logback / 日志聚合 / actuator / 定时任务
+- **不得使用波及未跟踪文件的 git 操作**（不用 stash / clean / reset --hard）
