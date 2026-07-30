@@ -283,8 +283,11 @@
 - [x] **T-38** 输出 Required Output
 - [x] **T-39** 更新 `.ai/ACTIVE_TASK.md` Current Progress；追加 `.ai/AGENT_LOG.md`
 - [x] **T-40** `closeout.md`
-- [ ] **T-41** 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE
-  - **Phase 1 至此收官**；下一步是蓝图 v1.2 校准会（v1.2 草案 §0.2 与 §8 的清单）
+- [x] **T-41** 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE（2026-07-30 完成）
+  - `agent-runtime`：四条 MODIFIED 逐条落（已核对：新措辞 4 处、无残留旧措辞）+ 8 条 ADDED
+  - `backend-core`：7 条 + **一条 Type B 条款**（前端超时须大于后端 AI 超时）
+  - `agent-collaboration`：3 条；`v2-product-scope`：2 条；`miniapp-core` 无 delta
+  - **Phase 1（C1–C5）至此全部完成**；下一步是蓝图 v1.2 校准会（v1.2 草案 §0.2 与 §8 的清单）
 
 ---
 

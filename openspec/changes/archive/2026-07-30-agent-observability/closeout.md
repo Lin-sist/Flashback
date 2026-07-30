@@ -164,11 +164,34 @@ diff 会混进一批与可观测无关的护栏改动，违背「C5 不改 Agent
 
 ---
 
-## 7. 下一步
+## 7. 收口（2026-07-30 完成）
 
-1. 用户验收 diff
-2. delta 接受进 `openspec/specs/`（`agent-runtime` 四条 MODIFIED 要逐条落）
-3. 归档到 `openspec/changes/archive/2026-07-30-agent-observability/`，`ACTIVE_TASK` → IDLE
-4. **Phase 1 至此收官** → 进入蓝图 v1.2 校准会（v1.2 草案 §0.2 与 §8 的清单）
+1. ✅ 用户验收
+2. ✅ delta 接受进 `openspec/specs/`：`agent-runtime`（4 MODIFIED 逐条核对 + 8 ADDED）、
+   `backend-core`（7 + 一条 Type B 超时条款）、`agent-collaboration`（3）、`v2-product-scope`（2）
+3. ✅ 归档到 `openspec/changes/archive/2026-07-30-agent-observability/`；`ACTIVE_TASK` → IDLE
+4. ➡️ **Phase 1（C1–C5）至此收官** → 进入蓝图 v1.2 校准会（v1.2 草案 §0.2 与 §8 的清单）
 
-提交责任：**用户手动提交**。本轮未执行任何 `git add` / `commit` / `push`。
+提交：**用户授权 Agent 分阶段提交**。C5 五个 commit + Type B 一个 commit + 归档提交，
+全程只用显式 `git add <path>`，未使用 stash / clean / reset --hard，**未 push**。
+
+---
+
+## 8. 附：归档后随即发现并修复的一个缺陷（Type B）
+
+用户手验时记录页与回看页均报 `request: fail timeout`。
+
+**根因与本刀的实测数据直接相关**：前端 `httpClient` 默认超时 10000ms，
+而 `agentService` 六个方法一个都没传 timeout；后端 `app.ai.timeout-millis` 默认同为 10000。
+**两者相等意味着前端必然先断** —— 而闸门 3 实测 provider 单次 4571~8467ms（均值 6476ms），
+加上编排、护栏与落库开销，一轮越过 10 秒是常态。
+
+后果不只是「慢」：前端断开时后端那一轮仍在正常处理，用户看到 `uni.request` 的原始 errMsg，
+**C1 精心设计的 `UNAVAILABLE` / `FAILED` 显式失败语义被网络错误抢先覆盖**。
+
+修复：前端四个触发 provider 调用的方法显式传 30000（`getSession` / `confirmToolCall`
+不改，它们不调 AI）；后端三个 profile 提到 20000。关键是顺序 —— 前端 30000 > 后端 20000
+> 实测 max 8467ms，前端要给后端留出「自己先超时并返回显式失败」的窗口。
+
+该缺陷是 C5 之前就存在的（C1 引入 Agent 端点时即如此），只是过去 provider 更快或联调
+样本更少而未暴露。**C5 的耗时数据是定位它的直接依据** —— 这算可观测能力上线后的第一个收益。

@@ -6148,3 +6148,45 @@ Commit: pending
     这是预期行为而非缺陷
   - 未改 `httpClient` 的全局默认值——其他非 AI 请求的 10 秒不变，避免波及无关调用
 - **Commit**: pending
+
+## 2026-07-30｜agent-observability（C5）验收、delta 接受与归档｜Type C
+
+- **Scope**:
+  - `openspec/specs/agent-runtime/spec.md`（4 条 MODIFIED + 追加 C5 段落）
+  - `openspec/specs/backend-core/spec.md`（追加 C5 段落，含一条 Type B 超时条款）
+  - `openspec/specs/agent-collaboration/spec.md`、`openspec/specs/v2-product-scope/spec.md`（各追加 C5 段落）
+  - `openspec/changes/agent-observability/` → `openspec/changes/archive/2026-07-30-agent-observability/`（`git mv`）
+  - `.ai/ACTIVE_TASK.md` → IDLE
+- **Changes**:
+  - **`agent-runtime` 四条 MODIFIED 逐条落**：C2 / C4 / C3a / C3b 的「范围内的可观测能力」scenario
+    原文均为「决策链路可查询 SHALL 留给后续独立 change」，改为「自 C5 起由本 spec 的决策轨迹条款约束」。
+    保留阶段范围声明不删——范围声明本身是历史事实，删掉就看不出能力何时到位
+  - **核对方式**：改后统计新措辞 4 处、旧措辞 0 处（唯一残留的一处旧措辞出现在我自己写的修订注释
+    引号内，是对原文的引用，非漏改，已确认）
+  - `agent-runtime` 追加 8 条 ADDED；`backend-core` 追加 7 条 + **一条 Type B 条款**
+    （Agent Conversation Client Timeout Must Exceed Backend AI Timeout）
+  - `agent-collaboration` 追加 3 条 —— 该 spec 在 C5 之前**没有承载过产品 Agent 条款**
+    （C1–C3 的条款全落在 `agent-runtime`），本次是首次
+  - `v2-product-scope` 追加 2 条；`miniapp-core` 确认无 delta
+  - 归档用 `git mv` 保留文件历史；`closeout.md` 补 §8 记录归档后随即发现的 Type B
+- **Verification**:
+  - delta 接受的完整性以「新旧措辞计数」核对，非目测
+  - 归档后目录结构核对：`closeout.md` / `design.md` / `proposal.md` / `tasks.md` / `specs/` 齐全
+  - **SKIPPED —— 未重跑测试**：本轮只改 OpenSpec 文档与 `.ai`，无代码改动。
+    代码侧验证以 Type B 那条为准（534 PASS / 3 skipped）
+- **Risks**:
+  - 见 `ACTIVE_TASK` Residual。最需要用户动作的两项：**Type B 真机复验**、
+    **`schema.mysql.sql` 是否另开 Type B 补齐**
+  - R2（引导话术质量）的延后条件随 Phase 1 完工而**解除**，可以开始谈了
+- **Commit**: pending
+- **Next**: 蓝图 v1.2 校准会（Type A 讨论，不是新 Type C）。C6 不得偷跑
+
+## 2026-07-30｜Phase 1 收官说明｜Type A
+
+- M4 → C1 → C2 → C4 → C3a → C3b → C5 全部归档，Phase 1 完成
+- C5 上线后的第一个实际收益就是定位了 Type B 那个超时缺陷：
+  provider 耗时数据（min 4571 / avg 6476 / max 8467ms）在 C5 之前完全不存在，
+  没有它只能猜「是不是网络问题」
+- 下一步不是新 Type C，而是 v1.2 校准会。本轮实测**证伪了草案里两条假设**，
+  校准时须一并处理：① 新表需同步三份 schema（实际项目约定是全量脚本不随增量维护）；
+  ② `/admin` 端点可行（实际 `AuthRole.ADMIN` 无签发路径，端点不可达）
