@@ -6509,3 +6509,14 @@ Commit: pending
   - `minMemoryOnlyRunForAttribution` 与新发现的 n-gram 边界都**未校准**，属独立事项
 - **Commit**: pending
 - **Next**: 用户验收 diff → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE
+
+## 2026-07-31｜agent-eval-framework（C6）提交补录｜Type C
+
+- **Commit**: `aedab6c`（31 files changed, 5675 insertions(+), 34 deletions(-)）
+- **Scope**: 用户当轮明确授权 Agent 执行 `git commit`；**`push` / 部署 / 发布未授权，未执行**
+- **Changes**: 只用显式 `git add <path>` 逐条暂存（未用 `git add .`，未用 stash / clean / reset --hard）
+  - 刻意**未提交** `.kiro/skills/`——它是工作区既有未跟踪产物，不属本刀范围
+- **Verification**: 提交后复跑 `mvn -q -o test` **BUILD SUCCESS**
+  （git 对 YAML 做了 LF→CRLF 规范化，因此提交后必须复验一次解析仍正常；已确认无影响）
+- **Risks**: 无新增
+- **Commit**: `aedab6c`

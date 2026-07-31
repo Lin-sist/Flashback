@@ -146,6 +146,8 @@
     5. **`ArgumentCaptor` 不适合多轮取轨迹**：captor 拿到的是同一个可变对象的引用，
        多轮时读到的全是最后一轮终态。改用手写 `RecordingTraceSink` 按 persist 顺序存下
   - 未提交（本轮已获授权可提交）
+- **已提交**: `aedab6c`（用户当轮授权 commit；**未 push**）。提交后已复跑全量测试，
+  BUILD SUCCESS——git 对 YAML 做 LF→CRLF 规范化，故提交后必须复验一次解析仍正常
 - **Blocked on**: **用户验收**（diff 审阅）
 - **Next step**: 验收通过 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE。
   收口前还有 **T-34：补叙事文档 §7**（D33 固定收尾项）
