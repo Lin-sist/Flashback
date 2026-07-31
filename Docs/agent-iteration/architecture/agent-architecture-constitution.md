@@ -82,11 +82,13 @@ Flashback 的产品 Agent 走的是 **Backend 托管、被动召唤、单 Agent 
 | Guardrail（跨 L1–L5） | `AgentGuardrailPolicy` + `agent/guardrail/*`（含 `AgentTimeAttributionChecker`，C3a 补入） | confirmed（C4 前移 + C3a 增补） |
 | Trace（支撑 L4/L5） | `agent/trace/*`（`AgentTraceCollector` / `AgentTraceSink` / `AgentTraceVersions` / `AgentTraceLayer` / `AgentTraceOutcome`）、`agent_turn_trace` 表 | confirmed（C5） |
 | L4 Resilience | 有超时与 fail-open 兜底，但无系统化错误分类 / 阶段化降级 / 多 provider 路由 | partial → C8 |
-| L5 Eval | `AgentGuardrailBoundaryCaseTest` 已是离线黄金集雏形；无跨维度 runner 与回归比对 | partial → C6 |
+| L5 Eval | `agent/eval/*`（harness / scripted provider 替身 / 用例加载 / 不变量 / 快照 / 基线）、`eval/cases/*.yaml` 23 条用例、`eval/baseline/snapshots.yaml` 23 条基线；既有 `AgentGuardrailBoundaryCaseTest` 原地保留 | confirmed（C6）；**语言质量维度仍 partial**——人评锚点结构就位但为空 |
 | L0 | `AgentModelClient`（OpenAI-compatible HTTP）、MyBatis、MySQL、Uniapp | confirmed |
 
 > 校准义务：**每刀归档后**更新本表「现状锚点」，删除过时类名。
-> 本表最近一次校准：2026-07-30（Phase 1 六刀全部归档，后端 534 tests PASS）。
+> 本表最近一次校准：**2026-07-31（C6 归档，后端 606 tests PASS / 4 skipped）**。
+> 注：上一次校准写的「534 tests」是 C5 归档当时的值，其后三个 Type B 使基线成为 536 / 4
+> ——C6 实现期复核时发现并修正（摘要类数字要定期复核）。
 
 ---
 
@@ -140,7 +142,7 @@ Flashback 的产品 Agent 走的是 **Backend 托管、被动召唤、单 Agent 
 |---|---|
 | 职责 | 追加结构化事件：stage / tool / guardrail / memory / provider 元数据 |
 | 现状 | `AgentTraceCollector`（内存收集）→ `AgentTraceSink`（唯一出口落 `agent_turn_trace`）；`AgentTraceVersions` 提供内容哈希版本锚点 |
-| 目标 | 支撑调试与 C6 Eval，**不**面向终端用户 |
+| 目标 | 支撑调试与 Eval，**不**面向终端用户。C6 已兑现：评测直接断言收集器的内存状态（`persist` 是唯一出口，可拦下），因此**不需要落库也能评** |
 | 必须 | 无日记原文；可按 session 查询；事件 schema 版本化 |
 | 隐私（已落地） | 收集方法**只接受基础类型与既有枚举**——想把原文传进轨迹，在编译期就做不到 |
 | 关键约束 | 采集点集中在单一出口，**早退路径（provider 失败 / 护栏降级 / fail-closed 丢弃）必须同样留痕** |
@@ -151,10 +153,11 @@ Flashback 的产品 Agent 走的是 **Backend 托管、被动召唤、单 Agent 
 
 | 项 | 约定 |
 |---|---|
-| 职责 | 加载用例 → 跑 Agent 路径（mock provider）→ **断言轨迹不变量 + 快照回归比对** → 报告 |
-| 现状 | `partial`：`AgentGuardrailBoundaryCaseTest` 已是离线黄金集雏形（五场景 + 正反例 + 隐私断言）；无跨维度 runner |
-| 时机 | C6 系统化；C4 边界用例与 C3 误关联用例是数据集种子 |
-| 必须 | 维度稳定；离线零外调；CI 可跑子集；**不变量层禁止刷新**，快照层变更须留 `baselineNote` |
+| 职责 | 加载用例 → 跑 Agent 路径（确定性替身）→ **断言轨迹不变量 + 快照回归比对** → 报告 |
+| 现状 | **`confirmed`（C6 已归档）**：外置 YAML 用例 + 参数化 runner + 两层断言 + 23 条带留痕基线；既有 `AgentGuardrailBoundaryCaseTest` 原地保留、断言零修改 |
+| 实现要点（C6 实测） | 替身**只替边界**（mapper 与 provider HTTP），护栏 / 状态机 / 上下文组装 / 检索收口全走生产实现——替身替掉的越多，被覆盖的生产代码越少。且替身**须走非 mock 分支**：mock 分支在组装 prompt 前即返回，只走它评不到上下文组装、也产不出降级轨迹 |
+| 必须 | 维度稳定；离线零外调；**不变量层禁止刷新**，快照层变更须留 `baselineNote` 且校验值由「指标 + 说明」共同派生（只改数字会被拦住）；**不提供自动重写开关** |
+| 「CI 可跑子集」的现状 | **无落点**：仓库无 `.github/`、workflow 零命中。C6 交付的是「一条 maven 命令可跑」，**不是** CI 门槛。建 CI 属独立决策 |
 | 断言对象 | **优先轨迹级信号而非只看最终回复**——阶段序列、注入规模、护栏 verdict、降级层、长度比 |
 | 禁止（D31） | **LLM-as-Judge 不进 C6**：原文外发需授权 + 预算不足 + 判定不可复现 |
 | 诚实边界（D32） | mock 路径评的是**编排逻辑**，不是语言质量。语言质量靠真实探针小样本人评锚定，不假装用 Judge 覆盖 |
@@ -234,7 +237,7 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 | 为追 Multi-Agent 拆「多个用户可见人格」 | 破坏「一个朋友」 |
 | 自建伪 FC 协议充当 tool 主路径 | 已在 C2 明确拒绝静默降级 |
 | 向量中台化 Memory | 违背 D7 与叙事分工；向量只能作为同一 `MemoryPort` 下的旁路 |
-| **无 Eval 情况下大改 prompt 上线** | 质量不可回归。**这条正是 C6 必须先于 C7 的依据**（D30）——反思环本质就是改模型输出行为 |
+| ~~**无 Eval 情况下大改 prompt 上线**~~ | 质量不可回归。**这条正是 C6 必须先于 C7 的依据**（D30）。**C6 已归档，技术前提解除**：改动前后现在可按快照比对。但流程要求不变——改 prompt 仍属 Type C，且快照变化须在 `baselineNote` 写明由哪一刀改的，不得把数字改成当前值了事 |
 | 用 LLM 判定替换已被测试钉死的确定性 checker | 用不确定换确定是净损失（D28/D31） |
 
 ---
@@ -246,8 +249,8 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 | 阶段 | Change | 状态 | 宪法关注点 |
 |---|---|---|---|
 | Phase 1 | C1 → C2 → C4 → C3a → C3b → C5 | **全部归档** | 端口成形：Loop / Tool / Guardrail / Memory / Trace |
-| Phase 2 | C6 `agent-eval-framework` | 下一刀 | `EvalPort` 落地；轨迹不变量 + 回归比对，不做 Judge |
-| Phase 2 | C7 `agent-reflection-loop` | 待 C6 | 在 L1 引入**受控环**；判定源复用 `GuardrailPort`，上限 1 次 |
+| Phase 2 | C6 `agent-eval-framework` | **已归档**（2026-07-31） | `EvalPort` 落地；轨迹不变量 + 回归比对，不做 Judge。**`src/main` 零改动**；「CI 可跑子集」如实记为无落点（仓库无 CI） |
+| Phase 2 | C7 `agent-reflection-loop` | **下一刀** | 在 L1 引入**受控环**；判定源复用 `GuardrailPort`，上限 1 次 |
 | Phase 2 | C8 `agent-resilience` | 待 C7 | L4 成形；预算须扣除 C7 已占用部分 |
 | Phase 2 | C9 `agent-temporal-intelligence` | 待 C8 | Temporal 是 L3 强化，不新造用户分析后台 |
 | Optional | C0 / C10 / C11 | 证据触发 | 平台升级 / 语气标定 / 上下文架构 |

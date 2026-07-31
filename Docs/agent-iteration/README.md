@@ -30,9 +30,13 @@ Flashback 已有 OpenSpec（M1–M4）与 `.ai/` 交接文件。下一步要做�
 | 6 | **本目录** `workflow/prompt-snippets/design-decision-record.md` | design 决策记录格式 |
 | 7 | **本目录** `workflow/agent-control-model.md` | 控制权分层与证据分工 |
 | 8 | `项目初始分析.md` | Agent 化产品方向初评（非执行契约） |
-| 9 | `roadmap/iteration-blueprint.md` | 长期序列蓝图（**v1.1 已冻结**；Phase 1 执行方向） |
-| 10 | `roadmap/iteration-blueprint-v1.2-draft.md` | Phase 2 修订**草案**（C5 前不冻结；不可当 ACTIVE scope） |
-| 11 | `architecture/README.md` | 架构宪法 + 技术选型草稿（反推倒、可演进端口） |
+| 9 | `roadmap/iteration-blueprint.md` | 长期序列蓝图（**v1.2 已冻结**；Phase 1 收官 + Phase 2 序列 C6→C7→C8→C9） |
+| 10 | `architecture/README.md` | 架构宪法 + 技术选型草稿（反推倒、可演进端口） |
+| 11 | `narrative/agent-tech-story.md` | 对外叙事（面试向，非执行契约）；§1–§7 已写，§8 待 C7 |
+
+> **进度**：Phase 1（C1–C5）+ Phase 2 首刀 **C6 `agent-eval-framework` 已归档**（2026-07-31）。
+> 下一刀 C7 `agent-reflection-loop`。
+> 注：`roadmap/iteration-blueprint-v1.2-draft.md` 曾列于本表，其内容已迁入正式蓝图 v1.2，草稿已删除。
 
 ## 3. 目录结构
 

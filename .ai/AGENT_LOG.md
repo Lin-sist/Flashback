@@ -6562,3 +6562,31 @@ Commit: pending
 - **Next**: **开 C7 `agent-reflection-loop` 规划闸**。开工前读蓝图 §4.3，
   并注意三件事：类大小用实测 1274 行、人评锚点顺带在 C7 闸门 3 填、
   C7 若改编排行为则 C6 快照会变（须写 `baselineNote`，不得改数字了事）
+
+## 2026-07-31｜C6 归档后的活文档同步｜Type B
+
+- **Scope**: 只改文档指针与状态，无代码改动
+  - `AGENTS.md`（当前阶段 → Phase 2 已开局；默认下一刀 → `agent-reflection-loop`）
+  - `openspec/project.md`（当前工程状态 → C6 已归档；下一刀 C7）
+  - `.kiro/steering/product.md`（Phase 2 序列标注 C6 已归档 + 当前 IDLE）
+  - `Docs/agent-iteration/architecture/agent-architecture-constitution.md`
+    （L5 Eval 由 `partial → C6` 改为 `confirmed（C6）`、`EvalPort` 现状与实现要点重写、
+    Phase 对齐表 C6→已归档 / C7→下一刀、Trace 目标补一句、§7.3 那条禁令标注技术前提已解除）
+  - `Docs/agent-iteration/architecture/tech-selection-draft.md`（Eval 行 → confirmed；能力总览 Eval→✅、Reflection→下一刀）
+  - `Docs/agent-iteration/architecture/README.md`（状态日期、当前进度）
+  - `Docs/agent-iteration/README.md`（索引表：蓝图 v1.1→v1.2、**删除已不存在的 v1.2-draft 行**、
+    补 narrative 行、加进度说明）
+- **Changes**:
+  - 归档一刀后按 D33 与「校准义务」同步全部活文档；**`openspec/changes/archive/**` 一律未动**（归档即历史）
+  - **已冻结蓝图 `iteration-blueprint.md` 未改**：其中的「C6 下一刀」「1183 行」等表述属冻结内容，
+    修订须走显式流程并更新 §12。C6 的两处勘误只登记在 change 与 `ACTIVE_TASK` 内
+  - 顺带修掉两处**过时索引**：`Docs/agent-iteration/README.md` 仍把蓝图记作 v1.1，
+    且仍列着 `iteration-blueprint-v1.2-draft.md`（该文件早已删除、内容已迁入正式蓝图）
+  - 宪法的能力表脚注补记：上次校准写的「534 tests」是 C5 归档当时值，
+    实为 536/4（C6 复核发现）→ 本次改为 606/4
+- **Verification**: PASS
+  - 全仓检索确认活文档中已无「C6 为下一刀 / partial → C6 / 待 C6」类表述
+    （仅存于已冻结蓝图与 archive，按规则不动）
+  - 后端全量 `mvn -q -o test` **BUILD SUCCESS**（本轮纯文档，仍复验一次）
+- **Risks**: 无
+- **Commit**: pending

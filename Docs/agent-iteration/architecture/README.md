@@ -1,8 +1,8 @@
 # Agent 架构与技术选型（参考层）
 
-> 状态日期：2026-07-30
+> 状态日期：2026-07-31
 > 文档性质：**方向与选型参考**，不是 OpenSpec change，**不授权直接改业务代码**
-> 状态：**已随蓝图 v1.2 校准**（2026-07-30）；Phase 1 事实已落表，Phase 2（C6–C9）选型指针已对齐
+> 状态：**已随 C6 归档校准**（2026-07-31）；Phase 1 + C6 事实已落表，Phase 2 余下（C7–C9）选型指针已对齐
 > 执行硬规则仍以 `AGENTS.md` → `.ai/ACTIVE_TASK.md` → active OpenSpec → baseline specs 为准
 
 ## 本目录解决什么问题
@@ -44,7 +44,8 @@
 ```
 
 **当前进度**：Phase 1（C1 → C2 → C4 → C3a → C3b → C5）六刀全部归档，端口已成形；
-下一刀 C6 `agent-eval-framework`（`EvalPort` 落地）。
+**Phase 2 首刀 C6 `agent-eval-framework` 已于 2026-07-31 归档**（`EvalPort` 落地，`src/main` 零改动）。
+下一刀 **C7 `agent-reflection-loop`**（在 L1 引入受控环）。
 
 ## 禁止
 

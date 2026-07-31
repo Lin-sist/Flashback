@@ -53,7 +53,7 @@
 | Memory | C3 planned | **`MemoryPort` + `MySqlMemoryPort`**：关键词 + 标签 + 时间回溯；注入有条数/字符预算（P4 关闭：LIKE + 标签，非 FULLTEXT） | confirmed |
 | 回看会话 | C3 planned | **复用 `agent_session` + `purpose`**，不经阶段机；前端 `ReviewChatSheet` 浮层（P5 关闭） | confirmed |
 | Observability | C5 planned | **`agent/trace/*` + `agent_turn_trace` 表**；内容哈希版本锚点；9 条排查查询（P7 关闭：MySQL 表而非 JSON 文件） | confirmed |
-| Eval | 未提 | `AgentGuardrailBoundaryCaseTest` 为离线黄金集雏形；无跨维度 runner | partial → C6 |
+| Eval | 未提 | **`agent/eval/*` + 外置 YAML 用例 + 参数化 runner + 两层断言（不变量硬失败 / 快照需人确认）+ 23 条带留痕基线**；snakeyaml 走传递依赖故零 pom 改动；`src/main` 零改动 | confirmed（C6）；语言质量维度仍 partial（人评锚点为空） |
 | Resilience | 未提 | 有超时与 fail-open 兜底；无错误分类 / 阶段化降级 / 多 provider | partial → C8 |
 | 认证 | 分析文档曾写 Spring Security | **jjwt + 自研过滤器**；`springframework.security` 全仓零匹配，pom 无 security starter | confirmed |
 | Redis | pom 含 starter | dev/prod yml 有配置段，但 **main 代码零消费**（会话走 MySQL） | partial |
@@ -276,8 +276,8 @@ Tools            : Native function calling + allowlist + confirm        ✅
 Memory           : MemoryPort · MySQL 关键词/标签/时间检索 · 注入预算   ✅
 Guardrails       : 规则源 + 确定性检查 + 忠实度双指标 + 分路径降级      ✅
 Trace            : versioned event schema · MySQL 表 · 无原文           ✅
-Eval             : 仓内 runner + 轨迹不变量 + 快照回归（C6）            → 下一刀
-Reflection       : 护栏驱动的受控环，上限 1 次（C7）                    → 待 C6
+Eval             : 仓内 runner + 轨迹不变量 + 快照回归（C6）            ✅
+Reflection       : 护栏驱动的受控环，上限 1 次（C7）                    → 下一刀
 Resilience       : 错误分类 + 阶段化温暖降级 → 多 provider（C8）        → 待 C7
 Temporal         : 时间元数据策略（C9）                                 → 待 C8
 UI               : Uniapp 增量对话入口（未改三 Tab）                    ✅
