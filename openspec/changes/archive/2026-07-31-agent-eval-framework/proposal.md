@@ -2,7 +2,8 @@
 
 > Change ID：`agent-eval-framework`
 > Type：**C**
-> 阶段：**闸门 1 已批准 + 闸门 2 已授权（2026-07-31，N1–N8 按推荐定稿）；实现进行中**
+> 阶段：**已完成并归档（2026-07-31 用户验收）**。闸门 1 已批准 → 闸门 2 已授权 →
+> **闸门 3 未申请**（外调预算 0）。N1–N8 全部按推荐定稿。收口见 `closeout.md`
 > 开工锚点：`486ca95`
 > 上游方向：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结** §4.2（C6 意图卡片）+ §9.1（不做 Judge）
 > 架构约定：`Docs/agent-iteration/architecture/agent-architecture-constitution.md` §3.6 `EvalPort`、§7.3

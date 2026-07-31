@@ -2,68 +2,62 @@
 
 ## Status
 
-`ACTIVE`（**实现已完成，待用户验收**）
+`IDLE`
 
-- **Change**：`agent-eval-framework`（C6，Phase 2 第一刀）
-- **位置**：`openspec/changes/agent-eval-framework/`
-- **开工锚点**：`486ca95`
-- **授权状态**：闸门 1 已批准 + 闸门 2 已授权（2026-07-31，N1–N8 全部按推荐定稿）；
-  闸门 3 **本刀不申请**（外调预算 0，全程未启用任何真实 provider 探针）；
-  用户已授权 Agent 执行 `git commit`，**`push` / 部署 / 发布仍未授权**
-- **验证**：后端 **606 tests PASS / 4 skipped，BUILD SUCCESS**
-  （536 基线 + 70 新增，**零回归、既有断言零修改**）
-- **本刀的关键性质**：**`src/main` 零改动**（`git diff --name-only -- backend/src/main frontend/src` 输出为空）
+当前无活动 Type C change。开始新的重大实现前，必须先创建 OpenSpec change 并更新本文件。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
-**蓝图 v1.2 已于 2026-07-30 校准并冻结。**
-
-### 交付物
-
-| 类别 | 内容 |
-|---|---|
-| 用例 | `src/test/resources/eval/cases/*.yaml` 四份，**23 条合成用例**（本仓库首次使用参数化测试） |
-| 基线 | `eval/baseline/snapshots.yaml` 23 条（13 项指标 + `baselineNote` + checksum） |
-| 锚点 | `eval/baseline/narrative-anchors.yaml`——**结构就位、内容为空**，且「空≠已覆盖」由测试守着 |
-| 代码 | `src/test/java/com/flashback/agent/eval/` 九个类（harness / scripted 替身 / 收集器替身 / 用例模型 / 加载器 / 不变量 / 快照 / 基线 / 维度枚举）+ 五个测试类 |
-| 本地样本 | `.gitignore` 加 `*.local.yaml` / `*.local.yml` 通配（**先于任何样本文件落地并验证**） |
-
-### 三项如实登记的诚实边界（不得在后续文档里写成已完成）
-
-1. **仓库无 CI**：交付的是「一条 `mvn -q test` 可跑」，**不是** CI 门槛（架构宪法 §3.6 的
-   「CI 可跑子集」当前无落点）
-2. **快照指标在真实 provider 下的稳定性未验证**（本刀 0 外调）
-3. **话术质量人评锚点为空**，建议顺带在 C7 闸门 3 填
+**Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
+下一动作是 **C7 `agent-reflection-loop` 规划闸（闸门 1）**，见下文 Direction Layer。
 
 ## Previous Completed
 
-- Change：`agent-observability`（C5，Phase 1 收官刀）
-- 位置：`openspec/changes/archive/2026-07-30-agent-observability/`
-- 结果：Agent 决策轨迹（thought → action → observation）落地并归档。delta 已接受进 baseline：
-  `agent-runtime`（四条「范围内的可观测能力」scenario 修订 + 8 条新增）、
-  `backend-core`（7 条 + 一条 Type B 超时条款）、`agent-collaboration`（3 条，该 spec 首次承载产品 Agent 条款）、
-  `v2-product-scope`（2 条）；`miniapp-core` 无 delta（前端零改动）
-- 验证：C5 归档当时后端 **534 tests PASS / 3 skipped**（496 基线 + 37 新增，零回归）；
-  **注：其后三个 Type B 又加了测试与一个探针，当前真实基线为 536 / 4**（AGENT_LOG 已记，
-  本摘要此前未跟上，2026-07-31 由 C6 实现期复核修正）；
-  **既有断言零修改**；本地 DDL 已执行且幂等已验证
-- 闸门 3 已执行：真实调用 **6 次 / 预算 10**。轨迹三段齐备；耗时 min 4571 / avg 6476 / max 8467ms；
-  真实产出下隐私复核 `leaked=false`；**fail-closed 仍未活体触发，如实记为未验证**
-- **归档后随即修掉一个 Type B**：手验报 `request: fail timeout`（详见下文 Residual 与 AGENT_LOG）
-- 更早：`agent-review-chat`（C3b）、`agent-memory-retrieval`（C3a）、`agent-guardrails-hardening`（C4）、
+- Change：`agent-eval-framework`（C6，**Phase 2 第一刀**）
+- 位置：`openspec/changes/archive/2026-07-31-agent-eval-framework/`
+- 开工锚点 `486ca95`｜实现提交 `aedab6c`（+ `f2c998b` hash 补录）
+- 结果：**离线、零外调、`src/main` 零改动**的评测框架落地并归档。
+  轨迹级不变量（硬失败）+ 快照回归比对（需人确认），23 条合成用例、23 条带留痕基线。
+  delta 已接受进 baseline：`agent-runtime`（1 条 MODIFIED——C5「范围内的评估能力」改为指向 C6，
+  保留范围声明不删 + 6 条新增）、`backend-core`（5 条）、`agent-collaboration`（3 条）；
+  `v2-product-scope` 与 `miniapp-core` 无 delta
+- 验证：后端 **606 tests PASS / 4 skipped，BUILD SUCCESS**
+  （536 基线 + 70 新增，**零回归、既有断言零修改**；4 skipped 仍是原有环境门控探针，未新增跳过）
+- **闸门 3：未申请**（外调预算 0，全程未启用任何真实 provider 探针，实测外调 0 次）。
+  用户 2026-07-31 表述为「闸门 3 通过」，但本刀并无外调可授权，故如实记为**未申请**
+- **三项未完成项如实登记**（详见 closeout §3，**不得在后续文档写成已完成**）：
+  ① 快照指标在真实 provider 下的稳定性**未验证**；
+  ② 话术质量人评锚点**为空**（结构已就位，建议顺带在 C7 闸门 3 填）；
+  ③ 仓库**无 CI**，交付的是「一条 maven 命令可跑」，**不是** CI 门槛
+- **实现期五处发现**（详见 closeout §4）：基线实测 536/4 非 534/3；护栏一处 n-gram 覆盖边界
+  （未校准，只钉成回归）；修掉一条自己写的「恒成立所以什么都没测」的假用例；
+  snakeyaml 自动把 timestamp 转 Date；`ArgumentCaptor` 不适合多轮取轨迹
+- 更早：`agent-observability`（C5，Phase 1 收官刀，位置
+  `openspec/changes/archive/2026-07-30-agent-observability/`；闸门 3 真实调用 6 次，
+  耗时 min 4571 / avg 6476 / max 8467ms；归档后修掉三个 Type B）、
+  `agent-review-chat`（C3b）、`agent-memory-retrieval`（C3a）、`agent-guardrails-hardening`（C4）、
   `agent-tool-calling`（C2）、`agent-runtime-mvp`（C1）、`m4-real-capability-completion`
 
 ## Direction Layer
 
 - **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结**（2026-07-30）
-- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → **C5 已归档，Phase 1 收官**
-- **Phase 2 定案序**：`C6 agent-eval-framework` → `C7 agent-reflection-loop` →
+- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6 已归档，Phase 2 开局**
+- **Phase 2 定案序**：~~C6 agent-eval-framework~~（**已归档**）→ **`C7 agent-reflection-loop`（下一刀）** →
   `C8 agent-resilience` → `C9 agent-temporal-intelligence`（一次一个 ACTIVE）
-- **C6 规划闸已执行**（2026-07-31）：`openspec/changes/agent-eval-framework/` 已建，
-  proposal / design（12 条决策）/ tasks / 三份 delta 建议就绪，**闸门 1 待用户批准**
+- **下一动作：C7 规划闸**。建 `openspec/changes/agent-reflection-loop/`，写
+  proposal / design / tasks + delta，**闸门 1 待用户批准**。开工前读蓝图 §4.3 意图卡片
+- **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
+  1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
+     蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
+  2. **人评锚点建议顺带在 C7 闸门 3 填**——C7 必然要真实联调重写路径，
+     同一批真实产出既验重写效果又能当语言质量锚点，比单独申请一轮外调更省
+  3. **C7 若改变编排行为，C6 的快照会变，那是预期的**——须在 `baselineNote` 里
+     写明由 C7 改的，而不是把数字改成当前值了事
+- **C6 已为 C7 备好前置**：反思环的价值主张是「重写后质量更好」，
+  这个主张现在第一次可以被证伪（D30 排序决策的兑现）
 - **Optional（不排主线）**：C0 平台升级（Boot 4.x/Java 21，Phase 2 完工后再议）、
   C10 语气标定、C11 上下文架构——均需证据触发
 - **对外叙事文档**：`Docs/agent-iteration/narrative/agent-tech-story.md`（D33：每刀归档时更新对应段落；
-  §7 待 C6 补、§8 待 C7 补）
+  **§1–§7 已写**，§8 待 C7 补，§9 持续追加）
 
 ### v1.2 冻结的关键决策（D25–D33，开 C6 前必读）
 
@@ -148,9 +142,35 @@
   - 未提交（本轮已获授权可提交）
 - **已提交**: `aedab6c`（用户当轮授权 commit；**未 push**）。提交后已复跑全量测试，
   BUILD SUCCESS——git 对 YAML 做 LF→CRLF 规范化，故提交后必须复验一次解析仍正常
-- **Blocked on**: **用户验收**（diff 审阅）
-- **Next step**: 验收通过 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE。
-  收口前还有 **T-34：补叙事文档 §7**（D33 固定收尾项）
+- **This session（收口）**: 2026-07-31 — **C6 验收通过并归档，Phase 2 开局完成**
+  - delta 接受进 baseline：`agent-runtime` 1 MODIFIED + 6 ADDED、`backend-core` 5 ADDED、
+    `agent-collaboration` 3 ADDED；`v2-product-scope` 与 `miniapp-core` 确认无 delta
+  - change 目录用 `git mv` 移入 `archive/2026-07-31-agent-eval-framework/`（保留历史）
+  - `closeout.md` 写就；叙事文档 §7 已在实现期补完（D33 固定收尾项）
+  - **闸门 3 的处理**：用户表述为「闸门 3 通过」，但本刀**并无外调可授权**（预算 0、
+    实测 0 次），故在 closeout 与 tasks 中如实记为**未申请**而非「已通过」。
+    由此产生的未验证项（快照指标在真实 provider 下的稳定性）单独登记
+- **Blocked on**: none
+- **Next step**: **开 C7 `agent-reflection-loop` 规划闸**。建 change 目录写
+  proposal / design / tasks + delta 建议 → 闸门 1 待批准。
+  开工前读蓝图 §4.3 意图卡片，并注意 Direction Layer 里列的三件事
+  （类大小用实测 1274 行、锚点顺带在闸门 3 填、快照变化须写 `baselineNote`）
+
+## C6 的关键结论（对 C7 有直接价值）
+
+- **量尺已就位，R2 第一次可以谈优化了**。基线定于优化**之前**，记的是「当前状态」而非
+  「理想状态」——这一点写在 `eval/baseline/snapshots.yaml` 文件头，避免将来被误读
+- **C7 改编排行为时，C6 快照会变，那是预期的**。正确做法是确认变化符合预期后手工更新，
+  并在 `baselineNote` 写明由 C7 改的；**不得**把数字改成当前值了事
+  （checksum 由「指标 + 说明」共同派生，只改数字会被拦住）
+- **`AgentChatServiceImpl` 实测 1274 行**（蓝图记 1183 行已过时）。C7 要在这个类里
+  掉转依赖方向，论证须用实测值
+- **走 mock provider 分支评不到上下文组装**：生产代码在 `isMockProvider()` 处直接 return，
+  压根不组装 prompt。C7 若要为重写路径写测试，同样要走非 mock 分支才看得到 `prompt` 步骤
+- **替身设计的一条经验**：替身替掉的越多，被覆盖的生产代码越少。C6 的 provider 替身
+  继承生产类只覆写两个真正发请求的方法，其余判定（配置可用性、FC 白名单）全走生产逻辑
+- **护栏一处未校准的 n-gram 覆盖边界**已钉成回归用例。C7 的重写指令若改变复述措辞的形态，
+  这条用例会有反应
 
 ## C5 的关键结论（对 v1.2 校准与 C6 有直接价值）
 
@@ -186,29 +206,54 @@
 ## Residual / Carry-over
 
 - **[R10] 回看 fail-closed 仍未活体触发**：C3b 3 轮 + C5 6 轮共 9 轮观察，模型均未在无工具模式返回提议。
-  正确性仅由单测覆盖。属概率性行为，**不单开 change**；C5 已做到「它真发生时能被记下」
+  属概率性行为，**不单开 change**；C5 做到「它真发生时能被记下」，
+  **C6 又让它的正确性多一层常驻回归**（评测里能稳定驱动该分支）。
+  但**未活体触发这个事实未变**，不得因为多了回归就写成已验证
 - **[待用户决定] `schema.mysql.sql` 落后于增量脚本**：补齐它需要同时补 C2 + C3 + C5 三刀的表与列，
   属独立 Type B。C5 刻意未动（只加 C5 会造出「有 C5 表却无 C2 表」的更怪状态）
 - **[新] 轨迹写在业务事务之后**：理论上存在「业务成功但轨迹丢失」的窗口（进程崩溃）。
   可接受——轨迹是辅助设施，而原方案的代价是每轮卡 50 秒
-- **[R2] 引导话术与素材合成质量**：**已定案由 C6 重建基线后再谈**（D30/D32）。
-  C5 的版本锚点使「优化前后可对比」第一次成为可能；在 C6 落地前不要动 prompt
-  （宪法 §7.3：无 Eval 情况下大改 prompt 上线属禁止项）。
-  **C6 只重建基线，不做优化本身**——基线记录的是「当前状态」而非「优化后状态」
-- **[新｜C6 规划期发现] `minMemoryOnlyRunForAttribution=8` 代码注释明写「未经真实样本校准」**
-  （对比：`minCoverage=0.35` 有真实样本校准记录）。C6 建好量尺后它才具备校准条件，
-  但 **C6 刻意不校准**——两个变量一起动会重演 R2 那次归因错误。属独立事项，待用户决定
-- **[新｜C6 规划期发现] 仓库无 CI**：无 `.github/`，全仓 workflow 零命中。
-  架构宪法 §3.6 的「CI 可跑子集」当前无落点。C6 不顺手建（撞「不改 deployment / monitoring」，
-  且涉及跑在哪 / 密钥怎么给 / 失败怎么处理，属独立决策）。**待用户决定是否另开一刀**
+- **[R2｜量尺已就位，可以开始谈优化] 引导话术与素材合成质量**：C6 已建成基线（D30/D32 兑现）。
+  **基线定于优化之前**，记的是「当前状态」而非「理想状态」（写在
+  `eval/baseline/snapshots.yaml` 文件头）。现在改 prompt 前后第一次可比对——
+  宪法 §7.3 那条「无 Eval 情况下大改 prompt 上线」的禁令已具备解除条件。
+  改动后快照会变，须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的
+- **[新｜C6 未完成项] 快照指标在真实 provider 下的稳定性未验证**：C6 外调预算 0。
+  它其实不构成风险——快照的用途是「同一份确定性输入下改动前后是否变化」，
+  真实 provider 从来不在这个用途里。**如实登记，不得写成已验证**
+- **[新｜C6 未完成项] 话术质量人评锚点为空**：`eval/baseline/narrative-anchors.yaml`
+  结构已就位、内容为空，且「空≠已覆盖」由测试守着。填它需真实产出 + 人评，
+  **建议顺带在 C7 闸门 3 做**（同一批真实产出既验重写又当锚点）
+- **[C6 登记｜待用户决定] `minMemoryOnlyRunForAttribution=8` 未校准**（代码注释明写；
+  对比 `minCoverage=0.35` 有真实样本校准记录）。**另新增一条**：护栏「只在新增区段匹配」
+  的成立条件依赖 4-gram 覆盖，复述用户说过的病名时是否放行取决于有没有连带复用周边措辞
+  ——已钉成回归用例。两者 C6 都**刻意不校准**：建量尺和用量尺改参数混在一起，
+  就分不清指标变化是哪个原因造成的（R2 那次误判的同型错误）。属独立事项
+- **[C6 登记｜待用户决定] 仓库无 CI**：无 `.github/`，全仓 workflow 零命中。
+  架构宪法 §3.6 的「CI 可跑子集」当前无落点，C6 交付的是「一条 maven 命令可跑」。
+  未顺手建（撞「不改 deployment / monitoring」，且涉及跑在哪 / 密钥怎么给 / 失败怎么处理）
+- **[新｜C6] 基线手工更新的规模上限**：刻意不提供自动重写开关（有了它，「评测红了」
+  的最短路径就变成「跑个命令让它变绿」）。用例大幅增长后批量更新会烦；届时若加开关，
+  须**同时**配「说明未变更则失败」的守护——**不得先给出口再补守护**
+- **[新｜C6] snakeyaml 是传递依赖**（经 `spring-boot-starter`），非本项目直接声明。
+  已加 `NoClassDefFoundError` 兜底明确失败，绝不静默跳过用例——否则某次 starter 升级后
+  会变成最坏形态：**绿灯但什么都没测**
 - **[已关闭] 三个 Type B 的真机复验**：用户 2026-07-30 执行，全部 PASS
 - **[已关闭] MySQL 上轨迹落库未联调**：已联调，并由此发现且修复了 50 秒锁等待根因
 - **[R9] 检索相关性弱**：标签 + 说明性字段 LIKE，无权重 / 分词 / 向量。升级留独立 change
 - **[R6｜待用户执行] 凭证轮换**：`AI_API_KEY` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_SESSION_TOKEN` /
   `WECHAT_MINI_PROGRAM_SECRET`。轮换后建议删除 `backend/start-dev-wechat.local.ps1.bak`（含旧明文，已 gitignore）
 - **探针资产**：`C3RealProviderProbeTest`（`C3_REAL_PROBE=1`）、`C4RealProviderProbeTest`（`C4_REAL_PROBE=1`）、
-  `C5RealProviderProbeTest`（`C5_REAL_PROBE=1`）。全部默认跳过。C5 探针另有一处形态差异：
-  它是 `@SpringBootTest` 走完整 `sendMessage`，因为要验的是编排层有没有漏采集
+  `C5RealProviderProbeTest`（`C5_REAL_PROBE=1`）、`C5MysqlTraceProbeTest`（`C5_MYSQL_PROBE=1`）。
+  **共 4 个，全部默认跳过**（这也是当前基线 4 skipped 的来源）。C5 探针另有一处形态差异：
+  它是 `@SpringBootTest` 走完整 `sendMessage`，因为要验的是编排层有没有漏采集。
+  **C6 未新增探针**（0 外调）
+- **[新｜C6] 评测资产**：`backend/src/test/java/com/flashback/agent/eval/`（10 个类 + 5 个测试类）、
+  `backend/src/test/resources/eval/`（4 份用例 + 快照基线 + 空锚点）。
+  **离线、零外调、默认随 `mvn -q test` 一起跑**，不需要任何环境变量
+- **[新｜C6] 本地真实样本入口**：`backend/src/test/resources/eval/samples.local.yaml`
+  （**当前不存在**；已被 `.gitignore` 的 `*.local.yaml` 通配覆盖并用 `git check-ignore` 验证过）。
+  缺失时评测静默跳过相关用例，这正是别人 clone 仓库时的状态
 - **本地联调脚本**：`backend/run-c5-probe.local.ps1`（已 gitignore；`.gitignore` 的 `*.local.ps1`
   规则由 C5 从「只点名单个文件」改为通配）
 - **[C3a 实测] 本地 `tag` 表 0 行**、`core_question` 0% 非空、26 条记录中 `ai_summary` / `belief_then` 各 62%
@@ -247,6 +292,19 @@
 - **[新] fail-open 只保证不报错，不保证不阻塞**：C5 的轨迹写入确实 fail-open，
   但它在失败**之前**先卡了 50 秒。评估「某个辅助设施失败是否影响用户」时，
   必须同时看**失败前的等待成本**，不能只看失败后的处置
+- **[新｜C6] 警惕「恒成立所以什么都没测」的断言**：C6 写的一条截断用例样本只有 111 字，
+  而上限是 120——「不超过 120」恒为真，那条用例实际什么都没验。
+  验「某个上限真的生效」要断言**恰好等于上限**，不是「不超过上限」。
+  同型问题也出现在验证拦截方向时（C3b 的样本选错）：**先确认样本真的处于该被测的状态**
+- **[新｜C6] 替身替掉的越多，被覆盖的生产代码越少**：极端情况下断言的是自己的替身。
+  C6 的 provider 替身继承生产类只覆写两个真正发网络请求的方法，
+  「配置是否可用」「model 是否在白名单内」这些判定仍走生产逻辑；
+  记忆检索用真实 port + mock mapper，使「注入不超预算」断言的是 port 真的会收口
+- **[新｜C6] 摘要类数字要定期复核**：`ACTIVE_TASK` 顶部与蓝图记的回归基线 534/3
+  已过时（实测 536/4），而 AGENT_LOG 里其实早有正确值——**是摘要没跟上明细**。
+  每刀开工时顺手核一次自己要引用的数字
+- **[新｜C6] `ArgumentCaptor` 不适合取多次调用中的可变对象**：captor 持有的是引用，
+  多轮时读到的全是最后一轮的终态。要按顺序看每一轮，用能在调用时刻存快照的替身
 
 ## 未跟踪 / 未提交产物（不要擅自提交或移动）
 
@@ -255,12 +313,7 @@
 
 **当前未跟踪（实测）**：
 
-- `.kiro/skills/`
-- `openspec/changes/agent-eval-framework/`（**本轮新建的 C6 规划产物**）
-
-**当前已修改未提交（实测）**：
-
-- `.ai/ACTIVE_TASK.md`、`.ai/AGENT_LOG.md`（本轮改动）
+- `.kiro/skills/`（**唯一一项**。C6 提交时刻意未纳入——它是工作区既有产物，不属那一刀范围）
 
 **已 gitignore 的本地脚本（不入库，保留）**：
 
@@ -273,23 +326,22 @@
 `narrative/agent-tech-story.md`、v1.2 冻结带来的 8 处引用同步改动。
 `roadmap/iteration-blueprint-v1.2-draft.md` **已不存在**（内容已迁入正式蓝图，草稿已删）。
 
-## Out Of Scope（C6 规划期）
+## Out Of Scope While Idle
 
-- **闸门 1 未批准前禁止改任何业务代码**；闸门 2 未授权前禁止按 tasks 实现
-- 本刀获批后**仍不改任何 `src/main` 代码**。若实现期发现某处非改不可，**停下请示**，不得自行扩大范围
-- 不改 `AgentMockResponder`（`@Component`，mock provider 下跑在生产路径上）
-- 不改 `AgentGuardrailBoundaryCaseTest` / `AgentGuardrailTraceCorrelationTest` /
-  `AgentObservabilityIntegrationTest` 的任何断言
-- **不要动 prompt / 护栏阈值 / 引导策略**：R2 的基线正是本刀要建的（宪法 §7.3）。
-  连那条明标「未经真实样本校准」的 `minMemoryOnlyRunForAttribution` 也不动——
-  建量尺与用量尺改参数是两件事，混在一刀里就分不清指标为何变化
+- 不要在没有新 Type C 的情况下改 Agent runtime / 工具 / 护栏 / 记忆 / 回看 / 轨迹 / 评测 / AI 业务代码
+- **C7 须先过闸门 1**：可以建 change 目录写 proposal / design / tasks，但**规划批准前禁止改业务代码**
+- **改 prompt / 护栏阈值现在有条件了，但仍须走 Type C**：C6 的基线让改动可比对，
+  这解除的是宪法 §7.3 的技术前提，**不是**流程要求。改动后快照会变，
+  须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的
+- **不要校准阈值**（含 `minMemoryOnlyRunForAttribution` 与 C6 登记的 n-gram 覆盖边界）——
+  属独立事项，待用户决定
+- **不要静默刷新 C6 的快照基线**：checksum 由「指标 + 说明」共同派生，只改数字会被拦住；
+  也不要为图方便加自动重写开关（若要加，须同时配「说明未变更则失败」的守护）
 - 不做 LLM-as-Judge / 绝对评分 / A/B 框架 / 质量看板（D31/D32）
 - 不做 C7 反思环 / C8 韧性 / C9 时间智能的任何部分
-- 不引入新依赖、不改 `pom.xml` / lockfile、不新增 DDL、不引入 CI 配置
-- 不启用任何真实 provider 探针（**本刀 0 外调**，勿设置 `C*_REAL_PROBE=1`）
+- 不引入 CI 配置（属独立决策）
 - 不要并行复活已归档 change 作为隐式 active change
-- 不要修改 `openspec/changes/archive/**`——归档即历史，含其中的 v1.1 引用
-- 不修改已冻结蓝图（E28 的勘误只登记在 change 内）
-- 不要并行复活已归档 change 作为隐式 active change
-- 不要在未获授权时发起真实 provider 调用（探针默认门控跳过，勿擅自设置 `C*_REAL_PROBE=1`）
-- 不要修改 `openspec/changes/archive/**`——归档即历史，含其中的 v1.1 引用
+- 不要在未获授权时发起真实 provider 调用（4 个探针默认门控跳过，勿擅自设置 `C*_REAL_PROBE=1` /
+  `C5_MYSQL_PROBE=1`）
+- 不要修改 `openspec/changes/archive/**`——归档即历史，含其中的 v1.1 引用与 C6 的勘误登记
+- 不修改已冻结蓝图（C6 登记的两处勘误——1274 行、536/4 基线——只留在 change 内）

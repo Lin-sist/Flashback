@@ -1,7 +1,7 @@
 # Tasks：Agent Eval Framework（C6）
 
 > Change ID：`agent-eval-framework`
-> 阶段：**闸门 1 已批准 + 闸门 2 已授权（2026-07-31），实现进行中**
+> 阶段：**已完成并归档（2026-07-31）**。T-01 ~ T-34 全部完成
 > N1–N8 **全部按推荐定稿**：snakeyaml / 纯 Mockito harness / 替身挂 `AgentModelClient` /
 > 快照只能手工更新 / `samples.local.yaml` + 通配 / 普通 JUnit / 话术质量只建结构 / 0 外调
 > 提交责任：**用户已授权 Agent 执行 `git commit`**；**`push` / 部署 / 发布仍未授权**
@@ -14,7 +14,9 @@
 
 - [x] **闸门 1 · 规划批准**：proposal / design（12 条决策）/ tasks / delta 落点，N1–N8 按推荐定稿（2026-07-31）
 - [x] **闸门 2 · 实现授权**：用户 2026-07-31 明确授权按本文件实现
-- [ ] **闸门 3 · 外调授权**：**本刀不申请**（预算 0）。实现期不启用任何真实 provider 探针
+- [—] **闸门 3 · 外调授权**：**本刀未申请**（预算 0）。实现期未启用任何真实 provider 探针，
+  实测外调 **0 次**。用户 2026-07-31 表述为「闸门 3 通过」，但本刀并无外调可授权，
+  故如实记为**未申请**而非「已通过」——由此带来的未验证项见 `closeout.md` §3
 
 ---
 
@@ -220,8 +222,12 @@
   - 仓库**无 CI** → 交付的是「一条 maven 命令可跑」，**不是** CI 门槛（验收 34）
   - 快照指标在**真实 provider** 下的稳定性**未验证**（验收 35 / proposal E36）
   - 话术质量维度的锚点**为空**（验收 15）
-- [ ] **T-32** `closeout.md`
-- [ ] **T-33** 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE
+- [x] **T-32** `closeout.md`
+- [x] **T-33** 用户验收 → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE（2026-07-31 完成）
+  - `agent-runtime`：1 MODIFIED（C5「范围内的评估能力」改为指向 C6，保留范围声明不删）+ 6 ADDED
+  - `backend-core`：5 ADDED；`agent-collaboration`：3 ADDED
+  - `v2-product-scope` 与 `miniapp-core` 确认**无 delta**
+  - change 目录用 `git mv` 移入 `archive/2026-07-31-agent-eval-framework/`（保留历史）
 - [x] **T-34** 叙事文档收尾（D33，每刀固定收尾项）
   - **§7「怎么保证改了 prompt 不退化」已写**：从 R2 那次误判切入（修锁等待后用户说「自然一些了」
     而一行 prompt 都没改）→ 为什么断言轨迹信号而非回复措辞 → 两层失败语义 →

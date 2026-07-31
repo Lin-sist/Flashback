@@ -6520,3 +6520,45 @@ Commit: pending
   （git 对 YAML 做了 LF→CRLF 规范化，因此提交后必须复验一次解析仍正常；已确认无影响）
 - **Risks**: 无新增
 - **Commit**: `aedab6c`
+
+## 2026-07-31｜agent-eval-framework（C6）验收归档｜Type C
+
+- **Scope**: delta 接受进 baseline + 归档 + 指针收口
+  - `openspec/specs/agent-runtime/spec.md`（**MODIFIED 1 条** + 新增 `## Accepted From C6` 段，6 条 Requirement）
+  - `openspec/specs/backend-core/spec.md`（新增 C6 段，5 条 Requirement）
+  - `openspec/specs/agent-collaboration/spec.md`（新增 C6 段，3 条 Requirement）
+  - `openspec/changes/agent-eval-framework/` → `openspec/changes/archive/2026-07-31-agent-eval-framework/`
+    （用 `git mv`，保留历史）；新增 `closeout.md`
+  - `.ai/ACTIVE_TASK.md`（`ACTIVE` → **`IDLE`**）、`.ai/AGENT_LOG.md`
+- **Changes**:
+  - **MODIFIED**：C5 的「C5 范围内的评估能力」scenario 原文「评估能力 SHALL 留给后续独立 change」
+    改为指向 C6 条款。**保留阶段范围声明不删**——范围声明本身是历史事实，
+    删掉就看不出能力何时到位（沿用 C5 修订 C2/C4/C3a/C3b 四条时的同一做法）
+  - **ADDED 14 条 Requirement**：不变量离线断言（含通用不变量与期望键拼写两条实现期新增）、
+    基线可比对可追溯（含留痕机制完整性、孤儿条目两条实现期新增）、评测不改行为、
+    评测不泄漏内容、诚实边界（含锚点内容边界）、C6 范围排除；
+    backend-core 侧另有替身最小化、须驱动真实生成分支、跳过数不得增加三条实现期新增
+  - 确认 `v2-product-scope` 与 `miniapp-core` **无 delta**
+  - `ACTIVE_TASK` 收口：Status→IDLE、Previous Completed 换为 C6、Direction Layer 指向 C7、
+    新增「C6 的关键结论（对 C7 有直接价值）」、Residual 与流程教训按实测更新、
+    未跟踪产物一节复核为只剩 `.kiro/skills/`
+- **关于「闸门 3 通过」的如实记录**:
+  - 用户本轮表述为「闸门 3 通过」，但 **C6 并无外调可授权**——proposal §9 申请的就是 0，
+    实现期实测外调 0 次，未启用任何探针
+  - 因此在 `closeout.md` §3、`tasks.md` 闸门检查点、以及三份 spec delta 的段首
+    **一律记为「未申请」而非「已通过」**，并单独登记由此产生的未验证项
+    （快照指标在真实 provider 下的稳定性）
+  - 这样做的理由：把「没做」记成「做过且通过」，会让后续任何人误以为该项已有实证
+- **Verification**: PASS
+  - 三份 spec 落地核验：`agent-runtime` 2003 行 / 59 条 Requirement、
+    `backend-core` 1308 行 / 49 条、`agent-collaboration` 197 行 / 11 条；
+    三处 `## Accepted From C6` 段均在位；C5 那条 scenario 已指向 C6
+  - 归档后复跑后端全量 `mvn -q -o test` **BUILD SUCCESS**（本轮只改文档与 spec，
+    但归档动了目录，仍复验一次）
+  - `openspec/changes/` 下已无 `agent-eval-framework`（只剩 archive 与两个历史 m1/m3 目录）
+- **Risks**: 无新增。既有残余见 `ACTIVE_TASK` Residual（R2 现已具备优化条件、
+  两处未校准阈值、无 CI、锚点为空、快照真实 provider 稳定性未验证）
+- **Commit**: pending
+- **Next**: **开 C7 `agent-reflection-loop` 规划闸**。开工前读蓝图 §4.3，
+  并注意三件事：类大小用实测 1274 行、人评锚点顺带在 C7 闸门 3 填、
+  C7 若改编排行为则 C6 快照会变（须写 `baselineNote`，不得改数字了事）
