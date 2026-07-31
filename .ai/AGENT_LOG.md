@@ -6316,3 +6316,71 @@ Commit: pending
   - 新增流程教训：涉及锁 / 外键 / 事务边界的改动，H2 集成测试不足以验证，须打真实 MySQL
 - **Verification**: 用户真机手验 PASS；后端 536 tests PASS / 4 skipped；前端 type-check + build PASS
 - **Commit**: pending（本条为文档补录）
+
+## 2026-07-30｜蓝图 v1.2 校准会与冻结｜Type A（讨论）+ Type B（文档落地）
+
+- **Scope**: 方向层与文档层，**零业务代码改动**
+  - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（v1.1 → **v1.2 已冻结**）
+  - `Docs/agent-iteration/narrative/agent-tech-story.md`（**新建**，对外叙事）
+  - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2-draft.md`（未跟踪；内容已迁出，待用户手动删除）
+  - `AGENTS.md`、`openspec/project.md`
+  - `.kiro/steering/{rules,structure,product,tech}.md`
+  - `Docs/agent-iteration/README.md`、`roadmap/README.md`、`workflow/agent-control-model.md`
+  - `Docs/agent-iteration/architecture/{README,agent-architecture-constitution,tech-selection-draft}.md`
+  - `.ai/ACTIVE_TASK.md`（Direction Layer 指向 v1.2、下一动作改为 C6 规划闸）
+
+- **Changes**:
+  - **校准会十问逐支定案**（Type A 讨论，全部结论已核对代码），产出 **D25–D33** 九条新决策
+  - **Phase 2 序列定案**：`C6 agent-eval-framework` → `C7 agent-reflection-loop` →
+    `C8 agent-resilience` → `C9 agent-temporal-intelligence`
+    - 相对起草稿的变更：在 Eval 之后**新增 C7 反思环**，韧性顺移 C8、时间智能顺移 C9
+    - 排序理由（D30）：反思环本质是改模型输出行为，须先有可回归的量尺；
+      否则只会得到第二个无法证伪的「感觉好了」
+  - **平台升级降级为 Optional C0**（D26）：重心不在平台层；其风险性质与业务刀不同
+    （业务刀风险是「设计对不对」可由测试回答，平台升级风险是传递依赖兼容性，工作量长尾不可预估）
+  - **不引入图框架**（D27）：核对 `AgentStageMachine` 后确认现有实现已具备节点/边/抢占/自环/终态，
+    改为「引入真正需要环的能力」+ 留可讲述 ADR
+  - **反思环边界定案**（D28/D29）：判定源复用 C4 确定性护栏；重写指令只回传违规类型不携带文本片段；
+    只对 `UNFAITHFUL` 与 `MISSING_TIME_ATTRIBUTION` 开环；`CHECK_ERROR` 绝不重试；上限 1 次
+    → 最坏 2 次调用 ≈13s < 后端 20s，**不需要动刚验证过的超时配置**
+  - **Eval 边界定案**（D31/D32）：排除 LLM-as-Judge；只做轨迹不变量 + 回归比对，不做绝对判分；
+    快照分层（不变量层禁止刷新 / 快照层需人确认）+ `baselineNote` 防橡皮图章
+  - **新增对外叙事交付物**（D33）：`narrative/agent-tech-story.md` 按面试问题组织，
+    §1–§6 与 §10 已写（C1–C5 素材齐备），§7/§8 待 C6/C7 归档补，§9「知道但不做」持续追加
+  - **消化五条实测证伪的前提**（蓝图 §2.3）：
+    1. `/admin` 端点不可达（`AuthRole.ADMIN` 全仓无签发路径）
+    2. `schema.mysql.sql` 只到 C1，不随增量维护
+    3. H2 不足以验证锁/外键/事务边界 → **蓝图 §0.4 已收紧「真实联调」定义为包含真实 MySQL**
+    4. R2 基线受延迟污染 → 改由 C6 重建
+    5. **本轮新发现**：steering 声称「JWT（Spring Security）」，实测 `springframework.security`
+       全仓零匹配、pom 无 security starter，实为 jjwt + 自研过滤器 → 已修 `.kiro/steering/tech.md`
+  - **附带登记**：`pom.xml` 含 `spring-boot-starter-data-redis` 且 dev/prod yml 有配置段，
+    但 main 代码零消费（会话走 MySQL）。标记 `partial`，不在 Phase 2 处理
+  - `.kiro/steering/product.md` 的 C1–C5 顺序修正为实际执行序（此前仍写 C3 Memory 在 C4 之前）
+  - `AGENTS.md` 删除过期表述「默认下一刀 `agent-runtime-mvp` 规划闸」（已过期两个月）
+  - `workflow/agent-control-model.md` 两处「蓝图待写 / 仍待编写」修正（v1.1 冻结时漏改）
+
+- **Verification**: PASS（文档层变更，无代码改动，故未跑测试基线）
+  - 逐节比对 v1.2 冻结版与校准稿：序列、D25–D33、五条事实修正、§9 清单、§10 叙事规划全部一致；
+    差异均为合理收敘（v1.1 的 D1–D19 与气质章节 §6 在冻结版中完整展开，校准稿只写「继承」）
+  - 核对 v1.2 引用同步：11 处活文档已更新；
+    **`openspec/changes/archive/**` 中六份 proposal 的「上游方向 v1.1」引用刻意未动**——归档即历史
+  - 叙事文档中日文标点归一化为全角（与仓库其他文档一致），行内代码与标识符未被破坏
+  - 清理了归一化过程中使用的三个临时脚本（`tmp-punct*.local.ps1`、`tmp-scope-scan.local.ps1`）
+  - **SKIPPED**：Spring Boot 3.3.x 的官方 EOL 日期未查到权威页面，
+    蓝图 §4.6 中该项已标记 `unknown` 并注明「引用前须先核实」，未写成事实
+
+- **Risks**:
+  - v1.2 冻结的方向未经任何实现验证——C6 开工后若发现「轨迹级断言」不足以表达克制维度，
+    须回蓝图走修订记录，不得静默偏离
+  - C7 反思环与 C8 韧性存在超时预算耦合（P14）：C7 已占用最坏 13s，
+    C8 design 必须把它作为输入约束，否则叠加即爆 20s
+  - C7 会让违规「看似可恢复」，可能使 R10（fail-closed 未活体触发）更难关闭——
+    已写入 C7 风险表，要求轨迹分别计数「重写成功」与「终态降级」
+  - 叙事文档是最可能被复制到外部的文件，隐私等级最高；已写入硬边界条款，但依赖后续维护自觉
+
+- **Commit**: pending（**未执行 `git add` / `commit` / `push`**；默认用户手动提交）
+
+- **Next**: 开 C6 `agent-eval-framework` 规划闸——建 `openspec/changes/agent-eval-framework/`，
+  写 proposal / design / tasks + delta 建议，**闸门 1 待用户批准**。
+  开工前读蓝图 §4.2（六项目标、八个维度表、快照分层、P8 可编排 mock 替身）

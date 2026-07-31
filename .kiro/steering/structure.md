@@ -33,7 +33,7 @@ Flashback/
 └── Docs/
     └── agent-iteration/
         ├── roadmap/
-        │   └── iteration-blueprint.md  # 已冻结蓝图 v1.1
+        │   └── iteration-blueprint.md  # 已冻结蓝图 v1.2
         └── workflow/                   # 协作方法论
             ├── vibecoding-playbook.md
             ├── agent-control-model.md

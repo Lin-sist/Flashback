@@ -15,8 +15,9 @@
 - **持久化**：MyBatis + MySQL 8.0
 - **对象存储**：私有 MinIO-compatible S3（signed URL）
 - **AI provider**：DeepSeek / OpenAI-compatible（通过后端 `AiServiceImpl` 调用）
-- **认证**：JWT（Spring Security）
-- **构建**：Maven
+- **认证**：JWT（jjwt + 自研过滤器/拦截器；**未引入 Spring Security**，pom 无 security starter）
+- **Agent runtime**：自研 `AgentStageMachine` + `AgentModelClient`（OpenAI-compatible HTTP）；**未引入 Spring AI**
+- **构建**：Maven（Spring Boot 3.3.5 / Java 17）
 
 ## 约束
 

@@ -39,5 +39,6 @@ Agent 是一个**共情型朋友**：
 ## 当前阶段
 
 - M4 已归档（准生产能力）
-- post-M4 方向蓝图 v1.1 已冻结：C1 Runtime → C2 Tool → C3 Memory → C4 Guardrails → C5 Observability
+- **Phase 1 已收官**，实际执行序为：C1 Runtime → C2 Tool → C4 Guardrails → C3a Memory → C3b Review → C5 Observability
+- post-M4 方向蓝图 **v1.2 已冻结**；Phase 2 序列：C6 Eval → C7 Reflection → C8 Resilience → C9 Temporal
 - 实施须走 OpenSpec Type C change + 三道闸门

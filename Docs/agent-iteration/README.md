@@ -1,7 +1,7 @@
 # Flashback Agent 迭代工程文档
 
-> 状态：工作流已建立；**M4 已归档**；**蓝图 v1.1 已冻结**（方向层生效，实现仍须 Type C 闸门）  
-> 状态日期：2026-07-27  
+> 状态：工作流已建立；**M4 已归档**；**蓝图 v1.1 已冻结**（Phase 1 方向仍有效）；**v1.2 仅为草案**（C5 后校准再冻结）  
+> 状态日期：2026-07-28  
 > 文档性质：完整参考层（人类阅读 + checklist）；**执行硬规则以 `AGENTS.md` 为准**
 
 ## 1. 本目录解决什么问题
@@ -30,7 +30,9 @@ Flashback 已有 OpenSpec（M1–M4）与 `.ai/` 交接文件。下一步要做�
 | 6 | **本目录** `workflow/prompt-snippets/design-decision-record.md` | design 决策记录格式 |
 | 7 | **本目录** `workflow/agent-control-model.md` | 控制权分层与证据分工 |
 | 8 | `项目初始分析.md` | Agent 化产品方向初评（非执行契约） |
-| 9 | `roadmap/iteration-blueprint.md` | 长期序列蓝图（**v1 草案已产出，待冻结**） |
+| 9 | `roadmap/iteration-blueprint.md` | 长期序列蓝图（**v1.1 已冻结**；Phase 1 执行方向） |
+| 10 | `roadmap/iteration-blueprint-v1.2-draft.md` | Phase 2 修订**草案**（C5 前不冻结；不可当 ACTIVE scope） |
+| 11 | `architecture/README.md` | 架构宪法 + 技术选型草稿（反推倒、可演进端口） |
 
 ## 3. 目录结构
 
@@ -46,9 +48,14 @@ Docs/agent-iteration/
 │     ├─ design-decision-record.md
 │     ├─ type-c-checklist.md          # Type C 可勾选清单
 │     └─ type-b-checklist.md
+├─ architecture/                      # 架构宪法 + 选型草稿（C5 后校准）
+│  ├─ README.md
+│  ├─ agent-architecture-constitution.md
+│  └─ tech-selection-draft.md
 └─ roadmap/
    ├─ README.md                       # 蓝图编写规格
-   └─ iteration-blueprint.md          # 迭代蓝图 v1.1（已冻结）
+   ├─ iteration-blueprint.md          # 迭代蓝图 v1.1（已冻结）
+   └─ iteration-blueprint-v1.2-draft.md  # v1.2 草案（未冻结）
 ```
 
 ## 3.1 执行层 vs 参考层（防双轨道落空）
@@ -72,7 +79,9 @@ Docs/agent-iteration/
 | 本目录 `workflow/**` | **完整参考** | 冲突时以 AGENTS / OpenSpec 为准 |
 | `项目初始分析.md` | 方向草稿 | **禁止**当作 ACTIVE scope |
 | `Docs/archive/**`、`Docs/design/**` | 历史 / 视觉 | 冲突让位 OpenSpec |
-| `roadmap/iteration-blueprint.md` | 方向层 | **v1 草案已产出**（待用户审阅冻结）；冻结后方向层生效 |
+| `roadmap/iteration-blueprint.md` | 方向层 | **v1.1 已冻结**（Phase 1）；实现仍须 Type C 闸门 |
+| `roadmap/iteration-blueprint-v1.2-draft.md` | 方向层草案 | **未冻结**；C5 后校准；不可替代 v1.1 或 OpenSpec |
+| `architecture/**` | 架构/选型参考 | 草稿；防推倒；随 C3–C5 漂移表更新 |
 
 ## 5. 两套「Agent」勿混谈
 

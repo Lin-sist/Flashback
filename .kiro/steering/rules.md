@@ -63,7 +63,8 @@
 | 硬规则 | `AGENTS.md` |
 | 当前任务状态 | `.ai/ACTIVE_TASK.md` |
 | 执行证据 | `.ai/AGENT_LOG.md` |
-| 已冻结蓝图 | `Docs/agent-iteration/roadmap/iteration-blueprint.md`（v1.1 已冻结） |
+| 已冻结蓝图 | `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**） |
+| 对外叙事（面试向） | `Docs/agent-iteration/narrative/agent-tech-story.md` |
 | Type C 开工清单 | `Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md` |
 | Type B 开工清单 | `Docs/agent-iteration/workflow/prompt-snippets/type-b-checklist.md` |
 | 决策记录格式 | `Docs/agent-iteration/workflow/prompt-snippets/design-decision-record.md` |

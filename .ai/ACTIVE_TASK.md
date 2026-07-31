@@ -7,7 +7,8 @@
 当前无活动 Type C change。开始新的重大实现前，必须先创建 OpenSpec change 并更新本文件。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
-下一动作是**蓝图 v1.2 校准会**（不是新 Type C），见下文 Direction Layer。
+**蓝图 v1.2 已于 2026-07-30 校准并冻结。**
+下一动作是 **C6 `agent-eval-framework` 规划闸（闸门 1）**，见下文 Direction Layer。
 
 ## Previous Completed
 
@@ -27,26 +28,41 @@
 
 ## Direction Layer
 
-- **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.1 已冻结**
+- **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结**（2026-07-30）
 - 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → **C5 已归档，Phase 1 收官**
-- **下一动作：蓝图 v1.2 校准会**。v1.2 草案（`iteration-blueprint-v1.2-draft.md`，**未跟踪文件**）
-  §0.2 与 §8 列了校准清单，要点：
-  1. 用 C3 / C5 的归档事实重刷「Phase 1 完成事实」表与漂移登记
-  2. 删除已被证伪的假设（本轮实测证伪了两条：`schema.mysql.sql` 三处同步、`/admin` 端点可行性）
-  3. 用户确认 Phase 2 默认顺序（草案建议 C6 → C7 → C8）
-  4. 校准后提升为正式 v1.2 并更新 `AGENTS.md` / 本文件的 Direction 引用
-- **C6 不要偷跑**：草案 §10 明确要求先冻结 v1.2
+- **Phase 2 定案序**：`C6 agent-eval-framework` → `C7 agent-reflection-loop` →
+  `C8 agent-resilience` → `C9 agent-temporal-intelligence`（一次一个 ACTIVE）
+- **下一动作：C6 规划闸**。建 `openspec/changes/agent-eval-framework/`，写
+  proposal / design / tasks + delta，**闸门 1 待用户批准**。开工前读蓝图 §4.2 意图卡片
+- **Optional（不排主线）**：C0 平台升级（Boot 4.x/Java 21，Phase 2 完工后再议）、
+  C10 语气标定、C11 上下文架构——均需证据触发
+- **对外叙事文档**：`Docs/agent-iteration/narrative/agent-tech-story.md`（D33：每刀归档时更新对应段落；
+  §7 待 C6 补、§8 待 C7 补）
+
+### v1.2 冻结的关键决策（D25–D33，开 C6 前必读）
+
+| # | 决策 |
+|---|---|
+| D25 | Phase 2 以**能力叙事**为主驱动；未上线，不为想象中的生产故障提前投入 |
+| D26 | 「前沿」限定在 **Agent 层**；平台升级降为 Optional C0 |
+| D27 | **不引入图框架**；改为引入受控环 + 留可讲述 ADR |
+| D28 | 反思环判定源**复用 C4 确定性护栏**，不新起 LLM 自检器 |
+| D29 | 重写指令**只回传违规类型**，不携带候选文本片段 |
+| D30 | **Eval 先于反思环**：先建量尺，再改模型输出行为 |
+| D31 | **LLM-as-Judge 排除在 C6 之外**（隐私外发 + 预算 + 不可复现） |
+| D32 | Eval 覆盖**轨迹不变量 + 回归比对**，不做绝对质量判分 |
+| D33 | 叙事文档是每刀**固定收尾产物** |
 
 ## Source Of Truth (when IDLE)
 
 - `AGENTS.md`
+- `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；Phase 2 方向与意图卡片）
 - `openspec/project.md`
 - `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + **C5**，Agent 核心契约）
 - `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + **C5**）
 - `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b；**C5 无 delta**）
 - `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + **C5**）
 - `openspec/specs/agent-collaboration/spec.md`（含 **C5**）
-- 方向：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（已冻结 v1.1）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
@@ -60,15 +76,22 @@
     1. `ce4638f` 请求超时：前端 30s / 后端 20s，**顺序不可颠倒**
     2. `b6bcdd5` 输入框无法聚焦：关闭手势移到独立背景层（textarea 原生组件事件穿透 catchtap）
     3. `87cb29e` **每轮卡满 50 秒**：C5 自身引入的自锁，轨迹落库延后到事务提交后
+- **This session**: 2026-07-30 — **蓝图 v1.2 校准会完成并冻结**（Type A 讨论 + Type B 文档落地）
+  - 十问逐支定案 → D25–D33 九条新决策；序列定为 C6 → C7 → C8 → C9（新增 C7 反思环，编号顺移）
+  - 消化五条实测证伪的前提（含新发现：steering 声称 Spring Security，实际全仓零匹配）
+  - `iteration-blueprint.md` 升 v1.2 已冻结；11 处活文档引用同步；archive 内的 v1.1 引用**未动**（归档即历史）
+  - 新建 `narrative/agent-tech-story.md`（§1–§6、§10 已写，§7/§8 待 C6/C7 补）
+  - 未提交（默认用户手动提交）
 - **Blocked on**: none
-- **Next step**: **蓝图 v1.2 校准会**（Type A 讨论为主，不是新 Type C）。
-  开会前须读本文件下方「v1.2 校准会必须处理的事实修正」一节
+- **Next step**: **开 C6 `agent-eval-framework` 规划闸**。建 change 目录写
+  proposal / design / tasks + delta 建议 → 闸门 1 待批准。
+  开工前读蓝图 §4.2（含 6 项目标、8 个维度表、快照分层、P8）
 
 ## C5 的关键结论（对 v1.2 校准与 C6 有直接价值）
 
 - **provider 耗时首次有数据**：min 4571 / avg 6476 / max 8467ms。这项数据 C5 之前完全不存在
   （成功路径的 `startedAt` 被直接丢弃）。它同时是 Type B 超时缺陷的定位依据，
-  也是 C7（韧性）设计的输入
+  也是 **C7 反思环预算**与 **C8 韧性**设计的输入（v1.2 编号：韧性已从 C7 顺移至 C8）
 - **版本锚点由内容哈希派生**，改文案自动变化。C6 的回归比对可直接按
   `prompt_version` / `policy_version` 分组（`c5-trace-queries.sql` 第 7 条）
 - **`AuthRole.ADMIN` 全仓无签发路径**（`UserServiceImpl` 固定签 `USER`）→
@@ -77,19 +100,23 @@
   项目既有约定是全量脚本不随增量维护。**待用户决定是否另开 Type B 补齐**（见 Residual）
 - 两处已获批的对已冻结蓝图的偏离：存储用 MySQL 表而非 JSON 日志文件；默认全量不采样
 
-## v1.2 校准会必须处理的事实修正（本轮实测得出）
+## 实测证伪 / 修正的前提（**已于 v1.2 冻结时消化，见蓝图 §2.3**）
 
-草案 §0.2 要求「删除已被证伪的假设」。本轮实测证伪 / 修正了四条，**不处理会让 v1.2 带着错误前提冻结**：
+以下五条已写入蓝图 §2.3 并落到相应文档，此处保留供快速查阅：
 
 1. **`/admin` 端点方案不可行**：`AuthRole.ADMIN` 全仓无签发路径（`UserServiceImpl` 固定签 `USER`），
    该路径下的端点在真实环境不可达。任何未来 change 若要做 admin 端点，须先解决签发问题
 2. **`schema.mysql.sql` 不随增量维护**：它只到 C1（无 C2 表、无 C3 列、无 C5 表）。
-   规划期我曾断言「新表需同步三处」，与项目既有约定不符
-3. **H2 集成测试不足以验证锁 / 外键 / 事务边界**：C5 的 50 秒锁等待缺陷在 H2 上**不可能复现**，
-   闸门 3 全绿却带着一个致命缺陷进了归档。**「真实联调」的定义须收紧为包含真实 MySQL**
+   规划期曾断言「新表需同步三处」，与项目既有约定不符
+3. **H2 集成测试不足以验证锁 / 外键 / 事务边界**：C5 的 50 秒锁等待缺陷在 H2 上**不可能复现**。
+   → **已写入蓝图 §0.4：「真实联调」定义收紧为包含真实 MySQL**
 4. **R2 的优化基线须重建**：此前「引导话术生硬」的判断样本受 55 秒延迟污染。
-   修复后用户反馈「感觉自然一些了」，而本轮**未改任何 prompt / 阈值 / 引导策略**。
-   谈 R2 前应先在正常延迟下重新取样
+   → **已定案由 C6 重建基线**（D30/D32），不再靠手验找感觉
+5. **认证不基于 Spring Security**（校准会新发现）：`springframework.security` 全仓零匹配、
+   pom 无 security starter，实为 jjwt + 自研过滤器。→ **已修 `.kiro/steering/tech.md`**
+
+**附带事实**：`pom.xml` 含 `spring-boot-starter-data-redis` 且 dev/prod yml 有 redis 配置段，
+但 main 代码零消费（会话走 MySQL）。标记 `partial`，不在 Phase 2 处理
 
 ## Residual / Carry-over
 
@@ -99,8 +126,9 @@
   属独立 Type B。C5 刻意未动（只加 C5 会造出「有 C5 表却无 C2 表」的更怪状态）
 - **[新] 轨迹写在业务事务之后**：理论上存在「业务成功但轨迹丢失」的窗口（进程崩溃）。
   可接受——轨迹是辅助设施，而原方案的代价是每轮卡 50 秒
-- **[R2] 引导话术与素材合成质量**：**Phase 1 已完工，延后条件已解除**，可以开始谈。
-  但见上文事实修正第 4 条：基线须重建。C5 的版本锚点使「优化前后可对比」第一次成为可能
+- **[R2] 引导话术与素材合成质量**：**已定案由 C6 重建基线后再谈**（D30/D32）。
+  C5 的版本锚点使「优化前后可对比」第一次成为可能；在 C6 落地前不要动 prompt
+  （宪法 §7.3：无 Eval 情况下大改 prompt 上线属禁止项）
 - **[已关闭] 三个 Type B 的真机复验**：用户 2026-07-30 执行，全部 PASS
 - **[已关闭] MySQL 上轨迹落库未联调**：已联调，并由此发现且修复了 50 秒锁等待根因
 - **[R9] 检索相关性弱**：标签 + 说明性字段 LIKE，无权重 / 分词 / 向量。升级留独立 change
@@ -148,12 +176,16 @@
   但它在失败**之前**先卡了 50 秒。评估「某个辅助设施失败是否影响用户」时，
   必须同时看**失败前的等待成本**，不能只看失败后的处置
 
-## 未跟踪的非本轮产物（不要擅自提交或移动）
+## 未跟踪 / 未提交产物（不要擅自提交或移动）
 
-- `Docs/agent-iteration/architecture/`
-- `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2-draft.md`
+- `Docs/agent-iteration/architecture/`（三份文件；v1.2 冻结时已校准，仍未 tracked）
+- `Docs/agent-iteration/narrative/agent-tech-story.md`（**新建，v1.2 收尾产物**）
 - `.kiro/skills/`
-- `Docs/agent-iteration/README.md` 与 `roadmap/README.md` 的未提交改动
+- `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2-draft.md`
+  （**内容已迁入 `iteration-blueprint.md` v1.2，可由用户手动删除**；Agent 不动未跟踪文件）
+- v1.2 冻结带来的未提交改动：`AGENTS.md`、`openspec/project.md`、
+  `.kiro/steering/{rules,structure,product,tech}.md`、`Docs/agent-iteration/README.md`、
+  `roadmap/README.md`、`roadmap/iteration-blueprint.md`、`workflow/agent-control-model.md`
 - `backend/run-c5-probe.local.ps1`（已 gitignore；闸门 3 探针运行脚本）
 - `backend/probe-turn-latency.local.ps1`（已 gitignore；一轮耗时排查脚本，
   签本地 dev JWT 打真实链路。定位 50 秒锁等待时用的就是它，保留供将来复用）
@@ -161,7 +193,8 @@
 ## Out Of Scope While Idle
 
 - 不要在没有新 Type C 的情况下改 Agent runtime / 工具 / 护栏 / 记忆 / 回看 / 轨迹 / AI 业务代码
-- **不要并行开 C6**：草案 §10 明确要求先冻结 v1.2
+- **C6 须先过闸门 1**：可以建 change 目录写 proposal / design / tasks，但**规划批准前禁止改业务代码**
+- **不要动 prompt / 护栏阈值 / 引导策略**：R2 的基线要等 C6 建好（宪法 §7.3）
 - 不要并行复活已归档 change 作为隐式 active change
 - 不要在未获授权时发起真实 provider 调用（探针默认门控跳过，勿擅自设置 `C*_REAL_PROBE=1`）
-- 不要擅自把 v1.2 草案提升为冻结版本——校准会须用户参与并确认
+- 不要修改 `openspec/changes/archive/**`——归档即历史，含其中的 v1.1 引用

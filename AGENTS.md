@@ -4,7 +4,7 @@
 
 - 项目：时光回序 Flashback V2.0。
 - 技术栈：Uniapp + Vue 3 + Pinia + WeChat Mini Program；backend 为 Spring Boot / MyBatis / MySQL 方向。
-- 当前阶段：**M4 已归档**（核心 Mini Program 准生产能力）。post-M4 方向蓝图 **v1.1 已冻结**；实施须另开 Type C（默认下一刀 `agent-runtime-mvp` 规划闸）。
+- 当前阶段：**Phase 1 已收官**（M4 → C1 → C2 → C4 → C3a → C3b → C5 全部归档）。方向蓝图 **v1.2 已冻结**（2026-07-30）；Phase 2 序列为 C6 Eval → C7 Reflection → C8 Resilience → C9 Temporal，**默认下一刀 `agent-eval-framework` 规划闸**。
 - 产品初心：帮助用户写下当下，并让未来的自己重新理解这一刻；不是效率仪表盘、社交流或管理后台。
 
 ## Source of Truth
@@ -20,7 +20,7 @@
   - `openspec/specs/v2-product-scope/spec.md`
   - `openspec/specs/agent-collaboration/spec.md`
 - **M4 归档位置（历史，非 active）**：`openspec/changes/archive/2026-07-27-m4-real-capability-completion/`
-- **方向蓝图（已冻结 v1.1）**：`Docs/agent-iteration/roadmap/iteration-blueprint.md`  
+- **方向蓝图（已冻结 v1.2）**：`Docs/agent-iteration/roadmap/iteration-blueprint.md`  
   - 批准方向、依赖、气质与意图卡片；**仍不授权直接改业务代码**  
   - 实现必须新建 `openspec/changes/<change-id>/` 并走三道闸门
 
@@ -103,5 +103,6 @@ Type C 同时最多 **一个** active change。`ACTIVE_TASK=IDLE` 时禁止业�
 - 普通 bugfix / 样式精修不需要修改 OpenSpec，只需要写入 `.ai/AGENT_LOG.md`。
 - Type C 操作性清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`。
 - Type B 操作性清单：`Docs/agent-iteration/workflow/prompt-snippets/type-b-checklist.md`。
-- 长期方向蓝图：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.1 已冻结**；批准方向与气质约束，仍不授权直接改业务代码）。
+- 长期方向蓝图：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；批准方向与气质约束，仍不授权直接改业务代码）。
+- 对外叙事（面试向，非执行契约）：`Docs/agent-iteration/narrative/agent-tech-story.md`。**禁止写入用户日记原文、secret、本机绝对路径。**
 - `Docs/agent-iteration/项目初始分析.md` 是产品方向评估草稿，**不是**已批准 roadmap 或 OpenSpec。

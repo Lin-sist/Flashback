@@ -1,9 +1,10 @@
 # Roadmap 目录说明（待 Claude 编写蓝图）
 
-> 状态：`iteration-blueprint.md` **v1.1 已冻结**；**M4 已归档**；`ACTIVE_TASK=IDLE`  
-> 状态日期：2026-07-27  
-> 工作流见 `../workflow/`；执行硬规则见仓库根 `AGENTS.md`。  
-> **下一步**：启动 C1 `agent-runtime-mvp` 的 **OpenSpec 规划闸**（proposal/design/tasks/delta）；规划批准前禁止业务代码。
+> 状态：`iteration-blueprint.md` **v1.1 已冻结**；**v1.2 仅为草案**（`iteration-blueprint-v1.2-draft.md`）  
+> 状态日期：2026-07-28  
+> 工作流见 `../workflow/`；架构/选型见 `../architecture/`；执行硬规则见仓库根 `AGENTS.md`。  
+> **Phase 1 进度**：C1/C2/C4 已归档 → C3 → C5；**正式冻结 v1.2 建议在 C5 校准之后**。  
+> **下一步（产品）**：C3 规划/实现仍以 **v1.1 + OpenSpec change** 为准，不以 v1.2 草案替代。
 
 ---
 
