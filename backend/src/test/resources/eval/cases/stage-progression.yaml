@@ -1,0 +1,76 @@
+# C6 评测用例：阶段推进正确性（合成样例，入库）
+#
+# 断言对象是轨迹里的 stage-decision 序列（from / to / reason），
+# 而不是回复措辞——这是架构宪法 §3.6「优先轨迹级信号而非只看最终回复」的落点。
+#
+# 阶段序列由后端状态机决定而非模型（C1 决策：推进权在后端），
+# 因此这些期望在任何 provider 下都应成立。
+
+cases:
+  - caseId: stage-advance-through-guiding-sequence
+    dimension: STAGE_PROGRESSION
+    note: |
+      正常作答连续推进：EMOTION → CONFUSION → CORE_QUESTION → EXPECTATION。
+      每轮 reason 均为 ADVANCE。
+    turns:
+      - userInput: 最近工作上有点撑不住，想写下来
+        reply: 这种感觉是从什么时候开始的？
+      - userInput: 大概是从上个月项目压下来之后开始的
+        reply: 让你卡住的，是具体某件事，还是那种一直压着的感觉？
+      - userInput: 是那种一直压着的感觉，说不上具体哪件事
+        reply: 如果只留一个最想弄明白的问题，你会怎么问它？
+      - userInput: 我大概想问的是这样撑下去到底值不值得
+        reply: 你希望接下来变成什么样？
+    expect:
+      stagePath: [CONFUSION, CORE_QUESTION, EXPECTATION, CLOSING]
+      stageReasons: [ADVANCE, ADVANCE, ADVANCE, ADVANCE]
+
+  - caseId: stage-closing-then-ended
+    dimension: STAGE_PROGRESSION
+    note: |
+      已在 CLOSING 阶段时本轮之后结束（reason=CLOSED），并产出素材。
+      注意轨迹里的 stage 是 CLOSING 而不是 ENDED——编排层把 ENDED 折回 CLOSING
+      再由 endSession 收束，这是既有行为，评测如实记录它。
+    setup:
+      stage: CLOSING
+      turnCount: 3
+    turns:
+      - userInput: 大概就是希望能轻松一点吧
+        reply: 好的，这些已经很好了。
+        material: 希望能轻松一点
+    expect:
+      stageReasons: [CLOSED]
+      sessionEnded: closing
+      materialProduced: true
+
+  - caseId: stage-review-must-not-fabricate-a-decision
+    dimension: STAGE_PROGRESSION
+    note: |
+      回看刻意不经阶段机（C3b 决策 2）。因此轨迹里应是 stage-retained
+      而非 stage-decision——伪造一个判定结论会让轨迹说谎。
+    setup:
+      purpose: REVIEW_CHAT
+    turns:
+      - userInput: 现在回头看，那阵子其实挺难的
+        reply: 那时候的你大概也没想到会走到今天吧。
+    expect:
+      outcome: SUCCESS
+      stage: REVIEW
+      stageReasonAbsent: true
+      stageRetained: true
+
+  - caseId: stage-review-must-close-at-its-own-turn-limit
+    dimension: STAGE_PROGRESSION
+    note: |
+      回看没有 CLOSING 阶段，达到自己的轮次上限（review.maxTurnsPerSession，默认 6）
+      即温和收束。这里把上限压到 1 以便单轮触发。
+    setup:
+      purpose: REVIEW_CHAT
+      reviewMaxTurns: 1
+    turns:
+      - userInput: 现在回头看，那阵子其实挺难的
+        reply: 那时候的你大概也没想到会走到今天吧。
+    expect:
+      outcome: SUCCESS
+      sessionEnded: turn-limit
+      materialProduced: false

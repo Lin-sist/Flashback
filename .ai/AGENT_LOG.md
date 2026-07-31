@@ -6384,3 +6384,128 @@ Commit: pending
 - **Next**: 开 C6 `agent-eval-framework` 规划闸——建 `openspec/changes/agent-eval-framework/`，
   写 proposal / design / tasks + delta 建议，**闸门 1 待用户批准**。
   开工前读蓝图 §4.2（六项目标、八个维度表、快照分层、P8 可编排 mock 替身）
+
+## 2026-07-31｜agent-eval-framework（C6）规划闸｜Type C
+
+- **Scope**: 仅规划产物与指针文件，**零业务代码**
+  - `openspec/changes/agent-eval-framework/proposal.md`（新建）
+  - `openspec/changes/agent-eval-framework/design.md`（新建，含 12 条决策记录）
+  - `openspec/changes/agent-eval-framework/tasks.md`（新建，34 项 + 范围守护自检）
+  - `openspec/changes/agent-eval-framework/specs/agent-runtime/spec.md`（新建，delta 建议）
+  - `openspec/changes/agent-eval-framework/specs/backend-core/spec.md`（新建，delta 建议）
+  - `openspec/changes/agent-eval-framework/specs/agent-collaboration/spec.md`（新建，delta 建议）
+  - `.ai/ACTIVE_TASK.md`（IDLE → ACTIVE 规划期，指向本 change；补 3 条残余）
+  - `.ai/AGENT_LOG.md`（本条）
+- **Changes**:
+  - 按蓝图 v1.2 §4.2（C6 意图卡片）+ 架构宪法 §3.6（`EvalPort`）开 C6 规划闸
+  - proposal：36 条现状事实（E1–E36，均核对代码）、8 个待裁决项（N1–N8）、37 条验收标准、
+    12 项实现顺序、5 组场景边界
+  - design：12 条决策记录（含 6 条 out_of_scope 边界决策：不做 Judge、不做绝对评分、
+    不校准阈值、不建 CI、话术质量只建结构、不申请闸门 3）
+  - delta 落点按蓝图 §5 的 C6 行：`agent-runtime`（1 MODIFIED + 6 ADDED）、
+    `backend-core`（5 ADDED）、`agent-collaboration`（3 ADDED）；
+    `v2-product-scope` 与 `miniapp-core` **确认无 delta**
+  - MODIFIED 那一条是 C5 的「C5 范围内的评估能力」scenario（原文写「评估能力 SHALL 留给
+    后续独立 change」，C6 即那个 change）；修订方式沿用 C5 改 C2/C4/C3a/C3b 四条时的做法：
+    保留阶段范围声明、改为指向本刀条款、不删除
+- **规划期核出的五条修正**（均已写入 proposal，不写进设计取舍——取舍在 design.md）：
+  1. **E7｜mock 分支不组装 prompt**：`generateReply` 在 `if (modelClient.isMockProvider())`
+     直接 return，故 mock 路径轨迹里永远没有 `prompt` 步骤；且 `AgentMockResponder`
+     按构造产不出任何违规（六句写死合规文案 / material 只拼用户发言 / toolCalls 只取用户原话）。
+     → **直接决定 N3**：可编排替身挂 `AgentModelClient` 层，而非给 `AgentMockResponder` 抽接口
+  2. **E20｜仓库无 CI**：无 `.github/`、workflow 零命中、`*.yml` 只有 4 个 Spring 配置。
+     架构宪法 §3.6 的「CI 可跑子集」无落点 → 列为硬性诚实项（验收 34）
+  3. **E21｜蓝图写的 `local-samples.yaml` 不被任何 gitignore 规则覆盖**，且仓库无通用
+     `*.local.*` 规则（现有均为扩展名特化）→ N5 建议改通配命名，理由是 C5 已因点名单个文件吃过教训
+  4. **E24/E25｜两处断言可及性边界**：`MAX_REASK_PER_STAGE=1` 是代码常量不可按用例调；
+     无聚合记忆字符预算配置项 → 「注入预算」只能表达为派生上限并须如实标注
+  5. **E28｜蓝图 §3.2 的 1183 行已过时**，`AgentChatServiceImpl` 实测 **1274 行**（C5 后 +91）。
+     按蓝图 §0.4 登记勘误；**未改已冻结蓝图**
+- **Verification**: PASS（规划产物层面）
+  - 全部 36 条现状事实均核对代码或实测：读 `AgentGuardrailBoundaryCaseTest`（219 行 / 15 test /
+    5 nested）、`AgentGuardrailTraceCorrelationTest`（纯 Mockito 驱动 `sendMessage` 的既有范式）、
+    `AgentMockResponder`、`AgentModelClient`、`agent/trace/*`（19 个步骤类型）、
+    `AgentChatServiceImpl` 的 trace 挂点、`AppAgentProperties` 阈值、`pom.xml`、
+    `src/test/resources/`、`.gitignore`
+  - 测试基础设施实测：junit-jupiter 5.10.5（含 params）、assertj 3.25.3、snakeyaml 2.2 在测试
+    classpath、`jackson-dataformat-yaml` **不在**、surefire 零 excludes、
+    全仓 `@ParameterizedTest` 零命中、全仓 snapshot/approval 机制零命中
+  - **未运行测试套件**（本轮无代码改动，无回归可跑）
+  - **零业务代码改动**：`git diff --stat` 中无 `backend/src` 与 `frontend/src` 条目
+- **Risks**:
+  - 闸门 1 若改选 N1–N8 中任一项，`tasks.md` 须先回改再实现（已在 tasks 头部写明）
+  - N5 是对已冻结蓝图字面写法的偏离，已单独成条请示，未自行决定
+  - 本刀最高风险是「快照沦为橡皮图章」：缓解为不变量层禁止刷新 + 不提供自动重写开关 +
+    `baselineNote` 由机制强制（验收 19 要求「只改数字」这件事本身有测试拦）
+  - 次高风险是「真实样本进 tracked file」：缓解为 gitignore 规则必须先于样本文件落地（T-01/T-02）
+  - 已如实登记两项 `unknown`：快照指标在真实 provider 下的稳定性（本刀 0 外调，不验）、
+    话术质量人评锚点为空
+- **Commit**: pending
+- **Next**: 等用户批准闸门 1（含 N1–N8 定稿与 E28 处置）。批准后**仍需闸门 2** 才可写代码；
+  实现第一步是 T-01/T-02（`.gitignore` 先行并验证），顺序不可颠倒
+
+## 2026-07-31｜agent-eval-framework（C6）实现｜Type C
+
+- **Scope**: 闸门 1 已批准 + 闸门 2 已授权（N1–N8 全部按推荐定稿）。**`src/main` 零改动**
+  - 新增 `backend/src/test/java/com/flashback/agent/eval/`：`AgentEvalHarness`、
+    `ScriptedAgentModelClient`、`RecordingTraceSink`、`AgentEvalCase`、`AgentEvalCaseLoader`、
+    `AgentEvalRun`、`AgentEvalInvariants`、`AgentEvalSnapshot`、`AgentEvalBaseline`、
+    `AgentEvalDimension` + 五个测试类（`AgentEvalRunnerTest`、`AgentEvalHarnessTest`、
+    `AgentEvalBaselineGuardTest`、`AgentEvalPrivacyTest`、`AgentEvalNarrativeAnchorTest`）
+  - 新增 `backend/src/test/resources/eval/`：`cases/` 四份 YAML（23 条合成用例）、
+    `baseline/snapshots.yaml`（23 条基线）、`baseline/narrative-anchors.yaml`（空锚点 + 说明）
+  - `.gitignore`：加 `*.local.yaml` / `*.local.yml` 通配
+  - `openspec/changes/agent-eval-framework/`：proposal / design / tasks / 三份 delta 按实测更新
+  - `Docs/agent-iteration/narrative/agent-tech-story.md`：§7 写就，§9 加三行，§4 补一段
+  - `.ai/ACTIVE_TASK.md`、`.ai/AGENT_LOG.md`
+- **Changes**:
+  - T-01/T-02：`.gitignore` 规则**先于任何样本文件落地**并用 `git check-ignore -v` 验证
+    （`samples.local.yaml`→`:49`、`anything.local.yml`→`:50`），同时确认合成用例**不**被误挡
+  - T-03/T-04/T-05：纯 Mockito harness + scripted provider 替身，跑通四类
+    `AgentMockResponder` 产不出的路径（降级 / 上下文组装 / 提议被拒 / provider 失败）
+  - T-06~T-08：snakeyaml 解析 + 参数化 runner（**本仓库首次用 `@ParameterizedTest`**）；
+    入库用例缺失硬失败、本地样本缺失静默跳过、解析器不可用明确失败
+  - T-09~T-15：八维度不变量；另有 6 条**通用不变量**对每条用例无条件执行，
+    以及一条「期望键必须被消费」的元保护（拼错键名会失败而非静默忽略）
+  - T-16~T-18：23 条快照基线 + `baselineNote` + checksum；防橡皮图章机制**自身有测试**
+  - T-19/T-20：隐私改为**结构化格式校验**（正则匹配纯数值形状），既有那条子串断言一行未动
+  - T-21：锚点结构就位、内容为空，「空≠已覆盖」由测试守着
+  - T-34：叙事文档 §7 按 D33 收尾
+- **实现期发现并处理的五件事**:
+  1. **回归基线实测是 536 / 4，不是规划期沿用的 534 / 3**。AGENT_LOG 里其实早已记录
+     536 / 4（三个 Type B 之后），是 `ACTIVE_TASK` 顶部与蓝图 §2 摘要没跟上。
+     已修 `ACTIVE_TASK` 并登记为 E37；**蓝图不动**（已冻结）
+  2. **护栏的一处真实边界（实测，非缺陷修复）**：「用户自己说过的病名可以复述」的成立条件
+     比直觉窄——取决于是否连带复用周边 4-gram。同一用户输入下
+     「你说有点焦虑症…」放行、「你说的焦虑症…」判 `diagnostic`。属 n-gram 方案固有性质与
+     C4 刻意选的误伤方向。**未校准任何阈值**，改为把边界写成一条用例钉住现状
+  3. **修掉一条自己写的假用例**：截断用例最初样本 111 字（< 120 上限），
+     于是「不超过 120」恒成立而什么都没验。改成远超上限的文本 +
+     新增 `injectedCharsExactly` 断言长度恰好等于 120
+  4. **snakeyaml 把未加引号的 timestamp 自动转成 `java.util.Date`**，
+     `LocalDateTime.parse` 拿到 `"Sun Mar 15 05:00:00 SGT 2026"` 而失败。两头都处理：
+     解析层兼容 `Date`，用例里也加引号——只做后者等于留一条「靠人记得加引号」的规矩
+  5. **`ArgumentCaptor` 不适合多轮取轨迹**：captor 拿到的是同一个可变对象的引用，
+     多轮时读到的全是最后一轮终态。改用手写 `RecordingTraceSink` 按 persist 顺序存下
+- **Verification**: **PASS**
+  - 后端全量 `mvn -q -o test`：**606 tests PASS / 4 skipped，BUILD SUCCESS**
+    （536 基线 + 70 新增，**零回归、既有断言零修改**；4 skipped 仍是那四个环境门控探针，
+    未新增跳过）
+  - 新增分布：runner 49（不变量 23 + 快照 23 + 3 条元测试）、harness 自检 7、
+    防橡皮图章 6、隐私 5、锚点结构 3
+  - 范围守护：`git diff --name-only -- backend/src/main frontend/src` **输出为空**
+  - 外调：**0 次**（闸门 3 未申请，全程未启用任何 `C*_REAL_PROBE`）
+  - 已清理验证期两个临时文件（一个探针类、一个 Python 小脚本），无残余
+- **SKIPPED 验证**:
+  - **快照指标在真实 provider 下的稳定性未验证**——本刀 0 外调，如实记为 unknown
+  - **话术质量人评锚点为空**——填它需真实产出 + 人评，属闸门 3；建议顺带在 C7 闸门 3 做
+  - **无 CI**：交付的是「一条 maven 命令可跑」，**不是** CI 门槛
+- **Risks**:
+  - snakeyaml 是传递依赖（经 `spring-boot-starter`），未来 starter 升级理论上可能移除它。
+    已加 `NoClassDefFoundError` 兜底明确失败，绝不静默跳过用例（否则会变成「绿灯但什么都没测」）
+  - 基线是**手工更新**（刻意不提供自动重写开关）。用例规模大幅增长后批量更新会烦；
+    届时若加开关，须同时配「说明未变更则失败」的守护，不得先给出口再补守护
+  - R10 未变：回看 fail-closed 仍未活体触发，本刀只是让它多一层常驻回归
+  - `minMemoryOnlyRunForAttribution` 与新发现的 n-gram 边界都**未校准**，属独立事项
+- **Commit**: pending
+- **Next**: 用户验收 diff → delta 接受进 baseline → 归档 → `ACTIVE_TASK` → IDLE

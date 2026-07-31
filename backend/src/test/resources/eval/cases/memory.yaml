@@ -1,0 +1,121 @@
+# C6 评测用例：记忆三态与注入预算（合成样例，入库）
+#
+# 「三态可分」不是洁癖：把「开关关闭」「检索失败」「检索成功但无命中」
+# 记成同一种「没有记忆」，排查时就分不清是配置问题、故障还是数据问题。
+# C3a/C5 已把它们分开，本文件让这个性质成为常驻回归。
+#
+# 注入预算的诚实说明（proposal E25）：
+#   项目里**没有**聚合字符预算配置项，只有 memory.maxFragments 与 memory.maxFragmentChars。
+#   因此上限是**派生**的：injectedChars <= maxFragments * maxFragmentChars。
+#   这一点在 spec delta 与断言里都如实标注，不假装存在一个叫「注入预算」的配置。
+
+cases:
+  - caseId: memory-enabled-with-hits
+    dimension: MEMORY_STATES
+    note: 检索成功且有命中 → enabled=true failed=false retrievedCount>0。
+    setup:
+      memoryCandidates:
+        - id: 70001
+          text: 那时候在纠结要不要换个方向
+          createdAt: "2026-03-14T21:00:00"
+        - id: 70002
+          text: 写下这些的时候心里挺沉的
+          createdAt: "2026-04-02T20:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      memoryEnabled: true
+      memoryFailed: false
+      retrievedCount: 2
+      injectedCount: 2
+      injectionWithinBudget: true
+      memorySupplementPresent: true
+
+  - caseId: memory-enabled-without-hits
+    dimension: MEMORY_STATES
+    note: |
+      检索成功但无命中 → retrievedCount=0，且**必须**与开关关闭可区分。
+      有线索、查了库、没查到，这三件事都发生了。
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      memoryEnabled: true
+      memoryFailed: false
+      retrievedCount: 0
+      injectedCount: 0
+      memorySupplementPresent: false
+
+  - caseId: memory-disabled-by-config
+    dimension: MEMORY_STATES
+    note: |
+      开关关闭 → enabled=false，且不得表现为「检索无命中」。
+      沿用 C3a「关闭不静默」的既有语义。
+    setup:
+      memoryEnabled: false
+      memoryCandidates:
+        - id: 70001
+          text: 那时候在纠结要不要换个方向
+          createdAt: "2026-03-14T21:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      memoryEnabled: false
+      memoryFailed: false
+      retrievedCount: 0
+      injectedCount: 0
+
+  - caseId: memory-injection-must-respect-fragment-cap
+    dimension: INJECTION_BUDGET
+    note: |
+      候选多于 maxFragments（默认 3）时，注入条数必须收口到上限。
+      走的是真实 MySqlMemoryPort 的 limit 逻辑，不是替身写死的数字。
+    setup:
+      memoryCandidates:
+        - id: 70001
+          text: 那时候在纠结要不要换个方向
+          createdAt: "2026-03-14T21:00:00"
+        - id: 70002
+          text: 写下这些的时候心里挺沉的
+          createdAt: "2026-04-02T20:00:00"
+        - id: 70003
+          text: 当时觉得再撑一撑就好了
+          createdAt: "2026-05-01T20:00:00"
+        - id: 70004
+          text: 那会儿一直睡不好
+          createdAt: "2026-06-01T20:00:00"
+        - id: 70005
+          text: 之前也有过一样的犹豫
+          createdAt: "2026-06-20T20:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      injectedCount: 3
+      injectionWithinBudget: true
+
+  - caseId: memory-long-fragment-must-be-truncated
+    dimension: INJECTION_BUDGET
+    note: |
+      单条片段超出 maxFragmentChars（默认 120）时必须被截断，
+      因此注入总长度不会随候选文本长度线性膨胀。
+    setup:
+      memoryCandidates:
+        - id: 70001
+          text: 那时候一直在纠结要不要换个方向怕选错了就回不去了每天都在心里反复算这件事算到最后也没有答案只是越来越累越来越怀疑自己是不是根本没有判断力这种反复消耗掉了我大半年的精力现在回头看那些纠结本身可能才是最耗人的部分而不是那个选择本身到底选了哪一边其实没有那么要紧要紧的是我一直没允许自己停下来好好看一眼这件事
+          createdAt: "2026-03-14T21:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      injectedCount: 1
+      injectionWithinBudget: true
+      maxInjectedChars: 120
+      injectedCharsExactly: 120

@@ -42,6 +42,13 @@ Docs/学习文档
 /backend/*.local.env
 !/backend/*.local.env.example
 
+# C6：Eval 用真实日记样本做输入时，样本一律不入库（用户日记是本仓库最高敏数据）。
+# 用通配而非点名单个文件，理由同上面 C5 那条：点名时新增的样本文件不会被覆盖，
+# 而这里漏出去的是用户日记原文。合成样例走 eval/cases/*.yaml，正常入库。
+# 需要入库某个 .local.yaml 模板时按既有惯例显式放行（如 !*.example.local.yaml）。
+*.local.yaml
+*.local.yml
+
 # Personal teaching / interview skills (not project delivery)
 .agent/skills/Lincheck/
 .agent/skills/Linsist/

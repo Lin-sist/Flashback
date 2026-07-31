@@ -1,0 +1,85 @@
+# C6 评测用例：克制维度（合成样例，入库）
+#
+# 隐私边界：本文件会进版本控制，因此**只允许合成内容**。
+# 真实日记样本走 eval/samples.local.yaml（已 gitignore，缺失时静默跳过）。
+#
+# 字段说明：
+#   caseId      用例标识，必须全局唯一；快照按它对齐
+#   dimension   所属维度，见 AgentEvalDimension
+#   note        这条用例在测什么（给人读的，不参与断言）
+#   setup       会话初始状态（可选）
+#   turns       逐轮编排：userInput 是用户说的话，reply 是编排给 provider 的回复
+#   expect      不变量期望（硬失败层）
+#
+# reply 由 scripted 替身按顺序返回，因此每条用例的行为完全确定，
+# 与真实模型的语言能力无关——这正是 mock 路径能评的东西与不能评的东西的分界。
+
+cases:
+  - caseId: restraint-reply-within-length-cap
+    dimension: LENGTH_RESTRAINT
+    note: 回复不得超过 maxReplyChars；未超上限时不应产生裁剪痕迹。
+    setup:
+      maxReplyChars: 120
+    turns:
+      - userInput: 最近工作上有点撑不住，想把这些写下来
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      replyWithinLengthCap: true
+      clipped: false
+
+  - caseId: restraint-overlong-reply-must-be-clipped
+    dimension: LENGTH_RESTRAINT
+    note: |
+      超出硬上限必须被裁剪，且裁剪要留痕。
+      裁剪不算降级——内容仍是 provider 的产出，只是被截短。
+      这条同时守着「outcome 不因裁剪变成 DOWNGRADED」。
+    setup:
+      maxReplyChars: 30
+    turns:
+      - userInput: 我想把最近的心情认真写下来
+        reply: 听起来这段时间你过得挺不容易的，要不要从最先冒出来的那个感觉开始说，慢慢讲讲它是怎么一点点积起来的呢
+    expect:
+      outcome: SUCCESS
+      replyWithinLengthCap: true
+      clipped: true
+
+  - caseId: restraint-reask-at-most-once-per-stage
+    dimension: REASK_RESTRAINT
+    note: |
+      回避型极短回答触发同阶段追问，但同一阶段最多追问 1 次，第二次必须前进。
+      追问上限是代码常量 MAX_REASK_PER_STAGE=1（不是配置项），故这里断言它而非调它。
+    turns:
+      - userInput: 不知道
+        reply: 这种感觉是从什么时候开始的？
+      - userInput: 嗯
+        reply: 让你卡住的，是具体某件事，还是那种一直压着的感觉？
+    expect:
+      stageReasons: [REASK, ADVANCE]
+      maxReaskPerStage: 1
+
+  - caseId: restraint-turn-limit-must-close-session
+    dimension: REASK_RESTRAINT
+    note: 达到轮次上限必须强制收束，不无限延长对话。
+    setup:
+      maxTurns: 2
+      turnCount: 1
+      stage: CONFUSION
+    turns:
+      - userInput: 大概还是那件事一直没解决吧
+        reply: 好的，这些已经很好了。
+        material: 那件事一直没解决
+    expect:
+      stageReasons: [TURN_LIMIT_REACHED]
+      sessionEnded: closing
+
+  - caseId: restraint-user-finish-intent-must-close
+    dimension: REASK_RESTRAINT
+    note: 用户表达结束意图时立即收束，优先级高于一切推进规则（尊重沉默）。
+    turns:
+      - userInput: 先这样吧，不想聊了
+        reply: 好的，这些已经很好了。
+        material: 先这样吧
+    expect:
+      stageReasons: [USER_FINISH_INTENT]
+      sessionEnded: closing
