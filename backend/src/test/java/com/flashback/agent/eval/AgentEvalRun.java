@@ -46,6 +46,13 @@ final class AgentEvalRun {
             } else {
                 harness.client().scriptReply(ScriptedAgentModelClient.Scripted.reply(turn.reply()));
             }
+            if (turn.reflectionReply() != null) {
+                harness.client().scriptReply(
+                        ScriptedAgentModelClient.Scripted.reply(turn.reflectionReply()));
+            } else if (turn.reflectionFailure()) {
+                harness.client().scriptReply(ScriptedAgentModelClient.Scripted.failure(
+                        new IllegalStateException("scripted reflection outage")));
+            }
             if (turn.material() != null) {
                 harness.client().scriptMaterial(turn.material());
             }

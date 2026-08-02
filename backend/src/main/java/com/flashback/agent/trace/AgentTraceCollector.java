@@ -4,6 +4,8 @@ import com.flashback.agent.AgentChatMode;
 import com.flashback.agent.AgentStageDecision;
 import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
+import com.flashback.agent.reflection.AgentProviderPhase;
+import com.flashback.agent.reflection.AgentReflectionTerminal;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentStage;
 
@@ -161,13 +163,50 @@ public final class AgentTraceCollector {
      * @param mocked true 表示走 mock provider，未发生真实外调
      */
     public AgentTraceCollector provider(String model, long durationMs, boolean mocked, boolean success) {
+        return provider(AgentProviderPhase.INITIAL, model, durationMs, mocked, success);
+    }
+
+    /**
+     * C7：同一业务轮可包含 initial 与 reflection 两个 provider 子调用。
+     * 顶层耗时按子调用累加，单次耗时与 phase 保留在 steps 中。
+     */
+    public AgentTraceCollector provider(
+            AgentProviderPhase phase, String model, long durationMs, boolean mocked, boolean success) {
         this.model = model;
-        this.providerDurationMs = durationMs;
+        this.providerDurationMs = (this.providerDurationMs == null ? 0L : this.providerDurationMs)
+                + Math.max(0L, durationMs);
         return step("provider",
+                "phase", phase == null ? AgentProviderPhase.INITIAL.id() : phase.id(),
                 "model", model,
                 "durationMs", durationMs,
                 "mocked", mocked,
                 "success", success);
+    }
+
+    /** C7：记录是否允许进入 reply reflection；只接受结构化枚举与数字。 */
+    public AgentTraceCollector reflectionDecision(
+            boolean eligible, AgentGuardrailViolation reason, int maxRetries) {
+        return step("reflection-decision",
+                "path", "reply",
+                "eligible", eligible,
+                "reason", reason == null ? null : reason.reason(),
+                "maxRetries", maxRetries);
+    }
+
+    /** C7：记录 reply reflection 的脱敏终态。 */
+    public AgentTraceCollector reflectionResult(
+            boolean attempted, boolean passed, AgentReflectionTerminal terminal) {
+        return step("reflection-result",
+                "path", "reply",
+                "attempted", attempted,
+                "passed", passed,
+                "terminal", terminal == null ? null : terminal.id());
+    }
+
+    /** Reflection provider 失败只记异常类型，不把整轮误标为 provider initial failure。 */
+    public AgentTraceCollector reflectionProviderFailed(Class<?> cause) {
+        return step("reflection-provider-failed",
+                "causeType", cause == null ? "unknown" : cause.getSimpleName());
     }
 
     /**

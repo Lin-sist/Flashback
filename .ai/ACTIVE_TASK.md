@@ -2,13 +2,18 @@
 
 ## Status
 
-`IDLE`
+`ACTIVE`
 
-当前无活动 Type C change。开始新的重大实现前，必须先创建 OpenSpec change 并更新本文件。
+当前唯一活动 Type C change：`agent-reflection-loop`（C7，**实现中**）。
+
+- Change：`openspec/changes/agent-reflection-loop/`
+- 当前授权：闸门 1 已批准、闸门 2 已授权（2026-08-02）
+- 外调：**未获得闸门 3 授权**；reply-only 规划建议上限 6 次真实 provider 调用
+- 提交责任：用户已授权 Agent 提交本次 C7；`push` / 部署 / 发布未授权
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
-下一动作是 **C7 `agent-reflection-loop` 规划闸（闸门 1）**，见下文 Direction Layer。
+当前已进入 **C7 `agent-reflection-loop` 实现阶段（闸门 2）**，见下文 Current Progress。
 
 ## Previous Completed
 
@@ -43,8 +48,8 @@
 - 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6 已归档，Phase 2 开局**
 - **Phase 2 定案序**：~~C6 agent-eval-framework~~（**已归档**）→ **`C7 agent-reflection-loop`（下一刀）** →
   `C8 agent-resilience` → `C9 agent-temporal-intelligence`（一次一个 ACTIVE）
-- **下一动作：C7 规划闸**。建 `openspec/changes/agent-reflection-loop/`，写
-  proposal / design / tasks + delta，**闸门 1 待用户批准**。开工前读蓝图 §4.3 意图卡片
+- **当前动作：C7 实现已完成离线验证，等待验收/后续闸门**。`openspec/changes/agent-reflection-loop/`
+  的 proposal / design / tasks + 四份 delta 与 reply-only 实现已经对齐；闸门 3 仍未授权
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -78,14 +83,50 @@
 - `AGENTS.md`
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；Phase 2 方向与意图卡片）
 - `openspec/project.md`
-- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + **C5**，Agent 核心契约）
-- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + **C5**）
+- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + **C6**，Agent 核心契约）
+- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + **C6**）
 - `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b；**C5 无 delta**）
 - `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + **C5**）
-- `openspec/specs/agent-collaboration/spec.md`（含 **C5**）
+- `openspec/specs/agent-collaboration/spec.md`（含 C5 + **C6**）
+- `openspec/changes/agent-reflection-loop/`（C7 active，已完成离线实现）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-02 — **C7 `agent-reflection-loop` 完成 reply-only 实现与离线验证**
+  - readiness：开刀前 Git clean、`ACTIVE_TASK=IDLE`、C6 已归档、蓝图 v1.2 明确 C7 为下一刀，C4 + C6 硬依赖满足
+  - 新建 `openspec/changes/agent-reflection-loop/`：proposal / design / tasks +
+    `agent-runtime` / `backend-core` / `v2-product-scope` / `agent-collaboration` 四份 delta；
+    `miniapp-core` 明确无 delta
+  - **规划期事实修正**：普通 reply 当前不做全量忠实度检查，故不会产生 `UNFAITHFUL`；
+    最终按用户裁决只保留非 CLOSING reply 的 `MISSING_TIME_ATTRIBUTION` 窄环，material 不开环
+  - P13 推荐定案：reflection 属同一业务 attempt 内的 provider 子调用；一轮一条 trace，
+    `attemptNo` 不增加，steps 用 `initial|reflection` 区分
+  - 调用预算：最大重写 1 次；provider failure / invalid / `CHECK_ERROR` 不重试；
+    闸门 3 先最多 2 次 canary、总上限 6；未授权不得执行
+  - OpenSpec CLI 不在 PATH，未运行 CLI scaffold/validate；沿用仓库既有 change 结构并做文件级校验
+  - 当前 checkout 后端全量复验：显式指定本机 Maven repository/settings 后
+    **606 tests PASS / 4 skipped，0 failures / 0 errors**；默认 `mvn -q -o test` 因默认本地仓库
+    缺 Spring Boot parent 在 POM 解析阶段失败，未进入编译，二者已分开记账
+  - 2026-08-02 用户已批准闸门 1、授权闸门 2 与本次 Git 提交；闸门 3 / push / 部署仍未授权
+  - 实现前 focused baseline（C4/C5/C6 指定测试）PASS；开工锚点 `b459b8f`
+  - **实现前新发现的设计冲突**：CLOSING 一轮当前已经依次生成 reply 与 material，正常即 2 次 provider；
+    若 material `UNFAITHFUL` 再 reflection，会达到 **3 次调用**，违反已批准 delta 的“单轮最多 2 次”，
+    且按 C5 平均 6476ms 推算约 19.4s，几乎顶满 backend 20s。业务代码尚未修改
+  - **用户裁决（2026-08-02）**：按推荐方案收窄为 reply-only。
+    仅非 CLOSING reply 的 `MISSING_TIME_ATTRIBUTION` 开环；material `UNFAITHFUL` 保持现有丢弃；
+    CLOSING reply 也不开环，确保 reply + material 单轮仍最多 2 次调用。闸门 3 预算同步收窄为 6
+  - **实现**：新增类型化 `AgentReflectionPolicy` 与最小 `AgentReplyPipeline`；reflection 固定一次、
+    `tools=[]` / strict=false，成功时保留 initial tool calls，最终兜底时丢弃；CLOSING、material、tool、
+    provider failure/invalid 均不开环
+  - **轨迹**：provider step 新增 `phase=initial|reflection`；顶层耗时累加；新增脱敏
+    `reflection-decision` / `reflection-result` / `reflection-provider-failed`，仍是一轮一条 trace
+  - **C6**：合成用例由 23 增至 28；只更新 C7 合法改变/新增的 5 条快照，均同步写明
+    `baselineNote` 与 checksum；baseline guard 与隐私测试 PASS
+  - **验证**：focused tests PASS；后端全量 **622 tests PASS / 4 skipped，0 failures / 0 errors**；
+    `git diff --check` PASS。真实 provider、真机与真实 MySQL reflection 联调未执行
+  - **Blocked on**: none
+  - **Next step**: 完成证据收口与已授权 Git 提交；随后等待用户验收，闸门 3 / 真实 MySQL 另行处理
 
 - **Last session**: 2026-07-30 — C5 全流程完成并归档，随后修掉三个 Type B，真机复验全部 PASS
   - 规划：30 条现状事实（V1–V30）、11 条决策、四份 delta；N1–N7 按推荐定稿
@@ -338,7 +379,7 @@
 - **不要静默刷新 C6 的快照基线**：checksum 由「指标 + 说明」共同派生，只改数字会被拦住；
   也不要为图方便加自动重写开关（若要加，须同时配「说明未变更则失败」的守护）
 - 不做 LLM-as-Judge / 绝对评分 / A/B 框架 / 质量看板（D31/D32）
-- 不做 C7 反思环 / C8 韧性 / C9 时间智能的任何部分
+- C7 仅按 active change 的 reply-only 范围推进；不扩展 material reflection，不做 C8 韧性 / C9 时间智能
 - 不引入 CI 配置（属独立决策）
 - 不要并行复活已归档 change 作为隐式 active change
 - 不要在未获授权时发起真实 provider 调用（4 个探针默认门控跳过，勿擅自设置 `C*_REAL_PROBE=1` /

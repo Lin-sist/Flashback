@@ -91,10 +91,11 @@ cases:
       downgradePath: reply-content
       fallbackLocal: true
 
-  - caseId: guardrail-missing-time-attribution-must-downgrade
+  - caseId: guardrail-missing-time-attribution-must-rewrite-once
     dimension: GUARDRAIL
     note: |
-      复述记忆层内容却不说清那是过去的事 → 判 missing-time-attribution。
+      复述记忆层内容却不说清那是过去的事 → 判 missing-time-attribution，
+      C7 允许 reply-only 固定指令重写一次；合规重写通过后不再降级。
       危害具体而非抽象：读起来像用户刚刚说的话，等于把三个月前的心情冒充成此刻的心情。
     setup:
       memoryCandidates:
@@ -104,11 +105,95 @@ cases:
     turns:
       - userInput: 又开始纠结方向的事情了
         reply: 你一直在纠结要不要换个方向，怕选错了就回不去了。
+        reflectionReply: 我记得你过去某个时候也在纠结要不要换个方向，怕选错了就回不去了。
+    expect:
+      outcome: SUCCESS
+      violation: null
+      downgradePath: null
+      providerCalls: 2
+      reflectionAttempted: true
+      reflectionTerminal: rewritten
+
+  - caseId: guardrail-reflection-still-invalid-must-fallback
+    dimension: GUARDRAIL
+    note: 二次回复仍缺时间归属 → 到一次上限后直接使用本地兜底，不得第三次调用。
+    setup:
+      memoryCandidates:
+        - id: 70001
+          text: 那阵子一直在纠结要不要换个方向，怕选错了就回不去了
+          createdAt: "2026-03-14T21:00:00"
+    turns:
+      - userInput: 又开始纠结方向的事情了
+        reply: 你一直在纠结要不要换个方向，怕选错了就回不去了。
+        reflectionReply: 你还是一直在纠结要不要换个方向，怕选错了就回不去了。
     expect:
       outcome: DOWNGRADED
       violation: missing-time-attribution
       downgradePath: reply-attribution
       fallbackLocal: true
+      providerCalls: 2
+      reflectionAttempted: true
+      reflectionTerminal: fallback
+
+  - caseId: guardrail-reflection-provider-failure-must-fallback
+    dimension: GUARDRAIL
+    note: reflection provider 异常属于 C8 范围；C7 只记录结构化失败并立即使用本地兜底。
+    setup:
+      memoryCandidates:
+        - id: 70001
+          text: 那阵子一直在纠结要不要换个方向，怕选错了就回不去了
+          createdAt: "2026-03-14T21:00:00"
+    turns:
+      - userInput: 又开始纠结方向的事情了
+        reply: 你一直在纠结要不要换个方向，怕选错了就回不去了。
+        reflectionFailure: true
+    expect:
+      outcome: DOWNGRADED
+      violation: missing-time-attribution
+      downgradePath: reply-attribution
+      fallbackLocal: true
+      providerCalls: 2
+      reflectionAttempted: true
+      reflectionTerminal: provider-failed
+
+  - caseId: guardrail-closing-reply-must-not-reflect
+    dimension: GUARDRAIL
+    note: CLOSING 已包含 material provider 调用；即使 reply 缺时间归属也直接兜底，整轮仍保持最多两次调用。
+    setup:
+      stage: EXPECTATION
+      memoryCandidates:
+        - id: 70001
+          text: 那阵子一直在纠结要不要换个方向，怕选错了就回不去了
+          createdAt: "2026-03-14T21:00:00"
+    turns:
+      - userInput: 希望以后能更踏实一点
+        reply: 你一直在纠结要不要换个方向，怕选错了就回不去了。
+        material: 希望以后能更踏实一点
+    expect:
+      outcome: DOWNGRADED
+      violation: missing-time-attribution
+      downgradePath: reply-attribution
+      fallbackLocal: true
+      providerCalls: 1
+      reflectionAttempted: false
+      reflectionTerminal: fallback
+      materialProduced: true
+
+  - caseId: guardrail-unfaithful-material-must-not-reflect
+    dimension: GUARDRAIL
+    note: material 仍沿用 C4 直接丢弃；C7 reply-only 不为 material 增加 provider 调用。
+    setup:
+      stage: EXPECTATION
+    turns:
+      - userInput: 希望以后能更踏实一点
+        reply: 那我们先停在这里。
+        material: 我已经完全想通了未来的方向，也不会再害怕。
+    expect:
+      outcome: DOWNGRADED
+      violation: unfaithful
+      downgradePath: material-faithfulness
+      providerCalls: 1
+      materialProduced: false
 
   - caseId: guardrail-time-attributed-recall-must-pass
     dimension: GUARDRAIL
@@ -144,6 +229,7 @@ cases:
       outcome: SUCCESS
       toolRejectedReason: unfaithful-args
       proposedCount: 0
+      providerCalls: 1
 
   - caseId: guardrail-review-mode-must-fail-close-tool-calls
     dimension: TOOL_FAIL_CLOSED

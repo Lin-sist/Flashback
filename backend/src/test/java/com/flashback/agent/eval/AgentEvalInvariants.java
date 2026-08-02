@@ -37,6 +37,9 @@ final class AgentEvalInvariants {
             "violation",
             "downgradePath",
             "fallbackLocal",
+            "providerCalls",
+            "reflectionAttempted",
+            "reflectionTerminal",
             "stagePath",
             "stageReasons",
             "stage",
@@ -109,6 +112,21 @@ final class AgentEvalInvariants {
             assertThat(run.stepValue(trace, "downgrade", "fallback"))
                     .as("用例 %s：兜底回复必须标明来自本地，不得伪装成模型正常输出", evalCase.caseId())
                     .isEqualTo(AgentEvalCase.boolOf(evalCase.expected("fallbackLocal")) ? "local" : "none");
+        }
+        if (evalCase.hasExpectation("providerCalls")) {
+            assertThat(run.harness().client().replyCallCount())
+                    .as("用例 %s 的 reply provider 调用数", evalCase.caseId())
+                    .isEqualTo(AgentEvalCase.intOf(evalCase.expected("providerCalls")));
+        }
+        if (evalCase.hasExpectation("reflectionAttempted")) {
+            assertThat(run.stepValue(trace, "reflection-result", "attempted"))
+                    .as("用例 %s 是否实际进入 reflection", evalCase.caseId())
+                    .isEqualTo(AgentEvalCase.boolOf(evalCase.expected("reflectionAttempted")));
+        }
+        if (evalCase.hasExpectation("reflectionTerminal")) {
+            assertThat(run.stepValue(trace, "reflection-result", "terminal"))
+                    .as("用例 %s 的 reflection 终态", evalCase.caseId())
+                    .isEqualTo(String.valueOf(evalCase.expected("reflectionTerminal")));
         }
 
         verifyStageExpectations(run, trace, evalCase);

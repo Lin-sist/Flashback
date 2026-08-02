@@ -54,7 +54,13 @@ final class AgentEvalCase {
      * @param material  素材路径的编排产出；null 表示不编排素材
      * @param toolCall  模型返回的工具提议；null 表示不返回提议
      */
-    record Turn(String userInput, String reply, String material, ToolCallSpec toolCall) {
+    record Turn(
+            String userInput,
+            String reply,
+            String reflectionReply,
+            boolean reflectionFailure,
+            String material,
+            ToolCallSpec toolCall) {
     }
 
     record ToolCallSpec(String name, String text, String askText) {
@@ -120,7 +126,13 @@ final class AgentEvalCase {
                 throw new IllegalStateException(
                         "eval case " + caseId + " in " + source + " has a turn without userInput");
             }
-            turns.add(new Turn(userInput, text(turn.get("reply")), text(turn.get("material")), toolCall));
+            turns.add(new Turn(
+                    userInput,
+                    text(turn.get("reply")),
+                    text(turn.get("reflectionReply")),
+                    boolOf(turn.get("reflectionFailure")),
+                    text(turn.get("material")),
+                    toolCall));
         }
 
         Map<String, Object> setup = raw.get("setup") instanceof Map<?, ?> setupMap

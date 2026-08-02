@@ -13,6 +13,7 @@ import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.memory.MemoryCueExtractor;
+import com.flashback.agent.reflection.AgentReflectionPolicy;
 import com.flashback.agent.memory.MemoryPort;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolRegistry;
@@ -152,6 +153,7 @@ class AgentGuardrailTraceCorrelationTest {
                 contentChecker,
                 guardrailDowngrade,
                 timeAttributionChecker,
+                new AgentReflectionPolicy(),
                 memoryPort,
                 new MemoryCueExtractor(properties),
                 recordTagMapper,
@@ -160,7 +162,8 @@ class AgentGuardrailTraceCorrelationTest {
                 new AgentTraceVersions(
                         new AgentPromptBuilder(properties, guardrailPolicy, guardrailRules),
                         guardrailPolicy,
-                        guardrailRules),
+                        guardrailRules,
+                        new AgentReflectionPolicy()),
                 properties,
                 clock);
 

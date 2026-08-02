@@ -10,6 +10,7 @@ import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.memory.MemoryCueExtractor;
+import com.flashback.agent.reflection.AgentReflectionPolicy;
 import com.flashback.agent.memory.MySqlMemoryPort;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolExecutor;
@@ -153,13 +154,15 @@ final class AgentEvalHarness {
                 contentChecker,
                 new AgentGuardrailDowngrade(),
                 timeAttributionChecker,
+                new AgentReflectionPolicy(),
                 // 真实 MemoryPort：注入预算的截断行为由它负责，评测断言的是它而不是替身。
                 new MySqlMemoryPort(recordMapper, properties, FIXED_CLOCK),
                 new MemoryCueExtractor(properties),
                 recordTagMapper,
                 tagService,
                 traceSink,
-                new AgentTraceVersions(promptBuilder, guardrailPolicy, guardrailRules),
+                new AgentTraceVersions(
+                        promptBuilder, guardrailPolicy, guardrailRules, new AgentReflectionPolicy()),
                 properties,
                 FIXED_CLOCK);
 

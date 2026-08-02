@@ -373,14 +373,32 @@ snapshots:
       replyToInputRatio: 1.25
     checksum: "3e8154dcdf25"
 
-  - caseId: guardrail-missing-time-attribution-must-downgrade
-    baselineNote: "C6 定基线（2026-07-31）：复述记忆层内容却无时间归属 → reply-attribution 闸拦下。危害是把三个月前的心情冒充成此刻的心情"
+  - caseId: guardrail-missing-time-attribution-must-rewrite-once
+    baselineNote: "C7 agent-reflection-loop（2026-08-02）：reply-only 对 missing-time-attribution 固定重写一次；脚本化第二答补足时间归属后 SUCCESS，providerCalls 由 1 变 2"
+    metrics:
+      turns: 1
+      stagePath: [CONFUSION]
+      stageReasons: [ADVANCE]
+      outcome: "SUCCESS"
+      providerCalls: 2
+      materialCalls: 0
+      injectedCount: 1
+      injectedChars: 25
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 32
+      replyToInputRatio: 2.91
+    checksum: "e275a960c1c5"
+
+  - caseId: guardrail-reflection-still-invalid-must-fallback
+    baselineNote: "C7 agent-reflection-loop（2026-08-02）：第二答仍缺时间归属，达到一次上限后本地兜底；两次调用且无第三次重试"
     metrics:
       turns: 1
       stagePath: [CONFUSION]
       stageReasons: [ADVANCE]
       outcome: "DOWNGRADED"
-      providerCalls: 1
+      providerCalls: 2
       materialCalls: 0
       injectedCount: 1
       injectedChars: 25
@@ -389,7 +407,61 @@ snapshots:
       violation: "missing-time-attribution"
       replyLength: 20
       replyToInputRatio: 1.82
-    checksum: "94c6eaa6b43b"
+    checksum: "00b8569f5baf"
+
+  - caseId: guardrail-reflection-provider-failure-must-fallback
+    baselineNote: "C7 agent-reflection-loop（2026-08-02）：reflection provider 异常不进入 C8 重试，第二次调用后立即本地兜底"
+    metrics:
+      turns: 1
+      stagePath: [CONFUSION]
+      stageReasons: [ADVANCE]
+      outcome: "DOWNGRADED"
+      providerCalls: 2
+      materialCalls: 0
+      injectedCount: 1
+      injectedChars: 25
+      promptMessageCount: 4
+      downgradeLayer: "reply-attribution"
+      violation: "missing-time-attribution"
+      replyLength: 20
+      replyToInputRatio: 1.82
+    checksum: "c1e6ed352a62"
+
+  - caseId: guardrail-closing-reply-must-not-reflect
+    baselineNote: "C7 agent-reflection-loop（2026-08-02）：CLOSING reply 缺时间归属仍直接兜底，reply 一次加 material 一次，守住整轮两次调用上限"
+    metrics:
+      turns: 1
+      stagePath: [CLOSING]
+      stageReasons: [ADVANCE]
+      outcome: "DOWNGRADED"
+      providerCalls: 1
+      materialCalls: 1
+      injectedCount: 1
+      injectedChars: 25
+      promptMessageCount: 4
+      downgradeLayer: "reply-attribution"
+      violation: "missing-time-attribution"
+      replyLength: 20
+      replyToInputRatio: 2.0
+    checksum: "7f88b4206ded"
+
+  - caseId: guardrail-unfaithful-material-must-not-reflect
+    baselineNote: "C7 agent-reflection-loop（2026-08-02）：material 仍按 C4 对无来源增写直接丢弃，reply providerCalls 保持 1，不引入 material reflection"
+    metrics:
+      turns: 1
+      stagePath: [CLOSING]
+      stageReasons: [ADVANCE]
+      outcome: "DOWNGRADED"
+      providerCalls: 1
+      materialCalls: 1
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: "material-faithfulness"
+      violation: "unfaithful"
+      replyLength: 9
+      replyToInputRatio: 0.9
+    checksum: "72388b507467"
 
   - caseId: guardrail-time-attributed-recall-must-pass
     baselineNote: "C6 定基线（2026-07-31）：反例，同样复述记忆但带了时间锚点（「三月份」）→ 放行"

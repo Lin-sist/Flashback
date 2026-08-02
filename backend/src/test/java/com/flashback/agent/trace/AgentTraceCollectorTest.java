@@ -4,6 +4,8 @@ import com.flashback.agent.AgentChatMode;
 import com.flashback.agent.AgentStageDecision;
 import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
+import com.flashback.agent.reflection.AgentProviderPhase;
+import com.flashback.agent.reflection.AgentReflectionTerminal;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentStage;
 import org.junit.jupiter.api.Test;
@@ -137,6 +139,27 @@ class AgentTraceCollectorTest {
         assertThat(collector.outcome())
                 .as("成功调用不改变 outcome")
                 .isEqualTo(AgentTraceOutcome.SUCCESS);
+    }
+
+    @Test
+    void shouldAggregateProviderDurationAndKeepReflectionPhases() {
+        AgentTraceCollector collector = newCollector();
+
+        collector.provider(AgentProviderPhase.INITIAL, "deepseek-v4-pro", 1200L, false, true);
+        collector.reflectionDecision(true, AgentGuardrailViolation.MISSING_TIME_ATTRIBUTION, 1);
+        collector.provider(AgentProviderPhase.REFLECTION, "deepseek-v4-pro", 800L, false, true);
+        collector.reflectionResult(true, true, AgentReflectionTerminal.REWRITTEN);
+
+        assertThat(collector.providerDurationMs()).isEqualTo(2000L);
+        assertThat(collector.steps().stream().filter(step -> "provider".equals(step.get("step"))))
+                .extracting(step -> step.get("phase"))
+                .containsExactly("initial", "reflection");
+        assertThat(firstStepOfType(collector, "reflection-decision"))
+                .containsEntry("eligible", true)
+                .containsEntry("reason", "missing-time-attribution")
+                .containsEntry("maxRetries", 1);
+        assertThat(firstStepOfType(collector, "reflection-result"))
+                .containsEntry("terminal", "rewritten");
     }
 
     @Test

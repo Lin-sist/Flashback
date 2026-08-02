@@ -12,6 +12,7 @@ import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.memory.MemoryCueExtractor;
+import com.flashback.agent.reflection.AgentReflectionPolicy;
 import com.flashback.agent.memory.MemoryPort;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolRegistry;
@@ -144,6 +145,7 @@ class AgentChatServiceImplTest {
                 // C3 新增依赖：时间归属检查与记忆检索。检索 mock 默认无命中，
                 // 因此本类断言的仍是「无记忆层」路径 —— 与 C4 现状等价。
                 new AgentTimeAttributionChecker(properties),
+                new AgentReflectionPolicy(),
                 memoryPort,
                 new MemoryCueExtractor(properties),
                 recordTagMapper,
@@ -155,7 +157,8 @@ class AgentChatServiceImplTest {
                 new AgentTraceVersions(
                         new AgentPromptBuilder(properties, guardrailPolicy, guardrailRules),
                         guardrailPolicy,
-                        guardrailRules),
+                        guardrailRules,
+                        new AgentReflectionPolicy()),
                 properties,
                 clock);
 

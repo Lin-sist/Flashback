@@ -6590,3 +6590,111 @@ Commit: pending
   - 后端全量 `mvn -q -o test` **BUILD SUCCESS**（本轮纯文档，仍复验一次）
 - **Risks**: 无
 - **Commit**: pending
+
+## 2026-08-02｜agent-reflection-loop（C7）readiness 与规划闸｜Type C
+
+- **Scope**: 只做阶段 readiness + OpenSpec 规划，不改业务代码
+  - `openspec/changes/agent-reflection-loop/proposal.md`
+  - `openspec/changes/agent-reflection-loop/design.md`
+  - `openspec/changes/agent-reflection-loop/tasks.md`
+  - 四份 delta：`agent-runtime` / `backend-core` / `v2-product-scope` / `agent-collaboration`
+  - `.ai/ACTIVE_TASK.md`（`IDLE` → `ACTIVE`，指向 C7 规划闸）
+- **Changes**:
+  - readiness 结论为 **GO**：开刀前 Git clean；C6 已于 2026-07-31 归档；
+    `ACTIVE_TASK` 原为 IDLE；蓝图 v1.2 明确 C7 为下一刀；C4 判定源与 C6 回归基线均已满足
+  - 规划定为两条窄环：reply 仅恢复 `MISSING_TIME_ATTRIBUTION`，material 仅恢复 `UNFAITHFUL`；
+    最大重写 1 次，其余违规、provider failure、invalid content 均不重试
+  - **规划期事实修正**：checked-in code 证明普通 reply 不执行全量忠实度检查，
+    `UNFAITHFUL` 实际出现在 material/tool 路径；因此不擅自扩大 C4 已接受的 reply 判定范围
+  - P13 推荐：reflection 不增加 `attemptNo`，同一 persisted trace 以 steps 区分 initial/reflection
+  - 闸门 3 建议预算上限 12 次真实 provider 调用（先 4 次 canary）；当前未授权、未执行
+- **Verification**: PASS（规划级）
+  - `AgentChatServiceImpl` 实测 1274 行；相关 generation/guardrail/trace 挂点已按当前代码复核
+  - proposal / design / tasks / 四份 delta 文件已生成；`miniapp-core` 明确无 delta
+  - `openspec` CLI 不在 PATH，CLI scaffold/validate **SKIPPED**；改用仓库既有目录结构与文件级检查
+  - 当前 checkout 后端全量复验：
+    `mvn "-Dmaven.repo.local=C:\Users\Lin\.m2\repository" -o -s C:\Users\Lin\.m2\settings.xml -q test`
+    **PASS**；surefire 汇总 **72 suites / 606 tests / 0 failures / 0 errors / 4 skipped**
+  - 第一次默认 `mvn -q -o test` 在 POM 解析阶段 **FAIL**：默认本地仓库缺
+    `spring-boot-starter-parent:3.3.5`，未进入编译；改用项目既有显式本机 repository/settings 后通过，
+    故该失败记为环境解析问题，不记为代码失败
+- **Risks**:
+  - 两次真实 provider 调用能否稳定落在 backend 20s 内仍为 unknown；须闸门 3 canary，
+    超预算时回规划，不直接改超时
+  - 真实 provider 重写遵从率与体感收益仍为 unknown；scripted test 不能替代人评
+  - OpenSpec CLI 不可用，不能声称 CLI validation PASS
+- **Commit**: pending（默认用户手动提交；未 stage / commit / push）
+- **Next**: 用户审阅闸门 1；批准后仍需单独给出闸门 2 实现授权
+
+## 2026-08-02｜agent-reflection-loop（C7）闸门批准后实现前复核｜Type C
+
+- **Scope**: 闸门状态同步 + 实现前代码/调用预算复核；业务代码零改动
+- **Authorization**:
+  - 闸门 1：已批准；闸门 2：已授权
+  - Git：已授权 Agent 提交本次 C7；push / 部署 / 发布未授权
+  - 闸门 3：未授权，未执行任何真实 provider 调用
+- **Changes**:
+  - proposal / design / tasks / 四份 delta 同步为闸门 1 已批准、闸门 2 已授权
+  - tasks T-01 ~ T-03 完成；开工锚点 `b459b8f`
+- **Verification**: PASS（实现前 baseline）
+  - C4 guardrail + C5 trace + C6 eval 指定测试 exit 0
+  - `AgentChatServiceImpl` 实测 1274 行，相关挂点与构造依赖已复核
+- **Blocking design conflict**:
+  - `sendMessageTraced` 在 CLOSING 一轮先调用 reply generation，再调用 material generation；
+    现状正常路径已经是 2 次 provider 调用
+  - 已批准规划又允许 material `UNFAITHFUL` reflection 一次，因此该轮最坏会变成 3 次调用，
+    与 delta“每轮最多 2 次”直接冲突
+  - C5 历史平均 6476ms × 3 ≈ 19.4s，几乎顶满 backend 20s；最大值口径更无法容纳
+  - 该冲突影响调用预算与用户等待语义，不能在实现中主观改成 3 次或顺手放宽超时
+- **Risks**: 当前只阻塞范围裁决，代码基线仍为绿色；业务代码尚未修改
+- **Commit**: pending
+- **Next**: 推荐将 C7 收窄为 reply-only `MISSING_TIME_ATTRIBUTION`；material 继续沿用 C4 丢弃语义
+
+## 2026-08-02｜agent-reflection-loop（C7）reply-only 范围裁决｜Type C
+
+- **Scope**: 修订已批准规划，未改业务代码
+- **Decision**: 用户明确采用推荐方案收窄为 reply-only
+  - 仅非 `CLOSING` reply 的 `MISSING_TIME_ATTRIBUTION` 可重写一次
+  - material `UNFAITHFUL` 继续沿用 C4 直接丢弃；tool proposal 不开环
+  - `CLOSING` reply 不开环，因为同轮随后还会生成 material；确保单轮仍最多 2 次 provider 调用
+  - 闸门 3 预算由 12 收窄为 6（先 2 次 canary）；当前仍未授权
+- **Changes**: proposal / design / tasks / 四份 delta / ACTIVE_TASK 已同步 reply-only 契约
+- **Verification**: 规划级一致性待实现后与代码 exact match；业务代码仍零改动
+- **Risks**: C7 不挽救不忠实 material；这是为守住 20s 超时与可证明调用上限接受的范围代价
+- **Commit**: pending
+- **Next**: 实现 reply reflection policy / pipeline / trace；material 只做零回归验证
+
+## 2026-08-02｜agent-reflection-loop（C7）reply-only 实现与离线验证｜Type C
+
+- **Scope**:
+  - 新增 `backend/src/main/java/com/flashback/agent/reflection/`：类型化 policy、reply value、最小 reply pipeline、provider phase 与 reflection terminal
+  - `AgentChatServiceImpl` 把 reply generation / normalize / guard / fallback 委托给窄 pipeline；material 路径保持原实现
+  - `AgentTraceCollector` / `AgentTraceVersions`：reflection phase、脱敏 decision/result、耗时聚合与 policy 指纹
+  - C6 scripted eval：23 条既有用例保留，新增 5 条 reply-only/CLOSING/material 边界用例；同步人工审查后的基线
+  - OpenSpec 四份 delta、tasks 与 `ACTIVE_TASK` 同步实现事实
+- **Changes**:
+  - 仅非 `CLOSING` reply 的 `MISSING_TIME_ATTRIBUTION` 可进入一次 reflection；最大次数为代码常量 1
+  - reflection 调用固定 `tools=[]`、strict=false；第二答重新执行 content + time attribution checks 与长度上限
+  - 成功重写保留 initial tool calls；最终兜底丢弃 initial tool calls；provider failure/invalid、其他违规、mock、CLOSING、material、tool 均不开环
+  - provider steps 使用 `phase=initial|reflection`；顶层 `providerDurationMs` 累加子调用；新增的 trace step 只含枚举、数字与异常类型
+  - C6 `Turn` 增加 scripted reflection reply/failure；新增 `providerCalls`、`reflectionAttempted`、`reflectionTerminal` 期望键。基线只更新 C7 合法改变/新增的 5 条，并同步 `baselineNote` + checksum
+- **Verification**: PASS
+  - focused：policy / reply pipeline / material 零回归 / trace / C6 eval / baseline guard / privacy 全部 PASS
+  - 后端全量：显式本机 Maven repository/settings，**74 suites / 622 tests / 0 failures / 0 errors / 4 skipped**，BUILD SUCCESS（较 C6 606/4 新增 16 tests，未新增 skip）
+  - `git diff --check` PASS；改动路径核验 PASS：无 API / DTO / DDL / schema / frontend / timeout / pom / package / lockfile 变化
+  - 新增/修改代码与 change 资产的增量敏感标记扫描 PASS；未写入真实日记、候选输出、prompt、provider response 或 secret
+  - 开发期第一次 compile/testCompile 曾因沙箱读取本机 Maven cache JAR 失败；授权读取缓存后进入真实编译。随后测试曾按 red-green 暴露并修正阶段枚举、快照指标/路径/checksum，最终结果以上述全绿为准
+- **Verification SKIPPED**:
+  - 真实 provider / 真机 / narrative anchors：闸门 3 未授权，真实调用 0 次；不得从 scripted client 推断真实模型质量或 20s 预算稳定性
+  - 真实 MySQL reflection 联调：本轮未建立 MySQL + scripted provider 夹具；H2 全量结果不冒充真实 MySQL
+  - OpenSpec CLI validate：CLI 不在 PATH；仅做 change 结构、delta/实现 exact-match 与文件级检查
+- **Scope safety**:
+  - 未扩大 eligible set；未给普通 reply 新增忠实度闸；未改 C4 阈值/词表/来源集合
+  - material 与 CLOSING reply 均不 reflection，确保 CLOSING 仍为 reply + material 最多 2 次 provider 调用
+  - 未做 C8 error retry、C9 temporal、LLM-as-Judge、UI、部署或 push；未修改 archive 与冻结蓝图
+- **Risks**:
+  - 真实 provider 对固定重写要求的遵从率、体感收益与双调用延迟仍 unknown，待闸门 3
+  - 真实 MySQL 下同一 turn 一行 trace / 事务完成尚未活体验证；本刀未改 DDL/事务边界，但 spec 要求验收前补齐或明确接受 SKIPPED
+  - material `UNFAITHFUL` 仍直接丢弃，不在 C7 恢复；这是用户确认的 reply-only 范围代价
+- **Commit**: pending
+- **Next**: 执行已授权的 C7 Git 提交（不 push）；随后等待用户验收与是否单独开放闸门 3 / MySQL 联调

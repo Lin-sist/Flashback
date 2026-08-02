@@ -4,9 +4,7 @@ import com.flashback.agent.AgentChatMode;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentMockResponder;
 import com.flashback.agent.AgentModelClient;
-import com.flashback.agent.AgentModelResponse;
 import com.flashback.agent.AgentPromptBuilder;
-import com.flashback.agent.AgentRawToolCall;
 import com.flashback.agent.AgentStageDecision;
 import com.flashback.agent.AgentStageMachine;
 import com.flashback.agent.guardrail.AgentContentChecker;
@@ -20,6 +18,9 @@ import com.flashback.agent.memory.MemoryCueExtractor;
 import com.flashback.agent.memory.MemoryFragment;
 import com.flashback.agent.memory.MemoryPort;
 import com.flashback.agent.memory.MemoryQuery;
+import com.flashback.agent.reflection.AgentReflectionPolicy;
+import com.flashback.agent.reflection.AgentReply;
+import com.flashback.agent.reflection.AgentReplyPipeline;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolDecision;
@@ -105,6 +106,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentContentChecker contentChecker;
     private final AgentGuardrailDowngrade guardrailDowngrade;
     private final AgentTimeAttributionChecker timeAttributionChecker;
+    private final AgentReplyPipeline replyPipeline;
     private final MemoryPort memoryPort;
     private final MemoryCueExtractor memoryCueExtractor;
     private final RecordTagMapper recordTagMapper;
@@ -129,6 +131,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentContentChecker contentChecker,
             AgentGuardrailDowngrade guardrailDowngrade,
             AgentTimeAttributionChecker timeAttributionChecker,
+            AgentReflectionPolicy reflectionPolicy,
             MemoryPort memoryPort,
             MemoryCueExtractor memoryCueExtractor,
             RecordTagMapper recordTagMapper,
@@ -151,6 +154,16 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.contentChecker = contentChecker;
         this.guardrailDowngrade = guardrailDowngrade;
         this.timeAttributionChecker = timeAttributionChecker;
+        this.replyPipeline = new AgentReplyPipeline(
+                promptBuilder,
+                guardrailPolicy,
+                modelClient,
+                mockResponder,
+                toolSchemaFactory,
+                contentChecker,
+                guardrailDowngrade,
+                timeAttributionChecker,
+                reflectionPolicy);
         this.memoryPort = memoryPort;
         this.memoryCueExtractor = memoryCueExtractor;
         this.recordTagMapper = recordTagMapper;
@@ -773,104 +786,16 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentLayeredCorpus corpus,
             List<MemoryFragment> injectedMemory,
             AgentTraceCollector trace) {
-        if (modelClient.isMockProvider()) {
-            String latestUserInput = latestUserContent(history);
-            long mockStartedAt = System.nanoTime();
-            String mocked = enforceReplyLengthTraced(
-                    applyReplyGuardrail(
-                            mockResponder.reply(targetStage, latestUserInput), corpus, operation, trace),
-                    trace);
-            List<AgentRawToolCall> mockToolCalls = toolContext == null
-                    ? List.of()
-                    : mockResponder.toolCalls(targetStage, latestUserInput, toolContext.toolsEnabled());
-            // mock 也记 provider 步骤，且明确标 mocked=true——
-            // 否则轨迹里「没有 provider 步骤」会被误读成调用丢了。
-            long mockMs = millisSince(mockStartedAt);
-            traceOf(trace, t -> t.provider(modelClient.provider(), mockMs, true, true));
-            return AgentReply.ok(mocked, mockToolCalls);
-        }
-
-        long startedAt = System.nanoTime();
-        try {
-            boolean toolsEnabled = toolContext != null && toolContext.toolsEnabled();
-            List<Map<String, Object>> tools = toolsEnabled
-                    ? toolSchemaFactory.buildTools(modelClient.useStrictMode())
-                    : List.of();
-            String memorySupplement = promptBuilder.buildMemorySupplement(injectedMemory);
-            String toolSupplement = toolContext == null ? null : toolContext.supplement();
-            List<Map<String, String>> messages = promptBuilder.buildConversationMessages(
-                    targetStage,
-                    history,
-                    draftExcerpt,
-                    toolSupplement,
-                    memorySupplement);
-            // 只记条数与是否含各补充段，不记提示词全文（隐私禁止清单）。
-            int messageCount = messages.size();
-            boolean hasTool = toolSupplement != null && !toolSupplement.isBlank();
-            boolean hasMemory = !memorySupplement.isBlank();
-            boolean hasDraft = draftExcerpt != null && !draftExcerpt.isBlank();
-            traceOf(trace, t -> t.prompt(messageCount, hasTool, hasMemory, hasDraft));
-
-            AgentModelResponse response = modelClient.completeWithTools(
-                    messages, tools, toolsEnabled && modelClient.useStrictMode());
-
-            String reply = response.content();
-            if (reply == null && response.hasToolCalls()) {
-                // 只给了提议没给话：用提议自带的 askText 兜底。
-                reply = modelClient.readArgumentText(
-                        response.firstToolCall().arguments(), AgentToolRegistry.PARAM_ASK_TEXT);
-            }
-            if (reply == null) {
-                logProviderIssue(operation, targetStage, startedAt, "invalid-content");
-                long failedMs = millisSince(startedAt);
-                traceOf(trace, t -> t.provider(modelClient.model(), failedMs, false, false)
-                        .providerInvalidContent(operation));
-                return AgentReply.fail("AI返回内容无效");
-            }
-            // C5：成功路径也记耗时——C5 之前这里的 startedAt 被直接丢掉，
-            // 只有失败路径才算耗时，于是「正常一轮有多慢」这件事完全不可见。
-            long durationMs = millisSince(startedAt);
-            traceOf(trace, t -> t.provider(modelClient.model(), durationMs, false, true));
-            // 形状兜底：模型偶尔仍会把回复包成 JSON，剥壳后再裁剪长度，
-            // 避免 {"reply":"..."} 原文进入对话气泡。
-            reply = promptBuilder.normalizeReplyShape(reply);
-            // C4：后置内容检查在形状兜底之后、长度裁剪之前。
-            // 长度硬上限在多层叠加后仍然生效（agent-runtime delta 要求）。
-            reply = applyReplyGuardrail(reply, corpus, operation, trace);
-            return AgentReply.ok(enforceReplyLengthTraced(reply, trace), response.toolCalls());
-        } catch (Exception ex) {
-            if (ex instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            logProviderIssue(operation, targetStage, startedAt, ex.getClass().getSimpleName());
-            long failedMs = millisSince(startedAt);
-            traceOf(trace, t -> t.provider(modelClient.model(), failedMs, false, false)
-                    .providerFailed(operation, ex.getClass()));
-            return AgentReply.fail("AI服务暂时不可用");
-        }
-    }
-
-    private static long millisSince(long startedAtNanos) {
-        return Duration.ofNanos(System.nanoTime() - startedAtNanos).toMillis();
-    }
-
-    /**
-     * C5：长度硬上限的留痕包装。
-     *
-     * 裁剪不算降级——内容仍是 provider 的产出，只是被截短。但它值得留痕：
-     * 排查「Agent 的话怎么断在半句」时这一条是直接答案。
-     *
-     * 之所以包一层而不是在两处各写一遍：mock 与真实 provider 两条路径都要走它，
-     * 分开写就会出现「只有真实路径记了裁剪」这种半盲状态。
-     */
-    private String enforceReplyLengthTraced(String reply, AgentTraceCollector trace) {
-        int beforeLength = reply == null ? 0 : reply.length();
-        String limited = guardrailPolicy.enforceReplyLength(reply);
-        int afterLength = limited == null ? 0 : limited.length();
-        if (afterLength < beforeLength) {
-            traceOf(trace, t -> t.replyClipped(beforeLength, afterLength));
-        }
-        return limited;
+        return replyPipeline.generate(
+                targetStage,
+                history,
+                draftExcerpt,
+                operation,
+                toolContext != null && toolContext.toolsEnabled(),
+                toolContext == null ? null : toolContext.supplement(),
+                corpus,
+                injectedMemory,
+                trace);
     }
 
     /**
@@ -902,44 +827,6 @@ public class AgentChatServiceImpl implements AgentChatService {
     }
 
     private record AgentToolContext(boolean toolsEnabled, String supplement) {
-    }
-
-    /**
-     * C4：回复路径的后置内容检查与降级。
-     *
-     * 回复**不进忠实度闸**——Agent 提问本来就是它自己的话，
-     * 用「必须源自用户原话」判定会把一切提问判死。
-     * 回复受诊断 / 代决检查约束；命中则替换为安全兜底回复（design 决策 3），
-     * 因为用户提交了一轮消息必须得到回应，拒绝或丢弃会让对话看起来挂了。
-     */
-    private String applyReplyGuardrail(
-            String reply, AgentLayeredCorpus corpus, String operation, AgentTraceCollector trace) {
-        if (reply == null) {
-            return null;
-        }
-        // 内容检查用合并层：Agent 可以合法地提起过去的事，
-        // 若只用会话层，「我记得你三月份也写过」里的复述部分会被当成 Agent 新增表述，
-        // 诊断 / 代决的分区判定会因此失准。
-        AgentGuardrailVerdict verdict = contentChecker.check(reply, corpus.combined());
-        traceOf(trace, t -> t.guardrail(AgentTraceLayer.REPLY_CONTENT, verdict));
-        if (!verdict.isPassed()) {
-            // C5（V4 补齐）：sessionId / turnNo 形参早就存在，但此处一直传 null，
-            // 于是降级痕迹关联不到任何一轮对话。现在从轨迹取真实值。
-            guardrailDowngrade.trace(
-                    "reply:" + operation, traceSessionId(trace), traceTurnNo(trace), verdict);
-            traceOf(trace, t -> t.downgrade(AgentTraceLayer.REPLY_CONTENT, verdict.violation(), true));
-            return guardrailDowngrade.safeFallbackReply();
-        }
-        // C3：复述记忆内容必须带时间归属，否则三个月前的心情会被读成此刻的心情。
-        AgentGuardrailVerdict attribution = timeAttributionChecker.check(reply, corpus);
-        traceOf(trace, t -> t.guardrail(AgentTraceLayer.REPLY_ATTRIBUTION, attribution));
-        if (!attribution.isPassed()) {
-            guardrailDowngrade.trace(
-                    "reply-attribution:" + operation, traceSessionId(trace), traceTurnNo(trace), attribution);
-            traceOf(trace, t -> t.downgrade(AgentTraceLayer.REPLY_ATTRIBUTION, attribution.violation(), true));
-            return guardrailDowngrade.safeFallbackReply();
-        }
-        return reply;
     }
 
     private Long traceSessionId(AgentTraceCollector trace) {
@@ -1244,31 +1131,4 @@ public class AgentChatServiceImpl implements AgentChatService {
                 cause);
     }
 
-    private record AgentReply(
-            boolean success,
-            String content,
-            String message,
-            List<AgentRawToolCall> toolCalls) {
-
-        AgentReply {
-            toolCalls = toolCalls == null ? List.of() : List.copyOf(toolCalls);
-        }
-
-        static AgentReply ok(String content) {
-            return new AgentReply(true, content, null, List.of());
-        }
-
-        static AgentReply ok(String content, List<AgentRawToolCall> toolCalls) {
-            return new AgentReply(true, content, null, toolCalls);
-        }
-
-        static AgentReply fail(String message) {
-            return new AgentReply(false, null, message, List.of());
-        }
-
-        /** C3b：用于回看路径的 fail-closed 留痕——模型在无工具模式下仍返回了提议。 */
-        boolean hasToolCalls() {
-            return !toolCalls.isEmpty();
-        }
-    }
 }
