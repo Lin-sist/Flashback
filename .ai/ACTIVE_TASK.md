@@ -126,7 +126,7 @@
   - **验证**：focused tests PASS；后端全量 **622 tests PASS / 4 skipped，0 failures / 0 errors**；
     `git diff --check` PASS。真实 provider、真机与真实 MySQL reflection 联调未执行
   - **Blocked on**: none
-  - **Next step**: 完成证据收口与已授权 Git 提交；随后等待用户验收，闸门 3 / 真实 MySQL 另行处理
+  - **Next step**: 等待用户验收；闸门 3 / 真实 MySQL 联调另行授权或安排
 
 - **Last session**: 2026-07-30 — C5 全流程完成并归档，随后修掉三个 Type B，真机复验全部 PASS
   - 规划：30 条现状事实（V1–V30）、11 条决策、四份 delta；N1–N7 按推荐定稿
