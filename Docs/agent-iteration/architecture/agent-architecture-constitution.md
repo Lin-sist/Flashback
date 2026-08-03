@@ -250,8 +250,8 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 |---|---|---|---|
 | Phase 1 | C1 → C2 → C4 → C3a → C3b → C5 | **全部归档** | 端口成形：Loop / Tool / Guardrail / Memory / Trace |
 | Phase 2 | C6 `agent-eval-framework` | **已归档**（2026-07-31） | `EvalPort` 落地；轨迹不变量 + 回归比对，不做 Judge。**`src/main` 零改动**；「CI 可跑子集」如实记为无落点（仓库无 CI） |
-| Phase 2 | C7 `agent-reflection-loop` | **下一刀** | 在 L1 引入**受控环**；判定源复用 `GuardrailPort`，上限 1 次 |
-| Phase 2 | C8 `agent-resilience` | 待 C7 | L4 成形；预算须扣除 C7 已占用部分 |
+| Phase 2 | C7 `agent-reflection-loop` | **已归档（2026-08-03）** | L1 已引入 reply-only **受控环**；判定源复用 `GuardrailPort`，上限 1 次 |
+| Phase 2 | C8 `agent-resilience` | **下一刀** | L4 成形；预算须扣除 C7 已占用部分 |
 | Phase 2 | C9 `agent-temporal-intelligence` | 待 C8 | Temporal 是 L3 强化，不新造用户分析后台 |
 | Optional | C0 / C10 / C11 | 证据触发 | 平台升级 / 语气标定 / 上下文架构 |
 

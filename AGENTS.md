@@ -4,7 +4,7 @@
 
 - 项目：时光回序 Flashback V2.0。
 - 技术栈：Uniapp + Vue 3 + Pinia + WeChat Mini Program；backend 为 Spring Boot / MyBatis / MySQL 方向。
-- 当前阶段：**Phase 2 已开局**（Phase 1：M4 → C1 → C2 → C4 → C3a → C3b → C5 全部归档；Phase 2 首刀 **C6 `agent-eval-framework` 已于 2026-07-31 归档**）。方向蓝图 **v1.2 已冻结**（2026-07-30）；Phase 2 序列为 ~~C6 Eval~~ → C7 Reflection → C8 Resilience → C9 Temporal，**默认下一刀 `agent-reflection-loop` 规划闸**。
+- 当前阶段：**Phase 2 前两刀已归档**（C6 `agent-eval-framework`：2026-07-31；C7 `agent-reflection-loop`：2026-08-03）。方向蓝图 **v1.2 已冻结**（2026-07-30）；Phase 2 序列为 ~~C6 Eval~~ → ~~C7 Reflection~~ → C8 Resilience → C9 Temporal，**默认下一刀 `agent-resilience` 规划闸**。
 - 产品初心：帮助用户写下当下，并让未来的自己重新理解这一刻；不是效率仪表盘、社交流或管理后台。
 
 ## Source of Truth

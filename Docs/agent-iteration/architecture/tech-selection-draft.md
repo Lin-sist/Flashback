@@ -13,8 +13,8 @@
 | 读者 | 用法 |
 |---|---|
 | 正在做 C6 的你 / Agent | Eval 形态对照 §3.8（**注意：Judge 已由 D31 否决，§3.8 已更新**） |
-| 正在做 C7 的你 / Agent | 反思环边界对照 §3.5 与 §3.10；判定源复用 C4，不新起自检器 |
-| 做 C8 / C9 时 | 韧性对照 §3.9（须扣除 C7 已占用预算）、时间智能对照 §3.11 |
+| 正在做 C8 的你 / Agent | 韧性对照 §3.9；须扣除 C7 reply-only 反思环已占用预算 |
+| 做 C9 时 | 时间智能对照 §3.11 |
 | 未来想换框架时 | 先读 §1 原则与 §5 不选清单，再决定是否真值得 |
 
 ### 状态标记
@@ -150,7 +150,7 @@ Memory 的产品故事与护栏直接打架。选 B 而非 C 的理由：规则�
 | 降级分流 | 工具提议→拒绝；素材→丢弃；回复→本地常量兜底且留痕可区分 | confirmed |
 | LLM 审核官 | **不做**（D28：延迟撞超时 + 判定不可复现 + 换掉确定性 checker 是净损失） | rejected |
 | 与 Trace | `AgentGuardrailVerdict` 已是脱敏形态，可直接落轨迹，不需第二套摘要机制 | confirmed |
-| 与 C7 反思环 | **本端口的 verdict 即判定源**；重写指令只回传 violation 类型（D29） | planned → C7 |
+| 与 C7 反思环 | **本端口的 verdict 即判定源**；重写指令只回传 violation 类型（D29） | confirmed（C7 archived） |
 
 阈值类数字（如 min-coverage）以 **实测标定** 为准，允许 change 内修订，须留证据。
 
@@ -200,21 +200,21 @@ Memory 的产品故事与护栏直接打架。选 B 而非 C 的理由：规则�
 `purpose`、`turn_no`、`attempt_no`、`outcome`、`provider_duration_ms`。
 C6 的回归比对可按 `prompt_version` / `policy_version` 分组（`c5-trace-queries.sql` 第 7 条）。
 
-### 3.8 Eval（C6，下一刀）
+### 3.8 Eval（C6，已归档）
 
 > **本节已按 v1.2 校准。**起草期曾写「再可选 LLM-as-Judge」，该选项**已由 D31 否决**，勿再引用。
 
 | 决策点 | 选择 | 状态 |
 |---|---|---|
-| Runner | 仓内 JUnit 参数化 runner + 外置用例文件 | planned（P8 待定形态） |
-| 用例载体 | **混合**：既有确定性护栏用例留 Java 不迁移；新增维度走 YAML | planned |
-| 样本隐私 | 合成用例入库；真实样本走 gitignore 的 `local-samples.yaml`，缺失时静默跳过 | planned |
-| 断言对象 | **轨迹级信号**（阶段序列、注入规模、护栏 verdict、降级层、长度比），不只看最终回复 | planned |
-| 判定分层 | **不变量层**（硬失败，禁止刷新）+ **快照层**（需人确认，`baselineNote` 留痕） | planned |
+| Runner | 仓内 JUnit 参数化 runner + 外置 YAML 用例 | confirmed |
+| 用例载体 | **混合**：既有确定性护栏用例留 Java；新增维度走 YAML | confirmed |
+| 样本隐私 | 合成用例入库；真实样本走 gitignore 的 `samples.local.yaml` / `*.local.yaml` / `*.local.yml` | confirmed |
+| 断言对象 | **轨迹级信号**（阶段序列、注入规模、护栏 verdict、降级层、长度比），不只看最终回复 | confirmed |
+| 判定分层 | **不变量层**（硬失败，禁止刷新）+ **快照层**（需人确认，`baselineNote` 留痕） | confirmed |
 | LLM-as-Judge | **否决**（D31）：原文外发需授权 + 预算个位数量级 + 判定不可复现 | rejected |
-| 平台绑定 | 不绑死 DeepEval / 某 SaaS | confirmed 倾向 |
+| 平台绑定 | 不绑死 DeepEval / 某 SaaS | confirmed |
 | 数据种子 | `AgentGuardrailBoundaryCaseTest` 五场景 + C3 误关联用例 | confirmed 可用 |
-| mock 替身 | **不得改 `AgentMockResponder`**（`@Component`，mock provider 下在生产路径使用）；须另建可编排替身 | planned（P8） |
+| mock 替身 | 不改生产 `AgentMockResponder`；另建只替 provider HTTP 与 mapper 的可编排替身 | confirmed |
 
 **必须自己说清的边界（D32）**：用 mock provider 跑评测，评的是**编排逻辑**，不是语言质量。
 诚实表述为「Eval 覆盖轨迹不变量与回归比对；语言质量靠真实探针小样本人评锚定，
@@ -244,12 +244,12 @@ C8 若再加重试就会叠加爆表，**design 必须把 C7 预算作为输入�
 
 | 决策点 | 选择 | 状态 |
 |---|---|---|
-| 判定源 | **复用 C4 确定性护栏 verdict**，不新起 LLM 自检器（D28） | planned |
-| 重写指令 | **只回传 violation 类型**映射的固定改写要求，不携带候选文本片段（D29） | planned |
-| 开环范围 | 仅 `UNFAITHFUL` 与 `MISSING_TIME_ATTRIBUTION`；`CHECK_ERROR` **绝不开** | planned |
-| 预算 | **最多重写 1 次**；仍违规则走现有降级，行为与今日一致 | planned |
-| 超时影响 | 最坏 ≈13s < 后端 20s，**不需要动超时配置** | planned |
-| 落点 | 抽出独立协作者（如 `AgentReplyPipeline`）以掉转「检查 → 生成」的依赖方向 | planned |
+| 判定源 | **复用 C4 确定性护栏 verdict**，不新起 LLM 自检器（D28） | confirmed |
+| 重写指令 | **只回传 violation 类型**映射的固定改写要求，不携带候选文本片段（D29） | confirmed |
+| 开环范围 | 仅非 `CLOSING` reply 的 `MISSING_TIME_ATTRIBUTION`；material / tool / `CHECK_ERROR` 不开环 | confirmed（reply-only） |
+| 预算 | **最多重写 1 次**；仍违规则走现有降级 | confirmed |
+| 超时影响 | eligible reply 最坏约 13s；`CLOSING` 保持 reply + material≤2，不改超时配置 | confirmed |
+| 落点 | 独立 `AgentReflectionPolicy` + 最小 `AgentReplyPipeline` | confirmed |
 | 图框架 | **不引入**（D27）：现有阶段机已具备节点/边/抢占/自环/终态 | rejected |
 | 精细诊断载体 | **不做**：靠自觉维持隐私边界不可靠，配约束测试成本反超收益 | rejected |
 
@@ -277,8 +277,8 @@ Memory           : MemoryPort · MySQL 关键词/标签/时间检索 · 注入�
 Guardrails       : 规则源 + 确定性检查 + 忠实度双指标 + 分路径降级      ✅
 Trace            : versioned event schema · MySQL 表 · 无原文           ✅
 Eval             : 仓内 runner + 轨迹不变量 + 快照回归（C6）            ✅
-Reflection       : 护栏驱动的受控环，上限 1 次（C7）                    → 下一刀
-Resilience       : 错误分类 + 阶段化温暖降级 → 多 provider（C8）        → 待 C7
+Reflection       : 护栏驱动的 reply-only 受控环，上限 1 次（C7）         → 已归档
+Resilience       : 错误分类 + 阶段化温暖降级 → 多 provider（C8）        → 下一刀
 Temporal         : 时间元数据策略（C9）                                 → 待 C8
 UI               : Uniapp 增量对话入口（未改三 Tab）                    ✅
 Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → 证据触发
@@ -349,7 +349,7 @@ Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → �
 | ID | 事项 | 决策时机 | 状态 |
 |---|---|---|---|
 | P8 | Eval 可编排 mock 替身形态（不得改 `AgentMockResponder`） | C6 design | open |
-| P13 | 反思环与轨迹 `attempt_no` 的关系（重写是否算新 attempt） | C7 design | open |
+| P13 | 反思环与轨迹 `attempt_no` 的关系（重写是否算新 attempt） | C7 design | closed：同一 attempt 的 provider 子阶段 |
 | P14 | C8 可用的超时预算（须扣除 C7 已占用部分） | C8 design | open |
 | P10 | 语义缓存是否值得做 | C8 design | open |
 | P11 | 备选 provider | C8 | open |

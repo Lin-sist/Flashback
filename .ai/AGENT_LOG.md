@@ -6706,3 +6706,32 @@ Commit: pending
 - **Commit**: `8a2dbb4`（`feat(agent): 实现 C7 受控回复反思环`）
 - **External effects**: 未 push、未部署、未发布、未执行真实 provider 调用
 - **Next**: 等待用户验收；真实 MySQL reflection 联调与闸门 3 仍未完成
+
+## 2026-08-03｜agent-reflection-loop（C7）验收归档｜Type C
+
+- **Scope**: 接受 C7 四份 delta 进入 baseline；新增 closeout；更新 tasks、ACTIVE_TASK、项目入口、架构状态与对外叙事；归档 active change
+- **Changes**:
+  - 用户在已收到未验证风险说明后明确要求归档；真实 MySQL、闸门 3 provider/真机、人评锚点与 OpenSpec CLI validate 均记为 SKIPPED，不伪记 PASS
+  - `agent-runtime`、`backend-core`、`v2-product-scope`、`agent-collaboration` delta 已同步进入 accepted baseline；`miniapp-core` 无 delta
+  - `ACTIVE_TASK` 转为 IDLE；默认下一刀更新为 C8 `agent-resilience` 规划闸；冻结蓝图未修改
+  - 按 D33 补完叙事 §8，并将架构选型中的 C7 状态由 planned 校准为 confirmed / archived
+- **Verification**: pending（归档移动后执行后端全量、文件级结构、diff 与敏感边界检查）
+- **Verification SKIPPED**:
+  - 真实 MySQL reflection：未建立夹具，H2 不冒充 MySQL
+  - 真实 provider / 真机 / 人评锚点：闸门 3 未授权，真实调用 0 次
+  - OpenSpec CLI validate：CLI 不在 PATH，改做文件级 delta / baseline / archive 结构核对
+- **Risks**: 真实模型重写质量、双调用延迟与真实 MySQL 事务表现仍未活体验证；C8 必须扣除 C7 最坏两次调用预算
+- **Commit**: pending
+- **Next**: C8 只能从只读 readiness 与独立 OpenSpec 规划闸开始，不得直接实现
+
+## 2026-08-03｜agent-reflection-loop（C7）归档验证补录｜Type C
+
+- **Scope**: C7 归档移动后的最终验证；不改业务代码或范围契约
+- **Verification**: PASS
+  - 后端全量：**74 suites / 622 tests / 0 failures / 0 errors / 4 skipped**
+  - active C7 目录不存在；归档目录、`closeout.md` 与四份 delta 完整；`ACTIVE_TASK=IDLE`
+  - 四份 baseline 均存在 `Accepted From C7`，Requirement 标题与归档 delta 对齐；`miniapp-core` 无 delta
+  - `git diff --check` 与增量敏感标记扫描 PASS
+- **Verification SKIPPED**: OpenSpec CLI 不在 PATH；真实 MySQL、provider、真机与人评仍沿用 closeout 的验收 SKIPPED
+- **Risks**: 不变；真实模型质量、双调用延迟与 MySQL 事务表现未活体验证
+- **Commit**: pending

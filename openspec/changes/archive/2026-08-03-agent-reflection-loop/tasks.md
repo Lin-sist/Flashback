@@ -1,6 +1,6 @@
 # Tasks：Agent Reflection Loop（C7）
 
-> 阶段：**实现中**。闸门 1 已批准、闸门 2 已授权（2026-08-02）。
+> 阶段：**已验收并归档**（2026-08-03）。闸门 1 已批准、闸门 2 已授权（2026-08-02）。
 > 外调授权：未获得；提交责任：用户已授权 Agent 提交 C7，未授权 push / 部署 / 发布。
 > 回归基线：606 tests PASS / 4 skipped（C6 closeout）。
 
@@ -8,7 +8,7 @@
 
 - [x] **闸门 1 · 规划批准**：用户 2026-08-02 已批准
 - [x] **闸门 2 · 实现授权**：用户 2026-08-02 已明确允许条件满足时进入实现
-- [ ] **闸门 3 · 外调授权**：真实 provider + 真机小样本，最多 6 次调用；与闸门 2 分离
+- [—] **闸门 3 · 外调授权**：未授权、未执行；用户在已知该项 SKIPPED 后接受归档
 - [x] **提交责任确认**：用户已授权 Agent 提交本次 C7；push / 部署 / 发布未授权
 
 ## 阶段 0：实现前复核
@@ -74,19 +74,19 @@
 
 ## 阶段 7：闸门 3（仅获授权后）
 
-- [ ] **T-40** canary：reply 1 场景，最多 2 次 provider 调用
-- [ ] **T-41** stop conditions：超时、配置/模型身份漂移、调用数超限、错误路径重试、敏感内容入证据任一发生即停
-- [ ] **T-42** canary 通过后补重复观察；总调用数不超过 6
-- [ ] **T-43** 记录总耗时、单次耗时、终态、reflection 是否成功，不记录正文
-- [ ] **T-44** 同批填 C6 narrative anchors 的受控评级；明确小样本、非绝对质量结论
-- [ ] **T-45** 真机确认用户看到的是重写结果或既有兜底，前端协议/UI 无变化
+- [—] **T-40** SKIPPED：闸门 3 未授权，未执行真实 provider canary
+- [—] **T-41** SKIPPED：未进入真实外调，stop conditions 未做活体验证
+- [—] **T-42** SKIPPED：未执行重复观察；真实 provider 调用数为 0
+- [—] **T-43** SKIPPED：无真实调用耗时可记录
+- [—] **T-44** SKIPPED：C6 narrative anchors 仍为空，不冒充已完成人评
+- [—] **T-45** SKIPPED：未执行真机 C7 活体验收
 
 ## 阶段 8：验收与收口
 
 - [x] **T-46** 更新四份 delta 与实现事实 exact match；确认 miniapp-core 无 delta
 - [x] **T-47** 输出 Required Output；更新 ACTIVE_TASK Current Progress；追加 AGENT_LOG
-- [ ] **T-48** 用户验收后接受 delta、归档 change、ACTIVE_TASK→IDLE
-- [ ] **T-49** 按 D33 更新叙事文档 §8 与 §9；不含日记原文、secret、本机绝对路径
+- [x] **T-48** 用户 2026-08-03 在已知 SKIPPED 项后明确要求归档；delta 已接受，change 已归档，ACTIVE_TASK→IDLE
+- [x] **T-49** 按 D33 更新叙事文档 §8 与 §9；不含日记原文、secret、本机绝对路径
 - [x] **T-50** 按提交责任处理：执行已授权 Agent commit；未获 push/部署/发布授权，不执行
 
 ## 范围守护自检

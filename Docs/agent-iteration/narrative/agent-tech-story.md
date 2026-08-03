@@ -1,7 +1,7 @@
 ﻿# Flashback Agent 技术叙事（对外向）
 
 > 文档性质：**对外叙事**（面试 / 作品集 / 技术分享）——**不是** OpenSpec 契约，也不授权改任何代码
-> 状态日期：2026-07-31（§7 随 C6 `agent-eval-framework` 归档补写）
+> 状态日期：2026-08-03（§8 随 C7 `agent-reflection-loop` 归档补写）
 > 上游事实源：`roadmap/iteration-blueprint.md` v1.2 §9、`architecture/*`、`openspec/specs/**`、各刀 archive
 > 维护纪律（D33）：**每刀 change 归档时更新对应段落**，不是最后一次性补写
 >
@@ -18,7 +18,7 @@
 - **为什么这样** — 取舍与代价
 - **证据** — 可指向的代码/测试/数据
 
-进度：§1–§7、§10 已写（C1–C5 + **C6** 已完成）；§8 随 C7 归档补；§9 持续追加（C6 新增三行）。
+进度：§1–§8、§10 已写（C1–C7 已完成）；§9 持续追加。
 
 ---
 
@@ -295,9 +295,28 @@ R2「引导话术生硬」在待办里挂了一段时间。后来修掉一个让
 
 ## §8 反思环：为什么有环、环的预算与代价
 
-> **待补** —— 随 C7 `agent-reflection-loop` 归档时写。
+**一句话答案**：我没有让模型“想一想自己写得好不好”，而是在确定性护栏发现一个可恢复、窄定义的问题时，
+由后端只允许它重写一次；这让线性编排第一次有了受控自环，但没有把控制权交给模型。
 
-计划要讲的：为什么线性流程不需要图、有环才需要；判定源为什么复用确定性护栏而不是 LLM 自检；为什么只对两类违规开环、`CHECK_ERROR` 为什么绝不重试；以及 1 次上限是怎么从 6476ms 这个实测数字反推出来的。
+**怎么做的**：初次 reply 仍走原生成与护栏链。只有非 `CLOSING` reply 命中
+`MISSING_TIME_ATTRIBUTION` 时，`AgentReflectionPolicy` 才把 violation enum 映射成固定要求，
+`AgentReplyPipeline` 再调用一次 provider。第二次调用不带 tools、关闭 strict tool calling，
+并重新跑完整 reply 护栏；仍不合格就回到既有本地安全兜底。轨迹仍是一轮一条、同一 attempt，
+只在 provider steps 标出 `initial` 与 `reflection`，不记录候选文本。
+
+**为什么最终只做 reply-only**：规划时曾考虑 material 的 `UNFAITHFUL`。实现前复核发现
+`CLOSING` 一轮本来就要生成 reply 与 material，已经是两次 provider 调用；material 再重写会变成三次。
+按 C5 实测平均 6476ms 推算约 19.4s，几乎吃满后端 20s 上限。于是范围收窄：material 继续直接丢弃，
+`CLOSING` reply 也不开环，保证单轮最多两次调用。`CHECK_ERROR`、严重越界和 provider error 同样不开环，
+因为它们分别代表判定不可信、内容风险过高或应由 C8 处理的韧性问题。
+
+**为什么不用 LLM 自检器或图框架**：自检器会把“生成 + 自检 + 重写”推到约 19.5s，
+还用一个不确定判断替换已有确定性 checker；图框架则没有带来当前需要的并行分支或汇合能力。
+一个封闭 eligibility 集合、一次上限和明确终态，比引入新的运行时更容易审计。
+
+**证据**：C7 新增 policy / pipeline 与脱敏 trace phase；C6 合成用例由 23 增至 28，
+后端 **622 tests PASS / 4 skipped**。真实 MySQL、真实 provider 与真机 C7 活体验收未执行，
+因此这里只能证明编排与边界按设计工作，不声称真实模型重写质量已经验证。
 
 ---
 

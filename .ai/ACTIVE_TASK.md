@@ -2,20 +2,26 @@
 
 ## Status
 
-`ACTIVE`
+`IDLE`
 
-当前唯一活动 Type C change：`agent-reflection-loop`（C7，**实现中**）。
+当前无活动 Type C change。C7 `agent-reflection-loop` 已于 2026-08-03 归档。
 
-- Change：`openspec/changes/agent-reflection-loop/`
-- 当前授权：闸门 1 已批准、闸门 2 已授权（2026-08-02）
-- 外调：**未获得闸门 3 授权**；reply-only 规划建议上限 6 次真实 provider 调用
-- 提交责任：用户已授权 Agent 提交本次 C7；`push` / 部署 / 发布未授权
+- 归档：`openspec/changes/archive/2026-08-03-agent-reflection-loop/`
+- 结果：reply-only 受控反思环完成并通过离线回归；真实 MySQL、闸门 3 provider/真机、人评锚点均以 SKIPPED 验收
+- 下一步：C8 `agent-resilience` 规划闸；尚未授权创建 change 或实现
+- `push` / 部署 / 发布未授权
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
-当前已进入 **C7 `agent-reflection-loop` 实现阶段（闸门 2）**，见下文 Current Progress。
+**Phase 2 第二刀 C7 `agent-reflection-loop` 已于 2026-08-03 归档。**
 
 ## Previous Completed
+
+- Change：`agent-reflection-loop`（C7，**Phase 2 第二刀**）
+- 位置：`openspec/changes/archive/2026-08-03-agent-reflection-loop/`
+- 结果：仅非 `CLOSING` reply 的 `MISSING_TIME_ATTRIBUTION` 可受控重写一次；material、tool、
+  `CLOSING` 与 provider error 不开环；后端全量 **622 tests PASS / 4 skipped**
+- 验收保留：真实 MySQL、闸门 3 provider/真机、人评锚点、OpenSpec CLI validate 均未执行，详见 closeout
 
 - Change：`agent-eval-framework`（C6，**Phase 2 第一刀**）
 - 位置：`openspec/changes/archive/2026-07-31-agent-eval-framework/`
@@ -46,10 +52,9 @@
 
 - **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结**（2026-07-30）
 - 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6 已归档，Phase 2 开局**
-- **Phase 2 定案序**：~~C6 agent-eval-framework~~（**已归档**）→ **`C7 agent-reflection-loop`（下一刀）** →
-  `C8 agent-resilience` → `C9 agent-temporal-intelligence`（一次一个 ACTIVE）
-- **当前动作：C7 实现已完成离线验证，等待验收/后续闸门**。`openspec/changes/agent-reflection-loop/`
-  的 proposal / design / tasks + 四份 delta 与 reply-only 实现已经对齐；闸门 3 仍未授权
+- **Phase 2 定案序**：~~C6 agent-eval-framework~~ → ~~C7 agent-reflection-loop~~ →
+  **`C8 agent-resilience`（下一刀）** → `C9 agent-temporal-intelligence`（一次一个 ACTIVE）
+- **当前动作：IDLE，等待 C8 规划授权**。不得在未建 active change 时改 C8 业务代码
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -62,7 +67,7 @@
 - **Optional（不排主线）**：C0 平台升级（Boot 4.x/Java 21，Phase 2 完工后再议）、
   C10 语气标定、C11 上下文架构——均需证据触发
 - **对外叙事文档**：`Docs/agent-iteration/narrative/agent-tech-story.md`（D33：每刀归档时更新对应段落；
-  **§1–§7 已写**，§8 待 C7 补，§9 持续追加）
+  **§1–§8 已写**，§9 持续追加）
 
 ### v1.2 冻结的关键决策（D25–D33，开 C6 前必读）
 
@@ -83,17 +88,25 @@
 - `AGENTS.md`
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；Phase 2 方向与意图卡片）
 - `openspec/project.md`
-- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + **C6**，Agent 核心契约）
-- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + **C6**）
+- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + **C7**，Agent 核心契约）
+- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + **C7**）
 - `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b；**C5 无 delta**）
-- `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + **C5**）
-- `openspec/specs/agent-collaboration/spec.md`（含 C5 + **C6**）
-- `openspec/changes/agent-reflection-loop/`（C7 active，已完成离线实现）
+- `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + **C7**）
+- `openspec/specs/agent-collaboration/spec.md`（含 C5 + C6 + **C7**）
+- `openspec/changes/archive/2026-08-03-agent-reflection-loop/`（C7 archived）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
 
-- **This session**: 2026-08-02 — **C7 `agent-reflection-loop` 完成 reply-only 实现与离线验证**
+- **This session**: 2026-08-03 — **C7 `agent-reflection-loop` 验收归档**
+  - 用户在已知真实 MySQL、闸门 3 provider/真机、人评锚点与 OpenSpec CLI validate 均未执行后明确要求归档
+  - 四份 delta 已接受进 baseline；`miniapp-core` 无 delta
+  - `tasks.md` 将未授权外调逐项记为 SKIPPED，不伪记 PASS；新增 `closeout.md`
+  - 叙事 §8 已补，架构/入口状态对齐到 C8；冻结蓝图未修改
+  - **Blocked on**: none
+  - **Next step**: 如需继续，先做 C8 `agent-resilience` 只读 readiness 与规划闸
+
+- **Previous session**: 2026-08-02 — **C7 `agent-reflection-loop` 完成 reply-only 实现与离线验证**
   - readiness：开刀前 Git clean、`ACTIVE_TASK=IDLE`、C6 已归档、蓝图 v1.2 明确 C7 为下一刀，C4 + C6 硬依赖满足
   - 新建 `openspec/changes/agent-reflection-loop/`：proposal / design / tasks +
     `agent-runtime` / `backend-core` / `v2-product-scope` / `agent-collaboration` 四份 delta；
