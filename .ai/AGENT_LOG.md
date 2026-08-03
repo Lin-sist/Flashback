@@ -6735,3 +6735,11 @@ Commit: pending
 - **Verification SKIPPED**: OpenSpec CLI 不在 PATH；真实 MySQL、provider、真机与人评仍沿用 closeout 的验收 SKIPPED
 - **Risks**: 不变；真实模型质量、双调用延迟与 MySQL 事务表现未活体验证
 - **Commit**: pending
+
+## 2026-08-03｜agent-reflection-loop（C7）归档提交证据补录｜Type C
+
+- **Scope**: 仅补录 C7 归档提交事实，不改业务代码或 OpenSpec 契约
+- **Verification**: 归档提交前后端全量 **74 suites / 622 tests / 0 failures / 0 errors / 4 skipped**；staged diff check 与敏感标记扫描 PASS
+- **Commit**: `634de54`（`docs(openspec): 归档 C7 受控回复反思环`）
+- **External effects**: 未 push、未部署、未发布、未执行真实 provider 调用
+- **Next**: 当前 IDLE；等待 C8 `agent-resilience` 规划授权
