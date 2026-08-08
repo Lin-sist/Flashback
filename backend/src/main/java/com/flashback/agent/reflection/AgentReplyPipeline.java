@@ -12,6 +12,10 @@ import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.memory.MemoryFragment;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
+import com.flashback.agent.resilience.AgentProviderFailures;
+import com.flashback.agent.resilience.AgentResiliencePolicy;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
 import com.flashback.agent.trace.AgentTraceCollector;
@@ -48,6 +52,7 @@ public final class AgentReplyPipeline {
     private final AgentGuardrailDowngrade guardrailDowngrade;
     private final AgentTimeAttributionChecker timeAttributionChecker;
     private final AgentReflectionPolicy reflectionPolicy;
+    private final AgentResiliencePolicy resiliencePolicy;
 
     public AgentReplyPipeline(
             AgentPromptBuilder promptBuilder,
@@ -58,7 +63,8 @@ public final class AgentReplyPipeline {
             AgentContentChecker contentChecker,
             AgentGuardrailDowngrade guardrailDowngrade,
             AgentTimeAttributionChecker timeAttributionChecker,
-            AgentReflectionPolicy reflectionPolicy) {
+            AgentReflectionPolicy reflectionPolicy,
+            AgentResiliencePolicy resiliencePolicy) {
         this.promptBuilder = promptBuilder;
         this.guardrailPolicy = guardrailPolicy;
         this.modelClient = modelClient;
@@ -68,6 +74,7 @@ public final class AgentReplyPipeline {
         this.guardrailDowngrade = guardrailDowngrade;
         this.timeAttributionChecker = timeAttributionChecker;
         this.reflectionPolicy = reflectionPolicy;
+        this.resiliencePolicy = resiliencePolicy;
     }
 
     public AgentReply generate(
@@ -79,6 +86,7 @@ public final class AgentReplyPipeline {
             String toolSupplement,
             AgentLayeredCorpus corpus,
             List<MemoryFragment> injectedMemory,
+            AgentCallBudget budget,
             AgentTraceCollector trace) {
         if (modelClient.isMockProvider()) {
             return generateMock(targetStage, history, operation, toolsEnabled, corpus, trace);
@@ -95,16 +103,22 @@ public final class AgentReplyPipeline {
         long startedAt = System.nanoTime();
         try {
             AgentModelResponse response = modelClient.completeWithTools(
-                    messages, tools, toolsEnabled && modelClient.useStrictMode());
+                    messages, tools, toolsEnabled && modelClient.useStrictMode(), budget);
             long durationMs = millisSince(startedAt);
 
             String candidate = replyOf(response, true);
             if (candidate == null) {
-                logProviderIssue(operation, targetStage, startedAt, "invalid-content");
+                logProviderIssue(
+                        operation, targetStage, startedAt, AgentProviderFailureCategory.INVALID_RESPONSE);
                 traceOf(trace, t -> t.provider(
                         AgentProviderPhase.INITIAL, modelClient.model(), durationMs, false, false)
-                        .providerInvalidContent(operation));
-                return AgentReply.fail("AI返回内容无效");
+                        .providerFailed(
+                                AgentProviderPhase.INITIAL,
+                                operation,
+                                AgentProviderFailureCategory.INVALID_RESPONSE,
+                                budget));
+                return AgentReply.fail(resiliencePolicy.failureMessage(
+                        operation, targetStage, AgentProviderFailureCategory.INVALID_RESPONSE));
             }
             traceOf(trace, t -> t.provider(
                     AgentProviderPhase.INITIAL, modelClient.model(), durationMs, false, true));
@@ -126,17 +140,19 @@ public final class AgentReplyPipeline {
             }
 
             return reflect(
-                    targetStage, operation, messages, instruction.get(), corpus, initialToolCalls, guarded, trace);
+                    targetStage, operation, messages, instruction.get(), corpus,
+                    initialToolCalls, guarded, budget, trace);
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            logProviderIssue(operation, targetStage, startedAt, ex.getClass().getSimpleName());
+            AgentProviderFailureCategory category = AgentProviderFailures.fromThrowable(ex);
+            logProviderIssue(operation, targetStage, startedAt, category);
             long durationMs = millisSince(startedAt);
             traceOf(trace, t -> t.provider(
                     AgentProviderPhase.INITIAL, modelClient.model(), durationMs, false, false)
-                    .providerFailed(operation, ex.getClass()));
-            return AgentReply.fail("AI服务暂时不可用");
+                    .providerFailed(AgentProviderPhase.INITIAL, operation, category, budget));
+            return AgentReply.fail(resiliencePolicy.failureMessage(operation, targetStage, category));
         }
     }
 
@@ -148,17 +164,19 @@ public final class AgentReplyPipeline {
             AgentLayeredCorpus corpus,
             List<AgentRawToolCall> initialToolCalls,
             GuardedReply initialGuarded,
+            AgentCallBudget budget,
             AgentTraceCollector trace) {
         List<Map<String, String>> reflectionMessages = new ArrayList<>(initialMessages);
         reflectionMessages.add(Map.of("role", "user", "content", instruction));
         long startedAt = System.nanoTime();
         try {
             AgentModelResponse response = modelClient.completeWithTools(
-                    List.copyOf(reflectionMessages), List.of(), false);
+                    List.copyOf(reflectionMessages), List.of(), false, budget);
             long durationMs = millisSince(startedAt);
             if (response.content() == null) {
                 traceOf(trace, t -> t.provider(
                         AgentProviderPhase.REFLECTION, modelClient.model(), durationMs, false, false)
+                        .reflectionProviderFailed(AgentProviderFailureCategory.INVALID_RESPONSE, budget)
                         .reflectionResult(
                         true, false, AgentReflectionTerminal.INVALID_CONTENT));
                 return fallback(initialGuarded, operation, trace);
@@ -180,11 +198,12 @@ public final class AgentReplyPipeline {
             if (ex instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            logProviderIssue(operation + "-reflection", targetStage, startedAt, ex.getClass().getSimpleName());
+            AgentProviderFailureCategory category = AgentProviderFailures.fromThrowable(ex);
+            logProviderIssue(operation + "-reflection", targetStage, startedAt, category);
             long durationMs = millisSince(startedAt);
             traceOf(trace, t -> t.provider(
                     AgentProviderPhase.REFLECTION, modelClient.model(), durationMs, false, false)
-                    .reflectionProviderFailed(ex.getClass())
+                    .reflectionProviderFailed(category, budget)
                     .reflectionResult(true, false, AgentReflectionTerminal.PROVIDER_FAILED));
             return fallback(initialGuarded, operation, trace);
         }
@@ -285,14 +304,19 @@ public final class AgentReplyPipeline {
         }
     }
 
-    private void logProviderIssue(String operation, AgentStage stage, long startedAt, String cause) {
+    private void logProviderIssue(
+            String operation,
+            AgentStage stage,
+            long startedAt,
+            AgentProviderFailureCategory category) {
         log.warn(
-                "Agent provider issue: operation={} stage={} provider={} durationMs={} cause={}",
+                "Agent provider issue: operation={} stage={} provider={} durationMs={} category={} transient={}",
                 operation,
                 stage,
                 modelClient.provider(),
                 millisSince(startedAt),
-                cause);
+                category.wireId(),
+                category.isTransient());
     }
 
     private static long millisSince(long startedAtNanos) {

@@ -4,14 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.config.AppAiProperties;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderException;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -160,26 +165,32 @@ public class AgentModelClient {
      * 调用真实 provider，返回 message content 原文（约定为 JSON 字符串）。
      */
     public String complete(List<Map<String, String>> messages) throws IOException, InterruptedException {
+        return complete(messages, newCallBudget());
+    }
+
+    /** C8：使用 request-scope 共享预算调用 material provider。 */
+    public String complete(
+            List<Map<String, String>> messages,
+            AgentCallBudget budget) throws IOException, InterruptedException {
         Map<String, Object> body = Map.of(
                 "model", appAiProperties.getModel().trim(),
                 "messages", messages,
                 "response_format", Map.of("type", "json_object"),
                 "stream", false);
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(chatCompletionsUrl()))
-                .timeout(Duration.ofMillis(appAiProperties.getTimeoutMillis()))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + appAiProperties.getApiKey().trim())
-                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
-                .build();
-        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpRequest httpRequest = buildRequest(chatCompletionsUrl(), body, budget);
+        HttpResponse<String> response = send(httpRequest);
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("AI provider returned HTTP " + response.statusCode());
+            throw AgentProviderException.forHttpStatus(response.statusCode());
         }
-        JsonNode content = objectMapper.readTree(response.body())
-                .path("choices").path(0).path("message").path("content");
+        JsonNode content;
+        try {
+            content = objectMapper.readTree(response.body())
+                    .path("choices").path(0).path("message").path("content");
+        } catch (IOException ex) {
+            throw AgentProviderException.invalidResponse(ex);
+        }
         if (!content.isTextual() || isBlank(content.asText())) {
-            throw new IOException("AI provider response missing content");
+            throw AgentProviderException.invalidResponse(null);
         }
         return content.asText();
     }
@@ -188,8 +199,12 @@ public class AgentModelClient {
      * 从 provider 返回的 JSON 文本中取出指定字段。
      */
     public String extractText(String content, String fieldName) throws IOException {
-        String value = objectMapper.readTree(content).path(fieldName).asText(null);
-        return isBlank(value) ? null : value.trim();
+        try {
+            String value = objectMapper.readTree(content).path(fieldName).asText(null);
+            return isBlank(value) ? null : value.trim();
+        } catch (IOException ex) {
+            throw AgentProviderException.invalidResponse(ex);
+        }
     }
 
     /**
@@ -209,6 +224,15 @@ public class AgentModelClient {
             List<Map<String, String>> messages,
             List<Map<String, Object>> tools,
             boolean strictMode) throws IOException, InterruptedException {
+        return completeWithTools(messages, tools, strictMode, newCallBudget());
+    }
+
+    /** C8：initial / reflection 共享同一个 request-scope budget。 */
+    public AgentModelResponse completeWithTools(
+            List<Map<String, String>> messages,
+            List<Map<String, Object>> tools,
+            boolean strictMode,
+            AgentCallBudget budget) throws IOException, InterruptedException {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", appAiProperties.getModel().trim());
@@ -218,20 +242,19 @@ public class AgentModelClient {
             body.put("tools", tools);
         }
 
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(chatCompletionsUrl(strictMode)))
-                .timeout(Duration.ofMillis(appAiProperties.getTimeoutMillis()))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + appAiProperties.getApiKey().trim())
-                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
-                .build();
-        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpRequest httpRequest = buildRequest(chatCompletionsUrl(strictMode), body, budget);
+        HttpResponse<String> response = send(httpRequest);
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("AI provider returned HTTP " + response.statusCode());
+            throw AgentProviderException.forHttpStatus(response.statusCode());
         }
 
-        JsonNode message = objectMapper.readTree(response.body())
-                .path("choices").path(0).path("message");
+        JsonNode message;
+        try {
+            message = objectMapper.readTree(response.body())
+                    .path("choices").path(0).path("message");
+        } catch (IOException ex) {
+            throw AgentProviderException.invalidResponse(ex);
+        }
 
         JsonNode contentNode = message.path("content");
         String content = contentNode.isTextual() && !isBlank(contentNode.asText())
@@ -253,9 +276,62 @@ public class AgentModelClient {
 
         if (content == null && toolCalls.isEmpty()) {
             // 既没有话也没有提议：视为无效响应，交由上层按显式失败处理，不伪造内容。
-            throw new IOException("AI provider response missing content and tool_calls");
+            throw AgentProviderException.invalidResponse(null);
         }
         return new AgentModelResponse(content, List.copyOf(toolCalls));
+    }
+
+    private HttpRequest buildRequest(
+            String url,
+            Map<String, Object> body,
+            AgentCallBudget budget) throws AgentProviderException {
+        try {
+            return HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(requestTimeout(budget))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + appAiProperties.getApiKey().trim())
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                    .build();
+        } catch (AgentProviderException ex) {
+            throw ex;
+        } catch (IllegalArgumentException ex) {
+            throw AgentProviderException.of(AgentProviderFailureCategory.AUTH_CONFIGURATION, ex);
+        } catch (IOException ex) {
+            throw AgentProviderException.of(AgentProviderFailureCategory.UNKNOWN, ex);
+        }
+    }
+
+    Duration requestTimeout(AgentCallBudget budget) throws AgentProviderException {
+        long timeoutMillis = requireBudget(budget)
+                .nextCallTimeoutMillis(appAiProperties.getTimeoutMillis());
+        return Duration.ofMillis(timeoutMillis);
+    }
+
+    private HttpResponse<String> send(HttpRequest request) throws AgentProviderException {
+        try {
+            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (HttpTimeoutException ex) {
+            throw AgentProviderException.of(AgentProviderFailureCategory.TIMEOUT, ex);
+        } catch (ConnectException ex) {
+            throw AgentProviderException.of(AgentProviderFailureCategory.UPSTREAM_UNAVAILABLE, ex);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw AgentProviderException.of(AgentProviderFailureCategory.INTERRUPTED, ex);
+        } catch (IOException ex) {
+            throw AgentProviderException.of(AgentProviderFailureCategory.UNKNOWN, ex);
+        }
+    }
+
+    private AgentCallBudget requireBudget(AgentCallBudget budget) throws AgentProviderException {
+        if (budget == null) {
+            throw AgentProviderException.of(AgentProviderFailureCategory.AUTH_CONFIGURATION, null);
+        }
+        return budget;
+    }
+
+    private AgentCallBudget newCallBudget() {
+        return AgentCallBudget.start(appAgentProperties.getResilience().getProviderWorkTimeoutMillis());
     }
 
     /**

@@ -1,13 +1,18 @@
 package com.flashback.agent;
 
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderException;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.config.AppAiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * function calling 可用性判定测试（C2）。
@@ -123,6 +128,33 @@ class AgentModelClientToolCallingTest {
     void shouldRejectBlankModel() {
         assertThat(client().isFunctionCallingModel("  ")).isFalse();
         assertThat(client().isFunctionCallingModel(null)).isFalse();
+    }
+
+    @Test
+    void shouldClampHttpTimeoutToRemainingRequestBudget() throws Exception {
+        aiProperties.setTimeoutMillis(20_000);
+        AtomicLong now = new AtomicLong();
+        AgentCallBudget budget = AgentCallBudget.start(24_000, now::get);
+        now.set(10_000_000_000L);
+
+        assertThat(client().requestTimeout(budget)).hasMillis(14_000);
+    }
+
+    @Test
+    void shouldClassifyMalformedMaterialAsInvalidResponseWithoutLeakingBody() {
+        assertThatThrownBy(() -> client().extractText("sensitive malformed payload", "material"))
+                .isInstanceOfSatisfying(AgentProviderException.class, ex -> {
+                    assertThat(ex.category()).isEqualTo(AgentProviderFailureCategory.INVALID_RESPONSE);
+                    assertThat(ex.getMessage()).doesNotContain("sensitive");
+                });
+    }
+
+    @Test
+    void shouldRejectMissingSharedBudgetInsteadOfCreatingANestedBudget() {
+        assertThatThrownBy(() -> client().requestTimeout(null))
+                .isInstanceOfSatisfying(AgentProviderException.class,
+                        ex -> assertThat(ex.category())
+                                .isEqualTo(AgentProviderFailureCategory.AUTH_CONFIGURATION));
     }
 
     private AgentModelClient client() {

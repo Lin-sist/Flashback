@@ -2,7 +2,7 @@
 
 > 状态日期：2026-07-31
 > 文档性质：**方向与选型参考**，不是 OpenSpec change，**不授权直接改业务代码**
-> 状态：**已随 C7 归档校准**（2026-08-03）；Phase 1 + C6/C7 事实已落表，Phase 2 余下（C8–C9）选型指针已对齐
+> 状态：**已随 C8 归档校准**（2026-08-08）；Phase 1 + C6/C7/C8 事实已落表，下一刀 C9 选型指针已对齐
 > 执行硬规则仍以 `AGENTS.md` → `.ai/ACTIVE_TASK.md` → active OpenSpec → baseline specs 为准
 
 ## 本目录解决什么问题
@@ -44,8 +44,8 @@
 ```
 
 **当前进度**：Phase 1（C1 → C2 → C4 → C3a → C3b → C5）六刀全部归档，端口已成形；
-**Phase 2 首刀 C6 `agent-eval-framework` 已于 2026-07-31 归档**（`EvalPort` 落地，`src/main` 零改动）。
-下一刀 **C8 `agent-resilience`**（在 C7 已占用的调用预算内补错误分类与降级边界）。
+**Phase 2 前三刀 C6/C7/C8 均已归档**；C8 已形成封闭失败分类、共享 24000ms provider-work budget、零自动 retry 与阶段化失败边界。
+下一刀 **C9 `agent-temporal-intelligence`**，仍须独立规划闸。
 
 ## 禁止
 

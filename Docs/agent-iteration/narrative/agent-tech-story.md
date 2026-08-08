@@ -18,7 +18,7 @@
 - **为什么这样** — 取舍与代价
 - **证据** — 可指向的代码/测试/数据
 
-进度：§1–§8、§10 已写（C1–C7 已完成）；§9 持续追加。
+进度：§1–§9、§11 已写（C1–C8 已完成）；§10 持续追加。
 
 ---
 
@@ -33,11 +33,11 @@
 | 项目 | 证明什么 |
 |---|---|
 | RAG 项目 | AI **知道**什么：检索、分块、可信、评测 |
-| Flashback | AI **能做**什么：Loop、Tool、Memory、Guardrail、Trace、Eval、Reflection |
+| Flashback | AI **能做**什么：Loop、Tool、Memory、Guardrail、Trace、Eval、Reflection、Resilience |
 
 **技术栈**：Spring Boot 3.3.5 + MyBatis + MySQL 8.0 + Uniapp/Vue3 小程序；AI 侧走 OpenAI-compatible HTTP（DeepSeek），Agent runtime 全自研。
 
-**当前进度**：Phase 1 六刀已归档（Runtime → Tool → Guardrail → Memory → Review → Observability），后端 534 tests PASS。Phase 2 四刀方向已冻结（Eval → Reflection → Resilience → Temporal）。
+**当前进度**：Phase 1 六刀与 Phase 2 前三刀已归档（Eval → Reflection → Resilience）；下一刀是 Temporal。C8 的最终回归数字与环境跳过项见归档 closeout。
 
 ---
 
@@ -320,7 +320,33 @@ R2「引导话术生硬」在待办里挂了一段时间。后来修掉一个让
 
 ---
 
-## §9 我知道但没做的，及理由
+## §9 韧性：失败必须可解释，但不能把基础设施暴露给用户
+
+**一句话答案**：我把 provider 失败收敛为 8 类稳定类型，让一次编排中的所有模型调用共享
+24000ms deadline，并坚持零自动 retry；用户看到的是按阶段映射的克制提示，系统留下的是无内容轨迹。
+
+**怎么做的**：`AgentModelClient` 在 HTTP、解析与线程中断边界按异常类型和 status 分类，核心逻辑
+不解析异常 message 或 response body。`AgentCallBudget` 让 initial / reflection / material 共用一份
+单调时钟预算，每次 timeout 取 `min(20000ms, remaining)`；剩余不足时直接形成类型化失败，不发下一请求。
+失败不会持久化本地 Assistant 假回复，既有用户消息仍保留，用户可从原入口主动重试同一 turn。
+
+**为什么不自动重试**：C7 已允许一次受控 reflection，`CLOSING` 又可能依次生成 reply 与 material。
+再加隐式 retry 会让调用数和尾延迟不可审计，也可能在 30s 前端窗口之外才返回。C8 因此只标记
+`transient` 供排查，不把它变成自动控制信号；多 provider、熔断、缓存与监控均留给独立 change。
+
+**用户体验与隐私**：opening、普通 turn、closing/material 只按 operation / stage / category 选择固定文案，
+不展示 HTTP status、provider、endpoint、鉴权或异常类。trace 只保留 phase、category、transient、
+budget 桶与终态，不记录 prompt、用户日记、候选回复、provider body 或 exception message。
+
+**证据**：离线分类、fake clock、编排、trace、契约与 eval 回归全部通过；闸门 3 使用固定合成短文本，
+真实 DeepSeek 共 6/6 次成功——两次单 canary 为 1378ms、1656ms，两组双调用为 2898ms、3531ms。
+真实 MySQL 证明失败后主动重试仍是同一 turn、仅一条 USER message，attempt 1 为
+`UNAVAILABLE/auth-configuration`、attempt 2 为 `SUCCESS`。这些是小样本验收，不是生产 SLA；
+本机没有可控微信开发者工具/真机环境，因此真机 UI 证据明确为 SKIPPED。
+
+---
+
+## §10 我知道但没做的，及理由
 
 > 这一节是刻意写的。行业面试会考「什么时候某种编排是多余的复杂度」——**能论证不做，和能做出来同等重要。**
 
@@ -341,33 +367,33 @@ R2「引导话术生硬」在待办里挂了一段时间。后来修掉一个让
 
 ---
 
-## §10 踩过的坑
+## §11 踩过的坑
 
 > 这一节是我认为最有价值的部分。能讲清一次真实事故的根因，比能背十个概念更说明问题。
 
-### 10.1 H2 全绿不构成验证
+### 11.1 H2 全绿不构成验证
 
 轨迹落库在 H2 上 37 项测试全绿，却在真实 MySQL 上让每轮对话卡满 50 秒。H2 没有 InnoDB 行级锁语义，**该缺陷在 H2 上不可能复现**。
 
 **改进**：凡涉及锁 / 外键 / 事务边界的改动，联调必须打真实 MySQL;写回归时优先断言**调用时机与不变量**而非结果，这样在 H2 上也能守住一部分。
 
-### 10.2 `REQUIRES_NEW` 不等于「不影响外层事务」
+### 11.2 `REQUIRES_NEW` 不等于「不影响外层事务」
 
 它挂起外层事务，但**不释放外层已持有的锁**。新事务若要碰同一批行（尤其经由外键），就会与自己的外层事务死等。想做「业务提交后再做副作用」，该用事务同步回调，不是换传播级别。
 
-### 10.3 前后端超时必须有明确先后，不能相等
+### 11.3 前后端超时必须有明确先后，不能相等
 
 两边都设 30s 时，前端总是先断，后端精心设计的显式失败语义被网络层错误覆盖，用户看到的是 `request: fail timeout`。定为前端 30s / 后端 20s,**顺序不可颠倒**。凡新增调用 AI 的前端请求，必须显式指定超时且大于后端上限。
 
-### 10.4 规划期的「须同步 N 处」要在实现期复核
+### 11.4 规划期的「须同步 N 处」要在实现期复核
 
 规划时我断言新表需要同步三份 schema，实现时发现全量脚本只维护到第一刀，项目既有约定与我的假设不符。**不要把假设写成事实。**
 
-### 10.5 验证「拦截生效」前，先确认样本真的处于该被拦的状态
+### 11.5 验证「拦截生效」前，先确认样本真的处于该被拦的状态
 
 我曾取「最后一轮回复」做护栏剥离实验，而那一轮恰好没有复述历史内容，自然不该被拦。结论不翻转是**样本选错**，不是护栏失效。
 
-### 10.6 主观感受会被无关变量污染
+### 11.6 主观感受会被无关变量污染
 
 我曾判断「引导话术生硬」并准备去调 prompt。后来修掉一个 55 秒延迟缺陷，再体验就觉得「自然一些了」——而这期间**一行 prompt、一个阈值、一处引导策略都没改**。延迟污染了对语言质量的判断。
 

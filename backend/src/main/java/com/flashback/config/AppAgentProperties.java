@@ -78,6 +78,34 @@ public class AppAgentProperties {
     @Positive
     private int toolOutcomeWindow = 3;
 
+    // ---------- C8 agent-resilience ----------
+
+    /** 一次 Agent HTTP 编排中全部 provider 子调用共享的总预算。 */
+    private Resilience resilience = new Resilience();
+
+    public Resilience getResilience() {
+        return resilience;
+    }
+
+    public void setResilience(Resilience resilience) {
+        this.resilience = resilience == null ? new Resilience() : resilience;
+    }
+
+    public static class Resilience {
+
+        /** 必须小于前端 Agent 请求的 30000ms，为落库与结构化失败响应保留余量。 */
+        @Positive
+        private long providerWorkTimeoutMillis = 24_000L;
+
+        public long getProviderWorkTimeoutMillis() {
+            return providerWorkTimeoutMillis;
+        }
+
+        public void setProviderWorkTimeoutMillis(long providerWorkTimeoutMillis) {
+            this.providerWorkTimeoutMillis = providerWorkTimeoutMillis;
+        }
+    }
+
     // ---------- C4 agent-guardrails-hardening ----------
 
     /** 护栏加固配置。阈值全部走配置，且不引入任何凭证字段。 */

@@ -163,7 +163,11 @@ class AgentObservabilityIntegrationTest {
             assertThat(result.getStatus()).isEqualTo("UNAVAILABLE");
             AgentTurnTrace trace = onlyTrace(opened.getSessionId());
             assertThat(trace.getOutcome()).isEqualTo("UNAVAILABLE");
-            assertThat(trace.getCauseType()).isEqualTo("provider-unavailable");
+            assertThat(trace.getCauseType()).isEqualTo("auth-configuration");
+            assertThat(trace.getStepsJson())
+                    .contains("\"phase\":\"initial\"")
+                    .contains("\"category\":\"auth-configuration\"")
+                    .contains("\"budgetExhausted\":false");
         } finally {
             setMockEnabled(mockWasEnabled);
         }

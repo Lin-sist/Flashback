@@ -21,6 +21,10 @@ import com.flashback.agent.memory.MemoryQuery;
 import com.flashback.agent.reflection.AgentReflectionPolicy;
 import com.flashback.agent.reflection.AgentReply;
 import com.flashback.agent.reflection.AgentReplyPipeline;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
+import com.flashback.agent.resilience.AgentProviderFailures;
+import com.flashback.agent.resilience.AgentResiliencePolicy;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolDecision;
@@ -107,6 +111,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentGuardrailDowngrade guardrailDowngrade;
     private final AgentTimeAttributionChecker timeAttributionChecker;
     private final AgentReplyPipeline replyPipeline;
+    private final AgentResiliencePolicy resiliencePolicy;
     private final MemoryPort memoryPort;
     private final MemoryCueExtractor memoryCueExtractor;
     private final RecordTagMapper recordTagMapper;
@@ -154,6 +159,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.contentChecker = contentChecker;
         this.guardrailDowngrade = guardrailDowngrade;
         this.timeAttributionChecker = timeAttributionChecker;
+        this.resiliencePolicy = new AgentResiliencePolicy();
         this.replyPipeline = new AgentReplyPipeline(
                 promptBuilder,
                 guardrailPolicy,
@@ -163,7 +169,8 @@ public class AgentChatServiceImpl implements AgentChatService {
                 contentChecker,
                 guardrailDowngrade,
                 timeAttributionChecker,
-                reflectionPolicy);
+                reflectionPolicy,
+                resiliencePolicy);
         this.memoryPort = memoryPort;
         this.memoryCueExtractor = memoryCueExtractor;
         this.recordTagMapper = recordTagMapper;
@@ -177,6 +184,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     @Transactional
     public AgentSessionVO startOrResume(Long userId, AgentSessionStartRequest request) {
+        AgentCallBudget budget = newCallBudget();
         Long recordId = request == null ? null : request.getRecordId();
         // C3b：模式在最开始定一次，之后编排只问模式、不问 purpose（design 决策 1）。
         AgentSessionPurpose purpose = request == null
@@ -208,12 +216,15 @@ public class AgentChatServiceImpl implements AgentChatService {
             // 不创建第二个 ACTIVE 会话。
             String unavailableReason = modelClient.unavailableReason();
             if (unavailableReason != null) {
-                return unavailable(existing, existingMessages, unavailableReason);
+                logProviderUnavailable("opening-retry", openingStageOf(mode));
+                return unavailable(existing, existingMessages, resiliencePolicy.failureMessage(
+                        "opening-retry", openingStageOf(mode), AgentProviderFailureCategory.AUTH_CONFIGURATION));
             }
             LocalDateTime retryAt = LocalDateTime.now(clock);
             AgentStage openingStage = openingStageOf(mode);
             AgentReply openingReply = generateReply(
-                    openingStage, List.of(), reviewFragmentsOf(userId, existing, mode), "opening-retry", mode);
+                    openingStage, List.of(), reviewFragmentsOf(userId, existing, mode),
+                    "opening-retry", mode, budget);
             if (!openingReply.success()) {
                 return failed(existing, existingMessages, openingReply.message());
             }
@@ -242,12 +253,15 @@ public class AgentChatServiceImpl implements AgentChatService {
         String unavailableReason = modelClient.unavailableReason();
         if (unavailableReason != null) {
             // 会话已创建，用户下次可重试；但明确告知当前不可用，不给假开场。
-            return unavailable(session, List.of(), unavailableReason);
+            logProviderUnavailable("opening", openingStageOf(mode));
+            return unavailable(session, List.of(), resiliencePolicy.failureMessage(
+                    "opening", openingStageOf(mode), AgentProviderFailureCategory.AUTH_CONFIGURATION));
         }
 
         AgentStage openingStage = openingStageOf(mode);
         AgentReply reply = generateReply(
-                openingStage, List.of(), reviewFragmentsOf(userId, session, mode), "opening", mode);
+                openingStage, List.of(), reviewFragmentsOf(userId, session, mode),
+                "opening", mode, budget);
         if (!reply.success()) {
             return failed(session, List.of(), reply.message());
         }
@@ -286,8 +300,9 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Transactional
     public AgentSessionVO sendMessage(Long userId, Long sessionId, AgentMessageRequest request) {
         AgentTraceCollector[] holder = new AgentTraceCollector[1];
+        AgentCallBudget budget = newCallBudget();
         try {
-            return sendMessageTraced(userId, sessionId, request, holder);
+            return sendMessageTraced(userId, sessionId, request, holder, budget);
         } finally {
             // persist 自身 fail-open 且走独立事务：痕迹写不下去不能让这一轮对话挂掉，
             // 更不能把已落库的用户消息一起回滚（决策 7）。
@@ -296,7 +311,11 @@ public class AgentChatServiceImpl implements AgentChatService {
     }
 
     private AgentSessionVO sendMessageTraced(
-            Long userId, Long sessionId, AgentMessageRequest request, AgentTraceCollector[] traceHolder) {
+            Long userId,
+            Long sessionId,
+            AgentMessageRequest request,
+            AgentTraceCollector[] traceHolder,
+            AgentCallBudget budget) {
         AgentSession session = requireOwnedSession(userId, sessionId);
         requireActive(session);
 
@@ -371,8 +390,9 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         String unavailableReason = modelClient.unavailableReason();
         if (unavailableReason != null) {
-            traceOf(trace, AgentTraceCollector::providerUnavailable);
-            return unavailable(session, history, unavailableReason);
+            traceOf(trace, t -> t.providerUnavailable(budget));
+            return unavailable(session, history, resiliencePolicy.failureMessage(
+                    "turn", session.getStage(), AgentProviderFailureCategory.AUTH_CONFIGURATION));
         }
 
         AgentToolContext toolContext = buildToolContext(session, mode);
@@ -405,6 +425,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                 toolContext,
                 corpus,
                 injectedMemory,
+                budget,
                 trace);
         if (!reply.success()) {
             return failed(session, history, reply.message());
@@ -437,7 +458,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         // C3b：素材是否产出由模式决定（design 决策 8）。往已解锁记录的正文里追加
         // 此刻的整理会破坏它的时间完整性——用户几个月后无法分辨哪句是当时写的。
         if (mode.isMaterialProduced() && targetStage == AgentStage.CLOSING) {
-            materialDraft = generateMaterial(history, trace);
+            materialDraft = generateMaterial(history, trace, budget);
             String produced = materialDraft;
             traceOf(trace, t -> t.material(produced != null, produced == null ? 0 : produced.length()));
             endSession(session, now);
@@ -485,6 +506,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     @Transactional
     public AgentSessionVO finish(Long userId, Long sessionId) {
+        AgentCallBudget budget = newCallBudget();
         AgentSession session = requireOwnedSession(userId, sessionId);
         List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
         AgentChatMode mode = AgentChatMode.of(session.getPurpose());
@@ -492,12 +514,12 @@ public class AgentChatServiceImpl implements AgentChatService {
         // C3b：回看主动结束不产素材（design 决策 8），也不调 provider。
         if (session.getStatus() == AgentSessionStatus.ENDED) {
             return toSessionVO(
-                    session, history, mode.isMaterialProduced() ? generateMaterial(history) : null,
+                    session, history, mode.isMaterialProduced() ? generateMaterial(history, null, budget) : null,
                     statusOfConfig());
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
-        String materialDraft = mode.isMaterialProduced() ? generateMaterial(history) : null;
+        String materialDraft = mode.isMaterialProduced() ? generateMaterial(history, null, budget) : null;
         endSession(session, now);
         return toSessionVO(session, history, materialDraft, statusOfConfig());
     }
@@ -578,12 +600,14 @@ public class AgentChatServiceImpl implements AgentChatService {
             List<AgentMessage> history,
             List<MemoryFragment> reviewFragments,
             String operation,
-            AgentChatMode mode) {
+            AgentChatMode mode,
+            AgentCallBudget budget) {
         List<MemoryFragment> fragments = reviewFragments == null ? List.of() : reviewFragments;
         return generateReply(
                 targetStage, history, null, operation,
                 new AgentToolContext(false, null),
                 layeredCorpusOf(history, fragments), fragments,
+                budget,
                 // 开场不落轨迹：它不属于任何一轮（turnNo=0，且没有用户消息与之配对），
                 // 强行记一条会让「一轮一条」的语义破掉。开场的护栏与 provider 结果
                 // 仍走既有结构化日志。
@@ -785,6 +809,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentToolContext toolContext,
             AgentLayeredCorpus corpus,
             List<MemoryFragment> injectedMemory,
+            AgentCallBudget budget,
             AgentTraceCollector trace) {
         return replyPipeline.generate(
                 targetStage,
@@ -795,6 +820,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                 toolContext == null ? null : toolContext.supplement(),
                 corpus,
                 injectedMemory,
+                budget,
                 trace);
     }
 
@@ -845,31 +871,38 @@ public class AgentChatServiceImpl implements AgentChatService {
      * 复用既有的可选产物语义，前端零改动。
      */
     private String generateMaterial(List<AgentMessage> history) {
-        return generateMaterial(history, null);
+        return generateMaterial(history, null, newCallBudget());
     }
 
-    private String generateMaterial(List<AgentMessage> history, AgentTraceCollector trace) {
+    private String generateMaterial(
+            List<AgentMessage> history, AgentTraceCollector trace, AgentCallBudget budget) {
         AgentSourceCorpus corpus = corpusOf(history);
         if (modelClient.isMockProvider()) {
             return applyMaterialGuardrail(mockResponder.material(history), corpus, trace);
         }
         if (modelClient.unavailableReason() != null) {
+            traceOf(trace, t -> t.materialFailed(AgentProviderFailureCategory.AUTH_CONFIGURATION, budget));
             return null;
         }
         long startedAt = System.nanoTime();
         try {
-            String raw = modelClient.complete(promptBuilder.buildMaterialMessages(history));
+            String raw = modelClient.complete(promptBuilder.buildMaterialMessages(history), budget);
             return applyMaterialGuardrail(modelClient.extractText(raw, "material"), corpus, trace);
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            logProviderIssue("material", AgentStage.CLOSING, startedAt, ex.getClass().getSimpleName());
+            AgentProviderFailureCategory category = AgentProviderFailures.fromThrowable(ex);
+            logProviderIssue("material", AgentStage.CLOSING, startedAt, category);
             // 素材失败不改变本轮 outcome：素材是可选产物，缺失时前端只是不显示回填入口，
             // 把它记成 FAILED 会让「对话成功但素材没出来」看起来像一轮失败。
-            traceOf(trace, t -> t.materialFailed(ex.getClass().getSimpleName()));
+            traceOf(trace, t -> t.materialFailed(category, budget));
             return null;
         }
+    }
+
+    private AgentCallBudget newCallBudget() {
+        return AgentCallBudget.start(appAgentProperties.getResilience().getProviderWorkTimeoutMillis());
     }
 
     /**
@@ -1121,14 +1154,31 @@ public class AgentChatServiceImpl implements AgentChatService {
     /**
      * 只记录结构化元数据，不记录对话原文。
      */
-    private void logProviderIssue(String operation, AgentStage stage, long startedAt, String cause) {
+    private void logProviderIssue(
+            String operation,
+            AgentStage stage,
+            long startedAt,
+            AgentProviderFailureCategory category) {
         log.warn(
-                "Agent provider issue: operation={} stage={} provider={} durationMs={} cause={}",
+                "Agent provider issue: operation={} stage={} provider={} durationMs={} category={} transient={}",
                 operation,
                 stage,
                 modelClient.provider(),
                 Duration.ofNanos(System.nanoTime() - startedAt).toMillis(),
-                cause);
+                category.wireId(),
+                category.isTransient());
+    }
+
+    private void logProviderUnavailable(String operation, AgentStage stage) {
+        AgentProviderFailureCategory category = AgentProviderFailureCategory.AUTH_CONFIGURATION;
+        log.warn(
+                "Agent provider issue: operation={} stage={} provider={} durationMs={} category={} transient={}",
+                operation,
+                stage,
+                modelClient.provider(),
+                0,
+                category.wireId(),
+                category.isTransient());
     }
 
 }

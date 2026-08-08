@@ -6,6 +6,8 @@ import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
 import com.flashback.agent.reflection.AgentProviderPhase;
 import com.flashback.agent.reflection.AgentReflectionTerminal;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentStage;
 
@@ -209,6 +211,19 @@ public final class AgentTraceCollector {
                 "causeType", cause == null ? "unknown" : cause.getSimpleName());
     }
 
+    /** C8：Reflection failure 使用封闭分类与预算元数据，不记录异常自由文本。 */
+    public AgentTraceCollector reflectionProviderFailed(
+            AgentProviderFailureCategory category,
+            AgentCallBudget budget) {
+        AgentProviderFailureCategory safe = safeCategory(category);
+        return step("reflection-provider-failed",
+                "phase", AgentProviderPhase.REFLECTION.id(),
+                "category", safe.wireId(),
+                "transient", safe.isTransient(),
+                "budgetExhausted", budget != null && budget.isExhausted(),
+                "remainingBucket", remainingBucket(budget));
+    }
+
     /**
      * provider 失败。只记异常类型，不记异常消息——消息可能回带请求内容。
      */
@@ -216,6 +231,24 @@ public final class AgentTraceCollector {
         this.outcome = AgentTraceOutcome.FAILED;
         this.causeType = cause == null ? "unknown" : cause.getSimpleName();
         return step("provider-failed", "operation", operation, "causeType", this.causeType);
+    }
+
+    /** C8：initial provider failure 的稳定分类；顶层 cause_type 复用现有列。 */
+    public AgentTraceCollector providerFailed(
+            AgentProviderPhase phase,
+            String operation,
+            AgentProviderFailureCategory category,
+            AgentCallBudget budget) {
+        AgentProviderFailureCategory safe = safeCategory(category);
+        this.outcome = AgentTraceOutcome.FAILED;
+        this.causeType = safe.wireId();
+        return step("provider-failed",
+                "phase", phase == null ? AgentProviderPhase.INITIAL.id() : phase.id(),
+                "operation", operation,
+                "category", safe.wireId(),
+                "transient", safe.isTransient(),
+                "budgetExhausted", budget != null && budget.isExhausted(),
+                "remainingBucket", remainingBucket(budget));
     }
 
     /**
@@ -232,8 +265,22 @@ public final class AgentTraceCollector {
      */
     public AgentTraceCollector providerUnavailable() {
         this.outcome = AgentTraceOutcome.UNAVAILABLE;
-        this.causeType = "provider-unavailable";
-        return step("provider-unavailable");
+        this.causeType = AgentProviderFailureCategory.AUTH_CONFIGURATION.wireId();
+        return step("provider-unavailable",
+                "category", this.causeType,
+                "transient", false);
+    }
+
+    /** C8：调用前不可用同样携带稳定 phase/category 与 request budget 状态。 */
+    public AgentTraceCollector providerUnavailable(AgentCallBudget budget) {
+        this.outcome = AgentTraceOutcome.UNAVAILABLE;
+        this.causeType = AgentProviderFailureCategory.AUTH_CONFIGURATION.wireId();
+        return step("provider-unavailable",
+                "phase", AgentProviderPhase.INITIAL.id(),
+                "category", this.causeType,
+                "transient", false,
+                "budgetExhausted", budget != null && budget.isExhausted(),
+                "remainingBucket", remainingBucket(budget));
     }
 
     /**
@@ -337,6 +384,19 @@ public final class AgentTraceCollector {
      */
     public AgentTraceCollector materialFailed(String causeType) {
         return step("material-failed", "causeType", causeType);
+    }
+
+    /** C8：material 是可选产物，分类可见但不修改顶层 outcome。 */
+    public AgentTraceCollector materialFailed(
+            AgentProviderFailureCategory category,
+            AgentCallBudget budget) {
+        AgentProviderFailureCategory safe = safeCategory(category);
+        return step("material-failed",
+                "phase", AgentProviderPhase.MATERIAL.id(),
+                "category", safe.wireId(),
+                "transient", safe.isTransient(),
+                "budgetExhausted", budget != null && budget.isExhausted(),
+                "remainingBucket", remainingBucket(budget));
     }
 
     /**
@@ -447,6 +507,14 @@ public final class AgentTraceCollector {
         }
         steps.add(entry);
         return this;
+    }
+
+    private static AgentProviderFailureCategory safeCategory(AgentProviderFailureCategory category) {
+        return category == null ? AgentProviderFailureCategory.UNKNOWN : category;
+    }
+
+    private static String remainingBucket(AgentCallBudget budget) {
+        return budget == null ? "unknown" : budget.remainingBucket();
     }
 
     private static double round(double value) {

@@ -3,6 +3,9 @@ package com.flashback.agent.eval;
 import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentModelResponse;
 import com.flashback.agent.AgentRawToolCall;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderException;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.config.AppAiProperties;
 
@@ -52,7 +55,7 @@ public final class ScriptedAgentModelClient extends AgentModelClient {
      * @param toolCalls 原生工具提议
      * @param failure   非 null 时本次调用抛出该异常，用于覆盖 provider 失败路径
      */
-    record Scripted(String content, List<AgentRawToolCall> toolCalls, RuntimeException failure) {
+    record Scripted(String content, List<AgentRawToolCall> toolCalls, Exception failure) {
 
         static Scripted reply(String content) {
             return new Scripted(content, List.of(), null);
@@ -65,11 +68,16 @@ public final class ScriptedAgentModelClient extends AgentModelClient {
         static Scripted failure(RuntimeException failure) {
             return new Scripted(null, List.of(), failure);
         }
+
+        static Scripted failure(AgentProviderFailureCategory category) {
+            return new Scripted(null, List.of(), AgentProviderException.of(category, null));
+        }
     }
 
     private final Deque<Scripted> replyScript = new ArrayDeque<>();
     private final Deque<String> materialScript = new ArrayDeque<>();
     private final List<Integer> promptMessageCounts = new ArrayList<>();
+    private final List<AgentCallBudget> observedBudgets = new ArrayList<>();
 
     private int replyCallCount;
     private int materialCallCount;
@@ -118,6 +126,10 @@ public final class ScriptedAgentModelClient extends AgentModelClient {
         return materialCallCount;
     }
 
+    List<AgentCallBudget> observedBudgets() {
+        return List.copyOf(observedBudgets);
+    }
+
     /**
      * 每次回复调用时 prompt 的消息条数。
      *
@@ -146,13 +158,27 @@ public final class ScriptedAgentModelClient extends AgentModelClient {
         }
         Scripted scripted = replyScript.removeFirst();
         if (scripted.failure() != null) {
-            throw scripted.failure();
+            if (scripted.failure() instanceof IOException io) {
+                throw io;
+            }
+            throw (RuntimeException) scripted.failure();
         }
         if (scripted.content() == null && scripted.toolCalls().isEmpty()) {
             // 与生产实现同构：既无内容也无提议时抛 IOException，交由上层按显式失败处理。
             throw new IOException("scripted response missing content and tool_calls");
         }
         return new AgentModelResponse(scripted.content(), scripted.toolCalls());
+    }
+
+    @Override
+    public AgentModelResponse completeWithTools(
+            List<Map<String, String>> messages,
+            List<Map<String, Object>> tools,
+            boolean strictMode,
+            AgentCallBudget budget) throws IOException {
+        budget.nextCallTimeoutMillis(20_000L);
+        observedBudgets.add(budget);
+        return completeWithTools(messages, tools, strictMode);
     }
 
     /**
@@ -172,5 +198,12 @@ public final class ScriptedAgentModelClient extends AgentModelClient {
             throw new IOException("scripted material failure");
         }
         return "{\"material\":\"" + material.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}";
+    }
+
+    @Override
+    public String complete(List<Map<String, String>> messages, AgentCallBudget budget) throws IOException {
+        budget.nextCallTimeoutMillis(20_000L);
+        observedBudgets.add(budget);
+        return complete(messages);
     }
 }

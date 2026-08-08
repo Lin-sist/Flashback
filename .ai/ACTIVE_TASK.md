@@ -4,18 +4,21 @@
 
 `IDLE`
 
-当前无活动 Type C change。C7 `agent-reflection-loop` 已于 2026-08-03 归档。
-
-- 归档：`openspec/changes/archive/2026-08-03-agent-reflection-loop/`
-- 结果：reply-only 受控反思环完成并通过离线回归；真实 MySQL、闸门 3 provider/真机、人评锚点均以 SKIPPED 验收
-- 下一步：C8 `agent-resilience` 规划闸；尚未授权创建 change 或实现
-- `push` / 部署 / 发布未授权
+当前没有活动 Type C change。C8 `agent-resilience` 已于 2026-08-08 验收归档。
+下一刀默认为 C9 `agent-temporal-intelligence` 规划闸；方向蓝图不授权直接实现。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
 **Phase 2 第二刀 C7 `agent-reflection-loop` 已于 2026-08-03 归档。**
+**Phase 2 第三刀 C8 `agent-resilience` 已于 2026-08-08 归档。**
 
 ## Previous Completed
+
+- Change：`agent-resilience`（C8，**Phase 2 第三刀**）
+- 位置：`openspec/changes/archive/2026-08-08-agent-resilience/`
+- 结果：8 类封闭失败 taxonomy、共享 24000ms provider-work budget、零自动 retry、阶段化固定失败模板与无内容 trace
+- 闸门 3：真实 DeepSeek 固定合成探针 6/6 PASS；真实 MySQL 同轮 retry/attempt trace PASS
+- 验收保留：微信真机因本机无可控环境 SKIPPED；OpenSpec CLI 不在 PATH，使用文件级校验
 
 - Change：`agent-reflection-loop`（C7，**Phase 2 第二刀**）
 - 位置：`openspec/changes/archive/2026-08-03-agent-reflection-loop/`
@@ -51,10 +54,10 @@
 ## Direction Layer
 
 - **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结**（2026-07-30）
-- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6 已归档，Phase 2 开局**
+- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6/C7/C8 已归档**
 - **Phase 2 定案序**：~~C6 agent-eval-framework~~ → ~~C7 agent-reflection-loop~~ →
-  **`C8 agent-resilience`（下一刀）** → `C9 agent-temporal-intelligence`（一次一个 ACTIVE）
-- **当前动作：IDLE，等待 C8 规划授权**。不得在未建 active change 时改 C8 业务代码
+  ~~C8 agent-resilience~~ → **`C9 agent-temporal-intelligence`（下一规划闸）**
+- **当前动作：IDLE**。C9 规划、实现、外调与发布仍须分别授权
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -67,7 +70,7 @@
 - **Optional（不排主线）**：C0 平台升级（Boot 4.x/Java 21，Phase 2 完工后再议）、
   C10 语气标定、C11 上下文架构——均需证据触发
 - **对外叙事文档**：`Docs/agent-iteration/narrative/agent-tech-story.md`（D33：每刀归档时更新对应段落；
-  **§1–§8 已写**，§9 持续追加）
+  **§1–§9 已写**，§10 持续追加）
 
 ### v1.2 冻结的关键决策（D25–D33，开 C6 前必读）
 
@@ -88,15 +91,53 @@
 - `AGENTS.md`
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；Phase 2 方向与意图卡片）
 - `openspec/project.md`
-- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + **C7**，Agent 核心契约）
-- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + **C7**）
-- `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b；**C5 无 delta**）
+- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + **C8**，Agent 核心契约）
+- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + **C8**）
+- `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b + **C8**；C5/C6/C7 无 delta）
 - `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + **C7**）
-- `openspec/specs/agent-collaboration/spec.md`（含 C5 + C6 + **C7**）
-- `openspec/changes/archive/2026-08-03-agent-reflection-loop/`（C7 archived）
+- `openspec/specs/agent-collaboration/spec.md`（含 C5 + C6 + C7 + **C8**）
+- `openspec/changes/archive/2026-08-08-agent-resilience/`（C8 archived）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-08 — **C8 `agent-resilience` 闸门 3 验收归档**
+  - 用户授权真实 provider / MySQL 验收、归档与 Agent 提交；未授权 push、部署或发布
+  - 真实 DeepSeek 使用固定合成短文本：2 次 canary 为 1378ms / 1656ms；2 组双调用为
+    2898ms / 3531ms；总计 6/6 成功，未触发停止条件
+  - 真实 MySQL：同一 pending turn 仅一条 USER message；attempt 1 为
+    `UNAVAILABLE/auth-configuration`，attempt 2 为 `SUCCESS`；合成数据已清理
+  - 微信真机 SKIPPED：本机无微信开发者工具或可控真机环境；未以构建/scripted 冒充真机
+  - 四份 delta 已接受进 baseline；新增 closeout，change 归档至
+    `openspec/changes/archive/2026-08-08-agent-resilience/`；`ACTIVE_TASK=IDLE`
+  - OpenSpec CLI 不在 PATH；使用 Requirement 对齐与 archive 文件级验证，不声称 CLI PASS
+  - **Blocked on**: none
+  - **Next step**: 如需继续，先开 C9 `agent-temporal-intelligence` 独立规划闸
+
+- **This session**: 2026-08-03 — **C8 `agent-resilience` 规划闸启动**
+  - readiness：开刀前 `ACTIVE_TASK=IDLE`、C7 已归档、Git clean、蓝图 v1.2 指向 C8；开工锚点 `fb68082`
+  - 新建 `openspec/changes/agent-resilience/`：proposal / design / tasks +
+    `agent-runtime` / `backend-core` / `miniapp-core` / `agent-collaboration` 四份 delta；
+    `v2-product-scope` 明确无 delta
+  - **规划期关键事实修正**：`app.ai.timeout-millis=20000` 是每次 `HttpRequest` 的 timeout，
+    不是整轮 request deadline；C7 双调用理论上可叠到约 40s，已超过 frontend 30s 等待窗口
+  - P14 推荐：整轮 provider-work budget 24000ms；每次调用取 `min(20000ms, remaining)`；
+    预算耗尽不发下一调用；frontend 30000ms 与纯 DB 10000ms 保持不变
+  - 第一阶段推荐零自动 retry；现有用户主动同轮 retry 保留；provider failure 仍显式 FAILED/UNAVAILABLE，
+    本地温暖模板只进入失败 message，不持久化为 Assistant 假回复
+  - API/DTO/frontend 推荐零字段变化；技术分类只留 backend，既有用户主动同轮 retry 保持
+  - OpenSpec CLI 不在 PATH；已改用仓库既有结构与文件级验证，不能声称 CLI validate PASS
+  - 用户 2026-08-03 批准 N1–N6 推荐方案并明确授权开始实现；Git 仍由用户手动提交
+  - T-08 实现前 baseline：显式本机 Maven repository/settings 离线运行，
+    **74 suites / 622 tests / 0 failures / 0 errors / 4 skipped**；默认 Maven 仓库缺 parent 的失败仅属环境解析
+  - **实现完成**：8 类封闭 failure taxonomy、类型化 provider exception、request-scope 24000ms
+    provider-work budget、阶段化失败 message、initial/reflection/material 脱敏 trace/log 已接入；零自动 retry
+  - **契约边界**：未新增 API/DTO/frontend 字段；未改 DDL、pom/package/lockfile、deployment、monitoring、C9
+  - **验证**：focused PASS；后端全量 **79 suites / 643 tests / 0 failures / 0 errors / 4 skipped**；
+    前端 type-check 与 `build:mp-weixin` PASS；C6/C7 快照零变化
+  - **SKIPPED**：真实 MySQL、闸门 3 provider/真机、OpenSpec CLI；真实 provider 调用 0 次
+  - **Blocked on**: none（等待用户验收；Git 仍由用户手动提交）
+  - **Next step**: 用户 review；通过后再决定是否归档，以及是否另行开放真实 MySQL / 闸门 3
 
 - **This session**: 2026-08-03 — **C7 `agent-reflection-loop` 验收归档**
   - 用户在已知真实 MySQL、闸门 3 provider/真机、人评锚点与 OpenSpec CLI validate 均未执行后明确要求归档
@@ -383,7 +424,7 @@
 ## Out Of Scope While Idle
 
 - 不要在没有新 Type C 的情况下改 Agent runtime / 工具 / 护栏 / 记忆 / 回看 / 轨迹 / 评测 / AI 业务代码
-- **C7 须先过闸门 1**：可以建 change 目录写 proposal / design / tasks，但**规划批准前禁止改业务代码**
+- **C9 须先过闸门 1**：可以建 change 目录写 proposal / design / tasks，但**规划批准前禁止改业务代码**
 - **改 prompt / 护栏阈值现在有条件了，但仍须走 Type C**：C6 的基线让改动可比对，
   这解除的是宪法 §7.3 的技术前提，**不是**流程要求。改动后快照会变，
   须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的
@@ -392,7 +433,7 @@
 - **不要静默刷新 C6 的快照基线**：checksum 由「指标 + 说明」共同派生，只改数字会被拦住；
   也不要为图方便加自动重写开关（若要加，须同时配「说明未变更则失败」的守护）
 - 不做 LLM-as-Judge / 绝对评分 / A/B 框架 / 质量看板（D31/D32）
-- C7 仅按 active change 的 reply-only 范围推进；不扩展 material reflection，不做 C8 韧性 / C9 时间智能
+- C9 只能按未来 active change 的批准范围推进；不借 Temporal 顺手扩展 C8 韧性、多 provider 或前端分析面板
 - 不引入 CI 配置（属独立决策）
 - 不要并行复活已归档 change 作为隐式 active change
 - 不要在未获授权时发起真实 provider 调用（4 个探针默认门控跳过，勿擅自设置 `C*_REAL_PROBE=1` /

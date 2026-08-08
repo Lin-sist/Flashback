@@ -22,6 +22,9 @@ app:
     # C1 Agent Runtime。复用 app.ai 的 provider 与 secret，不新增凭证字段。
     max-turns-per-session: ${AGENT_MAX_TURNS_PER_SESSION:8}
     max-reply-chars: ${AGENT_MAX_REPLY_CHARS:120}
+    resilience:
+      # C8：一次 Agent HTTP 编排共享的 provider-work 总预算，必须小于前端 30000ms。
+      provider-work-timeout-millis: ${AGENT_PROVIDER_WORK_TIMEOUT_MILLIS:24000}
     max-user-input-chars: ${AGENT_MAX_USER_INPUT_CHARS:1000}
     context-message-window: ${AGENT_CONTEXT_MESSAGE_WINDOW:12}
     draft-excerpt-chars: ${AGENT_DRAFT_EXCERPT_CHARS:300}

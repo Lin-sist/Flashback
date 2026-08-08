@@ -1,6 +1,7 @@
 package com.flashback.agent.eval;
 
 import com.flashback.agent.AgentRawToolCall;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.agent.trace.AgentTraceCollector;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
@@ -38,7 +39,7 @@ final class AgentEvalRun {
                 // 未编排回复 = 本轮 provider 失败。用固定异常类型，
                 // 使 causeType 可被断言（轨迹只记类型不记消息）。
                 harness.client().scriptReply(ScriptedAgentModelClient.Scripted.failure(
-                        new IllegalStateException("scripted provider outage")));
+                        AgentProviderFailureCategory.UPSTREAM_UNAVAILABLE));
             } else if (turn.toolCall() != null) {
                 harness.client().scriptReply(ScriptedAgentModelClient.Scripted.replyWithTool(
                         turn.reply(),
@@ -51,7 +52,7 @@ final class AgentEvalRun {
                         ScriptedAgentModelClient.Scripted.reply(turn.reflectionReply()));
             } else if (turn.reflectionFailure()) {
                 harness.client().scriptReply(ScriptedAgentModelClient.Scripted.failure(
-                        new IllegalStateException("scripted reflection outage")));
+                        AgentProviderFailureCategory.UPSTREAM_UNAVAILABLE));
             }
             if (turn.material() != null) {
                 harness.client().scriptMaterial(turn.material());

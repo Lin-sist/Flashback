@@ -1,6 +1,7 @@
 package com.flashback.agent.eval;
 
 import com.flashback.agent.AgentRawToolCall;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.agent.trace.AgentTraceCollector;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentStage;
@@ -110,15 +111,15 @@ class AgentEvalHarnessTest {
     void harnessMustBeAbleToProduceAProviderFailure() {
         AgentEvalHarness harness = AgentEvalHarness.builder().build();
         harness.client().scriptReply(
-                ScriptedAgentModelClient.Scripted.failure(new IllegalStateException("scripted outage")));
+                ScriptedAgentModelClient.Scripted.failure(AgentProviderFailureCategory.UPSTREAM_UNAVAILABLE));
 
         harness.turn("今天心里有点乱");
 
         AgentTraceCollector trace = harness.sink().last();
         assertThat(trace.outcome().name()).isEqualTo("FAILED");
         assertThat(trace.causeType())
-                .as("只记异常类型，不记异常消息——消息可能回带请求内容")
-                .isEqualTo("IllegalStateException");
+                .as("只记稳定分类，不记异常消息——消息可能回带请求内容")
+                .isEqualTo("upstream-unavailable");
         assertThat(trace.providerDurationMs())
                 .as("失败路径同样记耗时")
                 .isNotNull();
@@ -190,6 +191,25 @@ class AgentEvalHarnessTest {
         assertThat(harness.sink().traces().get(1).turnNo()).isEqualTo(2);
         // 开场 1 条 + 两轮各 user/assistant 2 条。
         assertThat(harness.messages()).hasSize(5);
+    }
+
+    @Test
+    void reflectionCallsMustObserveTheSameRequestScopedBudget() {
+        AgentEvalHarness harness = AgentEvalHarness.builder()
+                .memoryCandidate(70001L, "那阵子一直在纠结要不要换个方向，怕选错了就回不去了",
+                        LocalDateTime.of(2026, 3, 14, 21, 0))
+                .build();
+        harness.client()
+                .scriptReply(ScriptedAgentModelClient.Scripted.reply(
+                        "你一直在纠结要不要换个方向，怕选错了就回不去了。"))
+                .scriptReply(ScriptedAgentModelClient.Scripted.reply(
+                        "我记得你过去某个时候也在纠结要不要换个方向，怕选错了就回不去了。"));
+
+        harness.turn("又开始纠结方向的事情了");
+
+        assertThat(harness.client().observedBudgets()).hasSize(2);
+        assertThat(harness.client().observedBudgets().get(0))
+                .isSameAs(harness.client().observedBudgets().get(1));
     }
 
     // ---------- 读取轨迹步骤的小工具 ----------

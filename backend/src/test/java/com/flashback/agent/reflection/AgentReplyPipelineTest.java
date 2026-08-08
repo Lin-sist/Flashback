@@ -12,6 +12,8 @@ import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
 import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentResiliencePolicy;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
 import com.flashback.agent.trace.AgentTraceCollector;
 import com.flashback.domain.AgentSessionPurpose;
@@ -71,13 +73,14 @@ class AgentReplyPipelineTest {
                 contentChecker,
                 downgrade,
                 timeAttributionChecker,
-                new AgentReflectionPolicy());
+                new AgentReflectionPolicy(),
+                new AgentResiliencePolicy());
     }
 
     @Test
     void shouldRewriteEligibleReplyOnceWithoutToolsAndPreserveInitialProposal() throws Exception {
         AgentRawToolCall proposal = new AgentRawToolCall("append_record", "{}");
-        when(modelClient.completeWithTools(any(), any(), anyBoolean()))
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse("过去内容", List.of(proposal)))
                 .thenReturn(new AgentModelResponse("你在过去某个时候写下过这段内容。", List.of()));
         when(timeAttributionChecker.check(any(), any()))
@@ -91,12 +94,13 @@ class AgentReplyPipelineTest {
         assertThat(reply.success()).isTrue();
         assertThat(reply.content()).isEqualTo("你在过去某个时候写下过这段内容。");
         assertThat(reply.toolCalls()).containsExactly(proposal);
-        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean());
+        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean(), any());
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Map<String, Object>>> toolsCaptor = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<Boolean> strictCaptor = ArgumentCaptor.forClass(Boolean.class);
-        verify(modelClient, times(2)).completeWithTools(any(), toolsCaptor.capture(), strictCaptor.capture());
+        verify(modelClient, times(2)).completeWithTools(
+                any(), toolsCaptor.capture(), strictCaptor.capture(), any());
         assertThat(toolsCaptor.getAllValues().get(1)).isEmpty();
         assertThat(strictCaptor.getAllValues().get(1)).isFalse();
         assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
@@ -109,7 +113,7 @@ class AgentReplyPipelineTest {
 
     @Test
     void shouldNotReflectClosingReply() throws Exception {
-        when(modelClient.completeWithTools(any(), any(), anyBoolean()))
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse("过去内容", List.of()));
         when(timeAttributionChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.violation(
                 AgentGuardrailViolation.MISSING_TIME_ATTRIBUTION));
@@ -117,12 +121,12 @@ class AgentReplyPipelineTest {
         AgentReply reply = generate(AgentStage.CLOSING, false, trace(AgentStage.CLOSING));
 
         assertThat(reply.content()).isEqualTo("安全兜底");
-        verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean());
+        verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean(), any());
     }
 
     @Test
     void shouldFallbackAfterFailedRewriteWithoutThirdCall() throws Exception {
-        when(modelClient.completeWithTools(any(), any(), anyBoolean()))
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse("过去内容", List.of()))
                 .thenThrow(new IOException("secret-response-must-not-be-traced"));
         when(timeAttributionChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.violation(
@@ -133,16 +137,16 @@ class AgentReplyPipelineTest {
 
         assertThat(reply.content()).isEqualTo("安全兜底");
         assertThat(reply.toolCalls()).isEmpty();
-        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean());
+        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean(), any());
         assertThat(trace.steps().toString()).doesNotContain("secret-response-must-not-be-traced");
         assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
                 .containsEntry("step", "reflection-provider-failed")
-                .containsEntry("causeType", "IOException"));
+                .containsEntry("category", "unknown"));
     }
 
     @Test
     void shouldFallbackAfterInvalidRewriteWithoutThirdCall() throws Exception {
-        when(modelClient.completeWithTools(any(), any(), anyBoolean()))
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse("过去内容", List.of()))
                 .thenReturn(new AgentModelResponse(null, List.of()));
         when(timeAttributionChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.violation(
@@ -152,7 +156,7 @@ class AgentReplyPipelineTest {
         AgentReply reply = generate(AgentStage.EMOTION, false, trace);
 
         assertThat(reply.content()).isEqualTo("安全兜底");
-        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean());
+        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean(), any());
         assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
                 .containsEntry("step", "reflection-result")
                 .containsEntry("terminal", "invalid-content"));
@@ -160,14 +164,32 @@ class AgentReplyPipelineTest {
 
     @Test
     void shouldNotReflectInitialProviderFailure() throws Exception {
-        when(modelClient.completeWithTools(any(), any(), anyBoolean()))
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
                 .thenThrow(new IOException("provider down"));
 
         AgentReply reply = generate(AgentStage.EMOTION, false, trace(AgentStage.EMOTION));
 
         assertThat(reply.success()).isFalse();
-        verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean());
+        verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean(), any());
         verify(timeAttributionChecker, never()).check(any(), any());
+    }
+
+    @Test
+    void shouldRestoreInterruptedFlagAndNeverRetryInterruptedCall() throws Exception {
+        Thread.interrupted();
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
+                .thenThrow(new InterruptedException("sensitive"));
+        AgentTraceCollector trace = trace(AgentStage.EMOTION);
+        try {
+            AgentReply reply = generate(AgentStage.EMOTION, false, trace);
+
+            assertThat(reply.success()).isFalse();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean(), any());
+            assertThat(trace.causeType()).isEqualTo("interrupted");
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     private AgentReply generate(AgentStage stage, boolean toolsEnabled, AgentTraceCollector trace) {
@@ -180,6 +202,7 @@ class AgentReplyPipelineTest {
                 null,
                 AgentLayeredCorpus.sessionOnly(null),
                 List.of(),
+                AgentCallBudget.start(24_000),
                 trace);
     }
 

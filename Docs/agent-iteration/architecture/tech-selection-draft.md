@@ -1,8 +1,8 @@
 # Flashback Agent 技术选型（v0.2·已校准）
 
 > 文档性质：选型事实 + ADR 式推荐 + 演进路径  
-> 状态日期：2026-07-30  
-> 状态：**v0.2——已按 Phase 1 全部归档事实校准**（随蓝图 v1.2 冻结同步）  
+> 状态日期：2026-08-08
+> 状态：**v0.3——已随 C8 归档校准**；蓝图 v1.2 仍保持冻结
 > 不授权改业务代码；具体 change 的最终选型以该 change 的 `design.md` 决策记录为准  
 > 配套：`agent-architecture-constitution.md`、`roadmap/iteration-blueprint.md`（v1.2 已冻结）
 
@@ -13,7 +13,7 @@
 | 读者 | 用法 |
 |---|---|
 | 正在做 C6 的你 / Agent | Eval 形态对照 §3.8（**注意：Judge 已由 D31 否决，§3.8 已更新**） |
-| 正在做 C8 的你 / Agent | 韧性对照 §3.9；须扣除 C7 reply-only 反思环已占用预算 |
+| 复核 C8 的你 / Agent | 韧性落地事实见 §3.9；归档契约以 accepted specs 与 C8 closeout 为准 |
 | 做 C9 时 | 时间智能对照 §3.11 |
 | 未来想换框架时 | 先读 §1 原则与 §5 不选清单，再决定是否真值得 |
 
@@ -38,7 +38,7 @@
 
 ---
 
-## 2. 现状快照（Phase 1 收官后，已按代码校准）
+## 2. 现状快照（C8 归档后，已按代码校准）
 
 > 本表已于 2026-07-30 以代码为准重写，不再是 v1.1 意图卡片的转述。
 
@@ -54,7 +54,7 @@
 | 回看会话 | C3 planned | **复用 `agent_session` + `purpose`**，不经阶段机；前端 `ReviewChatSheet` 浮层（P5 关闭） | confirmed |
 | Observability | C5 planned | **`agent/trace/*` + `agent_turn_trace` 表**；内容哈希版本锚点；9 条排查查询（P7 关闭：MySQL 表而非 JSON 文件） | confirmed |
 | Eval | 未提 | **`agent/eval/*` + 外置 YAML 用例 + 参数化 runner + 两层断言（不变量硬失败 / 快照需人确认）+ 23 条带留痕基线**；snakeyaml 走传递依赖故零 pom 改动；`src/main` 零改动 | confirmed（C6）；语言质量维度仍 partial（人评锚点为空） |
-| Resilience | 未提 | 有超时与 fail-open 兜底；无错误分类 / 阶段化降级 / 多 provider | partial → C8 |
+| Resilience | 未提 | **8 类封闭失败 taxonomy + request-scope 24000ms provider-work budget + 零自动 retry + 阶段化固定失败模板**；沿用同轮主动重试 | confirmed（C8）；多 provider / 熔断 / 缓存 deferred |
 | 认证 | 分析文档曾写 Spring Security | **jjwt + 自研过滤器**；`springframework.security` 全仓零匹配，pom 无 security starter | confirmed |
 | Redis | pom 含 starter | dev/prod yml 有配置段，但 **main 代码零消费**（会话走 MySQL） | partial |
 | Provider | DeepSeek / compatible | `app.ai.provider`: mock / deepseek / openai-compatible；Agent 复用同一 secret 通道 | confirmed |
@@ -223,22 +223,24 @@ C6 的回归比对可按 `prompt_version` / `policy_version` 分组（`c5-trace-
 **为什么 C6 必须先于 C7**：反思环本质是改模型输出行为，而宪法 §7.3 禁止「无 Eval 情况下大改 prompt 上线」。
 且本项目已有一次「主观感受被延迟污染」的实证（R2），先建量尺才能避免第二次。
 
-### 3.9 Resilience（**C8**，预研)
+### 3.9 Resilience（**C8**，已归档）
 
 > 编号说明：v1.2 在 Eval 之后插入反思环占 C7，韧性由 C7 顺移至 **C8**。
 
 | 决策点 | 推荐分期 | 状态 |
 |---|---|---|
-| v1 | 错误分类、超时策略、**温暖模板**按阶段降级 | planned |
+| v1 | 8 类封闭错误分类、共享 24000ms budget、**温暖模板**按阶段降级、零自动 retry | confirmed |
 | v2 | 多 provider 切换 | deferred |
 | v3 | 语义缓存 | deferred（冷启动价值有限） |
-| 语义熔断 | 可先复用护栏越界 / 死循环 tool 计数 | planned |
-| **调用预算约束** | **须扣除 C7 反思环已占用的部分**（P14） | planned hard constraint |
+| 语义熔断 | 不在 C8 第一阶段实现 | deferred |
+| **调用预算约束** | 整轮 provider-work 24000ms；单次 `min(20000ms, remaining)`，预算不足不发下一调用 | confirmed（P14 closed） |
 
 情感场景优先 **「用户感觉 Agent 话少」** 而不是 **HTTP 错误页**。
 
-**与 C7 的硬耦合**：C7 最坏 2 次调用 ≈13s（按 avg 6476ms 推算），后端上限 20s。
-C8 若再加重试就会叠加爆表，**design 必须把 C7 预算作为输入约束**，不得等开工才发现。
+**与 C7 的硬耦合**：C7 最坏两次调用共享同一整轮 deadline，C8 不增加自动 retry。
+闸门 3 的固定合成探针共 6/6 次成功：两次单 canary 为 1378ms、1656ms，两组双调用为
+2898ms、3531ms；这是小样本链路证据，不是生产 SLA。真实 MySQL 也验证了失败后同轮主动重试
+只保留一条用户消息和同一 turn 的连续 attempt。微信真机因本机无可控环境而诚实记为 SKIPPED。
 
 ### 3.10 Reflection（**C7**，v1.2 新增）
 
@@ -278,8 +280,8 @@ Guardrails       : 规则源 + 确定性检查 + 忠实度双指标 + 分路径�
 Trace            : versioned event schema · MySQL 表 · 无原文           ✅
 Eval             : 仓内 runner + 轨迹不变量 + 快照回归（C6）            ✅
 Reflection       : 护栏驱动的 reply-only 受控环，上限 1 次（C7）         → 已归档
-Resilience       : 错误分类 + 阶段化温暖降级 → 多 provider（C8）        → 下一刀
-Temporal         : 时间元数据策略（C9）                                 → 待 C8
+Resilience       : 错误分类 + 共享 deadline + 阶段化温暖失败（C8）      → 已落地；多 provider deferred
+Temporal         : 时间元数据策略（C9）                                 → 下一规划闸
 UI               : Uniapp 增量对话入口（未改三 Tab）                    ✅
 Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → 证据触发
 ```
@@ -350,13 +352,14 @@ Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → �
 |---|---|---|---|
 | P8 | Eval 可编排 mock 替身形态（不得改 `AgentMockResponder`） | C6 design | open |
 | P13 | 反思环与轨迹 `attempt_no` 的关系（重写是否算新 attempt） | C7 design | closed：同一 attempt 的 provider 子阶段 |
-| P14 | C8 可用的超时预算（须扣除 C7 已占用部分） | C8 design | open |
-| P10 | 语义缓存是否值得做 | C8 design | open |
-| P11 | 备选 provider | C8 | open |
+| P10 | 语义缓存是否值得做 | 独立 change（证据触发） | deferred |
+| P11 | 备选 provider | 独立 change（证据触发） | deferred |
 | P12 | Temporal 最小记录数阈值 | C9 | open |
 | P15 | Optional C0 的触发条件与验收形态 | C0 proposal（若开） | open |
 
 **已关闭（勿回退，除非新 change 显式翻案）：**
+
+- **P14**：C8 采用 request-scope 24000ms provider-work budget；单次调用取 `min(20000ms, remaining)`，不足最小阈值不发请求；frontend 30000ms 不变。
 
 | ID | 事项 | 结论 | 关闭于 |
 |---|---|---|---|

@@ -6,6 +6,8 @@ import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
 import com.flashback.agent.reflection.AgentProviderPhase;
 import com.flashback.agent.reflection.AgentReflectionTerminal;
+import com.flashback.agent.resilience.AgentCallBudget;
+import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentStage;
 import org.junit.jupiter.api.Test;
@@ -173,6 +175,26 @@ class AgentTraceCollectorTest {
     }
 
     @Test
+    void typedProviderFailureShouldExposeStableCategoryAndBudgetMetadataOnly() {
+        AgentTraceCollector collector = newCollector();
+
+        collector.providerFailed(
+                AgentProviderPhase.INITIAL,
+                "turn",
+                AgentProviderFailureCategory.THROTTLED,
+                AgentCallBudget.start(24_000));
+
+        assertThat(collector.outcome()).isEqualTo(AgentTraceOutcome.FAILED);
+        assertThat(collector.causeType()).isEqualTo("throttled");
+        assertThat(firstStepOfType(collector, "provider-failed"))
+                .containsEntry("phase", "initial")
+                .containsEntry("category", "throttled")
+                .containsEntry("transient", true)
+                .containsEntry("budgetExhausted", false)
+                .containsKey("remainingBucket");
+    }
+
+    @Test
     void downgradeShouldMarkOutcomeAndCarryLocalFallbackFlag() {
         AgentTraceCollector collector = newCollector();
 
@@ -227,6 +249,21 @@ class AgentTraceCollectorTest {
         assertThat(collector.outcome())
                 .as("素材是可选产物，缺失时对话本身仍是成功的")
                 .isEqualTo(AgentTraceOutcome.SUCCESS);
+    }
+
+    @Test
+    void typedMaterialFailureShouldRemainOptionalAndClassified() {
+        AgentTraceCollector collector = newCollector();
+
+        collector.materialFailed(
+                AgentProviderFailureCategory.TIMEOUT,
+                AgentCallBudget.start(24_000));
+
+        assertThat(collector.outcome()).isEqualTo(AgentTraceOutcome.SUCCESS);
+        assertThat(firstStepOfType(collector, "material-failed"))
+                .containsEntry("phase", "material")
+                .containsEntry("category", "timeout")
+                .containsEntry("transient", true);
     }
 
     @Test

@@ -4,7 +4,8 @@ package com.flashback.agent.reflection;
 public enum AgentProviderPhase {
 
     INITIAL("initial"),
-    REFLECTION("reflection");
+    REFLECTION("reflection"),
+    MATERIAL("material");
 
     private final String id;
 

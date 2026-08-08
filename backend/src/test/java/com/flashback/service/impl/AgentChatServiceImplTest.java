@@ -243,7 +243,7 @@ class AgentChatServiceImplTest {
         when(modelClient.provider()).thenReturn("deepseek");
         // C2：Agent 对话路径改走 completeWithTools（原生 function calling）。
         // 本用例断言的是 C1 的重试语义，不涉及工具，故返回无 tool_calls 的响应。
-        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse("是具体某件事，还是一直压着的感觉？", List.of()));
         List<AgentMessage> stored = trackInserts();
 
@@ -374,7 +374,7 @@ class AgentChatServiceImplTest {
         AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
 
         assertThat(vo.getStatus()).isEqualTo("UNAVAILABLE");
-        assertThat(vo.getMessage()).isEqualTo("AI服务未配置");
+        assertThat(vo.getMessage()).isEqualTo("刚才写下的这句还在，但现在暂时无法继续。");
         assertThat(vo.getMaterialDraft()).isNull();
         // 用户的话保留，Agent 回复不落库
         assertThat(stored).hasSize(1);
@@ -385,7 +385,7 @@ class AgentChatServiceImplTest {
     void shouldReturnFailedAndKeepUserMessageWhenProviderCallFails() throws Exception {
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
-        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean(), any()))
                 .thenThrow(new java.io.IOException("boom"));
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
@@ -394,7 +394,7 @@ class AgentChatServiceImplTest {
         AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
 
         assertThat(vo.getStatus()).isEqualTo("FAILED");
-        assertThat(vo.getMessage()).isEqualTo("AI服务暂时不可用");
+        assertThat(vo.getMessage()).isEqualTo("刚才写下的这句还在，但现在暂时无法继续。");
         assertThat(stored).hasSize(1);
         assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);
     }
@@ -404,7 +404,7 @@ class AgentChatServiceImplTest {
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
         // 既无 content 也无 tool_calls：视为无效响应，返回显式 FAILED。
-        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse(null, List.of()));
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
@@ -412,7 +412,7 @@ class AgentChatServiceImplTest {
         AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好"));
 
         assertThat(vo.getStatus()).isEqualTo("FAILED");
-        assertThat(vo.getMessage()).isEqualTo("AI返回内容无效");
+        assertThat(vo.getMessage()).isEqualTo("刚才写下的这句还在，但现在暂时无法继续。");
     }
 
     @Test
@@ -420,7 +420,7 @@ class AgentChatServiceImplTest {
         properties.setMaxReplyChars(12);
         when(modelClient.isMockProvider()).thenReturn(false);
         when(modelClient.provider()).thenReturn("deepseek");
-        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean()))
+        when(modelClient.completeWithTools(anyList(), anyList(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse(
                         "听起来不太容易。你要不要先说说其中最让你在意的那一部分呢", List.of()));
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))

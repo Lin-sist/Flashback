@@ -6743,3 +6743,132 @@ Commit: pending
 - **Commit**: `634de54`（`docs(openspec): 归档 C7 受控回复反思环`）
 - **External effects**: 未 push、未部署、未发布、未执行真实 provider 调用
 - **Next**: 当前 IDLE；等待 C8 `agent-resilience` 规划授权
+
+## 2026-08-03｜agent-resilience（C8）规划闸｜Type C
+
+- **Scope**:
+  - 新建 `openspec/changes/agent-resilience/`：proposal / design / tasks
+  - 新建四份 delta：`agent-runtime`、`backend-core`、`miniapp-core`、`agent-collaboration`
+  - 更新 `.ai/ACTIVE_TASK.md`：IDLE → C8 ACTIVE（规划期）
+  - 业务代码、测试代码、baseline、冻结蓝图均未修改
+- **Changes**:
+  - readiness 判定 GO：C7 已归档、开刀前工作区 clean、蓝图下一刀为 C8；开工锚点 `fb68082`
+  - 核出关键事实修正：现有 backend 20000ms 是每次 JDK HttpRequest timeout，不是整轮 deadline；
+    C7 两次调用理论上可占约 40000ms，可能先撞 frontend 30000ms
+  - P14 推荐为 request-scope 24000ms provider-work budget；子调用 timeout 取 20000ms 与剩余预算较小值
+  - 第一阶段推荐零自动 provider retry；多 provider 路由、熔断、缓存、监控 deferred
+  - provider failure 保持 FAILED/UNAVAILABLE 与用户主动同轮 retry；阶段化温暖模板不落 Assistant 消息、不冒充成功
+  - 自检后收敛为 API/DTO/frontend 零字段变化；技术 failure category 只留在脱敏 backend trace/log，
+    既有用户主动同轮 retry 保持，避免 pending turn 因隐藏 retry 而卡死
+- **Verification**: PASS（规划级）
+  - proposal/design/tasks 与四份 delta 均已创建；v2-product-scope 明确无 delta
+  - 规划范围与 C7 accepted contract、蓝图 C8 意图卡片及 Type C checklist 完成对照
+  - 开刀前 Git status 无 tracked/untracked 改动；未执行外调或业务测试
+- **Verification SKIPPED**:
+  - OpenSpec CLI 不在 PATH；不声称 CLI scaffold/validate，改做文件级结构与内容核对
+  - 后端/前端测试未运行：本轮零业务代码，仅规划资产；实现前 T-08 会复跑 baseline
+  - 真实 MySQL、provider、真机：闸门 2/3 均未授权
+- **Scope safety**:
+  - 未改业务代码、API/DTO、DDL、timeout 配置、package/lockfile、provider secret、部署或监控
+  - 未做自动 retry、多 provider 路由、C9 temporal 或 major UI reconstruction
+  - 未写用户日记、对话、prompt、provider response、exception message 或 secret
+- **Risks**:
+  - 24000ms budget、API 零变化策略与 N1–N6 仍待用户在闸门 1 裁决
+  - C7 双调用真实耗时未做 provider/真机验证；24s 可行性仍是 planned/unknown，不得写成 confirmed
+  - opening 无 turn trace；本规划选择保持既有一轮一条语义，仅用脱敏结构化日志
+- **Commit**: pending（默认用户手动提交；未 stage / commit / push）
+- **Next**: 用户审阅闸门 1；批准后仍需单独给出闸门 2 实现授权
+
+## 2026-08-03｜agent-resilience（C8）闸门批准与实现启动｜Type C
+
+- **Scope**: 仅同步授权状态并准备实现前 baseline；业务代码尚未修改
+- **Authorization**:
+  - 闸门 1：已批准；N1–N6 按 proposal 推荐方案定稿
+  - 闸门 2：已授权，用户明确要求“开始 C8 阶段实现”
+  - 闸门 3：未授权，禁止真实 provider / 真机外调
+  - Git：仍为用户手动提交；未授权 stage / commit / push
+- **Changes**: proposal / design / tasks / ACTIVE_TASK 同步为实现期；T-06/T-07 完成
+- **Verification**: PASS（T-08 实现前 baseline）
+  - 默认 `mvn -q test` 在 POM 解析阶段因默认本地仓库缺 Spring Boot parent 失败，未进入编译；属环境解析问题
+  - 改用既有显式本机 repository/settings 离线运行：**74 suites / 622 tests / 0 failures / 0 errors / 4 skipped**
+- **Risks**: 真实 provider 双调用在 24s budget 内的稳定性仍 unknown；离线实现不得扩写成真实质量结论
+- **Commit**: pending
+- **Next**: T-08 baseline → T-09 taxonomy RED
+
+## 2026-08-03｜agent-resilience（C8）离线实现完成｜Type C
+
+- **Scope**:
+  - 按已批准 N1–N6 完成 C8 backend resilience；零真实 provider / 真机外调
+  - 同步测试、C6 scripted eval、OpenSpec tasks 与 ACTIVE_TASK；未接受 delta、未归档
+- **Changes**:
+  - 新增 8 类封闭 `AgentProviderFailureCategory`、不复制下游自由文本的 `AgentProviderException`
+    与 HTTP/异常类型分类器；401/403、429、5xx、其他 4xx、timeout、connect、invalid、interrupted、unknown
+    均有离线覆盖
+  - 新增 request-scope `AgentCallBudget`，默认 24000ms；每次 HTTP timeout 取
+    `min(app.ai.timeout-millis, remaining)`，剩余不足 100ms 时调用前失败；null budget 不得创建嵌套预算绕过上限
+  - opening / turn / reflection / material / finish 接入同一请求预算；C8 不增加自动 retry，C7 reflection 上限不变
+  - 新增窄 `AgentResiliencePolicy`：按 operation/stage/category 选择固定克制模板；
+    failure 保持 FAILED/UNAVAILABLE，用户消息保留，模板只进入 `AgentSessionVO.message`，不落 Assistant
+  - trace 复用 `cause_type` 保存稳定 category；provider step 记录 phase/category/transient/
+    budgetExhausted/remainingBucket；material failure 不反转整轮成功；opening 只写脱敏结构化日志，不伪造 turn 0 trace
+  - C6 scripted client 支持类型化 failure 与可控 budget；新增 resilience eval 与 DTO 零扩张 contract test；
+    既有 snapshot 指标零变化，未刷新 baselineNote/checksum
+- **Verification**: PASS
+  - C8 focused：classifier / budget / policy / client / pipeline / service / trace / observability / eval / contract 全部 PASS
+  - 后端全量离线：**79 suites / 643 tests / 0 failures / 0 errors / 4 skipped**；
+    对比实现前 74 suites / 622 tests / 4 skipped，新增 21 tests，既有 skip 未增加
+  - 前端：bundled Node 直接执行 `vue-tsc --noEmit` PASS；`uni build -p mp-weixin` PASS
+  - `git diff --check` PASS；34 个改动路径审计无 frontend/src、archive、冻结蓝图、DDL/schema、pom/package/lockfile、
+    deployment、monitoring、C9；增量高风险 secret pattern scan 0 命中
+- **Verification environment notes**:
+  - 默认 `mvn -q test` 仍因默认本地仓库缺 Spring Boot parent 未进入编译；最终 Maven 结果来自既有显式
+    `C:\Users\Lin\.m2\repository` + settings 的 offline 命令
+  - 系统 PATH 无 npm；bundled pnpm 首次因非 TTY 拒绝清理 modules，未进入脚本；随后改用 bundled Node +
+    项目现有 node_modules 完成验证，未安装/更新依赖；验证副产物已精确清理
+- **Verification SKIPPED**:
+  - 真实 MySQL：未单独授权；H2 不冒充 MySQL 持久化/事务证据
+  - 闸门 3真实 provider / 真机：未授权，真实调用 0 次；24s 双调用真实稳定性仍 unknown
+  - OpenSpec CLI：不在 PATH，仅做文件级结构、delta 与实现 exact-match 审计
+- **Scope safety**:
+  - 无自动 retry、多 provider、熔断、缓存、队列、C9 temporal；无 API/DTO/frontend 字段变化
+  - 无 DDL、secret、依赖/lockfile、部署/监控、archive 或冻结蓝图变化
+  - 日志/trace 不写用户对话、日记、prompt、provider response、exception message、endpoint 或 credential
+- **Risks**:
+  - 24s budget 在真实 provider 的单/双调用耗时与前端实际错误卡片体验尚未活体验证
+  - 真实 MySQL 的分类 trace 持久化与 pending-turn retry 未验证；本刀未改 DDL/事务边界，但仍诚实保留 SKIPPED
+  - OpenSpec delta 尚未接受，change 尚未归档；须用户验收后另行收口
+- **Commit**: pending（用户手动提交；未 stage / commit / push）
+- **Next**: 等待用户 review；验收后再决定归档与是否单独开放真实 MySQL / 闸门 3
+
+## 2026-08-08｜agent-resilience（C8）闸门 3 验收归档｜Type C
+
+- **Scope**:
+  - 用户授权闸门 3、真实 MySQL 验收、接受 delta、归档与 Agent 提交
+  - 仅收口 C8；未授权且未执行 push、部署、发布
+- **Changes**:
+  - 新增默认门控 `C8RealProviderProbeTest` 与 `C8MysqlResilienceProbeTest`
+  - 四份 C8 delta 接受进 `agent-runtime` / `backend-core` / `miniapp-core` / `agent-collaboration` baseline
+  - 补 `closeout.md`、叙事 §9、架构参考与入口状态；`ACTIVE_TASK` 归档后回到 `IDLE`
+- **Verification**: PASS
+  - 真实 DeepSeek / `deepseek-v4-pro`：固定合成短文本，2 次 canary 1378ms / 1656ms；
+    2 组双调用 2898ms / 3531ms；总计 **6/6** 成功（≤8），未触发停止条件
+  - 真实 MySQL：同一 turn 仅一条 USER message；attempt 1=`UNAVAILABLE/auth-configuration`，
+    attempt 2=`SUCCESS`；固定合成数据在 `finally` 中清理
+  - 后端最终全量：**81 suites / 645 tests / 0 failures / 0 errors / 6 skipped**；
+    新增两个真实探针默认关闭，故默认 skip 由 4 增至 6
+  - 四份 delta 的 6/5/3/4 个 Requirement 标题均在 accepted baseline 找到，missing=0
+  - 前端沿用实现期 type-check / `build:mp-weixin` PASS；本次验收未改 frontend source
+  - `git diff --check`、增量敏感标记扫描、改动路径审计与归档结构核对 PASS
+- **Verification SKIPPED**:
+  - 微信真机：本机未发现微信开发者工具或可控真机环境；不以 scripted provider、构建或浏览器冒充
+  - OpenSpec CLI：不在 PATH；改做 delta / baseline Requirement 对齐与 archive 文件级核对
+- **Scope safety**:
+  - 无自动 retry、多 provider、熔断、缓存、队列、C9 temporal、major UI reconstruction
+  - 无 DDL、API/DTO/frontend 字段、provider secret、依赖/lockfile、部署/监控变化
+  - 探针不发送真实日记/对话/文件；证据不记录 prompt、response、secret、endpoint 或异常 message
+- **Risks**:
+  - 6 次 provider 调用是小样本链路验收，不是生产 SLA
+  - 微信真机错误卡片与主动重试体验仍缺活体证据
+  - 多 provider、熔断、缓存、监控均 deferred，须证据触发独立 change
+- **Commit**: pending
+- **Next**: C8 归档后保持 IDLE；C9 须从独立规划闸开始

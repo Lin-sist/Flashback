@@ -81,12 +81,12 @@ Flashback 的产品 Agent 走的是 **Backend 托管、被动召唤、单 Agent 
 | L3 | `agent/memory/*`（`MemoryPort` / `MySqlMemoryPort` / `MemoryCueExtractor` / `MemoryQuery` / `MemoryFragment`）；回看会话由 `agent_session.purpose` 区分 | confirmed（C3a + C3b） |
 | Guardrail（跨 L1–L5） | `AgentGuardrailPolicy` + `agent/guardrail/*`（含 `AgentTimeAttributionChecker`，C3a 补入） | confirmed（C4 前移 + C3a 增补） |
 | Trace（支撑 L4/L5） | `agent/trace/*`（`AgentTraceCollector` / `AgentTraceSink` / `AgentTraceVersions` / `AgentTraceLayer` / `AgentTraceOutcome`）、`agent_turn_trace` 表 | confirmed（C5） |
-| L4 Resilience | 有超时与 fail-open 兜底，但无系统化错误分类 / 阶段化降级 / 多 provider 路由 | partial → C8 |
+| L4 Resilience | `agent/resilience/*` 封闭失败分类、request-scope 24000ms provider-work budget、零自动 retry、阶段化失败模板；多 provider / 熔断 / 缓存仍 deferred | confirmed（C8） |
 | L5 Eval | `agent/eval/*`（harness / scripted provider 替身 / 用例加载 / 不变量 / 快照 / 基线）、`eval/cases/*.yaml` 23 条用例、`eval/baseline/snapshots.yaml` 23 条基线；既有 `AgentGuardrailBoundaryCaseTest` 原地保留 | confirmed（C6）；**语言质量维度仍 partial**——人评锚点结构就位但为空 |
 | L0 | `AgentModelClient`（OpenAI-compatible HTTP）、MyBatis、MySQL、Uniapp | confirmed |
 
 > 校准义务：**每刀归档后**更新本表「现状锚点」，删除过时类名。
-> 本表最近一次校准：**2026-07-31（C6 归档，后端 606 tests PASS / 4 skipped）**。
+> 本表最近一次校准：**2026-08-08（C8 归档，后端 645 tests PASS / 6 skipped）**。
 > 注：上一次校准写的「534 tests」是 C5 归档当时的值，其后三个 Type B 使基线成为 536 / 4
 > ——C6 实现期复核时发现并修正（摘要类数字要定期复核）。
 
@@ -251,8 +251,8 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 | Phase 1 | C1 → C2 → C4 → C3a → C3b → C5 | **全部归档** | 端口成形：Loop / Tool / Guardrail / Memory / Trace |
 | Phase 2 | C6 `agent-eval-framework` | **已归档**（2026-07-31） | `EvalPort` 落地；轨迹不变量 + 回归比对，不做 Judge。**`src/main` 零改动**；「CI 可跑子集」如实记为无落点（仓库无 CI） |
 | Phase 2 | C7 `agent-reflection-loop` | **已归档（2026-08-03）** | L1 已引入 reply-only **受控环**；判定源复用 `GuardrailPort`，上限 1 次 |
-| Phase 2 | C8 `agent-resilience` | **下一刀** | L4 成形；预算须扣除 C7 已占用部分 |
-| Phase 2 | C9 `agent-temporal-intelligence` | 待 C8 | Temporal 是 L3 强化，不新造用户分析后台 |
+| Phase 2 | C8 `agent-resilience` | **已归档（2026-08-08）** | L4 已形成封闭分类、共享 deadline、零自动 retry 与阶段化失败边界 |
+| Phase 2 | C9 `agent-temporal-intelligence` | **下一刀** | Temporal 是 L3 强化，不新造用户分析后台 |
 | Optional | C0 / C10 / C11 | 证据触发 | 平台升级 / 语气标定 / 上下文架构 |
 
 **已发生的合法漂移（写入宪法以免误判为「失败」）：**
@@ -284,7 +284,7 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 任一题答不上 → 先补 design 决策，再写代码。
 
 > 第 7–9 条来自 C5 的真实事故：轨迹落库在 H2 上 37 项测试全绿，
-> 却在真实 MySQL 上让每轮对话卡满 50 秒。详见 `narrative/agent-tech-story.md` §10。
+> 却在真实 MySQL 上让每轮对话卡满 50 秒。详见 `narrative/agent-tech-story.md` §11。
 
 ---
 
