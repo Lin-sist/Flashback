@@ -6995,3 +6995,10 @@ Commit: pending
   - 阈值尚未以真实用户样本校准；C0/C10/C11 均须证据触发独立规划闸
 - **Commit**: pending
 - **Next**: C9 归档后保持 IDLE；后续能力须重新走独立 OpenSpec change
+
+## 2026-08-08｜agent-temporal-intelligence（C9）归档提交证据｜Type C
+
+- **Scope**: 补录已授权的 C9 闸门 3 与归档提交；未 push、部署或发布
+- **Verification**: PASS；提交包含两项默认门控探针、五份 baseline 接受、closeout、叙事与 archive 移动
+- **Commit**: `14ec5f8 feat: 完成C9闸门3并归档`
+- **Next**: `ACTIVE_TASK=IDLE`；后续能力重新走独立规划闸

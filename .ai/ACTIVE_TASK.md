@@ -119,6 +119,7 @@
   - 五份 delta 已接受进 baseline；新增 closeout 并更新叙事 §10；change 归档至
     `openspec/changes/archive/2026-08-08-agent-temporal-intelligence/`；`ACTIVE_TASK=IDLE`
   - OpenSpec CLI 不在 PATH；使用 Requirement/Scenario 与 archive 文件级校验，不声称 CLI PASS
+  - **Commit**：`14ec5f8 feat: 完成C9闸门3并归档`；未 push
   - **Blocked on**: none
   - **Next step**: Phase 2 已按冻结序列完成；后续 Optional C0/C10/C11 需证据触发并重新走独立规划闸
 
