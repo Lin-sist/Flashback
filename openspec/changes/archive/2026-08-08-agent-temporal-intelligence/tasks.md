@@ -1,6 +1,6 @@
 # Tasks：Agent Temporal Intelligence（C9）
 
-> Type C。**闸门 1 已批准、闸门 2 已授权；闸门 3 未授权**。
+> Type C。**闸门 1/2/3 均已批准；真实探针与归档按授权完成**。
 > 提交责任：Agent 提交（2026-08-08 已授权）；不含 push / deploy / release。
 
 ## 阶段 0：readiness 与规划闸
@@ -82,19 +82,19 @@
 
 ## 阶段 8：闸门 3（仅另行授权后）
 
-- [ ] **T-54 GATE 3** 用户单独批准真实 provider / MySQL / 真机范围与预算
-- [ ] **T-55** provider 先跑固定合成 canary；总调用不超过 6，覆盖 distance/review/recurrence/反例
-- [ ] **T-56** 真实 MySQL 用可清理合成用户与不同年龄记录验证 owner/status/time/decay；H2 不冒充
-- [ ] **T-57** 微信真机验证现有浮层话术长度、失败态与无分析 UI；无环境则 SKIPPED+原因
-- [ ] **T-58** 任何敏感内容、调用超限、timeout、identity/config 漂移立即停止并记账
+- [x] **T-54 GATE 3** 用户单独批准真实 provider / MySQL / 真机范围与预算
+- [x] **T-55** provider 固定合成探针 6/6 PASS，覆盖 distance/review/recurrence eligible 与不足证据反例
+- [x] **T-56** 真实 MySQL 可清理合成数据 PASS：owner/status/focal 排除、time/decay 与 recurrence 均符合预期
+- [x] **T-57** SKIPPED：本机未发现微信开发者工具或可控真机环境，不以 build/H2/scripted 冒充
+- [x] **T-58** 未出现敏感内容、调用超限、timeout、identity/config 漂移等停止条件
 
 ## 阶段 9：验收与收口
 
-- [ ] **T-59** 用户 review 实现 diff、真实/跳过证据与 remaining risks
-- [ ] **T-60** 用户验收后将五份 delta 接受进 baseline，逐字核对 Requirement/Scenario
-- [ ] **T-61** 写 `closeout.md`，按 D33 更新叙事 §10；只写 confirmed 与诚实 SKIPPED
-- [ ] **T-62** 归档 change 至 `openspec/changes/archive/<date>-agent-temporal-intelligence/`
-- [ ] **T-63** `.ai/ACTIVE_TASK.md` → `IDLE`，追加 AGENT_LOG closeout
+- [x] **T-59** 用户明确通过闸门 3 并授权收口归档；真实/跳过证据与 remaining risks 已核对
+- [x] **T-60** 五份 delta 已接受进 baseline，Requirement/Scenario 文件级逐项核对
+- [x] **T-61** 已写 `closeout.md` 并按 D33 更新叙事 §10；只写 confirmed 与诚实 SKIPPED
+- [x] **T-62** change 已归档至 `openspec/changes/archive/2026-08-08-agent-temporal-intelligence/`
+- [x] **T-63** `.ai/ACTIVE_TASK.md` 已回到 `IDLE`，AGENT_LOG closeout 已追加
 - [x] **T-64** 按提交责任处理；用户已授权 Agent commit，已提交 `65e18e0`；未 push/deploy
 
 ## 范围守护自检

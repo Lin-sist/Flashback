@@ -2,23 +2,24 @@
 
 ## Status
 
-`ACTIVE`
+`IDLE`
 
-当前唯一活动 Type C change：C9 `agent-temporal-intelligence`。
-
-- 位置：`openspec/changes/agent-temporal-intelligence/`
-- 阶段：**闸门 1/2 范围内离线实现完成，待用户验收**（2026-08-08）
-- 规划范围：确定性时间距离、旁支记忆注入衰减、证据门控的克制重复主题提示、反分析越界检查
-- 开工锚点：`544e9ea`
-- 提交责任：Agent 提交（已授权）；`push` 未授权
-- 闸门 3 / push / 部署 / 发布均未授权
+当前没有活动 Type C change。C9 `agent-temporal-intelligence` 已于 2026-08-08 完成闸门 3 并归档。
+后续能力须重新建立独立 OpenSpec change；`push`、部署与发布均未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
 **Phase 2 第二刀 C7 `agent-reflection-loop` 已于 2026-08-03 归档。**
 **Phase 2 第三刀 C8 `agent-resilience` 已于 2026-08-08 归档。**
+**Phase 2 第四刀 C9 `agent-temporal-intelligence` 已于 2026-08-08 归档。**
 
 ## Previous Completed
+
+- Change：`agent-temporal-intelligence`（C9，**Phase 2 第四刀**）
+- 位置：`openspec/changes/archive/2026-08-08-agent-temporal-intelligence/`
+- 结果：确定性时间距离、旁支记忆衰减、证据门控 recurrence hint 与 `TEMPORAL_OVERREACH` fail-closed
+- 闸门 3：真实 provider 固定合成探针 6/6 PASS；真实 MySQL owner/status/time/decay/recurrence PASS
+- 验收保留：eligible 输出实际 `hintUsed=false`；微信真机无可控环境 SKIPPED；OpenSpec CLI 不在 PATH
 
 - Change：`agent-resilience`（C8，**Phase 2 第三刀**）
 - 位置：`openspec/changes/archive/2026-08-08-agent-resilience/`
@@ -60,10 +61,10 @@
 ## Direction Layer
 
 - **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结**（2026-07-30）
-- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6/C7/C8 已归档**
+- 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6/C7/C8/C9 已归档**
 - **Phase 2 定案序**：~~C6 agent-eval-framework~~ → ~~C7 agent-reflection-loop~~ →
-  ~~C8 agent-resilience~~ → **`C9 agent-temporal-intelligence`（下一规划闸）**
-- **当前动作：C9 实现审阅**。闸门 1/2 范围内实现与离线验证完成；闸门 3 仍未授权
+  ~~C8 agent-resilience~~ → ~~C9 agent-temporal-intelligence~~
+- **当前动作：IDLE**。Phase 2 已按冻结序列完成；Optional C0/C10/C11 均需证据触发并重新走规划闸
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -97,16 +98,29 @@
 - `AGENTS.md`
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；Phase 2 方向与意图卡片）
 - `openspec/project.md`
-- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + **C8**，Agent 核心契约）
-- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + **C8**）
-- `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b + **C8**；C5/C6/C7 无 delta）
-- `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + **C7**）
-- `openspec/specs/agent-collaboration/spec.md`（含 C5 + C6 + C7 + **C8**）
-- `openspec/changes/agent-temporal-intelligence/`（C9 active planning）
+- `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**，Agent 核心契约）
+- `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**）
+- `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b + C8 + **C9**；C5/C6/C7 无 delta）
+- `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C7 + **C9**）
+- `openspec/specs/agent-collaboration/spec.md`（含 C5 + C6 + C7 + C8 + **C9**）
+- `openspec/changes/archive/2026-08-08-agent-temporal-intelligence/`（C9 archived）
 - `openspec/changes/archive/2026-08-08-agent-resilience/`（C8 archived）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-08 — **C9 `agent-temporal-intelligence` 闸门 3 验收归档**
+  - 用户明确通过闸门 3 并授权收口归档；Git 仍由 Agent 提交，未授权 push、部署或发布
+  - 真实 provider：六个固定合成场景 6/6 PASS，总调用恰为批准上限 6；所有输出通过 temporal overreach checker
+  - recurrence eligible 场景实际 `hintUsed=false`：eligible prompt 已执行且安全，但真实模型采纳提示无正证据
+  - 真实 MySQL：可清理合成用户与不同年龄记录验证 owner/status/focal 排除、24 个月窗口、
+    recent/distant/long-ago 衰减与 recurrence eligibility PASS；`finally` 清理 PASS
+  - 微信真机 SKIPPED：本机未发现微信开发者工具或可控真机环境；未以 H2/scripted/build 冒充
+  - 五份 delta 已接受进 baseline；新增 closeout 并更新叙事 §10；change 归档至
+    `openspec/changes/archive/2026-08-08-agent-temporal-intelligence/`；`ACTIVE_TASK=IDLE`
+  - OpenSpec CLI 不在 PATH；使用 Requirement/Scenario 与 archive 文件级校验，不声称 CLI PASS
+  - **Blocked on**: none
+  - **Next step**: Phase 2 已按冻结序列完成；后续 Optional C0/C10/C11 需证据触发并重新走独立规划闸
 
 - **This session**: 2026-08-08 — **C9 `agent-temporal-intelligence` 规划闸启动**
   - readiness：开刀前 `ACTIVE_TASK=IDLE`、C8 已归档、Git clean、蓝图 v1.2 指向 C9；开工锚点 `544e9ea`
@@ -457,9 +471,9 @@
 `narrative/agent-tech-story.md`、v1.2 冻结带来的 8 处引用同步改动。
 `roadmap/iteration-blueprint-v1.2-draft.md` **已不存在**（内容已迁入正式蓝图，草稿已删）。
 
-## Out Of Scope While C9 Implementing
+## Out Of Scope While IDLE
 
-- 只按已批准 C9 proposal/design/tasks 实现；发现 API/DTO/DDL/mapper SQL/页面/第三次 provider 调用需求时停止并回闸门
+- 当前无 active change；任何新业务能力先建立并批准独立 OpenSpec change，不沿用 C9 授权
 - **改 prompt / 护栏阈值现在有条件了，但仍须走 Type C**：C6 的基线让改动可比对，
   这解除的是宪法 §7.3 的技术前提，**不是**流程要求。改动后快照会变，
   须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的
@@ -468,10 +482,10 @@
 - **不要静默刷新 C6 的快照基线**：checksum 由「指标 + 说明」共同派生，只改数字会被拦住；
   也不要为图方便加自动重写开关（若要加，须同时配「说明未变更则失败」的守护）
 - 不做 LLM-as-Judge / 绝对评分 / A/B 框架 / 质量看板（D31/D32）
-- C9 只能按未来 active change 的批准范围推进；不借 Temporal 顺手扩展 C8 韧性、多 provider 或前端分析面板
+- 不借已归档 C9 顺手扩展 C8 韧性、多 provider、检索重写或前端分析面板
 - 不引入 CI 配置（属独立决策）
 - 不要并行复活已归档 change 作为隐式 active change
-- 不要在未获授权时发起真实 provider 调用（4 个探针默认门控跳过，勿擅自设置 `C*_REAL_PROBE=1` /
-  `C5_MYSQL_PROBE=1`）
+- 不要在未获新授权时发起真实 provider / MySQL 调用（6 个探针默认门控跳过，勿擅自设置
+  `C*_REAL_PROBE=1` / `C*_MYSQL_PROBE=1`）
 - 不要修改 `openspec/changes/archive/**`——归档即历史，含其中的 v1.1 引用与 C6 的勘误登记
 - 不修改已冻结蓝图（C6 登记的两处勘误——1274 行、536/4 基线——只留在 change 内）

@@ -6963,3 +6963,35 @@ Commit: pending
 - **Verification**: PASS；提交前后端全量 85 suites / 662 tests / 0 failures / 0 errors / 6 skipped，前端 type-check 与 mp-weixin build PASS
 - **Commit**: `65e18e0 feat: 实现C9时间智能策略`
 - **Next**: 用户 review；闸门 3 与收口授权仍独立等待
+
+## 2026-08-08｜agent-temporal-intelligence（C9）闸门 3 验收归档｜Type C
+
+- **Scope**:
+  - 用户明确通过闸门 3并授权收口归档；执行真实 provider / MySQL 合成探针、接受五份 delta、写 closeout、更新叙事并归档
+  - Agent commit 已授权；未 push、部署或发布
+- **Changes**:
+  - 新增默认关闭的 `C9RealProviderProbeTest` 与 `C9MysqlTemporalProbeTest`，不改变默认业务运行路径
+  - 五份 delta 接受进 `agent-runtime` / `backend-core` / `miniapp-core` / `v2-product-scope` / `agent-collaboration` baseline
+  - 新增 C9 closeout，叙事 §10 增补时间智能取舍，入口状态回到 `IDLE`
+- **Verification**: PASS
+  - 真实 provider：recent / distant / long-ago / review-focal / recurrence-eligible / recurrence-insufficient
+    六个固定合成短文本场景 6/6 成功，总调用恰为批准上限 6；全部通过 temporal overreach checker
+  - recurrence eligible 场景实际 `hintUsed=false`：eligible prompt 已执行且输出安全，但不作为真实采纳 hint 的正证据
+  - 真实 MySQL：固定合成用户与记录验证 owner 隔离、`SEALED`/focal 排除、24 个月窗口、
+    recent/distant/long-ago 衰减与 recurrence eligibility；合成数据 `finally` 清理 PASS
+  - 后端最终全量：**87 suites / 664 tests / 0 failures / 0 errors / 8 skipped**；新增两探针默认关闭
+  - 五份 delta 共 65 个 Requirement/Scenario 标题逐项匹配 baseline，missing=0
+  - `git diff --check`、范围路径与敏感标记扫描 PASS
+- **Verification SKIPPED**:
+  - 微信真机：本机未发现微信开发者工具或可控真机环境；不以 H2/scripted/build 冒充
+  - OpenSpec CLI：不在 PATH；使用 delta/baseline/archive 文件级核对，不声称 CLI validate PASS
+- **Scope safety**:
+  - API/DTO/DDL/mapper SQL/frontend source/pom/package/lockfile 零变化；未修改冻结蓝图或既有 archive 内容
+  - 探针只发送/写入固定合成数据；证据不含用户日记、真实对话、prompt、provider response、secret 或 endpoint
+  - 无新增页面、dashboard、评分、诊断、推送、自动 retry、多 provider 或额外业务 provider 调用
+- **Risks**:
+  - 6 次 provider 是小样本，不是生产 SLA；deterministic 词表不能证明覆盖所有自然语言越界形态
+  - recurrence eligible 真实输出未采用 hint；微信真机话术长度、浮层体验与无分析 UI 仍缺活体证据
+  - 阈值尚未以真实用户样本校准；C0/C10/C11 均须证据触发独立规划闸
+- **Commit**: pending
+- **Next**: C9 归档后保持 IDLE；后续能力须重新走独立 OpenSpec change
