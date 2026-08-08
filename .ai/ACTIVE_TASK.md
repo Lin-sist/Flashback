@@ -133,6 +133,7 @@
     `baselineNote` 与 checksum 已同步，其余阶段、调用数和回复指标不变
   - **SKIPPED**：真实 provider、真实 MySQL、微信真机（闸门 3 未授权）；OpenSpec CLI 不在 PATH，
     仅完成 5 specs / 20 Requirements / 45 Scenarios 文件级校验
+  - **Commit**：`65e18e0 feat: 实现C9时间智能策略`；未 push
   - **Blocked on**: none
   - **Next step**: 用户 review 当前实现；闸门 3、接受 delta 与归档均需后续明确授权
 

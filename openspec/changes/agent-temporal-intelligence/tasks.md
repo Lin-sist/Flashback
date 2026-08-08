@@ -95,7 +95,7 @@
 - [ ] **T-61** 写 `closeout.md`，按 D33 更新叙事 §10；只写 confirmed 与诚实 SKIPPED
 - [ ] **T-62** 归档 change 至 `openspec/changes/archive/<date>-agent-temporal-intelligence/`
 - [ ] **T-63** `.ai/ACTIVE_TASK.md` → `IDLE`，追加 AGENT_LOG closeout
-- [ ] **T-64** 按提交责任处理；默认用户手动提交，未授权不 stage/commit/push/deploy
+- [x] **T-64** 按提交责任处理；用户已授权 Agent commit，已提交 `65e18e0`；未 push/deploy
 
 ## 范围守护自检
 

@@ -6956,3 +6956,10 @@ Commit: pending
   - OpenSpec delta 尚未接受、change 尚未归档；须用户验收后独立收口
 - **Commit**: pending
 - **Next**: 用户 review；闸门 3、接受 delta 与归档均等待后续明确授权
+
+## 2026-08-08｜agent-temporal-intelligence（C9）实现提交证据｜Type C
+
+- **Scope**: 补录已授权的 C9 实现提交；未 push、部署、发布、接受 delta 或归档
+- **Verification**: PASS；提交前后端全量 85 suites / 662 tests / 0 failures / 0 errors / 6 skipped，前端 type-check 与 mp-weixin build PASS
+- **Commit**: `65e18e0 feat: 实现C9时间智能策略`
+- **Next**: 用户 review；闸门 3 与收口授权仍独立等待
