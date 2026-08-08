@@ -162,7 +162,7 @@ final class AgentEvalHarness {
                 tagService,
                 traceSink,
                 new AgentTraceVersions(
-                        promptBuilder, guardrailPolicy, guardrailRules, new AgentReflectionPolicy()),
+                        promptBuilder, guardrailPolicy, guardrailRules, new AgentReflectionPolicy(), properties),
                 properties,
                 FIXED_CLOCK);
 

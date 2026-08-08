@@ -1,5 +1,6 @@
 package com.flashback.config;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -104,6 +105,58 @@ public class AppAgentProperties {
         public void setProviderWorkTimeoutMillis(long providerWorkTimeoutMillis) {
             this.providerWorkTimeoutMillis = providerWorkTimeoutMillis;
         }
+    }
+
+    // ---------- C9 agent-temporal-intelligence ----------
+
+    /** 时间距离、远期记忆衰减与克制复现提示配置。 */
+    @Valid
+    private Temporal temporal = new Temporal();
+
+    public Temporal getTemporal() {
+        return temporal;
+    }
+
+    public void setTemporal(Temporal temporal) {
+        this.temporal = temporal == null ? new Temporal() : temporal;
+    }
+
+    public static class Temporal {
+
+        private boolean enabled = true;
+
+        @Positive
+        private int recentDays = 30;
+
+        @Positive
+        private int distantDays = 180;
+
+        @Positive
+        private int distantBudgetPercent = 75;
+
+        @Positive
+        private int longAgoBudgetPercent = 50;
+
+        @Positive
+        private int minFragmentChars = 40;
+
+        @Positive
+        private int recurrenceMinSpanDays = 90;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public int getRecentDays() { return recentDays; }
+        public void setRecentDays(int recentDays) { this.recentDays = recentDays; }
+        public int getDistantDays() { return distantDays; }
+        public void setDistantDays(int distantDays) { this.distantDays = distantDays; }
+        public int getDistantBudgetPercent() { return distantBudgetPercent; }
+        public void setDistantBudgetPercent(int distantBudgetPercent) { this.distantBudgetPercent = distantBudgetPercent; }
+        public int getLongAgoBudgetPercent() { return longAgoBudgetPercent; }
+        public void setLongAgoBudgetPercent(int longAgoBudgetPercent) { this.longAgoBudgetPercent = longAgoBudgetPercent; }
+        public int getMinFragmentChars() { return minFragmentChars; }
+        public void setMinFragmentChars(int minFragmentChars) { this.minFragmentChars = minFragmentChars; }
+        public int getRecurrenceMinSpanDays() { return recurrenceMinSpanDays; }
+        public void setRecurrenceMinSpanDays(int recurrenceMinSpanDays) { this.recurrenceMinSpanDays = recurrenceMinSpanDays; }
     }
 
     // ---------- C4 agent-guardrails-hardening ----------

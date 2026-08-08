@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.agent.memory.MemoryFragment;
+import com.flashback.agent.temporal.TemporalDistanceBand;
+import com.flashback.agent.temporal.TemporalMemoryContext;
+import com.flashback.agent.temporal.TemporalPolicyResult;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
@@ -263,6 +266,39 @@ public class AgentPromptBuilder {
                     .append('\n');
         }
         return builder.toString().trim();
+    }
+
+    /**
+     * C9：把内部时间距离转成克制的理解提示；不输出内部 band 名、阈值或分数。
+     */
+    public String buildTemporalSupplement(TemporalPolicyResult result) {
+        if (result == null || !result.enabled() || result.contexts().isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder("理解这些过去片段时，请保留时间距离：\n");
+        for (TemporalMemoryContext context : result.contexts()) {
+            builder.append("- [")
+                    .append(context.timeLabel())
+                    .append('·').append("记录").append(context.recordId()).append("] ")
+                    .append(distanceWording(context.band()))
+                    .append("；不要把它说成用户此刻的确定状态。\n");
+        }
+        if (result.patternEvidence().eligible()) {
+            builder.append("若确有必要，最多提示一次“似乎不止一次”，并邀请用户自己判断；")
+                    .append("不得扩写成规律、原因、诊断、趋势、分数或预测。\n");
+        } else {
+            builder.append("不要据此概括反复模式。\n");
+        }
+        return builder.toString().trim();
+    }
+
+    private String distanceWording(TemporalDistanceBand band) {
+        return switch (band) {
+            case RECENT -> "这是离现在较近的一段";
+            case DISTANT -> "这已隔了一段时间，只作辅助参照";
+            case LONG_AGO -> "这已过去较久，只能轻触，不能替用户下结论";
+            case UNKNOWN -> "时间距离无法可靠判断，不要自行推断";
+        };
     }
 
     /**

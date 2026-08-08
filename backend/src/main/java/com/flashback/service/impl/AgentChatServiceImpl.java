@@ -33,6 +33,9 @@ import com.flashback.agent.tool.AgentToolPendingArgs;
 import com.flashback.agent.tool.AgentToolProposal;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
+import com.flashback.agent.temporal.AgentTemporalPolicy;
+import com.flashback.agent.temporal.TemporalDistanceBand;
+import com.flashback.agent.temporal.TemporalPolicyResult;
 import com.flashback.agent.trace.AgentTraceCollector;
 import com.flashback.agent.trace.AgentTraceLayer;
 import com.flashback.agent.trace.AgentTraceSink;
@@ -112,6 +115,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentTimeAttributionChecker timeAttributionChecker;
     private final AgentReplyPipeline replyPipeline;
     private final AgentResiliencePolicy resiliencePolicy;
+    private final AgentTemporalPolicy temporalPolicy;
     private final MemoryPort memoryPort;
     private final MemoryCueExtractor memoryCueExtractor;
     private final RecordTagMapper recordTagMapper;
@@ -160,6 +164,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.guardrailDowngrade = guardrailDowngrade;
         this.timeAttributionChecker = timeAttributionChecker;
         this.resiliencePolicy = new AgentResiliencePolicy();
+        this.temporalPolicy = new AgentTemporalPolicy(appAgentProperties, clock);
         this.replyPipeline = new AgentReplyPipeline(
                 promptBuilder,
                 guardrailPolicy,
@@ -406,8 +411,11 @@ public class AgentChatServiceImpl implements AgentChatService {
         // 时**不需要**带时间归属，于是「你觉得撑不住」读起来就像用户此刻说的——
         // 那正是 C3a 整层护栏要防的事。
         List<MemoryFragment> reviewFragments = reviewFragmentsOf(userId, session, mode);
-        List<MemoryFragment> injectedMemory = mergedMemoryOf(
-                reviewFragments, retrieveMemory(session, history, trace));
+        List<MemoryFragment> retrievedMemory = retrieveMemory(session, history, trace);
+        TemporalPolicyResult temporal = temporalPolicy.evaluate(
+                mode, content, reviewFragments, retrievedMemory);
+        List<MemoryFragment> injectedMemory = temporal.injectedFragments();
+        traceTemporal(trace, temporal);
         traceMemoryScale(trace, injectedMemory);
         // C4 + C3：来源集合在生成回复前构造一次，回复检查与工具提议校验共用同一份，
         // 保证「Agent 说的话」与「要写进正文的文字」判定基准一致。
@@ -425,11 +433,14 @@ public class AgentChatServiceImpl implements AgentChatService {
                 toolContext,
                 corpus,
                 injectedMemory,
+                temporal,
                 budget,
                 trace);
         if (!reply.success()) {
             return failed(session, history, reply.message());
         }
+        traceOf(trace, t -> t.temporalPatternUsed(
+                temporal.enabled() && reply.content() != null && reply.content().contains("似乎不止一次")));
 
         AgentMessage assistantMessage = persistMessage(
                 session, AgentMessageRole.ASSISTANT, turnNo, targetStage, reply.content(), now);
@@ -603,10 +614,11 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentChatMode mode,
             AgentCallBudget budget) {
         List<MemoryFragment> fragments = reviewFragments == null ? List.of() : reviewFragments;
+        TemporalPolicyResult temporal = temporalPolicy.evaluate(mode, "", fragments, List.of());
         return generateReply(
                 targetStage, history, null, operation,
                 new AgentToolContext(false, null),
-                layeredCorpusOf(history, fragments), fragments,
+                layeredCorpusOf(history, temporal.injectedFragments()), temporal.injectedFragments(), temporal,
                 budget,
                 // 开场不落轨迹：它不属于任何一轮（turnNo=0，且没有用户消息与之配对），
                 // 强行记一条会让「一轮一条」的语义破掉。开场的护栏与 provider 结果
@@ -766,22 +778,6 @@ public class AgentChatServiceImpl implements AgentChatService {
     }
 
     /**
-     * C3b：合并被回看记录的片段与检索到的历史片段。
-     *
-     * 两者都进 MEMORY 层，因为都是「过去的表达」。合并后的列表既用于注入 prompt，
-     * 也用于构造来源集合——**必须是同一份列表**（C3a 不变量 1）。
-     */
-    private List<MemoryFragment> mergedMemoryOf(
-            List<MemoryFragment> reviewFragments, List<MemoryFragment> retrieved) {
-        if (reviewFragments.isEmpty()) {
-            return retrieved;
-        }
-        List<MemoryFragment> merged = new ArrayList<>(reviewFragments);
-        merged.addAll(retrieved);
-        return List.copyOf(merged);
-    }
-
-    /**
      * 当前草稿已绑定的标签，用作同标签关联的检索线索。
      */
     private List<Long> memoryTagIdsOf(AgentSession session) {
@@ -809,6 +805,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentToolContext toolContext,
             AgentLayeredCorpus corpus,
             List<MemoryFragment> injectedMemory,
+            TemporalPolicyResult temporal,
             AgentCallBudget budget,
             AgentTraceCollector trace) {
         return replyPipeline.generate(
@@ -820,8 +817,22 @@ public class AgentChatServiceImpl implements AgentChatService {
                 toolContext == null ? null : toolContext.supplement(),
                 corpus,
                 injectedMemory,
+                temporal,
                 budget,
                 trace);
+    }
+
+    private void traceTemporal(AgentTraceCollector trace, TemporalPolicyResult result) {
+        if (trace == null || result == null) {
+            return;
+        }
+        long recent = result.contexts().stream().filter(c -> c.band() == TemporalDistanceBand.RECENT).count();
+        long distant = result.contexts().stream().filter(c -> c.band() == TemporalDistanceBand.DISTANT).count();
+        long longAgo = result.contexts().stream().filter(c -> c.band() == TemporalDistanceBand.LONG_AGO).count();
+        long unknown = result.contexts().stream().filter(c -> c.band() == TemporalDistanceBand.UNKNOWN).count();
+        traceOf(trace, t -> t.temporal(
+                result.enabled(), (int) recent, (int) distant, (int) longAgo, (int) unknown,
+                result.beforeChars(), result.afterChars(), result.patternEvidence().eligible()));
     }
 
     /**

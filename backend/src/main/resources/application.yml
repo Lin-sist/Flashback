@@ -25,6 +25,15 @@ app:
     resilience:
       # C8：一次 Agent HTTP 编排共享的 provider-work 总预算，必须小于前端 30000ms。
       provider-work-timeout-millis: ${AGENT_PROVIDER_WORK_TIMEOUT_MILLIS:24000}
+    # C9：内部时间距离、远期辅助记忆衰减与克制复现提示；不增加 provider 调用。
+    temporal:
+      enabled: ${AGENT_TEMPORAL_ENABLED:true}
+      recent-days: ${AGENT_TEMPORAL_RECENT_DAYS:30}
+      distant-days: ${AGENT_TEMPORAL_DISTANT_DAYS:180}
+      distant-budget-percent: ${AGENT_TEMPORAL_DISTANT_BUDGET_PERCENT:75}
+      long-ago-budget-percent: ${AGENT_TEMPORAL_LONG_AGO_BUDGET_PERCENT:50}
+      min-fragment-chars: ${AGENT_TEMPORAL_MIN_FRAGMENT_CHARS:40}
+      recurrence-min-span-days: ${AGENT_TEMPORAL_RECURRENCE_MIN_SPAN_DAYS:90}
     max-user-input-chars: ${AGENT_MAX_USER_INPUT_CHARS:1000}
     context-message-window: ${AGENT_CONTEXT_MESSAGE_WINDOW:12}
     draft-excerpt-chars: ${AGENT_DRAFT_EXCERPT_CHARS:300}

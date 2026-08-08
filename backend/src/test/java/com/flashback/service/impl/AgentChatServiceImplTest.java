@@ -158,7 +158,8 @@ class AgentChatServiceImplTest {
                         new AgentPromptBuilder(properties, guardrailPolicy, guardrailRules),
                         guardrailPolicy,
                         guardrailRules,
-                        new AgentReflectionPolicy()),
+                        new AgentReflectionPolicy(),
+                        properties),
                 properties,
                 clock);
 

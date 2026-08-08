@@ -168,6 +168,32 @@ public final class AgentTraceCollector {
         return provider(AgentProviderPhase.INITIAL, model, durationMs, mocked, success);
     }
 
+    /** C9 时间策略元数据：只有计数、字符预算与布尔值，不含任何片段原文。 */
+    public AgentTraceCollector temporal(
+            boolean enabled,
+            int recentCount,
+            int distantCount,
+            int longAgoCount,
+            int unknownCount,
+            int beforeChars,
+            int afterChars,
+            boolean recurrenceEligible) {
+        return step("temporal",
+                "enabled", enabled,
+                "recentCount", recentCount,
+                "distantCount", distantCount,
+                "longAgoCount", longAgoCount,
+                "unknownCount", unknownCount,
+                "beforeChars", beforeChars,
+                "afterChars", afterChars,
+                "recurrenceEligible", recurrenceEligible);
+    }
+
+    /** C9：最终回复是否实际采用唯一允许的克制复现短语。 */
+    public AgentTraceCollector temporalPatternUsed(boolean used) {
+        return step("temporal-pattern-used", "used", used);
+    }
+
     /**
      * C7：同一业务轮可包含 initial 与 reflection 两个 provider 子调用。
      * 顶层耗时按子调用累加，单次耗时与 phase 保留在 steps 中。

@@ -2,10 +2,16 @@
 
 ## Status
 
-`IDLE`
+`ACTIVE`
 
-当前没有活动 Type C change。C8 `agent-resilience` 已于 2026-08-08 验收归档。
-下一刀默认为 C9 `agent-temporal-intelligence` 规划闸；方向蓝图不授权直接实现。
+当前唯一活动 Type C change：C9 `agent-temporal-intelligence`。
+
+- 位置：`openspec/changes/agent-temporal-intelligence/`
+- 阶段：**闸门 1/2 范围内离线实现完成，待用户验收**（2026-08-08）
+- 规划范围：确定性时间距离、旁支记忆注入衰减、证据门控的克制重复主题提示、反分析越界检查
+- 开工锚点：`544e9ea`
+- 提交责任：Agent 提交（已授权）；`push` 未授权
+- 闸门 3 / push / 部署 / 发布均未授权
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -57,7 +63,7 @@
 - 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6/C7/C8 已归档**
 - **Phase 2 定案序**：~~C6 agent-eval-framework~~ → ~~C7 agent-reflection-loop~~ →
   ~~C8 agent-resilience~~ → **`C9 agent-temporal-intelligence`（下一规划闸）**
-- **当前动作：IDLE**。C9 规划、实现、外调与发布仍须分别授权
+- **当前动作：C9 实现审阅**。闸门 1/2 范围内实现与离线验证完成；闸门 3 仍未授权
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -96,10 +102,39 @@
 - `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b + **C8**；C5/C6/C7 无 delta）
 - `openspec/specs/v2-product-scope/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + **C7**）
 - `openspec/specs/agent-collaboration/spec.md`（含 C5 + C6 + C7 + **C8**）
+- `openspec/changes/agent-temporal-intelligence/`（C9 active planning）
 - `openspec/changes/archive/2026-08-08-agent-resilience/`（C8 archived）
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-08 — **C9 `agent-temporal-intelligence` 规划闸启动**
+  - readiness：开刀前 `ACTIVE_TASK=IDLE`、C8 已归档、Git clean、蓝图 v1.2 指向 C9；开工锚点 `544e9ea`
+  - 新建 `openspec/changes/agent-temporal-intelligence/`：proposal / design / tasks +
+    `agent-runtime` / `backend-core` / `v2-product-scope` / `miniapp-core` / `agent-collaboration` 五份 delta
+  - 规划期事实：现有 `MemoryFragment` 已有 `occurredAt/timeLabel`；C3a 默认 24 个月、最多 3 片段，
+    SQL 按 created_at 倒序；C3b 已区分回看目标记录与旁支检索，但尚无显式 distance/decay/pattern policy
+  - N1–N8 推荐：30/180 天 distance bands；旁支片段 100/75/50% 字符预算且最低 40；focal review record 不衰减；
+    recurrence 仅 REVIEW_CHAT + 显式比较 cue + 2 个不同旁支记录 + span≥90 天；overreach 直接兜底不 reflection
+  - 契约边界：API/DTO/DDL/mapper SQL/frontend 页面与字段零变化；不新增 provider 调用，不做 dashboard/评分/诊断
+  - OpenSpec CLI 不在 PATH；使用仓库既有结构与文件级检查，不能声称 CLI validate PASS
+  - 规划期真实 provider/MySQL/真机调用预算 0；规划时默认用户手动提交，本轮后续已改为 Agent commit
+  - 用户 2026-08-08 批准闸门 1（N1–N8 按推荐方案）、授权闸门 2，并授权 Agent commit；
+    闸门 3 / push / 部署 / 发布未授权
+  - T-09 baseline：focused PASS；后端全量 **81 suites / 645 tests / 0 failures / 0 errors / 6 skipped**
+  - Maven 3.9.9 离线须加 `-Daether.localRepositoryManager=simple` 才能读取既有缓存；未下载依赖
+  - **实现完成**：确定性 30/180 天距离分层、旁支记忆 100/75/50% 字符预算、focal 豁免、
+    REVIEW_CHAT + cue + 两条不同旁支记录 + 90 天跨度的窄 recurrence 门槛，以及 `TEMPORAL_OVERREACH` fail-closed
+  - **编排边界**：衰减后的同一列表同时进入 reply prompt 与 `AgentLayeredCorpus`；未新增 provider 调用；
+    temporal disabled 不注入 supplement、不衰减、不生成 hint、不运行新增 checker
+  - **验证**：C9 focused PASS；后端全量 **85 suites / 662 tests / 0 failures / 0 errors / 6 skipped**；
+    前端 `vue-tsc --noEmit` 与 mp-weixin build PASS；`git diff --check`、路径与敏感标记扫描 PASS
+  - **C6 基线审阅**：仅 `memory-long-fragment-must-be-truncated` 的注入字符由 120 合法变为 90；
+    `baselineNote` 与 checksum 已同步，其余阶段、调用数和回复指标不变
+  - **SKIPPED**：真实 provider、真实 MySQL、微信真机（闸门 3 未授权）；OpenSpec CLI 不在 PATH，
+    仅完成 5 specs / 20 Requirements / 45 Scenarios 文件级校验
+  - **Blocked on**: none
+  - **Next step**: 用户 review 当前实现；闸门 3、接受 delta 与归档均需后续明确授权
 
 - **This session**: 2026-08-08 — **C8 `agent-resilience` 闸门 3 验收归档**
   - 用户授权真实 provider / MySQL 验收、归档与 Agent 提交；未授权 push、部署或发布
@@ -421,10 +456,9 @@
 `narrative/agent-tech-story.md`、v1.2 冻结带来的 8 处引用同步改动。
 `roadmap/iteration-blueprint-v1.2-draft.md` **已不存在**（内容已迁入正式蓝图，草稿已删）。
 
-## Out Of Scope While Idle
+## Out Of Scope While C9 Implementing
 
-- 不要在没有新 Type C 的情况下改 Agent runtime / 工具 / 护栏 / 记忆 / 回看 / 轨迹 / 评测 / AI 业务代码
-- **C9 须先过闸门 1**：可以建 change 目录写 proposal / design / tasks，但**规划批准前禁止改业务代码**
+- 只按已批准 C9 proposal/design/tasks 实现；发现 API/DTO/DDL/mapper SQL/页面/第三次 provider 调用需求时停止并回闸门
 - **改 prompt / 护栏阈值现在有条件了，但仍须走 Type C**：C6 的基线让改动可比对，
   这解除的是宪法 §7.3 的技术前提，**不是**流程要求。改动后快照会变，
   须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的

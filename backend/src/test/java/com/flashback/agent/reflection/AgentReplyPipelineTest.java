@@ -14,6 +14,8 @@ import com.flashback.agent.guardrail.AgentLayeredCorpus;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentResiliencePolicy;
+import com.flashback.agent.temporal.TemporalPatternEvidence;
+import com.flashback.agent.temporal.TemporalPolicyResult;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
 import com.flashback.agent.trace.AgentTraceCollector;
 import com.flashback.domain.AgentSessionPurpose;
@@ -125,6 +127,39 @@ class AgentReplyPipelineTest {
     }
 
     @Test
+    void shouldFallbackTemporalOverreachWithoutReflectionCall() throws Exception {
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
+                .thenReturn(new AgentModelResponse("这证明你以后每次都会这样。", List.of()));
+        when(timeAttributionChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.pass());
+        AgentTraceCollector trace = trace(AgentStage.REVIEW);
+
+        AgentReply reply = generate(AgentStage.REVIEW, false, trace);
+
+        assertThat(reply.content()).isEqualTo("安全兜底");
+        verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean(), any());
+        assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
+                .containsEntry("step", "guardrail")
+                .containsEntry("layer", "reply-temporal")
+                .containsEntry("violation", "temporal-overreach"));
+        assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
+                .containsEntry("step", "reflection-decision")
+                .containsEntry("eligible", false));
+    }
+
+    @Test
+    void shouldPreserveC8ReplyBehaviorWhenTemporalPolicyIsDisabled() throws Exception {
+        String candidate = "这证明你以后每次都会这样。";
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
+                .thenReturn(new AgentModelResponse(candidate, List.of()));
+        when(timeAttributionChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.pass());
+
+        AgentReply reply = generate(AgentStage.REVIEW, false, trace(AgentStage.REVIEW), false);
+
+        assertThat(reply.content()).isEqualTo(candidate);
+        verify(modelClient, times(1)).completeWithTools(any(), any(), anyBoolean(), any());
+    }
+
+    @Test
     void shouldFallbackAfterFailedRewriteWithoutThirdCall() throws Exception {
         when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
                 .thenReturn(new AgentModelResponse("过去内容", List.of()))
@@ -193,6 +228,11 @@ class AgentReplyPipelineTest {
     }
 
     private AgentReply generate(AgentStage stage, boolean toolsEnabled, AgentTraceCollector trace) {
+        return generate(stage, toolsEnabled, trace, true);
+    }
+
+    private AgentReply generate(
+            AgentStage stage, boolean toolsEnabled, AgentTraceCollector trace, boolean temporalEnabled) {
         return pipeline.generate(
                 stage,
                 List.of(),
@@ -202,6 +242,8 @@ class AgentReplyPipelineTest {
                 null,
                 AgentLayeredCorpus.sessionOnly(null),
                 List.of(),
+                new TemporalPolicyResult(temporalEnabled, List.of(), List.of(),
+                        TemporalPatternEvidence.absent(), 0, 0),
                 AgentCallBudget.start(24_000),
                 trace);
     }

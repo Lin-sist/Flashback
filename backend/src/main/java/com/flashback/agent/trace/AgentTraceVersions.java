@@ -4,6 +4,9 @@ import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentPromptBuilder;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
 import com.flashback.agent.reflection.AgentReflectionPolicy;
+import com.flashback.agent.temporal.AgentTemporalLanguageChecker;
+import com.flashback.agent.temporal.AgentTemporalPolicy;
+import com.flashback.config.AppAgentProperties;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -37,16 +40,21 @@ public class AgentTraceVersions {
     private final AgentGuardrailPolicy guardrailPolicy;
     private final AgentGuardrailRules guardrailRules;
     private final AgentReflectionPolicy reflectionPolicy;
+    private final AppAgentProperties properties;
+    private final AgentTemporalLanguageChecker temporalLanguageChecker;
 
     public AgentTraceVersions(
             AgentPromptBuilder promptBuilder,
             AgentGuardrailPolicy guardrailPolicy,
             AgentGuardrailRules guardrailRules,
-            AgentReflectionPolicy reflectionPolicy) {
+            AgentReflectionPolicy reflectionPolicy,
+            AppAgentProperties properties) {
         this.promptBuilder = promptBuilder;
         this.guardrailPolicy = guardrailPolicy;
         this.guardrailRules = guardrailRules;
         this.reflectionPolicy = reflectionPolicy;
+        this.properties = properties;
+        this.temporalLanguageChecker = new AgentTemporalLanguageChecker();
     }
 
     /**
@@ -74,6 +82,8 @@ public class AgentTraceVersions {
         builder.append(guardrailRules.memoryUsageClause()).append('\n');
         builder.append(guardrailRules.materialClause()).append('\n');
         builder.append(reflectionPolicy.fingerprintSource()).append('\n');
+        builder.append(AgentTemporalPolicy.fingerprintSource(properties.getTemporal())).append('\n');
+        builder.append(temporalLanguageChecker.fingerprintSource()).append('\n');
         builder.append(AgentGuardrailRules.SAFE_FALLBACK_REPLY).append('\n');
         appendAll(builder, AgentGuardrailRules.MINIMUM_GUARDRAILS);
         appendAll(builder, AgentGuardrailRules.POSITIVE_BEHAVIORS);

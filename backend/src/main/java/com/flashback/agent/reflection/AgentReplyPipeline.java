@@ -16,6 +16,9 @@ import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.agent.resilience.AgentProviderFailures;
 import com.flashback.agent.resilience.AgentResiliencePolicy;
+import com.flashback.agent.temporal.AgentTemporalLanguageChecker;
+import com.flashback.agent.temporal.TemporalPatternEvidence;
+import com.flashback.agent.temporal.TemporalPolicyResult;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
 import com.flashback.agent.trace.AgentTraceCollector;
@@ -53,6 +56,7 @@ public final class AgentReplyPipeline {
     private final AgentTimeAttributionChecker timeAttributionChecker;
     private final AgentReflectionPolicy reflectionPolicy;
     private final AgentResiliencePolicy resiliencePolicy;
+    private final AgentTemporalLanguageChecker temporalLanguageChecker = new AgentTemporalLanguageChecker();
 
     public AgentReplyPipeline(
             AgentPromptBuilder promptBuilder,
@@ -88,17 +92,39 @@ public final class AgentReplyPipeline {
             List<MemoryFragment> injectedMemory,
             AgentCallBudget budget,
             AgentTraceCollector trace) {
+        return generate(targetStage, history, draftExcerpt, operation, toolsEnabled, toolSupplement,
+                corpus, injectedMemory,
+                new TemporalPolicyResult(false, injectedMemory, List.of(),
+                        TemporalPatternEvidence.absent(), 0, 0),
+                budget, trace);
+    }
+
+    public AgentReply generate(
+            AgentStage targetStage,
+            List<AgentMessage> history,
+            String draftExcerpt,
+            String operation,
+            boolean toolsEnabled,
+            String toolSupplement,
+            AgentLayeredCorpus corpus,
+            List<MemoryFragment> injectedMemory,
+            TemporalPolicyResult temporal,
+            AgentCallBudget budget,
+            AgentTraceCollector trace) {
         if (modelClient.isMockProvider()) {
-            return generateMock(targetStage, history, operation, toolsEnabled, corpus, trace);
+            return generateMock(targetStage, history, operation, toolsEnabled, corpus,
+                    temporal != null && temporal.enabled(), recurrenceEligible(temporal), trace);
         }
 
         List<Map<String, Object>> tools = toolsEnabled
                 ? toolSchemaFactory.buildTools(modelClient.useStrictMode())
                 : List.of();
         String memorySupplement = promptBuilder.buildMemorySupplement(injectedMemory);
+        String temporalSupplement = promptBuilder.buildTemporalSupplement(temporal);
+        String contextualSupplement = joinSupplements(memorySupplement, temporalSupplement);
         List<Map<String, String>> messages = promptBuilder.buildConversationMessages(
-                targetStage, history, draftExcerpt, toolSupplement, memorySupplement);
-        tracePrompt(trace, messages.size(), toolSupplement, memorySupplement, draftExcerpt);
+                targetStage, history, draftExcerpt, toolSupplement, contextualSupplement);
+        tracePrompt(trace, messages.size(), toolSupplement, contextualSupplement, draftExcerpt);
 
         long startedAt = System.nanoTime();
         try {
@@ -125,7 +151,8 @@ public final class AgentReplyPipeline {
 
             List<AgentRawToolCall> initialToolCalls = response.toolCalls();
             GuardedReply guarded = checkReply(
-                    promptBuilder.normalizeReplyShape(candidate), corpus, trace);
+                    promptBuilder.normalizeReplyShape(candidate), corpus,
+                    temporal != null && temporal.enabled(), recurrenceEligible(temporal), trace);
             if (guarded.passed()) {
                 return AgentReply.ok(enforceLength(guarded.value(), trace), initialToolCalls);
             }
@@ -141,6 +168,7 @@ public final class AgentReplyPipeline {
 
             return reflect(
                     targetStage, operation, messages, instruction.get(), corpus,
+                    temporal != null && temporal.enabled(), recurrenceEligible(temporal),
                     initialToolCalls, guarded, budget, trace);
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
@@ -162,6 +190,8 @@ public final class AgentReplyPipeline {
             List<Map<String, String>> initialMessages,
             String instruction,
             AgentLayeredCorpus corpus,
+            boolean temporalEnabled,
+            boolean recurrenceEligible,
             List<AgentRawToolCall> initialToolCalls,
             GuardedReply initialGuarded,
             AgentCallBudget budget,
@@ -185,7 +215,8 @@ public final class AgentReplyPipeline {
                     AgentProviderPhase.REFLECTION, modelClient.model(), durationMs, false, true));
 
             GuardedReply rewritten = checkReply(
-                    promptBuilder.normalizeReplyShape(response.content()), corpus, trace);
+                    promptBuilder.normalizeReplyShape(response.content()), corpus,
+                    temporalEnabled, recurrenceEligible, trace);
             if (!rewritten.passed()) {
                 traceOf(trace, t -> t.reflectionResult(
                         true, false, AgentReflectionTerminal.FALLBACK));
@@ -215,10 +246,14 @@ public final class AgentReplyPipeline {
             String operation,
             boolean toolsEnabled,
             AgentLayeredCorpus corpus,
+            boolean temporalEnabled,
+            boolean recurrenceEligible,
             AgentTraceCollector trace) {
         String latestUserInput = latestUserContent(history);
         long startedAt = System.nanoTime();
-        GuardedReply guarded = checkReply(mockResponder.reply(targetStage, latestUserInput), corpus, trace);
+        GuardedReply guarded = checkReply(
+                mockResponder.reply(targetStage, latestUserInput), corpus,
+                temporalEnabled, recurrenceEligible, trace);
         List<AgentRawToolCall> toolCalls = mockResponder.toolCalls(targetStage, latestUserInput, toolsEnabled);
         long durationMs = millisSince(startedAt);
         traceOf(trace, t -> t.provider(
@@ -230,7 +265,11 @@ public final class AgentReplyPipeline {
     }
 
     private GuardedReply checkReply(
-            String reply, AgentLayeredCorpus corpus, AgentTraceCollector trace) {
+            String reply,
+            AgentLayeredCorpus corpus,
+            boolean temporalEnabled,
+            boolean recurrenceEligible,
+            AgentTraceCollector trace) {
         if (reply == null) {
             return GuardedReply.passed(null);
         }
@@ -244,7 +283,30 @@ public final class AgentReplyPipeline {
         if (!attribution.isPassed()) {
             return GuardedReply.failed(reply, AgentTraceLayer.REPLY_ATTRIBUTION, attribution);
         }
+        if (temporalEnabled) {
+            AgentGuardrailVerdict temporal = temporalLanguageChecker.check(reply, recurrenceEligible);
+            traceOf(trace, t -> t.guardrail(AgentTraceLayer.REPLY_TEMPORAL, temporal));
+            if (!temporal.isPassed()) {
+                return GuardedReply.failed(reply, AgentTraceLayer.REPLY_TEMPORAL, temporal);
+            }
+        }
         return GuardedReply.passed(reply);
+    }
+
+    private boolean recurrenceEligible(TemporalPolicyResult temporal) {
+        return temporal != null && temporal.enabled()
+                && temporal.patternEvidence() != null
+                && temporal.patternEvidence().eligible();
+    }
+
+    private String joinSupplements(String first, String second) {
+        if (first == null || first.isBlank()) {
+            return second == null ? "" : second;
+        }
+        if (second == null || second.isBlank()) {
+            return first;
+        }
+        return first + "\n\n" + second;
     }
 
     private AgentReply fallback(
@@ -252,6 +314,8 @@ public final class AgentReplyPipeline {
         AgentGuardrailVerdict verdict = guarded.verdict();
         String path = guarded.layer() == AgentTraceLayer.REPLY_ATTRIBUTION
                 ? "reply-attribution:" + operation
+                : guarded.layer() == AgentTraceLayer.REPLY_TEMPORAL
+                ? "reply-temporal:" + operation
                 : "reply:" + operation;
         guardrailDowngrade.trace(path, traceSessionId(trace), traceTurnNo(trace), verdict);
         traceOf(trace, t -> t.downgrade(guarded.layer(), verdict.violation(), true));

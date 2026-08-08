@@ -17,6 +17,9 @@ public enum AgentTraceLayer {
     /** 回复路径的时间归属检查（C3）。 */
     REPLY_ATTRIBUTION("reply-attribution"),
 
+    /** 回复路径的时间解释越界检查（C9）。 */
+    REPLY_TEMPORAL("reply-temporal"),
+
     /** 素材路径的忠实度检查。 */
     MATERIAL_FAITHFULNESS("material-faithfulness"),
 

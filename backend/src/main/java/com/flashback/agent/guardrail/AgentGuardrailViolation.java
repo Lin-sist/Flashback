@@ -28,6 +28,9 @@ public enum AgentGuardrailViolation {
      */
     MISSING_TIME_ATTRIBUTION("missing-time-attribution"),
 
+    /** C9：把有限时间证据扩写成频率、趋势、因果、诊断或预测。 */
+    TEMPORAL_OVERREACH("temporal-overreach"),
+
     /** 判定过程自身异常，按 fail-closed 处理。 */
     CHECK_ERROR("check-error");
 

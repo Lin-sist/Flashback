@@ -6872,3 +6872,87 @@ Commit: pending
   - 多 provider、熔断、缓存、监控均 deferred，须证据触发独立 change
 - **Commit**: pending
 - **Next**: C8 归档后保持 IDLE；C9 须从独立规划闸开始
+
+## 2026-08-08｜agent-temporal-intelligence（C9）规划闸｜Type C
+
+- **Scope**:
+  - readiness 复核 C8 archive、`ACTIVE_TASK=IDLE`、Git clean、冻结蓝图与 C3a/C3b/C6/C8 前置
+  - 新建 `openspec/changes/agent-temporal-intelligence/`：proposal / design / tasks
+  - 新建五份 delta：`agent-runtime`、`backend-core`、`v2-product-scope`、`miniapp-core`、`agent-collaboration`
+  - 更新 `.ai/ACTIVE_TASK.md`：IDLE → C9 ACTIVE（规划期）；业务代码与 accepted baseline 未修改
+- **Changes**:
+  - readiness 判定 GO：C8 已于 2026-08-08 归档、工作区 clean、HEAD `544e9ea`、C9 无目录冲突
+  - 规划期核对：现有 `MemoryFragment` 已有 `occurredAt/timeLabel`；C3a 默认 24 个月/3 片段/120 字，
+    SQL 按 created_at 倒序；C3b 已区分回看目标记录与旁支检索；C6 有 fixed Clock eval；C8 不允许新增调用
+  - N1–N8 推荐：30/180 天 distance bands；旁支片段按 100/75/50% 字符预算衰减且最低 40；
+    focal review record 不衰减；recurrence 仅 REVIEW_CHAT + 显式比较 cue + 2 个不同旁支记录 + span≥90 天
+  - 新内部 `TEMPORAL_OVERREACH` 推荐直接走安全兜底，不扩 C7 reflection；API/DTO/DDL/mapper SQL/UI 零变化
+  - 规划期外调预算 0；后续闸门 3 推荐 provider 合成探针上限 6，MySQL/真机仍需分别授权
+- **Verification**: PASS（规划级）
+  - proposal/design/tasks 与五份 delta 均已创建；proposal 含五态、用户故事、N1–N8、预算与 25 条验收
+  - design 含架构/数据流/config/隐私/验证与 11 条决策记录；tasks 含 64 个小步、三道独立闸门与范围自检
+  - 文件级核对 change 结构、Requirement/Scenario 标题、ACTIVE 指针与 Git diff；未运行业务测试
+- **Verification SKIPPED**:
+  - OpenSpec CLI：不在 PATH；沿用仓库既有结构并做文件级检查，不声称 CLI scaffold/validate PASS
+  - 后端/前端测试：本轮零业务代码；闸门 2 通过后 T-09 才运行实现前 baseline
+  - 真实 provider / MySQL / 微信真机：规划期预算 0、闸门 3 未授权
+- **Scope safety**:
+  - 未修改 `backend/src/**`、`frontend/**`、accepted baseline、archive、冻结蓝图、API/DTO/DDL/mapper SQL
+  - 未新增 provider 调用、LLM-as-Judge、自动 retry、dashboard、评分、诊断、推送、页面或依赖/lockfile
+  - 未写入用户日记、对话、记忆片段、prompt/provider response、secret 或本机绝对路径到对外叙事
+- **Risks**:
+  - 30/180/90 天与 100/75/50% 是待闸门 1 批准的规划值，尚未用真实样本校准
+  - 现有 LIKE/tag 检索只能支持有限重复提示，不能证明周期、相关性分数或因果
+  - deterministic overreach 规则只能约束声明过的表达形态；真实 provider 语言质量与真机体感仍 unknown
+- **Commit**: pending（用户手动提交；未 stage / commit / push）
+- **Next**: 用户审阅并批准 N1–N8 与五份 delta；批准后仍需单独给出闸门 2 实现授权
+
+## 2026-08-08｜agent-temporal-intelligence（C9）闸门批准与实现启动｜Type C
+
+- **Scope**: 仅同步授权状态并准备实现前 baseline；业务代码尚未修改
+- **Authorization**:
+  - 闸门 1：已批准，N1–N8 按 proposal 推荐方案定稿
+  - 闸门 2：已授权，允许按 `tasks.md` 开始 C9 离线实现
+  - 闸门 3：未授权，禁止真实 provider / MySQL 探针 / 微信真机
+  - Git：Agent commit 已授权；push / deploy / release 未授权
+- **Changes**: proposal / tasks / ACTIVE_TASK 同步为实现期；T-07/T-08 完成
+- **Verification**: PASS（T-09 实现前 baseline）
+  - focused：C3 memory/review、prompt、guardrail、C6 eval、C7 pipeline、C8 resilience 全绿
+  - 后端全量：**81 suites / 645 tests / 0 failures / 0 errors / 6 skipped**
+  - Maven 3.9.9 enhanced local-repository 首次误判已有缓存不可用；改用
+    `-Daether.localRepositoryManager=simple` + 显式本机 repository/settings + offline 后进入真实构建
+  - 未启用真实探针环境变量，未下载/更新依赖
+- **Risks**: 真实 provider 话术质量、真实 MySQL 时间数据与微信真机体验继续为 unknown；不得由离线结果扩写
+- **Commit**: pending
+- **Next**: T-09 baseline → T-10 temporal distance RED
+
+## 2026-08-08｜agent-temporal-intelligence（C9）闸门 1/2 离线实现完成｜Type C
+
+- **Scope**:
+  - 按已批准 N1–N8 与五份 delta 完成 C9 backend-only 实现；未执行闸门 3、push、部署、发布、接受 delta 或归档
+  - Agent commit 已授权；本条先记 `pending`，提交后另条补真实 hash
+- **Changes**:
+  - 新增 `agent/temporal`：日期级 `RECENT/DISTANT/LONG_AGO/UNKNOWN`、旁支片段字符预算衰减、focal 豁免、窄 recurrence evidence
+  - 新增 `app.agent.temporal` 安全默认值、Bean Validation 与跨字段 fail-fast；关闭时保持 C8 行为
+  - reply prompt 增加时间距离 supplement；衰减后的同一片段列表同时供 prompt 与来源语料使用
+  - 新增内部 `TEMPORAL_OVERREACH` 与 `reply-temporal`；不足证据、重复 hint、量化/绝对规律/因果/趋势/预测直接安全兜底，不进入 C7 reflection
+  - C5 trace 仅新增开关、band 计数、衰减前后字符、eligible/used 与违规枚举；policy fingerprint 纳入 temporal 配置与规则
+  - C6 新增 fixed-clock eval；逐条审阅唯一合法快照变化：DISTANT 合成片段注入字符 120 → 90，并同步说明与 checksum
+- **Verification**: PASS
+  - C9 focused：policy / prompt / checker / pipeline / trace version / scripted eval 全绿
+  - 后端全量：**85 suites / 662 tests / 0 failures / 0 errors / 6 skipped**
+  - 前端：bundled Node 运行 `vue-tsc --noEmit` PASS；mp-weixin build PASS
+  - OpenSpec 文件级：5 specs / 20 Requirements / 45 Scenarios；`git diff --check`、路径 allowlist、增量敏感标记扫描 PASS
+- **Verification SKIPPED**:
+  - 真实 provider / 真实 MySQL / 微信真机：闸门 3 未授权；真实外调 0 次，不以 scripted/H2/build 冒充
+  - OpenSpec CLI：本机不在 PATH；只报告文件级验证，不声称 CLI validate PASS
+- **Scope safety**:
+  - API/DTO/DDL/mapper SQL/frontend source/pom/package/lockfile 零变化；未改 archive、冻结蓝图、deployment、monitoring
+  - 无新增页面、Tab、dashboard、评分、推送、设置页、自动 retry、多 provider、LLM-as-Judge 或额外 provider 调用
+  - 未把用户日记、对话、关键词、片段、prompt/provider response、异常消息或 secret 写入 trace/log/新存储
+- **Risks**:
+  - deterministic 词表只能覆盖已声明的越界形态；真实模型话术质量仍需闸门 3 小样本人评
+  - 30/180/90 天与 100/75/50% 为已批准的保守产品阈值，尚未经真实样本校准
+  - OpenSpec delta 尚未接受、change 尚未归档；须用户验收后独立收口
+- **Commit**: pending
+- **Next**: 用户 review；闸门 3、接受 delta 与归档均等待后续明确授权

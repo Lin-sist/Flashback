@@ -103,8 +103,8 @@ cases:
   - caseId: memory-long-fragment-must-be-truncated
     dimension: INJECTION_BUDGET
     note: |
-      单条片段超出 maxFragmentChars（默认 120）时必须被截断，
-      因此注入总长度不会随候选文本长度线性膨胀。
+      单条片段先由 C3 截断到 maxFragmentChars（默认 120），再因距固定时钟 31–180 天
+      由 C9 DISTANT 预算收口到 75%（90 字），因此注入长度不会随候选文本线性膨胀。
     setup:
       memoryCandidates:
         - id: 70001
@@ -117,5 +117,5 @@ cases:
       outcome: SUCCESS
       injectedCount: 1
       injectionWithinBudget: true
-      maxInjectedChars: 120
-      injectedCharsExactly: 120
+      maxInjectedChars: 90
+      injectedCharsExactly: 90

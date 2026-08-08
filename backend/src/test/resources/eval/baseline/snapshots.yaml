@@ -265,7 +265,7 @@ snapshots:
     checksum: "bff20c8176da"
 
   - caseId: memory-long-fragment-must-be-truncated
-    baselineNote: "C6 定基线（2026-07-31）：单条超长片段被截断到恰好 maxFragmentChars=120。用例刻意给了远超 120 的文本——最初写的样本只有 111 字，那样「不超过 120」恒成立而什么都没验"
+    baselineNote: "C9 审阅更新（2026-08-08）：该合成片段相对固定时钟为 DISTANT；C3 先截断到 120，C9 再按 75% 确定性衰减到 90。providerCalls、阶段与其余指标不变"
     metrics:
       turns: 1
       stagePath: [CONFUSION]
@@ -274,13 +274,13 @@ snapshots:
       providerCalls: 1
       materialCalls: 0
       injectedCount: 1
-      injectedChars: 120
+      injectedChars: 90
       promptMessageCount: 4
       downgradeLayer: null
       violation: null
       replyLength: 14
       replyToInputRatio: 1.08
-    checksum: "802548372cc9"
+    checksum: "c917c94fa919"
 
   # ---------- 护栏 ----------
   - caseId: guardrail-diagnostic-reply-must-downgrade

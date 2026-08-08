@@ -1,6 +1,10 @@
 package com.flashback.agent;
 
 import com.flashback.agent.guardrail.AgentGuardrailRules;
+import com.flashback.agent.temporal.TemporalDistanceBand;
+import com.flashback.agent.temporal.TemporalMemoryContext;
+import com.flashback.agent.temporal.TemporalPatternEvidence;
+import com.flashback.agent.temporal.TemporalPolicyResult;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
@@ -133,6 +137,24 @@ class AgentPromptBuilderTest {
         assertThat(system).contains("只使用用户说过的内容");
         assertThat(system).contains("\"material\"");
         assertThat(system).contains("不添加你的分析");
+    }
+
+    @Test
+    void shouldBuildTemporalGuidanceWithoutInternalBandsOrScores() {
+        TemporalPolicyResult result = new TemporalPolicyResult(
+                true,
+                List.of(),
+                List.of(
+                        new TemporalMemoryContext(1L, "2026年7月", TemporalDistanceBand.RECENT, 20L, true),
+                        new TemporalMemoryContext(2L, "2025年1月", TemporalDistanceBand.LONG_AGO, 584L, false)),
+                new TemporalPatternEvidence(true, 2, 120L),
+                200,
+                150);
+
+        String supplement = promptBuilder.buildTemporalSupplement(result);
+
+        assertThat(supplement).contains("2026年7月", "2025年1月", "似乎不止一次", "邀请用户自己判断");
+        assertThat(supplement).doesNotContain("RECENT", "LONG_AGO", "30", "180", "%");
     }
 
     private AgentMessage message(int turnNo, AgentMessageRole role, String content) {
