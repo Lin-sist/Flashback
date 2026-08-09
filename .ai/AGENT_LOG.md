@@ -7121,3 +7121,29 @@ Commit: pending
   - 被移除注册的旧设置页源码仍保留为不可达文件，便于回退；未来若重新注册，须先完成真实契约或继续诚实降级
   - authenticated real path 的后端错误语义、网络异常与真实数据统计仍依赖后续端到端验证，本次不宣称生产验收
 - **Commit**: pending（Agent commit 已授权；不 push）
+
+## 2026-08-09｜H0 truth-surface-cleanup 验收与提交证据｜Type B
+
+- **Scope**:
+  - 在已提交的 `c48b13a fix: 收口H0真实能力表面` 上独立复验 authenticated real path 与 Preview 能力表面
+  - 本条只追加验收证据；不修改业务代码、OpenSpec、`ACTIVE_TASK`、依赖或构建配置
+- **Changes**: 无业务行为变化；补录 H0 提交对象、双构建、产物断言、会话隔离与 SKIPPED 边界
+- **Verification**: PASS（自动化与静态验收范围）
+  - 提交对象核对 PASS：`c48b13a` 精确包含 H0 的 15 个文件，126 insertions / 165 deletions；验收开始时工作树 clean，`ACTIVE_TASK=IDLE`
+  - bundled Node 运行 `vue-tsc --noEmit` PASS
+  - 标准 mp-weixin build PASS；标准产物 Preview 开关为 false，仍只注册 8 个页面，未注册整理偏好、视觉外观、访问控制、数据备份、标签管理或通知设置
+  - Preview mp-weixin build PASS；Preview 开关为 true，8 个页面注册断言 PASS，7 个登录后页面均注册只读标识组件
+  - Preview 入口“进入概念预览（示例数据）”、只读标识、record 10 处 guard 引用与 reply 写操作拒绝断言 PASS；产物未命中旧设置文案、伪版本或“寻回记忆”入口
+  - authenticated session 隔离核对 PASS：真实账号登录与微信登录在保存 token 后清除 Preview session；Preview 服务分支均要求“无真实 token 且存在 Preview session”
+  - 诚实文案核对 PASS：无搜索时使用 backend 总数，搜索时明确当前页匹配；个人中心使用真实 sealed / unlocked 派生统计；无封面抵达记录不再宣称图文记忆
+  - 验收结束恢复标准 mp-weixin 构建；`git diff --check` PASS
+- **Verification SKIPPED**:
+  - 微信开发者工具 / 真机视觉与交互：常见安装路径未发现 CLI，也没有可控真机；不以源码、类型检查或构建产物冒充手动验收
+  - 真实账号 backend / MySQL 端到端：本轮没有测试账号、运行服务或外调授权；H0 未修改后端/API/持久化，因此不宣称生产链路 PASS
+- **Scope safety**:
+  - 未执行 provider、对象存储、push、部署或发布；未读取用户日记原文、真实对话或 secret
+  - 构建仅写入既有 ignored `frontend/dist`；最终保留标准构建产物，没有 package / lockfile 变化
+- **Risks**:
+  - 自动化范围可以接受 H0 代码与产物，但完整用户验收仍缺微信开发者工具 / 真机的布局、点击、返回路径和安全区证据
+  - 旧设置页源码仍为未注册的 dormant code；未来重新启用必须重新经过真实契约核对
+- **Commit**: pending（本条验收日志待提交；不 push）
