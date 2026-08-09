@@ -7147,3 +7147,65 @@ Commit: pending
   - 自动化范围可以接受 H0 代码与产物，但完整用户验收仍缺微信开发者工具 / 真机的布局、点击、返回路径和安全区证据
   - 旧设置页源码仍为未注册的 dormant code；未来重新启用必须重新经过真实契约核对
 - **Commit**: pending（本条验收日志待提交；不 push）
+
+## 2026-08-09｜E0 capture-ritual-prototype readiness 与规划｜Type A → Type B（落盘）
+
+- **Scope**:
+  - 检查 H0 后是否允许进入下一阶段；若允许，直接形成 E0 保存仪式与编辑层级原型计划
+  - 仅规划低成本交互原型、合成任务、观察表与 P3.1 进入条件；不实现原型或业务能力
+- **Changes**:
+  - 新增 `Docs/design/e0-capture-ritual/PLAN.md`
+  - 确定单文件离线、合成材料、零网络/零持久化的原型形态，以及 A 当前层级对照、B 专注记录、C 先完成再选择三种结构性变体
+  - 明确 5–8 人定性观察脚本、隐私记录边界、重复关键误解的失败规则与 P3.1 go/no-go 条件
+- **Verification**: PASS（readiness 与规划结构）
+  - `ACTIVE_TASK=IDLE`；readiness 开始时工作树 clean
+  - H0 实现提交 `c48b13a` 与独立验收日志提交 `a9a3dea` 均存在；`main` 比 `origin/main` 超前 2 个提交，未 push
+  - 冻结蓝图 v2.0 顺序为 H0 → E0 → P3.1，E0 意图卡、证据与隐私边界已逐项映射进计划
+  - 当前编辑器事实已核对：正文必填、“草稿已保存”、保存前分类/人生节点/Agent/AI/解锁时间同页可见、封存要求未来时间并自动返回
+- **Verification SKIPPED**:
+  - 原型可运行性与视觉/交互：本轮只规划，`prototype.html` 尚未实现
+  - 目标用户观察：尚未招募或执行；无观察证据，因此不宣称 E0 已验证，也不启动 P3.1
+  - build / 真机 / backend / MySQL / provider / 对象存储：本轮未修改运行时代码，执行这些验证不能增加 E0 用户理解证据
+- **Scope safety**:
+  - 未修改 `.ai/ACTIVE_TASK.md`、OpenSpec、frontend/backend、依赖、lockfile、冻结蓝图或 archive
+  - 未读取或记录用户日记原文、真实对话、secret 或可识别私人数据；未执行 stage / commit / push / 部署 / 发布
+- **Risks**:
+  - H0 微信真机视觉/交互仍为 SKIPPED；不阻塞 E0，但不能写成真实设备验收完成
+  - `.ai/ACTIVE_TASK.md` Direction Layer 仍写“H0 尚未启动”，`openspec/project.md` 仍把 H0 写成下一建议动作；当前提交与验收日志证明 H0 已完成，摘要漂移不阻塞 E0，但 P3.1 前须单独收口
+  - 早期 M1/M3 非 archive 目录仍存在且有未勾任务；当前事实源判定 IDLE，E0 不受阻，但 P3.1 前须再次核对 active-change 语义
+  - 三种变体目前只是研究设计；没有 5–8 人观察前，任何推荐都不是产品结论
+- **Commit**: pending（默认用户手动提交；未 stage / commit / push）
+- **Next**: 用户 review E0 计划；若授权执行，再制作 throwaway 原型，不直接改生产页面
+
+## 2026-08-09｜E0 capture-ritual-prototype 原型实现与内部走查｜Type B
+
+- **Scope**:
+  - 按已审阅的 E0 计划制作独立 throwaway 交互原型，比较保存反馈与编辑层级；用户已授权执行与 Agent commit
+  - 仅修改 `Docs/design/e0-capture-ritual/` 与本日志；不接入产品路由、真实登录、backend 或持久化
+- **Changes**:
+  - 新增单文件 `prototype.html`，通过 `?variant=A|B|C` 提供 A 当前层级对照、B 专注记录、C 先完成再选择三种结构性变体
+  - 加入文字、合成图片占位、合成声音占位三类研究任务，以及常驻“不会真实保存”标识、任务重置和内存态切换
+  - A 使用短暂居中确认；B 使用持续保存状态条与默认折叠补充项；C 保存后明确提供“先离开 / 继续添一点”，Agent 与时间入口只在继续路径出现
+  - 沿用现有纸张、墨色、朱红与宋体方向；固定手机舞台在桌面居中，移动视口全屏，不伪造系统状态栏
+  - 通过设计交付登记脚本生成 `_d_meta.json`，将原型标为 `needs-review`，避免把内部走查误写成用户验证完成
+  - 更新 `PLAN.md` 的执行状态、提交责任、任务勾选、边界和内部走查结果
+- **Verification**: PASS（原型完整性与内部交互范围）
+  - bundled Node 解析唯一内联脚本 PASS；无外部 script / stylesheet、`fetch`、XHR、localStorage 或 backend 调用
+  - HTTP 预览 200；A/B/C 查询参数、切换器与非编辑态方向键切换 PASS，输入焦点下方向键不会误切换
+  - 文字、图片占位、声音占位任务 PASS；图片与声音互斥且不要求正文；reload 后保存态清空，证明没有本地持久化
+  - A 保存确认居中；B 持续状态条与“可以离开”可操作；C 保存层、继续补充、已保存退出和未保存关闭路径 PASS
+  - 360×800、390×844、1440×900 视口无横向溢出或被裁切目标，最小交互目标高度 44px；页面 console error / warning 为 0
+- **Verification SKIPPED**:
+  - 5–8 名目标用户观察尚未执行；当前没有用户理解、重复误解或变体推荐证据，因此不宣称 E0 已得出产品结论
+  - 微信开发者工具 / 真机：本轮是浏览器中的独立 HTML 研究原型，不以浏览器走查冒充小程序真机验收
+  - frontend build、backend、MySQL、provider、对象存储：本轮未修改产品代码、API、DTO 或持久化，也未获任何外调授权
+- **Scope safety**:
+  - 未修改 `.ai/ACTIVE_TASK.md`、OpenSpec、frontend/backend、package / lockfile、部署配置或冻结蓝图
+  - 原型只含合成材料，不读取用户日记原文、真实声音、真实图片、secret 或可识别私人数据；无网络请求
+  - 提交范围限定为本轮计划、原型与 append-only 日志；不 push、部署或发布
+- **Risks**:
+  - A/B/C 目前都是研究假设；没有目标用户观察前，不应把任一变体直接实现为 P3.1
+  - 浏览器走查没有覆盖真实小程序字体、键盘、安全区、返回手势或辅助技术行为
+  - H0 真机缺口、H0 状态摘要漂移与旧 M1/M3 非 archive 目录仍按计划保留，P3.1 readiness 前须重新核对
+- **Commit**: pending（Agent commit 已授权；不 push）
+- **Next**: 用 5–8 名目标用户执行 E0-04；只有形成有观察依据的推荐或否决结论后，才处理 E0-05/E0-06，并决定是否进入 P3.1 规划闸
