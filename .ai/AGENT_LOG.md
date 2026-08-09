@@ -44,6 +44,34 @@ Next:
 
 - ...
 
+## 2026-08-08｜core-product-definition-v0.1-verification｜Type B
+
+- **Scope**: `Docs/agent-iteration/roadmap/core-product-definition.md` 与本轮工作树边界
+- **Changes**: 仅补录验证结论，不修改产品宪章内容或既有历史条目
+- **Verification**: PASS
+  - 文档共 547 行、22 个编号章节，9 个核心定义锚点全部存在
+  - 私人故事与人物关键词定向扫描零命中；未记录用户日记原文或可识别经历
+  - `git diff --check` PASS；OpenSpec、业务代码与 `.ai/ACTIVE_TASK.md` 均未修改，状态仍为 `IDLE`
+  - Git 状态仅含 `.ai/AGENT_LOG.md` 修改与产品宪章新文件；无 package / lockfile、部署或发布改动
+- **Risks**: 留存仪式、篇章交互、隐含含义记忆、环境数据、安全实现与商业模型仍待原型或独立 Type C change
+- **Commit**: pending（用户手动提交）
+
+## 2026-08-08｜core-product-definition-v0.1｜Type B
+
+- **Scope**: 方向层产品宪章与执行证据
+  - `Docs/agent-iteration/roadmap/core-product-definition.md`（新建）
+  - `.ai/AGENT_LOG.md`（仅追加本条）
+- **Changes**:
+  - 将已确认的产品访谈结论整理为《Flashback 核心产品定义 v0.1》
+  - 明确产品品类为「私人的生命片段记录空间」，核心价值为保存用户具体活过的证据
+  - 明确当下保存优先、时间回看为复利、Agent 为「有朋友温度的见证者」
+  - 固化第一人称权利、无记录焦虑、用户主动选择、数据可带走、低频长期信任与安全窄例外
+  - 将阶段机制、留存仪式、隐含含义记忆、环境线索、商业模型与安全实现列为待原型/独立 change 验证
+  - 明确本宪章不修改当前 OpenSpec baseline，不授权业务实现、外调、部署或发布
+- **Verification**: pending（待完成文档结构、边界、敏感内容、diff 与 Git 状态检查）
+- **Risks**: v0.1 为方向层依据；尚未验证的体验假设不得写成当前已实现能力
+- **Commit**: pending（用户手动提交）
+
 ## 2026-07-27｜kiro-steering-setup｜Type B
 
 - **Scope**: Kiro 桥接层与规则配置（文档/工作流）
