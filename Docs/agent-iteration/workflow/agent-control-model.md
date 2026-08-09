@@ -32,7 +32,7 @@
 
 ```text
 ┌─────────────────────────────────────────────┐
-│  L-方向  iteration-blueprint（roadmap，v1.2 已冻结）│  序列、依赖、非目标总表
+│  L-方向  iteration-blueprint（roadmap，v2.0 已冻结）│  序列、依赖、非目标总表
 ├─────────────────────────────────────────────┤
 │  L-规则  AGENTS.md + agent-collaboration spec │  硬禁止、必读、角色
 ├─────────────────────────────────────────────┤
@@ -163,7 +163,8 @@ Type B **不**要求 ACTIVE；但必须在 log 写清范围，避免与进行中
 | `.ai/AGENT_LOG.md` | 证据层 | 顶部结构化模板 |
 | `Docs/agent-iteration/workflow/**` | 完整参考层 | 人类 + checklist |
 | `Docs/agent-iteration/项目初始分析.md` | 方向输入草稿 | CAUTION：非批准 scope |
-| `roadmap/iteration-blueprint.md` | 方向层 | **v1.2 已冻结**（2026-07-30；Phase 1 已收官，Phase 2 序列已定） |
+| `roadmap/iteration-blueprint.md` | 方向层 | **v2.0 已冻结**（2026-08-09；核心体验与信任兑现序列） |
+| `roadmap/iteration-blueprint-v1.2.md` | 历史方向层 | Phase 1 / Phase 2 Agent 能力叙事，只读 |
 
 ---
 

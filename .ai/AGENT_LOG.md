@@ -7030,3 +7030,63 @@ Commit: pending
 - **Verification**: PASS；提交包含两项默认门控探针、五份 baseline 接受、closeout、叙事与 archive 移动
 - **Commit**: `14ec5f8 feat: 完成C9闸门3并归档`
 - **Next**: `ACTIVE_TASK=IDLE`；后续能力重新走独立规划闸
+
+## 2026-08-09｜核心产品定义 v0.1 收口验证｜Type A
+
+- **Scope**:
+  - 仅验证 `Docs/agent-iteration/roadmap/core-product-definition.md` 的提交状态、结构完整性、与 accepted baseline / 当前实现的对齐程度及下一轮规划前证据边界
+  - 本轮不制定下一份迭代蓝图，不创建 OpenSpec change，不修改业务代码、accepted baseline 或 `ACTIVE_TASK`
+- **Changes**:
+  - 业务代码、OpenSpec、方向文档零修改；仅追加本条验证证据
+- **Verification**: PASS（方向文档与代码/契约级收口）
+  - 核心定义已由用户提交为 `36f5a3d docs: 确立Flashback核心产品定义v0.1`；提交只含方向文档与此前日志
+  - 文档 547 行，含 `0`–`22` 节；9 个核心锚点齐全；`ACTIVE_TASK=IDLE`
+  - accepted baseline 已具备“写下当下”为主动作、Agent 被动召唤、用户可结束、素材显式确认、历史引用不诊断等契约
+  - 当前实现已确认：标题可选；Agent 入口不自动展开且可随时关闭/结束；Agent 素材与工具写入须用户确认；位置仅由用户点击后选择
+  - 当前实现仅部分对齐：首页仍以“等待未来重新读懂 / 寄给未来”为中心；普通保存仍以 `DRAFT/草稿` 命名，主要完成动作仍为设置未来时间后封存
+  - 当前实现明确缺口：正文是 API / backend 必填项，图片或原始声音不能独立成为片段；只允许删除 `DRAFT`；无真实全量导出；数据备份页在登录路径展示本地演示的“已同步 / iCloud / 导出 / 清除全部数据”
+  - 当前实现待独立决策：Agent prompt 仍自称“朋友”且按固定阶段提问；memory 只有 backend 配置开关，未发现用户可见的历史参与授权、撤销或纠正机制
+  - bundled Node 直接运行 `vue-tsc --noEmit` PASS；mp-weixin preview build PASS
+- **Verification SKIPPED**:
+  - 微信开发者工具 / 真机截图审计：本机仅发现 `User Data`，未发现可启动 CLI 或应用入口；项目无 H5 构建目标，不以源码或 mp-weixin build 冒充真实视觉/交互证据
+  - 原型与真实用户访谈：本轮没有已批准原型、招募对象或访谈输入；保存仪式、时间篇章、追问体感、隐含记忆授权、长期导出、商业模型、安全和视觉系统仍按 v0.1 记为待验证
+- **Scope safety**:
+  - 未修改 `backend/src/**`、`frontend/src/**`、OpenSpec、蓝图、依赖或 lockfile；未执行 provider、MySQL、对象存储、push、部署或发布
+  - bundled `pnpm` 包装器首次尝试因无 TTY 中止并生成未跟踪 `.pnpm-store/`；已校验绝对路径后清理，随后改用 bundled Node 直接运行既有本地二进制
+  - 未读取或写入用户日记原文、真实对话、secret 或未授权外部数据
+- **Risks**:
+  - 方向文档已可作为下一轮规划筛选器，但不能写成当前产品已完全实现
+  - 登录路径中的演示设置与假备份状态会损害“只负责保管、不拥有用户人生”的信任承诺，进入真实用户验证前应先隔离或诚实降级
+  - “已保存的此刻”复用 `DRAFT` 还是建立新完成态，以及历史记忆如何授权/撤销，均会改变状态/API/数据语义，必须在未来独立 Type C 规划闸由用户裁决
+- **Commit**: pending（默认用户手动提交；未 stage / commit / push）
+- **Next**: 用户 review 本次收口结论；确认后再单独制定下一份迭代蓝图
+
+## 2026-08-09｜核心体验迭代蓝图 v2.0 冻结落盘｜Type B
+
+- **Scope**:
+  - 根据用户对全部讨论项与推荐方案的明确接受，冻结下一份方向蓝图；仅修改方向、方法论、项目上下文与 steering 文档
+  - 不创建 active OpenSpec change，不修改 accepted baseline、archive、业务代码、依赖或 lockfile
+- **Changes**:
+  - 将原 `iteration-blueprint.md` 以语义完全一致的 641 行内容保存为只读历史快照 `iteration-blueprint-v1.2.md`
+  - 新建并冻结核心体验蓝图 v2.0：决策 D34–D60；执行序列 H0 → E0 → P3.1 → P3.2 → P4.1 → P4.2 → R1 → E1 → 证据门控 P5.x
+  - 明确 `DRAFT → SAVED/RECORDED → SEALED → UNLOCKED` 目标语义、数据主权、见证者角色、记忆授权、时间篇章、安全边界、证据分层与停止条件
+  - 同步 `AGENTS.md`、`ACTIVE_TASK.md`、`openspec/project.md`、roadmap / architecture / workflow / narrative 入口与 `.kiro/steering`；C9 与 C6–C9 关闭项按 archive 证据校准
+- **Verification**: PASS
+  - `git diff --check` GREEN
+  - 蓝图标题 / 冻结日期存在；D34–D60 共 27 项且无缺号；H0、E0、P3.1、P3.2、P4.1、P4.2、R1、E1、P5.x 锚点齐全
+  - v1.2 快照与变更前 `HEAD:iteration-blueprint.md` 规范化换行后语义完全一致，均为 641 行
+  - 核心定义、当前蓝图、历史蓝图、Type B checklist、项目上下文与 `ACTIVE_TASK` 路径均存在
+  - 17 个工作区变更路径中，`backend/`、`frontend/`、`openspec/specs/`、archive、package / lockfile 命中为 0；`ACTIVE_TASK` 保持 `IDLE`
+  - 旧版本“当前状态”表述已从活文档清除；仅保留 `.ai/ACTIVE_TASK.md` 历史会话记录和 v1.2 历史快照
+- **Verification SKIPPED**:
+  - OpenSpec CLI validation：本机 PATH 不含 OpenSpec CLI，且本轮没有 change / spec delta；改做路径、锚点、状态、引用与 diff 校验
+  - build / 单测 / 真实 MySQL / provider / 对象存储 / 微信真机：本轮仅改方向与协作文档，不产生运行时行为，执行这些验证不能增加对应能力证据
+- **Scope safety**:
+  - 未读取或写入用户日记原文、真实对话、secret 或未授权外部数据
+  - 未 stage / commit / push / 部署 / 发布；提交责任保持用户手动提交
+- **Risks**:
+  - v2.0 是方向冻结，不是现状声明，也不授权业务实现；当前 accepted baseline 与代码仍保留既有 `DRAFT`、正文必填、固定阶段 Agent 等行为
+  - H0 / E0 / P3.1 均未启动；状态枚举、API / DTO、迁移、对象清理、导出格式、恢复期限与记忆授权载体仍须在各自闸门确认
+  - P5.x 仅在 E1 得到真实正向证据后才可立项；无证据则保持独立片段为完整产品单位
+- **Commit**: pending（默认用户手动提交；未 stage / commit / push）
+- **Next**: 用户审阅本次文档落盘；若确认，可先单独授权 Type B H0，或先进入 Type A E0 原型讨论

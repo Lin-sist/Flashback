@@ -1,123 +1,103 @@
 # Flashback Agent 迭代工程文档
 
-> 状态：工作流已建立；**M4 已归档**；**蓝图 v1.1 已冻结**（Phase 1 方向仍有效）；**v1.2 仅为草案**（C5 后校准再冻结）  
-> 状态日期：2026-07-28  
-> 文档性质：完整参考层（人类阅读 + checklist）；**执行硬规则以 `AGENTS.md` 为准**
+> 状态日期：2026-08-09
+> 当前状态：M4、Phase 1、Phase 2（C1–C9）均已归档；`ACTIVE_TASK=IDLE`
+> 产品宪章 v0.1 已确认；核心体验迭代蓝图 v2.0 已冻结
+> 文档性质：人与 Agent 的完整参考层；执行硬规则以仓库根 `AGENTS.md` 为准
 
 ## 1. 本目录解决什么问题
 
-Flashback 已有 OpenSpec（M1–M4）与 `.ai/` 交接文件。下一步要做的不仅是「再开一个 M5」，而是把 RAG 项目里已经跑通的 **Spec 范式 vibecoding** 固化到本仓库：
+本目录把 Flashback 的长期产品方向、OpenSpec 分阶段执行、架构取舍、证据记录与对外叙事分开管理：
 
-- 用 **OpenSpec** 管范围与验收契约
-- 用 **决策记录** 管「为什么这样选」
-- 用 **AGENT_LOG** 管「做了什么、如何验证」
-- 用 **迭代蓝图** 管「长期往哪走、序列依赖是什么」（v1 草案已产出）
+- `roadmap/`：产品为什么存在、下一阶段往哪走；
+- `workflow/`：每轮 change 如何经过 Type、Gates、决策和验证；
+- `architecture/`：C1–C9 形成的端口、分层与技术取舍；
+- `narrative/`：可对外使用的工程故事，不是执行契约；
+- `.ai/`：当前任务与 append-only 证据账本；
+- `openspec/`：当前实现和每刀变更的最高优先级事实源。
 
-本目录是给人类与后续 Agent（尤其是接手写蓝图的 Claude）的**规划参考层**。  
-**执行时的硬事实源仍以 `AGENTS.md` → `.ai/ACTIVE_TASK.md` → active OpenSpec change → `openspec/specs/` 为准。**
-
-## 2. 阅读顺序（给 Claude / 规划 Agent）
-
-按顺序阅读，不要先跳进历史 `Docs/archive/**`：
+## 2. 推荐阅读顺序
 
 | 顺序 | 路径 | 用途 |
 |---|---|---|
-| 1 | `AGENTS.md`（仓库根） | 协作硬规则与 M4 边界 |
-| 2 | `.ai/ACTIVE_TASK.md` | 当前是否有唯一活动任务 |
-| 3 | `openspec/project.md` + 相关 baseline specs | 产品身份与已接受契约 |
-| 4 | **本目录** `workflow/iteration-approach.md` | 当前项目迭代思路总览（先读） |
-| 5 | **本目录** `workflow/vibecoding-playbook.md` | 每轮 change 怎么走得稳 |
-| 6 | **本目录** `workflow/prompt-snippets/design-decision-record.md` | design 决策记录格式 |
-| 7 | **本目录** `workflow/agent-control-model.md` | 控制权分层与证据分工 |
-| 8 | `项目初始分析.md` | Agent 化产品方向初评（非执行契约） |
-| 9 | `roadmap/iteration-blueprint.md` | 长期序列蓝图（**v1.2 已冻结**；Phase 1 收官 + Phase 2 序列 C6→C7→C8→C9） |
-| 10 | `architecture/README.md` | 架构宪法 + 技术选型草稿（反推倒、可演进端口） |
-| 11 | `narrative/agent-tech-story.md` | 对外叙事（面试向，非执行契约）；§1–§8 已写，§9 持续追加 |
-
-> **进度**：Phase 1（C1–C5）+ Phase 2 首刀 **C6 `agent-eval-framework` 已归档**（2026-07-31）。
-> C7 `agent-reflection-loop` 已于 2026-08-03 归档；下一刀 C8 `agent-resilience`。
-> 注：`roadmap/iteration-blueprint-v1.2-draft.md` 曾列于本表，其内容已迁入正式蓝图 v1.2，草稿已删除。
+| 1 | `AGENTS.md` | 硬规则、Type、Gates、Non-Negotiable |
+| 2 | `.ai/ACTIVE_TASK.md` | 当前是否存在唯一 active change |
+| 3 | `openspec/project.md` + accepted specs | 当前已实现契约 |
+| 4 | `roadmap/core-product-definition.md` | 长期产品宪章 v0.1 |
+| 5 | `roadmap/iteration-blueprint.md` | 当前冻结蓝图 v2.0 |
+| 6 | `workflow/iteration-approach.md` | 六步闭环总览 |
+| 7 | `workflow/vibecoding-playbook.md` | 人与 Agent 的完整协作说明 |
+| 8 | `workflow/prompt-snippets/` | Type B / C 清单与决策记录模板 |
+| 9 | `architecture/README.md` | C1–C9 架构与选型参考 |
+| 10 | `roadmap/iteration-blueprint-v1.2.md` | 已完成能力序列的历史依据 |
+| 11 | `narrative/agent-tech-story.md` | 对外技术叙事 |
 
 ## 3. 目录结构
 
 ```text
 Docs/agent-iteration/
 ├─ README.md
-├─ 项目初始分析.md                     # 产品方向草稿（CAUTION：非批准 scope）
+├─ 项目初始分析.md                    # 早期方向草稿，非批准 scope
+├─ roadmap/
+│  ├─ README.md
+│  ├─ core-product-definition.md      # 产品宪章 v0.1
+│  ├─ iteration-blueprint.md          # 当前 v2.0
+│  └─ iteration-blueprint-v1.2.md     # C1–C9 历史快照
 ├─ workflow/
 │  ├─ iteration-approach.md
 │  ├─ vibecoding-playbook.md
 │  ├─ agent-control-model.md
 │  └─ prompt-snippets/
-│     ├─ design-decision-record.md
-│     ├─ type-c-checklist.md          # Type C 可勾选清单
-│     └─ type-b-checklist.md
-├─ architecture/                      # 架构宪法 + 选型草稿（C5 后校准）
+├─ architecture/
 │  ├─ README.md
 │  ├─ agent-architecture-constitution.md
 │  └─ tech-selection-draft.md
-└─ roadmap/
-   ├─ README.md                       # 蓝图编写规格
-   ├─ iteration-blueprint.md          # 迭代蓝图 v1.1（已冻结）
-   └─ iteration-blueprint-v1.2-draft.md  # v1.2 草案（未冻结）
+└─ narrative/
+   └─ agent-tech-story.md
 ```
 
-## 3.1 执行层 vs 参考层（防双轨道落空）
-
-| 层 | 位置 | Agent 如何碰到 |
-|---|---|---|
-| **硬注入** | `AGENTS.md` | 会话规则 / 必读 |
-| **Skill** | `.agent/skills/openspec-*`、`.claude/skills/openspec-*` | `/opsx-*` 或 skill 触发 |
-| **Kiro 桥接** | `.kiro/steering/` | Kiro vibe coding 自动加载；指向 AGENTS.md，不替代 |
-| **交接** | `.ai/ACTIVE_TASK.md` Current Progress、`AGENT_LOG` | 每会话必读 |
-| **完整参考** | 本目录 `workflow/**` | 人类指示或规划时按 README 阅读顺序 |
-
-规划 / 实现 OpenSpec 时，skills 须遵守 `AGENTS.md` 闸门，并在需要细节时打开本目录 checklist。
-
-## 4. 与 OpenSpec / 旧 Docs 的关系
+## 4. 层级与权威性
 
 | 层级 | 权威性 | 说明 |
 |---|---|---|
-| `AGENTS.md` + active OpenSpec | **最高** | 实现与验收以之为准 |
-| openspec skills | **执行剧本** | 不得绕过 AGENTS 闸门 |
-| 本目录 `workflow/**` | **完整参考** | 冲突时以 AGENTS / OpenSpec 为准 |
-| `项目初始分析.md` | 方向草稿 | **禁止**当作 ACTIVE scope |
-| `Docs/archive/**`、`Docs/design/**` | 历史 / 视觉 | 冲突让位 OpenSpec |
-| `roadmap/iteration-blueprint.md` | 方向层 | **v1.1 已冻结**（Phase 1）；实现仍须 Type C 闸门 |
-| `roadmap/iteration-blueprint-v1.2-draft.md` | 方向层草案 | **未冻结**；C5 后校准；不可替代 v1.1 或 OpenSpec |
-| `architecture/**` | 架构/选型参考 | 草稿；防推倒；随 C3–C5 漂移表更新 |
+| `AGENTS.md` | 硬规则 | 冲突时最高优先 |
+| accepted OpenSpec | 当前契约 | 旧 Docs 不得改写 |
+| active OpenSpec change | 本轮计划 | 只有审批后才能进入实现 |
+| `core-product-definition.md` | 长期方向 | 筛选未来能力，不等于已实现 |
+| `iteration-blueprint.md` | 方向序列 | 排序和停止条件，不授权代码 |
+| `workflow/**` | 方法参考 | 补充操作细节 |
+| `architecture/**` | 技术参考 | 冻结原则，不预批具体类名 |
+| `narrative/**` | 对外表达 | 不得反向充当实现事实源 |
 
-## 5. 两套「Agent」勿混谈
+## 5. 当前方向摘要
 
-| 概念 | 含义 | 主要文档 |
+Phase 1 / 2 已把 Agent Loop、Tool、Memory、Guardrail、Trace、Eval、Reflection、Resilience 与 Temporal Intelligence 做成能力底座。
+
+v2.0 不继续机械堆 Agent 技术，而按以下方向推进：
+
+```text
+诚实的真实产品表面
+  → 不依赖 Agent / 封存的“留下此刻”
+  → 可带走、可删除的数据主权
+  → 有朋友温度的见证者
+  → 按次授权、有出处、可撤销的记忆
+  → 安全闸
+  → 验证后再决定时间篇章
+```
+
+## 6. 两套“Agent”不要混谈
+
+| 概念 | 含义 | 主要事实源 |
 |---|---|---|
-| **协作 Agent / vibecoding** | 用 AI 写代码时的控制与证据体系 | 本目录 `workflow/**`、`.ai/AGENT_LOG.md`、OpenSpec |
-| **产品 Agent runtime** | 应用内的多轮引导、Tool Calling、Memory 等 | `项目初始分析.md` + 未来 roadmap / OpenSpec change |
+| 协作 Agent / vibecoding | AI 如何受控地规划、实现和验收 | `AGENTS.md`、`workflow/**`、`.ai/**`、OpenSpec |
+| 产品 Agent runtime | 小程序内的见证者、工具、记忆与护栏 | accepted specs、`roadmap/**`、各 Type C change |
 
-后续蓝图应同时服务两者，但 **change 序列不要把「治理加固」和「产品 Agent 能力」搅成一个巨型里程碑**。
+## 7. 执行纪律摘要
 
-## 6. 给 Claude 写蓝图时的硬约束摘要
-
-编写 `roadmap/iteration-blueprint.md` 时必须遵守：
-
-1. **不替代** active OpenSpec；蓝图是方向，change 才是可执行范围。
-2. **先收口当前阶段**（M4 准生产能力）再开产品 Agent 主线；与 `项目初始分析.md` 一致。
-3. **一次只激活一个 Type C change**；蓝图可列出序列，执行仍串行。
-4. 每个意图卡片写清：现状校正、目标、用户故事（改前坏事→改后不同）、非目标、建议落点的 baseline spec。
-5. 产品初心不变：安静、私密、克制、温柔；禁止做成话痨效率 Agent 或心理诊断仪表盘。
-6. 遵守 `AGENTS.md` Non-Negotiable：三 Tab、命名、secret 不进前端、封存后不可变、不做 major rewrite 等。
-7. 借鉴 RAG 的外调闸：批量 AI / embedding / 评测调用前必须披露预算并获授权。
-
-详细编写要求见 `roadmap/README.md`。
-
-## 7. 来源说明
-
-本目录工作流层提炼自姊妹项目 `C:\_01_Code\RAG` 的成熟实践，尤其是：
-
-- `RAG/AGENTS.md`（Type 分级、事实源、验证与提交）
-- `RAG/docs/workflow/vibecoding-playbook.md`
-- `RAG/docs/workflow/prompt-snippets/design-decision-record.md`
-- `RAG/docs/roadmap/iteration-blueprint.md`（结构参考，不复制 RAG 业务序列）
-- `RAG/.ai/AGENT_LOG.md` 与 C 系列 change 生命周期
-
-Flashback 本地化时已改写为小程序 / Spring Boot / M 里程碑语境，**不得**把 RAG 的 C1–C16 业务项原样搬入本仓库。
+1. 蓝图批准不等于 Type C 规划批准，更不等于实现授权。
+2. 一次最多一个 active Type C。
+3. 不确定的 API、字段、状态、持久化、权限、Provider、数据权利和安全语义必须先确认。
+4. 真实 provider、对象存储、push、部署和发布须单独授权。
+5. H2、build、scripted、真实 MySQL、对象存储、provider、微信真机和用户研究分层报告。
+6. `.ai/AGENT_LOG.md` 只追加；默认用户手动提交。
+7. 不写入用户日记原文、secret 或可识别私人信息。

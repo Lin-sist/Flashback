@@ -12,7 +12,9 @@
 
 ## 事实源优先级
 
-`AGENTS.md` Non-Negotiable > 已冻结蓝图 > active OpenSpec change > baseline specs > 代码 > 旧 Docs
+`AGENTS.md` Non-Negotiable > active OpenSpec change > accepted baseline specs > 当前代码与验证证据 > 当前方向文档 > 旧 Docs
+
+方向蓝图决定“往哪走”，不把未实现目标写成当前能力，也不替代 OpenSpec 的实现契约。
 
 ## 不使用 Kiro Specs
 
@@ -63,7 +65,9 @@
 | 硬规则 | `AGENTS.md` |
 | 当前任务状态 | `.ai/ACTIVE_TASK.md` |
 | 执行证据 | `.ai/AGENT_LOG.md` |
-| 已冻结蓝图 | `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**） |
+| 核心产品定义 | `Docs/agent-iteration/roadmap/core-product-definition.md`（v0.1） |
+| 当前冻结蓝图 | `Docs/agent-iteration/roadmap/iteration-blueprint.md`（v2.0） |
+| 历史能力蓝图 | `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（只读） |
 | 对外叙事（面试向） | `Docs/agent-iteration/narrative/agent-tech-story.md` |
 | Type C 开工清单 | `Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md` |
 | Type B 开工清单 | `Docs/agent-iteration/workflow/prompt-snippets/type-b-checklist.md` |

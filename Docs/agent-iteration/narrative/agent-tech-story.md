@@ -1,13 +1,15 @@
 ﻿# Flashback Agent 技术叙事（对外向）
 
 > 文档性质：**对外叙事**（面试 / 作品集 / 技术分享）——**不是** OpenSpec 契约，也不授权改任何代码
-> 状态日期：2026-08-03（§8 随 C7 `agent-reflection-loop` 归档补写）
-> 上游事实源：`roadmap/iteration-blueprint.md` v1.2 §9、`architecture/*`、`openspec/specs/**`、各刀 archive
+> 状态日期：2026-08-09（C1–C9 能力叙事已完整；产品方向已转入核心体验蓝图 v2.0）
+> 上游事实源：`roadmap/iteration-blueprint-v1.2.md` §9（C1–C9 技术取舍）、`roadmap/iteration-blueprint.md` v2.0（当前产品方向）、`architecture/*`、`openspec/specs/**`、各刀 archive
 > 维护纪律（D33）：**每刀 change 归档时更新对应段落**，不是最后一次性补写
 >
 > **硬边界（隐私等级最高）**：本文档是最可能被复制到外部的文件。
 > **禁止**出现用户日记原文、真实 secret、本机绝对路径、真实用户可识别信息。
 > 约束与 `AgentTraceCollector` 同源：只写结构化事实与数值。
+>
+> **方向校准**：本文主体讲述 C1–C9 的已实现能力历史；其中“共情友人”和固定阶段漏斗是当前 accepted baseline 的实现事实，不再代表长期目标。长期角色已冻结为“有朋友温度的见证者”，须待 P4.1 独立 Type C 才能改变实现与 baseline。
 
 ## 本文档怎么用
 
@@ -37,7 +39,7 @@
 
 **技术栈**：Spring Boot 3.3.5 + MyBatis + MySQL 8.0 + Uniapp/Vue3 小程序；AI 侧走 OpenAI-compatible HTTP（DeepSeek），Agent runtime 全自研。
 
-**当前进度**：Phase 1 六刀与 Phase 2 前三刀已归档（Eval → Reflection → Resilience）；下一刀是 Temporal。C8 的最终回归数字与环境跳过项见归档 closeout。
+**当前进度**：Phase 1 六刀与 Phase 2 四刀均已归档（Eval → Reflection → Resilience → Temporal）。当前 `ACTIVE_TASK=IDLE`；下一份蓝图先转向真实产品表面、此刻片段与数据主权，不默认继续扩张 Agent 技术栈。
 
 ---
 

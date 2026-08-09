@@ -2,7 +2,7 @@
 
 > 状态日期：2026-07-31
 > 文档性质：**方向与选型参考**，不是 OpenSpec change，**不授权直接改业务代码**
-> 状态：**已随 C8 归档校准**（2026-08-08）；Phase 1 + C6/C7/C8 事实已落表，下一刀 C9 选型指针已对齐
+> 状态：**C1–C9 能力底座已归档**（2026-08-08）；2026-08-09 蓝图 v2.0 转向核心体验与信任兑现，本目录继续作为已实现 Agent 架构参考
 > 执行硬规则仍以 `AGENTS.md` → `.ai/ACTIVE_TASK.md` → active OpenSpec → baseline specs 为准
 
 ## 本目录解决什么问题
@@ -25,7 +25,8 @@
 
 | 文档 | 角色 |
 |---|---|
-| `roadmap/iteration-blueprint.md` | **v1.2 已冻结**（2026-07-30）；能力与顺序的唯一方向源 |
+| `roadmap/iteration-blueprint.md` | **v2.0 已冻结**（2026-08-09）；当前核心体验与信任序列 |
+| `roadmap/iteration-blueprint-v1.2.md` | 历史只读；C1–C9 能力与工程 ADR 的方向来源 |
 | 本目录 | 支撑蓝图的架构与选型依据；**只冻结原则，不冻结类名** |
 | `narrative/agent-tech-story.md` | 对外叙事（面试向）；本目录的 ADR 是它的素材源 |
 
@@ -43,9 +44,8 @@
   → 消化漂移表，同步本目录状态头与阶段对齐章节
 ```
 
-**当前进度**：Phase 1（C1 → C2 → C4 → C3a → C3b → C5）六刀全部归档，端口已成形；
-**Phase 2 前三刀 C6/C7/C8 均已归档**；C8 已形成封闭失败分类、共享 24000ms provider-work budget、零自动 retry 与阶段化失败边界。
-下一刀 **C9 `agent-temporal-intelligence`**，仍须独立规划闸。
+**当前进度**：Phase 1（C1 → C2 → C4 → C3a → C3b → C5）与 Phase 2（C6 → C7 → C8 → C9）全部归档，端口与能力底座已成形。
+当前 v2.0 蓝图不预设新的 Agent 框架扩张；先做真实产品表面、此刻片段与数据主权，P4.1/P4.2 再对齐见证者与记忆主动权。
 
 ## 禁止
 

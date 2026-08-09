@@ -33,7 +33,9 @@ Flashback/
 └── Docs/
     └── agent-iteration/
         ├── roadmap/
-        │   └── iteration-blueprint.md  # 已冻结蓝图 v1.2
+        │   ├── core-product-definition.md       # 核心产品定义 v0.1
+        │   ├── iteration-blueprint.md            # 当前冻结蓝图 v2.0
+        │   └── iteration-blueprint-v1.2.md       # 历史能力蓝图（只读）
         └── workflow/                   # 协作方法论
             ├── vibecoding-playbook.md
             ├── agent-control-model.md
@@ -49,7 +51,8 @@ Flashback/
 | 看已有 API 契约 | `openspec/specs/backend-core/spec.md` |
 | 看前端页面契约 | `openspec/specs/miniapp-core/spec.md` |
 | 看产品范围 | `openspec/specs/v2-product-scope/spec.md` |
-| 看 Agent 方向蓝图 | `Docs/agent-iteration/roadmap/iteration-blueprint.md` |
+| 看当前产品方向 | `Docs/agent-iteration/roadmap/core-product-definition.md` + `Docs/agent-iteration/roadmap/iteration-blueprint.md` |
+| 看 C1–C9 能力历史 | `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md` |
 | 开 Type C change | `openspec/changes/<change-id>/` 新建 |
 | 写执行证据 | `.ai/AGENT_LOG.md` |
 

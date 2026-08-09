@@ -4,8 +4,8 @@
 
 - 项目名称： 《时光回序》Flashback。
 - 当前稳定基线： V1.0.1 之上的 **V2.0 M4 已接受能力**（真实 AI / 私有对象存储附件 / 位置 / 封面 / 时光轴筛选分页 / preview 隔离等，见 baseline specs）。
-- 当前工程状态： **Phase 2 前三刀已归档**：C6 `agent-eval-framework`（2026-07-31）、C7 `agent-reflection-loop`（2026-08-03）与 C8 `agent-resilience`（2026-08-08）。`.ai/ACTIVE_TASK.md` 为 `IDLE`。
-- 当前目标： V2.0 产品能力在 M4 准生产底座上继续演进；陪伴式 Agent 化方向见已冻结蓝图 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2**（Phase 1 已收官；Phase 2 序列 ~~C6~~→~~C7~~→~~C8~~→C9，**下一刀 C9 `agent-temporal-intelligence`**；方向生效，实现仍须 Type C OpenSpec change）。
+- 当前工程状态： **Phase 1 / Phase 2 均已完成**；C1–C9 已归档，最后一刀 C9 `agent-temporal-intelligence` 于 2026-08-08 归档。`.ai/ACTIVE_TASK.md` 为 `IDLE`。
+- 当前目标：在 M4 与 C1–C9 能力底座上转向核心体验与信任兑现。长期产品方向见 `Docs/agent-iteration/roadmap/core-product-definition.md` **v0.1**；当前冻结序列见 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v2.0**。下一建议动作是 Type B H0 `truth-surface-cleanup`，随后先做 E0 原型；P3.1 及以后任一 Type C 均须独立 OpenSpec change，蓝图不构成实现授权。
 - V2.0 核心表达： 写下此刻。
 - V2.0 版本性质： 用于展示与评审的 WeChat Mini Program 演示版，不是生产上线版本。
 - 当前验收目标： 仅验收 WeChat Mini Program。
@@ -21,6 +21,8 @@
 产品气质 SHOULD 安静、私密、克制、温柔，并带有时间感。它 MUST 尊重表达本身：即使未来的自己没有回信，最初写下的记录依然成立。
 
 ## V2.0 Core Loop / V2.0 核心闭环
+
+> 以下是当前 accepted baseline 的既有闭环，不代表蓝图 v2.0 已全部实现。其与“此刻片段 / 已保存 / 封存”目标状态之间的差异，必须通过后续独立 Type C change 才能改变契约与代码。
 
 ```text
 首页：写下此刻

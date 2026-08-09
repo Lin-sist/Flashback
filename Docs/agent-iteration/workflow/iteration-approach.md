@@ -1,10 +1,10 @@
 # Flashback 迭代思路说明
 
-> 文档性质：当前项目「应该如何迭代」的思路总览  
-> 读者：后续编写迭代蓝图的 Claude / 人类规划者  
-> 状态日期：2026-07-26  
-> 配套：`vibecoding-playbook.md`、`agent-control-model.md`、`../roadmap/`（往哪走，待写）  
-> **落地进度**：强制摘要已注入 `AGENTS.md`；checklist / Current Progress / LOG 模板已补；蓝图仍待写。
+> 文档性质：项目「应该如何迭代」的方法形成记录
+> 读者：后续维护迭代蓝图的 Agent / 人类规划者
+> 初始日期：2026-07-26；状态校准：2026-08-09
+> 配套：`vibecoding-playbook.md`、`agent-control-model.md`、`../roadmap/`
+> **落地进度**：本工作流已完整跑通 C1–C9；当前核心体验蓝图 v2.0 已冻结。本文第 9–10 节保留首次蓝图形成过程，同时校准现行入口。
 
 ---
 
@@ -83,7 +83,7 @@
 ### 4.1 控制环（每轮都一样）
 
 ```text
-① 方向层：iteration-blueprint（待写）回答「序列与依赖」
+① 方向层：iteration-blueprint（当前 v2.0）回答「序列与依赖」
 ② 本轮：ACTIVE_TASK 只指向一个 change 或明确 Type B 任务
 ③ 计划：proposal / design（含决策记录）/ tasks / spec delta
 ④ 批准：人审边界、非目标、外调预算、提交责任
@@ -206,9 +206,9 @@ RAG 后期使用 **细 Type C 序列**，适合质量与可答辩工程。
 
 ---
 
-## 9. 给 Claude 的「写蓝图」输入摘要
+## 9. 首次「写蓝图」输入摘要（历史）
 
-编写 `roadmap/iteration-blueprint.md` 时，请输出类似 RAG 蓝图的结构，但内容必须是 Flashback：
+以下摘要已用于形成历史 v1.2；当前维护入口为 `roadmap/iteration-blueprint.md` v2.0，历史能力蓝图为 `roadmap/iteration-blueprint-v1.2.md`：
 
 1. **阅读与执行约定**（蓝图 vs AGENTS vs OpenSpec；Type B/C 适用范围）
 2. **迭代总方向**（准生产 → 可信陪伴式 Agent 能力，而不是通用 Agent 平台）
@@ -228,10 +228,12 @@ RAG 后期使用 **细 Type C 序列**，适合质量与可答辩工程。
 - [x] 说清从 RAG **学什么、不学什么**
 - [x] 蓝图编写规格（`../roadmap/README.md`）
 - [x] **执行层注入**：`AGENTS.md` Type/Gates/Handoff/LOG；Type B/C checklist；Current Progress；skills 引用
-- [x] 产出 `iteration-blueprint.md` v1 草案（2026-07-27；待用户审阅后冻结）
-- [ ] **尚未** 用本工作流完整跑通一个 post-M4 Type C（落地检验）
+- [x] 产出并冻结能力蓝图 v1.2（现保存为 `iteration-blueprint-v1.2.md`）
+- [x] 用本工作流完整跑通 C1–C9 Type C，并全部归档
+- [x] 在核心产品定义 v0.1 上冻结下一份核心体验蓝图 v2.0（2026-08-09）
 
 **下一步（人类触发）**：
 
-1. 审阅并冻结 `roadmap/iteration-blueprint.md` v1；  
-2. 开启第一个 post-M4 Type C：`agent-runtime-mvp`（用 `type-c-checklist.md`）。
+1. 保持 `ACTIVE_TASK=IDLE`，先按蓝图执行 Type B H0 `truth-surface-cleanup`；
+2. 通过 Type A E0 原型 / 研究闸验证保存仪式与首页路径；
+3. 只有独立 proposal/design/tasks/delta 经批准后，才开启 P3.1 及后续 Type C。

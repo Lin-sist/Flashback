@@ -60,11 +60,18 @@
 
 ## Direction Layer
 
-- **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v1.2 已冻结**（2026-07-30）
+- **当前权威蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint.md` **v2.0 已冻结**（2026-08-09）
+- **上游产品宪章**：`Docs/agent-iteration/roadmap/core-product-definition.md` **v0.1 已确认**（2026-08-08）
+- **历史蓝图**：`Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（Phase 1 / Phase 2，已完成、只读）
 - 主线进度：M4 → C1 → C2 → C4 → C3a → C3b → C5（Phase 1 收官）→ **C6/C7/C8/C9 已归档**
 - **Phase 2 定案序**：~~C6 agent-eval-framework~~ → ~~C7 agent-reflection-loop~~ →
   ~~C8 agent-resilience~~ → ~~C9 agent-temporal-intelligence~~
-- **当前动作：IDLE**。Phase 2 已按冻结序列完成；Optional C0/C10/C11 均需证据触发并重新走规划闸
+- **v2.0 冻结序列**：H0 `truth-surface-cleanup` → E0 `capture-ritual-prototype` →
+  P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
+  P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
+  E1 `time-chapter-prototype`（有正证据才进入 P5.x）
+- **当前动作：IDLE**。蓝图批准不等于实现授权；H0 尚未启动，任何 Type C 仍须独立 OpenSpec change；
+  旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -96,7 +103,9 @@
 ## Source Of Truth
 
 - `AGENTS.md`
-- `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；Phase 2 方向与意图卡片）
+- `Docs/agent-iteration/roadmap/core-product-definition.md`（**v0.1 已确认**；长期产品方向）
+- `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
+- `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
 - `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**，Agent 核心契约）
 - `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**）

@@ -242,9 +242,9 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 
 ---
 
-## 8. Phase 对齐（与蓝图的关系）
+## 8. Phase 对齐（与蓝图历史的关系）
 
-> 编号以蓝图 **v1.2** 为准（Phase 2 在 Eval 之后插入了反思环，韧性与时间智能各顺移一位）。
+> C1–C9 编号以历史蓝图 **v1.2** 为准；当前核心体验方向以 `roadmap/iteration-blueprint.md` **v2.0** 为准。v2.0 不默认续开 Agent 技术刀。
 
 | 阶段 | Change | 状态 | 宪法关注点 |
 |---|---|---|---|
@@ -252,7 +252,7 @@ Phase 1 已落地的预算项：`contextMessageWindow`、`draftExcerptChars`、`
 | Phase 2 | C6 `agent-eval-framework` | **已归档**（2026-07-31） | `EvalPort` 落地；轨迹不变量 + 回归比对，不做 Judge。**`src/main` 零改动**；「CI 可跑子集」如实记为无落点（仓库无 CI） |
 | Phase 2 | C7 `agent-reflection-loop` | **已归档（2026-08-03）** | L1 已引入 reply-only **受控环**；判定源复用 `GuardrailPort`，上限 1 次 |
 | Phase 2 | C8 `agent-resilience` | **已归档（2026-08-08）** | L4 已形成封闭分类、共享 deadline、零自动 retry 与阶段化失败边界 |
-| Phase 2 | C9 `agent-temporal-intelligence` | **下一刀** | Temporal 是 L3 强化，不新造用户分析后台 |
+| Phase 2 | C9 `agent-temporal-intelligence` | **已归档（2026-08-08）** | Temporal 已作为 L3 强化落地；使用确定性距离、衰减与有限重复证据，不新造用户分析后台 |
 | Optional | C0 / C10 / C11 | 证据触发 | 平台升级 / 语气标定 / 上下文架构 |
 
 **已发生的合法漂移（写入宪法以免误判为「失败」）：**

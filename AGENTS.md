@@ -4,8 +4,8 @@
 
 - 项目：时光回序 Flashback V2.0。
 - 技术栈：Uniapp + Vue 3 + Pinia + WeChat Mini Program；backend 为 Spring Boot / MyBatis / MySQL 方向。
-- 当前阶段：**Phase 2 四刀均已归档**（C6 `agent-eval-framework`：2026-07-31；C7 `agent-reflection-loop`：2026-08-03；C8 `agent-resilience`：2026-08-08；C9 `agent-temporal-intelligence`：2026-08-08）。方向蓝图 **v1.2 已冻结**（2026-07-30）；后续能力须重新走独立规划闸，不默认启动 Optional C0/C10/C11。
-- 产品初心：帮助用户写下当下，并让未来的自己重新理解这一刻；不是效率仪表盘、社交流或管理后台。
+- 当前阶段：**Phase 2 四刀均已归档**（C6 `agent-eval-framework`：2026-07-31；C7 `agent-reflection-loop`：2026-08-03；C8 `agent-resilience`：2026-08-08；C9 `agent-temporal-intelligence`：2026-08-08）。核心产品定义 **v0.1 已确认**、核心体验迭代蓝图 **v2.0 已冻结**（2026-08-09）；后续仍须重新走独立规划闸，不默认启动旧 Optional C0/C10/C11 或蓝图中的任一 Type C。
+- 产品初心：给用户想留下的此刻一个位置，保存生命不同阶段的第一人称现场；不是效率仪表盘、社交流、管理后台或以 AI 为中心的聊天产品。
 
 ## Source of Truth
 
@@ -20,9 +20,13 @@
   - `openspec/specs/v2-product-scope/spec.md`
   - `openspec/specs/agent-collaboration/spec.md`
 - **M4 归档位置（历史，非 active）**：`openspec/changes/archive/2026-07-27-m4-real-capability-completion/`
-- **方向蓝图（已冻结 v1.2）**：`Docs/agent-iteration/roadmap/iteration-blueprint.md`  
+- **方向层产品宪章（已确认 v0.1）**：`Docs/agent-iteration/roadmap/core-product-definition.md`
+  - 回答产品为什么存在、长期做与不做什么；**不替代 accepted OpenSpec**
+- **当前方向蓝图（已冻结 v2.0）**：`Docs/agent-iteration/roadmap/iteration-blueprint.md`
   - 批准方向、依赖、气质与意图卡片；**仍不授权直接改业务代码**  
   - 实现必须新建 `openspec/changes/<change-id>/` 并走三道闸门
+- **历史方向蓝图（只读）**：`Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`
+  - 记录已完成的 Phase 1 / Phase 2 Agent 能力叙事与旧 Optional，不再是当前执行序列
 
 ## Non-Negotiable Rules
 
@@ -103,6 +107,6 @@ Type C 同时最多 **一个** active change。`ACTIVE_TASK=IDLE` 时禁止业�
 - 普通 bugfix / 样式精修不需要修改 OpenSpec，只需要写入 `.ai/AGENT_LOG.md`。
 - Type C 操作性清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`。
 - Type B 操作性清单：`Docs/agent-iteration/workflow/prompt-snippets/type-b-checklist.md`。
-- 长期方向蓝图：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v1.2 已冻结**；批准方向与气质约束，仍不授权直接改业务代码）。
+- 长期方向蓝图：`Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现，仍不授权直接改业务代码）。
 - 对外叙事（面试向，非执行契约）：`Docs/agent-iteration/narrative/agent-tech-story.md`。**禁止写入用户日记原文、secret、本机绝对路径。**
 - `Docs/agent-iteration/项目初始分析.md` 是产品方向评估草稿，**不是**已批准 roadmap 或 OpenSpec。

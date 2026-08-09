@@ -2,9 +2,9 @@
 
 > 文档性质：选型事实 + ADR 式推荐 + 演进路径  
 > 状态日期：2026-08-08
-> 状态：**v0.3——已随 C8 归档校准**；蓝图 v1.2 仍保持冻结
+> 状态：**v0.3——C1–C9 能力底座参考**；当前产品方向已切换至蓝图 v2.0
 > 不授权改业务代码；具体 change 的最终选型以该 change 的 `design.md` 决策记录为准  
-> 配套：`agent-architecture-constitution.md`、`roadmap/iteration-blueprint.md`（v1.2 已冻结）
+> 配套：`agent-architecture-constitution.md`、`roadmap/iteration-blueprint.md`（v2.0 当前冻结）、`roadmap/iteration-blueprint-v1.2.md`（能力历史）
 
 ---
 
@@ -255,19 +255,20 @@ C6 的回归比对可按 `prompt_version` / `policy_version` 分组（`c5-trace-
 | 图框架 | **不引入**（D27）：现有阶段机已具备节点/边/抢占/自环/终态 | rejected |
 | 精细诊断载体 | **不做**：靠自觉维持隐私边界不可靠，配约束测试成本反超收益 | rejected |
 
-### 3.11 Temporal（**C9**，预研）
+### 3.11 Temporal（**C9**，已归档）
 
-| 决策点 | 推荐 | 状态 |
+| 决策点 | 选择 | 状态 |
 |---|---|---|
-| 依赖 | C3a/C3b 的 Memory 元数据（时间戳、摘要主题） | confirmed 可用 |
-| 能力 | 时间距离话术、衰减注入、克制周期提及 | planned |
+| 依赖 | C3a/C3b 的 Memory 元数据（时间戳、摘要主题） | confirmed |
+| 能力 | `RECENT / DISTANT / LONG_AGO / UNKNOWN` 距离话术、100% / 75% / 50% 上下文预算衰减、克制 recurrence hint | confirmed |
 | 禁止 | 情绪 % 趋势、诊断、dashboard | rejected |
-| 实现位置 | L3 策略模块，而不是新前端分析页 | planned |
-| 前置 | C6 的克制维度须已能约束「时间话术不滑向分析」 | planned |
+| 实现位置 | L3 `agent/temporal` 策略模块，而不是新前端分析页 | confirmed |
+| recurrence 门槛 | 仅 `REVIEW_CHAT` + 明确比较 cue + 至少 2 条不同旁支记录 + 已知跨度 ≥90 天；每轮最多一个 | confirmed |
+| 安全边界 | overreach fail-closed；只允许有限重复表达，不声称周期、趋势、原因或预测 | confirmed |
 
 ---
 
-## 4. 默认技术栈（Phase 1 已落地 + Phase 2 方向）
+## 4. 默认技术栈（Phase 1 / Phase 2 已落地）
 
 ```text
 Language/Runtime : Java 17 · Spring Boot 3.3.5 · MyBatis · MySQL 8.0   ✅
@@ -279,9 +280,9 @@ Memory           : MemoryPort · MySQL 关键词/标签/时间检索 · 注入�
 Guardrails       : 规则源 + 确定性检查 + 忠实度双指标 + 分路径降级      ✅
 Trace            : versioned event schema · MySQL 表 · 无原文           ✅
 Eval             : 仓内 runner + 轨迹不变量 + 快照回归（C6）            ✅
-Reflection       : 护栏驱动的 reply-only 受控环，上限 1 次（C7）         → 已归档
-Resilience       : 错误分类 + 共享 deadline + 阶段化温暖失败（C8）      → 已落地；多 provider deferred
-Temporal         : 时间元数据策略（C9）                                 → 下一规划闸
+Reflection       : 护栏驱动的 reply-only 受控环，上限 1 次（C7）         ✅
+Resilience       : 错误分类 + 共享 deadline + 阶段化温暖失败（C8）      ✅；多 provider deferred
+Temporal         : 确定性距离 + 预算衰减 + recurrence 门槛（C9）         ✅
 UI               : Uniapp 增量对话入口（未改三 Tab）                    ✅
 Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → 证据触发
 ```
@@ -350,16 +351,11 @@ Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → �
 
 | ID | 事项 | 决策时机 | 状态 |
 |---|---|---|---|
-| P8 | Eval 可编排 mock 替身形态（不得改 `AgentMockResponder`） | C6 design | open |
-| P13 | 反思环与轨迹 `attempt_no` 的关系（重写是否算新 attempt） | C7 design | closed：同一 attempt 的 provider 子阶段 |
 | P10 | 语义缓存是否值得做 | 独立 change（证据触发） | deferred |
 | P11 | 备选 provider | 独立 change（证据触发） | deferred |
-| P12 | Temporal 最小记录数阈值 | C9 | open |
 | P15 | Optional C0 的触发条件与验收形态 | C0 proposal（若开） | open |
 
 **已关闭（勿回退，除非新 change 显式翻案）：**
-
-- **P14**：C8 采用 request-scope 24000ms provider-work budget；单次调用取 `min(20000ms, remaining)`，不足最小阈值不发请求；frontend 30000ms 不变。
 
 | ID | 事项 | 结论 | 关闭于 |
 |---|---|---|---|
@@ -370,8 +366,12 @@ Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → �
 | P5 | 友人回看 UI | `ReviewChatSheet` 浮层 + `purpose` 区分 | C3b |
 | P6 | Guardrails 实现方式 | 规则源 + 后置确定性检查 + 分路径降级 | C4 |
 | P7 | Trace 存储 | MySQL `agent_turn_trace` 表，默认全量 | C5 |
+| P8 | Eval 可编排 mock 替身 | scripted `AgentModelClient`，不改生产 `AgentMockResponder` | C6 |
 | P-F | 忠实度是否纳入历史来源 | **方案 B**：历史入源 + `MISSING_TIME_ATTRIBUTION` 强制时间锚点 | C3a |
 | P9 | Judge 是否独立 provider | **不做 Judge**（D31） | v1.2 校准会 |
+| P12 | Temporal 最小记录数阈值 | recurrence 至少 2 条不同旁支记录，且已知时间跨度 ≥90 天 | C9 |
+| P13 | 反思环与轨迹 `attempt_no` 的关系 | 同一 attempt 的 provider 子阶段 | C7 |
+| P14 | Provider work budget | request-scope 24000ms；单次调用取 `min(20000ms, remaining)`；不足最小阈值不发请求 | C8 |
 
 ---
 
@@ -381,3 +381,4 @@ Platform upgrade : Spring Boot 4.x / Java 21（Optional C0）             → �
 |---|---|---|
 | v0.1 | 2026-07-28 | 初稿：锚定 C1/C2/C4 事实；为 C3/C5/Phase2 留演进缝；强调 C5 后校准冻结 |
 | **v0.2** | **2026-07-30** | 随蓝图 v1.2 冻结校准：① §2 现状快照按代码重写（Memory / 回看 / Observability 转 confirmed，新增 Eval / Resilience / 认证 / Redis 四行）② §3.4 关闭 P4/P5 并补 C3a 数据稀疏实测 ③ **ADR-R4 关闭**（P-F 采用方案 B，附代价说明）④ §3.5 补 violation 集合与降级分流，LLM 审核官转 rejected ⑤ §3.6 补实测耗时与超时顺序；**ADR-R5 强化**（Spring AI 2.0 需 Boot 4.x + 会吃掉四处自研资产）⑥ §3.7 全表转 confirmed，登记 `/admin` 不可达与已落地关联字段 ⑦ **§3.8 删除「可选 LLM-as-Judge」**（D31 否决），改为不变量 + 快照分层 + P8 mock 替身约束 ⑧ 新增 **§3.10 Reflection（C7）**；韧性顺移 §3.9/C8、时间智能顺移 §3.11/C9 ⑨ §4 默认栈标注落地状态 ⑩ §5 新增五项 rejected ⑪ §6 漂移表补齐 Phase 1 全部九行并标记已消化 ⑫ §7 拆为 open / closed 两表 |
+| **v0.3** | **2026-08-09** | C6–C9 全部归档后校准：Temporal 转 confirmed；关闭 P8/P12/P13/P14；现行产品方向切换到核心体验蓝图 v2.0，本文保留为能力底座参考 |
