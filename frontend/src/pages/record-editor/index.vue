@@ -2,6 +2,7 @@
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
+import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import AgentChatSheet from './components/AgentChatSheet.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
@@ -1591,6 +1592,7 @@ onUnload(() => {
 
 <template>
   <view class="page">
+    <PreviewModeNotice />
     <!-- 宣纸底色光晕 -->
     <view class="page-bg" aria-hidden="true" />
 

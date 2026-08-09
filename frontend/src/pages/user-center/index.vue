@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
+import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import { recordService, stageSummaryService, type StageSummaryVO } from '../../services'
 import { useUserStore } from '../../stores'
 import { RecordStatus } from '../../types'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { getToken, hasAuthenticatedSession } from '../../utils'
 
-type SettingKey = 'record' | 'appearance' | 'privacy' | 'backup' | 'about' | 'tag' | 'notify'
+type SettingKey = 'about'
 
 interface SettingItem {
   key: SettingKey
@@ -22,46 +23,24 @@ interface SettingGroup {
 }
 
 const userStore = useUserStore()
-const appVersion = 'v2.4.0'
-
 const routeMap: Record<SettingKey, string> = {
-  record: '/pages/user-center/archive-preference/index',
-  appearance: '/pages/user-center/visual-appearance/index',
-  privacy: '/pages/user-center/access-control/index',
-  backup: '/pages/user-center/data-backup/index',
   about: '/pages/user-center/about/index',
-  tag: '/pages/user-center/tag-manage/index',
-  notify: '/pages/user-center/notify-settings/index',
 }
 
 const settingGroups: SettingGroup[] = [
   {
-    label: '档 案 设 置',
-    items: [
-      { key: 'record', title: '整理偏好', iconClass: 'icon-archive' },
-      { key: 'appearance', title: '视觉外观', iconClass: 'icon-appearance' },
-    ],
-  },
-  {
-    label: '隐 私 与 安 全',
-    items: [
-      { key: 'privacy', title: '访问控制', iconClass: 'icon-lock' },
-      { key: 'backup', title: '数据备份', iconClass: 'icon-backup' },
-    ],
-  },
-  {
     label: '关 于',
     items: [
-      { key: 'about', title: '版本信息', iconClass: 'icon-info', meta: appVersion },
+      { key: 'about', title: '构建信息', iconClass: 'icon-info', meta: '演示构建' },
     ],
   },
 ]
 
 const nickname = ref('访客')
-const signature = ref('在静默中整理岁月的碎片')
+const signature = ref('给想留下的此刻，一个位置')
 const avatarUrl = ref('')
-const savedCount = ref(0)
-const archiveDays = ref(0)
+const archivedCount = ref(0)
+const sealedCount = ref(0)
 const centerLoading = ref(false)
 const centerLoadFailed = ref(false)
 const profileReady = ref(false)
@@ -69,8 +48,8 @@ const summaryLoading = ref(false)
 const stageSummary = ref<StageSummaryVO | null>(null)
 
 const avatarInitial = computed(() => (nickname.value.trim() || '访').slice(0, 1))
-const displaySavedCount = computed(() => String(savedCount.value).replace(/\B(?=(\d{3})+(?!\d))/g, ','))
-const displayArchiveDays = computed(() => String(archiveDays.value))
+const displayArchivedCount = computed(() => String(archivedCount.value).replace(/\B(?=(\d{3})+(?!\d))/g, ','))
+const displaySealedCount = computed(() => String(sealedCount.value))
 const showInitialLoading = computed(() => centerLoading.value && !profileReady.value)
 const showInitialFailure = computed(() => centerLoadFailed.value && !profileReady.value)
 const showStaleNotice = computed(() => centerLoadFailed.value && profileReady.value)
@@ -144,10 +123,10 @@ const loadCenterData = async () => {
       recordService.getUnlockedRecords(1, 1),
     ])
     nickname.value = user?.nickname || user?.username || '访客'
-    signature.value = user?.email?.trim() || '在静默中整理岁月的碎片'
+    signature.value = '给想留下的此刻，一个位置'
     avatarUrl.value = user?.avatar?.trim() || ''
-    savedCount.value = sealedPage.total + unlockedPage.total
-    archiveDays.value = sealedPage.total
+    archivedCount.value = sealedPage.total + unlockedPage.total
+    sealedCount.value = sealedPage.total
     profileReady.value = true
   } catch {
     centerLoadFailed.value = true
@@ -167,6 +146,7 @@ onShow(() => {
 
 <template>
   <view class="page">
+    <PreviewModeNotice />
     <view class="paper-texture" />
     <view class="paper-glow" />
 
@@ -219,12 +199,12 @@ onShow(() => {
         <!-- stats row -->
         <view class="stats-row">
           <view class="stat-card" hover-class="stat-card-hover" @tap="navigateToArchive">
-            <view class="stat-label">已存记忆</view>
-            <view class="stat-num">{{ displaySavedCount }}</view>
+            <view class="stat-label">封存及抵达</view>
+            <view class="stat-num">{{ displayArchivedCount }}</view>
           </view>
           <view class="stat-card stat-card-highlight" hover-class="stat-card-hover" @tap="navigateToArchive">
-            <view class="stat-label">存档天数</view>
-            <view class="stat-num">{{ displayArchiveDays }}</view>
+            <view class="stat-label">封存中</view>
+            <view class="stat-num">{{ displaySealedCount }}</view>
           </view>
         </view>
 

@@ -222,11 +222,8 @@ onShow(() => {
 
         <!-- 预览入口 -->
         <view v-if="showPreviewEntry" class="preview-entry" @tap="enterPreview">
-          <text class="preview-text">预览进入</text>
+          <text class="preview-text">进入概念预览（示例数据）</text>
         </view>
-
-        <!-- 忘记密码 -->
-        <view class="forgot">寻回记忆（忘记密码）</view>
       </view>
     </view>
   </view>

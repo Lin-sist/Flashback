@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
+import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import { useRecordStore } from '../../stores'
 import {
@@ -54,12 +55,13 @@ const hasContextMismatch = computed(
 const selectedStatusLabel = computed(() => statusLabelMap[selectedStatus.value])
 const appliedStatusLabel = computed(() => statusLabelMap[appliedStatus.value])
 
-const totalCount = computed(() => filteredList.value.length)
+const visibleCount = computed(() => filteredList.value.length)
 
 const overviewCountText = computed(() => {
-  if (recordStore.loading && totalCount.value === 0) return '整理中'
-  if (listLoadFailed.value && totalCount.value === 0) return '暂未同步'
-  return `共 ${totalCount.value} 份记录`
+  if (recordStore.loading && visibleCount.value === 0) return '整理中'
+  if (listLoadFailed.value && visibleCount.value === 0) return '暂未同步'
+  if (keyword.value.trim()) return `当前页 ${visibleCount.value} 个匹配`
+  return `共 ${recordStore.total} 份记录`
 })
 
 const showLoadFailureState = computed(
@@ -209,6 +211,7 @@ onShow(loadList)
 
 <template>
   <view class="page">
+    <PreviewModeNotice />
     <!-- 宣纸纹理层 -->
     <view class="page-noise" />
     <!-- 光晕层 -->
@@ -236,7 +239,7 @@ onShow(loadList)
           <input
             class="search-input"
             :value="keyword"
-            placeholder="搜寻信件标题或内容"
+            placeholder="搜索当前已载入的标题或内容"
             placeholder-class="search-placeholder"
             @input="onSearchInput"
           />

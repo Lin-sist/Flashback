@@ -1,5 +1,4 @@
 import type {
-  CreateRecordDTO,
   PageQuery,
   PaginationResponse,
   RecordDetailVO,
@@ -283,20 +282,3 @@ export const getPreviewReply = (recordId: number) => {
   const reply = previewReplies[recordId]
   return reply ? deepCopy(reply) : null
 }
-
-export const getPreviewWriteDraftResult = (payload: CreateRecordDTO, id = 9901): RecordDetailVO => ({
-  id,
-  title: payload.title?.trim() || '预览中的未命名草稿',
-  content: payload.content,
-  recordType: payload.recordType,
-  coreQuestion: payload.coreQuestion,
-  status: RecordStatus.DRAFT,
-  unlockAt: payload.unlockAt || undefined,
-  aiSummary: payload.aiSummary || undefined,
-  aiPromptResults: payload.aiPromptResults || [],
-  tags: resolveTags(payload.tagIds || []),
-  canReply: false,
-  hasReply: false,
-  createdAt: '2026-04-21 10:30:00',
-  updatedAt: '2026-04-21 10:30:00',
-})

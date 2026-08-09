@@ -4,6 +4,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import PaperContainer from '../../components/common/PaperContainer.vue'
 import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import EmptyState from '../../components/common/EmptyState.vue'
+import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import ReadOnlyRecordMedia from './components/ReadOnlyRecordMedia.vue'
 import ReviewChatSheet from './components/ReviewChatSheet.vue'
@@ -460,6 +461,7 @@ onLoad(async (query) => {
 
 <template>
   <view class="archive-page" :style="pageStyle">
+    <PreviewModeNotice />
     <!-- 宣纸底纹 -->
     <view class="archive-backdrop" />
 

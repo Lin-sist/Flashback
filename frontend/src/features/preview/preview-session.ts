@@ -1,7 +1,7 @@
 import { isPreviewModeEnabled } from '../../config/app-env'
 
 const PREVIEW_SESSION_KEY = 'flashback:preview-session'
-const PREVIEW_TOAST_TITLE = '演示模式下仅展示效果'
+const PREVIEW_TOAST_TITLE = '概念预览为只读，不会保存修改'
 
 interface PreviewSession {
   enabled: true

@@ -9,13 +9,7 @@ const shouldUsePreviewData = () => !getToken() && hasPreviewSession()
 export const replyService = {
   submitReply(recordId: number, payload: Omit<CreateReplyDTO, 'recordId'>) {
     if (shouldUsePreviewData()) {
-      return Promise.resolve({
-        id: Date.now(),
-        recordId,
-        content: payload.content,
-        replyType: payload.replyType,
-        createdAt: Date.now(),
-      })
+      return Promise.reject<ReplyVO>(new Error('概念预览为只读，不会保存任何修改'))
     }
 
     return httpRequest<ReplyVO>({

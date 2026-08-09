@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
+import PreviewModeNotice from '../../../components/common/PreviewModeNotice.vue'
 import { hasAuthenticatedSession } from '../../../utils'
 
 const ensureLogin = () => {
@@ -26,54 +27,41 @@ onLoad(() => {
 
 <template>
   <view class="page">
+    <PreviewModeNotice />
     <scroll-view class="sub-page" scroll-y enhanced :show-scrollbar="false">
       <view class="top-nav">
         <view class="back-btn" @tap="goBack">
           <view class="back-arr" />
           <text class="back-label">我 的</text>
         </view>
-        <view class="page-title">版 本 信 息</view>
+        <view class="page-title">构 建 信 息</view>
         <view class="top-right-space" />
       </view>
 
-      <!-- 版本号展示 -->
+      <!-- 构建身份 -->
       <view style="text-align: center; margin-bottom: 56rpx;">
         <view style="font-family: var(--serif); font-size: 22rpx; font-weight: 300; color: var(--ink-light); letter-spacing: 0.35em; margin-bottom: 24rpx;">时 光 回 序</view>
         <view class="deco-line" style="margin: 0 auto 28rpx; width: 64rpx;" />
-        <view style="font-family: var(--serif); font-size: 64rpx; font-weight: 300; color: var(--ink-mid); letter-spacing: 0.1em;">v 2.4.0</view>
-        <view style="font-family: var(--sans); font-size: 20rpx; font-weight: 300; color: var(--ink-light); letter-spacing: 0.08em; margin-top: 12rpx;">2026年5月20日 发布</view>
+        <view style="font-family: var(--serif); font-size: 56rpx; font-weight: 300; color: var(--ink-mid); letter-spacing: 0.1em;">演 示 构 建</view>
+        <view style="font-family: var(--sans); font-size: 20rpx; font-weight: 300; color: var(--ink-light); letter-spacing: 0.08em; margin-top: 12rpx;">用于小程序体验与能力验证 · 不代表生产发布</view>
       </view>
 
-      <!-- 更新日志 -->
+      <!-- 能力说明 -->
       <view class="section">
-        <view class="section-label">更 新 日 志</view>
+        <view class="section-label">当 前 边 界</view>
         <view class="group-card" style="padding: 0 44rpx 0 56rpx;">
           <view class="ver-entry">
-            <view class="ver-num">v 2.4.0 <text style="font-size: 20rpx; color: var(--vermilion); opacity: 0.75; letter-spacing: 0.06em; margin-left: 8rpx;">当前版本</text></view>
-            <view class="ver-date">2026 · 05 · 20</view>
+            <view class="ver-num">真实路径</view>
             <view class="ver-items">
-              <view class="ver-item">新增「纸色基调」四种主题切换</view>
-              <view class="ver-item">优化首页信笺卡片入场动画节奏</view>
-              <view class="ver-item">封存倒计时精度提升至分钟级</view>
-              <view class="ver-item">修复部分设备下字重渲染异常</view>
+              <view class="ver-item">登录后的能力以当前实际界面与服务状态为准</view>
+              <view class="ver-item">未实现的备份、同步、锁屏与全量导出不会作为可用能力展示</view>
             </view>
           </view>
           <view class="ver-entry">
-            <view class="ver-num">v 2.3.1</view>
-            <view class="ver-date">2026 · 03 · 08</view>
+            <view class="ver-num">概念预览</view>
             <view class="ver-items">
-              <view class="ver-item">时光轴新增「按情绪筛选」功能</view>
-              <view class="ver-item">书写页面支持横屏模式</view>
-              <view class="ver-item">数据备份稳定性优化</view>
-            </view>
-          </view>
-          <view class="ver-entry">
-            <view class="ver-num">v 2.0.0</view>
-            <view class="ver-date">2025 · 11 · 01</view>
-            <view class="ver-items">
-              <view class="ver-item">全新宣纸视觉语言系统上线</view>
-              <view class="ver-item">重构时光轴为瀑布流布局</view>
-              <view class="ver-item">加入「封存期」核心功能</view>
+              <view class="ver-item">使用示例数据，只用于浏览核心流程</view>
+              <view class="ver-item">预览为只读，不会保存修改，也不会访问真实 AI 或媒体服务</view>
             </view>
           </view>
         </view>
@@ -81,14 +69,14 @@ onLoad(() => {
 
       <!-- 寄语 -->
       <view class="quote-card">
-        <view class="quote-text">时光不会倒流，但可以回序。<br>每一个被封存的瞬间，<br>都在等待被未来的你重新读懂。</view>
-        <view class="quote-src">时光回序 制作团队</view>
+        <view class="quote-text">给想留下的此刻，<br>一个位置。</view>
+        <view class="quote-src">时光回序</view>
       </view>
 
       <!-- 底部版权 -->
       <view style="margin-top: 56rpx; text-align: center;">
         <view style="font-family: var(--sans); font-size: 20rpx; font-weight: 300; color: var(--ink-light); letter-spacing: 0.08em; line-height: 2;">
-          © 2025–2026 时光回序<br>以宣纸之名，留岁月之迹
+          时光回序 · 私人的生命片段记录空间
         </view>
       </view>
 

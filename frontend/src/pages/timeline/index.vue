@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import { recordService, tagService } from '../../services'
 import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
 import {
@@ -332,6 +333,7 @@ onShow(() => {
 
 <template>
   <view class="page">
+    <PreviewModeNotice />
     <view class="paper-texture" />
     <view class="paper-glow" />
 
@@ -539,7 +541,7 @@ onShow(() => {
                   </view>
                   <view class="card-meta">
                     <view class="seal seal-open"><text class="seal-char seal-char-open">封</text></view>
-                    <text class="card-tag">已解封 · 图文记忆</text>
+                    <text class="card-tag">{{ item.hasImage ? '已解封 · 图文记忆' : '已解封 · 时间回看' }}</text>
                   </view>
                   <text class="card-title">{{ item.title }}</text>
                   <view class="card-footer">

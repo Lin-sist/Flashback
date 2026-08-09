@@ -1,7 +1,6 @@
 import { httpRequest } from './httpClient'
 import {
   RecordReminderStatus,
-  RecordType,
 } from '../types'
 import type {
   CreateRecordDTO,
@@ -21,7 +20,6 @@ import {
   getPreviewRecordList,
   getPreviewTimeline,
   getPreviewUnlockedRecords,
-  getPreviewWriteDraftResult,
 } from '../features/preview/data/preview-data'
 import { hasPreviewSession } from '../features/preview/preview-session'
 import { getToken } from '../utils'
@@ -53,10 +51,13 @@ const toDraftPayload = (payload: CreateRecordDTO | UpdateRecordDTO) => ({
 
 const shouldUsePreviewData = () => !getToken() && hasPreviewSession()
 
+const rejectPreviewMutation = <T>() =>
+  Promise.reject<T>(new Error('概念预览为只读，不会保存任何修改'))
+
 export const recordService = {
   createDraft(payload: CreateRecordDTO) {
     if (shouldUsePreviewData()) {
-      return Promise.resolve(getPreviewWriteDraftResult(payload))
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -67,7 +68,7 @@ export const recordService = {
   },
   updateDraft(id: string | number, payload: UpdateRecordDTO) {
     if (shouldUsePreviewData()) {
-      return Promise.resolve(getPreviewWriteDraftResult(payload, Number(id) || 9901))
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -78,7 +79,7 @@ export const recordService = {
   },
   updateLocation(id: string | number, payload: UpdateRecordLocationDTO) {
     if (shouldUsePreviewData()) {
-      return Promise.reject(new Error('Preview mode is read-only'))
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -89,7 +90,7 @@ export const recordService = {
   },
   deleteLocation(id: string | number) {
     if (shouldUsePreviewData()) {
-      return Promise.reject(new Error('Preview mode is read-only'))
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -99,7 +100,7 @@ export const recordService = {
   },
   updateCover(id: string | number, payload: UpdateRecordCoverDTO) {
     if (shouldUsePreviewData()) {
-      return Promise.reject(new Error('Preview mode is read-only'))
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -110,7 +111,7 @@ export const recordService = {
   },
   deleteDraft(id: string | number) {
     if (shouldUsePreviewData()) {
-      return Promise.resolve()
+      return rejectPreviewMutation<void>()
     }
 
     return httpRequest<void>({
@@ -120,8 +121,7 @@ export const recordService = {
   },
   sealRecord(id: string | number) {
     if (shouldUsePreviewData()) {
-      const detail = getPreviewRecordDetail(id)
-      return Promise.resolve(detail || getPreviewWriteDraftResult({ content: '', recordType: RecordType.FUTURE_LETTER }, Number(id) || 9901))
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -131,15 +131,7 @@ export const recordService = {
   },
   updateUnlockReminderAuthorization(id: string | number, status: RecordReminderStatus) {
     if (shouldUsePreviewData()) {
-      const detail = getPreviewRecordDetail(id)
-      if (!detail) {
-        return Promise.reject(new Error('Record not found'))
-      }
-
-      return Promise.resolve({
-        ...detail,
-        unlockReminderStatus: status,
-      })
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({
@@ -177,15 +169,7 @@ export const recordService = {
   },
   updateLaterReflection(id: string | number, realityLater: string) {
     if (shouldUsePreviewData()) {
-      const detail = getPreviewRecordDetail(id)
-      if (!detail) {
-        return Promise.reject(new Error('Record not found'))
-      }
-      return Promise.resolve({
-        ...detail,
-        realityLater,
-        realityLaterSubmitCount: Math.min((detail.realityLaterSubmitCount || 0) + 1, 2),
-      })
+      return rejectPreviewMutation<RecordDetailVO>()
     }
 
     return httpRequest<RecordDetailVO>({

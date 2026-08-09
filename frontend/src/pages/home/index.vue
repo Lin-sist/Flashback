@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onHide, onShow } from '@dcloudio/uni-app'
 import { computed, onUnmounted, ref } from 'vue'
+import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import { recordService } from '../../services'
 import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
 import { RecordStatus, type RecordListItemVO } from '../../types'
@@ -187,6 +188,7 @@ onUnmounted(() => {
 
 <template>
   <view class="page">
+    <PreviewModeNotice />
     <view class="paper-texture" />
     <view class="paper-glow" />
 

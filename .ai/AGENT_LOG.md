@@ -7090,3 +7090,34 @@ Commit: pending
   - P5.x 仅在 E1 得到真实正向证据后才可立项；无证据则保持独立片段为完整产品单位
 - **Commit**: pending（默认用户手动提交；未 stage / commit / push）
 - **Next**: 用户审阅本次文档落盘；若确认，可先单独授权 Type B H0，或先进入 Type A E0 原型讨论
+
+## 2026-08-09｜H0 truth-surface-cleanup｜Type B
+
+- **Scope**:
+  - 按核心产品定义 v0.1 与核心体验迭代蓝图 v2.0，收口 authenticated real path 与 Preview 的用户可见能力表面
+  - 仅修改前端页面注册、现有页面文案、Preview 会话/示例服务与一个通用 Preview 标识组件；用户已授权实现与 Agent commit，未授权 push、部署或发布
+- **Changes**:
+  - 从页面注册和个人中心入口移除整理偏好、视觉外观、访问控制、数据备份、标签管理、通知设置等未兑现设置表面；保留“构建信息”入口
+  - 将 Preview 入口与全部 Preview 页面明确标识为“概念预览 · 示例数据 · 只读”
+  - Preview 的创建、修改、删除、封存、提醒授权、补写回应等写操作改为 fail-closed，禁止用本地 mock success 冒充真实保存
+  - 记录列表搜索明确限定为当前已载入内容；总数无搜索时使用 backend 分页总数，有搜索时标为当前页匹配数
+  - 个人中心移除硬编码版本、虚假存档天数和邮箱展示；统计改为由真实 sealed / unlocked 状态计算的“封存及抵达”“封存中”
+  - 时间轴无封面记录不再标为“图文记忆”；构建信息页明确演示构建不代表生产发布
+- **Verification**: PASS
+  - bundled Node 直接运行 `vue-tsc --noEmit`，exit 0
+  - 标准 mp-weixin build PASS；标准产物中 Preview 开关为 false，登录页不展示 Preview 入口
+  - `--mode preview` mp-weixin build PASS；产物只注册登录、首页、记录编辑/列表/详情、时光轴、个人中心和构建信息 8 个页面，并包含 Preview 标识与写操作拒绝逻辑
+  - `git diff --check` PASS；仅有本机 Git 全局 ignore 权限与 LF/CRLF 提示，无 whitespace error
+- **Verification SKIPPED**:
+  - 微信开发者工具 / 真机交互：本机未发现可用 CLI 或可控真机环境；不以构建产物冒充真实视觉与交互证据
+  - backend / MySQL / provider / 对象存储：本轮未修改 API、DTO、持久化或后端行为，也未获外调授权；前端类型检查与两种构建覆盖本轮范围
+  - OpenSpec CLI：本机不可用，且本轮 Type B 不创建 change 或修改 accepted spec；改做 `ACTIVE_TASK=IDLE`、范围路径与 diff 核对
+- **Scope safety**:
+  - 未修改 `.ai/ACTIVE_TASK.md`、OpenSpec、backend、package / lockfile、部署配置；未新增用户可见能力、API 契约、状态或持久化语义
+  - 未读取或写入用户日记原文、真实对话、secret 或未授权外部数据
+  - bundled pnpm 预检因无 TTY 中止并生成未跟踪 `.pnpm-store/`；确认其为本轮生成且路径位于仓库后已清理，未重建或修改依赖
+- **Risks**:
+  - 未做微信开发者工具视觉巡检；Preview 标识在复杂设备安全区和长页面上的遮挡风险仍需真机确认
+  - 被移除注册的旧设置页源码仍保留为不可达文件，便于回退；未来若重新注册，须先完成真实契约或继续诚实降级
+  - authenticated real path 的后端错误语义、网络异常与真实数据统计仍依赖后续端到端验证，本次不宣称生产验收
+- **Commit**: pending（Agent commit 已授权；不 push）
