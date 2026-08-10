@@ -88,6 +88,11 @@ public class RecordController {
         return ApiResponse.success(recordService.seal(authUser.getUserId(), id));
     }
 
+    @PostMapping("/{id}/save")
+    public ApiResponse<RecordDetailVO> save(@CurrentUser AuthUser authUser, @PathVariable("id") Long id) {
+        return ApiResponse.success(recordService.save(authUser.getUserId(), id));
+    }
+
     @PutMapping("/{id}/later-reflection")
     public ApiResponse<RecordDetailVO> updateLaterReflection(
             @CurrentUser AuthUser authUser,

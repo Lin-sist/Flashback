@@ -2,7 +2,6 @@ package com.flashback.dto;
 
 import com.flashback.domain.LifeNodeType;
 import com.flashback.domain.RecordType;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -17,7 +16,6 @@ public class UpdateRecordRequest {
     @Size(max = 100, message = "title长度不能超过100")
     private String title;
 
-    @NotBlank(message = "content不能为空")
     private String content;
 
     @NotNull(message = "recordType不能为空")

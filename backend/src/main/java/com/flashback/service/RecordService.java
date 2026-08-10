@@ -25,6 +25,8 @@ public interface RecordService {
 
     RecordDetailVO update(Long userId, Long id, UpdateRecordRequest request);
 
+    RecordDetailVO save(Long userId, Long id);
+
     void delete(Long userId, Long id);
 
     RecordDetailVO updateLocation(Long userId, Long id, UpdateRecordLocationRequest request);

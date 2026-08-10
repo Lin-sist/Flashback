@@ -15,6 +15,7 @@
         <result property="unlockAt" column="unlock_at"/>
         <result property="sealedAt" column="sealed_at"/>
         <result property="unlockedAt" column="unlocked_at"/>
+        <result property="draftExpiresAt" column="draft_expires_at"/>
         <result property="aiSummary" column="ai_summary"/>
         <result property="aiPromptResult" column="ai_prompt_result"/>
         <result property="beliefThen" column="belief_then"/>
@@ -38,6 +39,7 @@
         unlock_at,
         sealed_at,
         unlocked_at,
+        draft_expires_at,
         ai_summary,
         ai_prompt_result,
         belief_then,
@@ -61,6 +63,7 @@
             unlock_at,
             sealed_at,
             unlocked_at,
+            draft_expires_at,
             ai_summary,
             ai_prompt_result,
             belief_then,
@@ -81,6 +84,7 @@
             #{unlockAt},
             #{sealedAt},
             #{unlockedAt},
+            #{draftExpiresAt},
             #{aiSummary},
             #{aiPromptResult},
             #{beliefThen},
@@ -103,7 +107,7 @@
         LIMIT 1
     </select>
 
-    <update id="updateDraftByIdAndUserId">
+    <update id="updateEditableByIdAndUserId">
         UPDATE `record`
         SET
             title = #{title},
@@ -116,10 +120,12 @@
             life_node_type = #{lifeNodeType},
             life_node_custom_label = #{lifeNodeCustomLabel},
             unlock_at = #{unlockAt},
+            draft_expires_at = CASE WHEN status = 'DRAFT' THEN #{draftExpiresAt} ELSE NULL END,
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND user_id = #{userId}
-          AND status = 'DRAFT'
+          AND status IN ('DRAFT', 'SAVED')
+          AND (status = 'SAVED' OR draft_expires_at &gt; #{updatedAt})
     </update>
 
     <delete id="deleteDraftByIdAndUserId">
@@ -129,7 +135,19 @@
           AND status = 'DRAFT'
     </delete>
 
-    <update id="sealDraftByIdAndUserId">
+    <update id="saveDraftByIdAndUserId">
+        UPDATE `record`
+        SET
+            status = 'SAVED',
+            draft_expires_at = NULL,
+            updated_at = #{now}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+          AND draft_expires_at &gt; #{now}
+    </update>
+
+    <update id="sealSavedByIdAndUserId">
         UPDATE `record`
         SET
             status = 'SEALED',
@@ -137,7 +155,7 @@
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND user_id = #{userId}
-          AND status = 'DRAFT'
+          AND status = 'SAVED'
     </update>
 
     <select id="selectExpiredSealedRecords" resultMap="RecordResultMap">
@@ -150,6 +168,38 @@
         ORDER BY id ASC
         LIMIT #{limit}
     </select>
+
+    <select id="selectExpiredDrafts" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record`
+        WHERE status = 'DRAFT'
+          AND draft_expires_at IS NOT NULL
+          AND draft_expires_at &lt;= #{now}
+        ORDER BY draft_expires_at ASC, id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectExpiredDraftForUpdate" resultMap="RecordResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM `record`
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+          AND draft_expires_at = #{expectedExpiresAt}
+          AND draft_expires_at &lt;= #{now}
+        FOR UPDATE
+    </select>
+
+    <delete id="deleteExpiredDraftByIdAndUserId">
+        DELETE FROM `record`
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status = 'DRAFT'
+          AND draft_expires_at = #{expectedExpiresAt}
+          AND draft_expires_at &lt;= #{now}
+    </delete>
 
     <update id="unlockSealedById">
         UPDATE `record`
@@ -180,10 +230,11 @@
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND user_id = #{userId}
-          AND status = 'DRAFT'
+          AND status IN ('DRAFT', 'SAVED')
+          AND (status = 'SAVED' OR draft_expires_at IS NULL OR draft_expires_at &gt; #{updatedAt})
     </update>
 
-    <!-- C2：Agent 工具追加正文。status = 'DRAFT' 让封存不可变约束在 SQL 层同样成立。 -->
+    <!-- C2/P3.1：Agent 工具追加正文；DRAFT/SAVED 可编辑，封存后仍不可变。 -->
     <update id="updateDraftContentByIdAndUserId">
         UPDATE `record`
         SET
@@ -191,10 +242,11 @@
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND user_id = #{userId}
-          AND status = 'DRAFT'
+          AND status IN ('DRAFT', 'SAVED')
+          AND (status = 'SAVED' OR draft_expires_at IS NULL OR draft_expires_at &gt; #{updatedAt})
     </update>
 
-    <!-- C2：Agent 工具设置解锁时间。只写 unlock_at，不改 status，因此不构成封存。 -->
+    <!-- C2/P3.1：Agent 工具设置解锁时间。只写 unlock_at，不改 status，因此不构成封存。 -->
     <update id="updateDraftUnlockAtByIdAndUserId">
         UPDATE `record`
         SET
@@ -202,7 +254,8 @@
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND user_id = #{userId}
-          AND status = 'DRAFT'
+          AND status IN ('DRAFT', 'SAVED')
+          AND (status = 'SAVED' OR draft_expires_at IS NULL OR draft_expires_at &gt; #{updatedAt})
     </update>
 
     <update id="clearCoverAttachmentIfMatches">
@@ -213,6 +266,21 @@
         WHERE id = #{id}
           AND user_id = #{userId}
           AND cover_attachment_id = #{coverAttachmentId}
+          AND status IN ('DRAFT', 'SAVED')
+          AND (status = 'SAVED' OR draft_expires_at IS NULL OR draft_expires_at &gt; #{updatedAt})
+    </update>
+
+    <update id="touchDraftByIdAndUserId">
+        UPDATE `record`
+        SET updated_at = #{now},
+            draft_expires_at = CASE
+                WHEN status = 'DRAFT' THEN #{draftExpiresAt}
+                ELSE NULL
+            END
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND status IN ('DRAFT', 'SAVED')
+          AND (status = 'SAVED' OR draft_expires_at IS NULL OR draft_expires_at &gt; #{now})
     </update>
 
     <select id="countByUserAndCondition" resultType="long">
@@ -222,6 +290,10 @@
         <if test="status != null">
             AND r.status = #{status}
         </if>
+        <if test="status == null">
+            AND r.status &lt;&gt; 'DRAFT'
+        </if>
+        AND (r.status &lt;&gt; 'DRAFT' OR r.draft_expires_at &gt; CURRENT_TIMESTAMP)
         <if test="recordType != null">
             AND r.record_type = #{recordType}
         </if>
@@ -249,6 +321,10 @@
         <if test="status != null">
             AND r.status = #{status}
         </if>
+        <if test="status == null">
+            AND r.status &lt;&gt; 'DRAFT'
+        </if>
+        AND (r.status &lt;&gt; 'DRAFT' OR r.draft_expires_at &gt; CURRENT_TIMESTAMP)
         <if test="recordType != null">
             AND r.record_type = #{recordType}
         </if>
@@ -289,6 +365,7 @@
 
     <sql id="TimelineConditions">
         WHERE r.user_id = #{userId}
+          AND r.status &lt;&gt; 'DRAFT'
         <if test="createdFrom != null">
             AND r.created_at &gt;= #{createdFrom}
         </if>

@@ -53,8 +53,8 @@ const previewRecords: PreviewRecordSeed[] = [
     content:
       '那晚没有发生什么大事，只是终于肯把心里反复绕行的句子，慢慢写了下来。路灯很安静，风从窗缝里进来，像替未来的人轻轻按住了纸页。\n\n如果你后来看到这一段，希望你记得，当时的我虽然犹豫，却已经开始愿意相信，生活会在缓慢处转向。',
     contentPreview: '那晚没有发生什么大事，只是终于肯把心里反复绕行的句子，慢慢写了下来。',
-    recordType: RecordType.FUTURE_LETTER,
-    status: RecordStatus.DRAFT,
+    recordType: RecordType.MOMENT,
+    status: RecordStatus.SAVED,
     createdAt: '2026-04-18 23:40:00',
     updatedAt: '2026-04-20 00:15:00',
     unlockAt: '2026-10-01 09:00:00',

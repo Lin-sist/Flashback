@@ -280,7 +280,7 @@ class AgentChatServiceImplTest {
 
         assertThatThrownBy(() -> service.startOrResume(USER_ID, request))
                 .isInstanceOf(BizException.class)
-                .hasMessageContaining("只有草稿记录");
+                .hasMessageContaining("只有未过期草稿或已留下记录");
         verify(agentSessionMapper, never()).insert(any());
     }
 
@@ -458,9 +458,9 @@ class AgentChatServiceImplTest {
         service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好，压力挺大的"));
 
         // C1 范围约束：Agent 不得触发任何记录写操作
-        verify(recordMapper, never()).updateDraftByIdAndUserId(
-                anyLong(), anyLong(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
-        verify(recordMapper, never()).sealDraftByIdAndUserId(anyLong(), anyLong(), any(), any());
+        verify(recordMapper, never()).updateEditableByIdAndUserId(
+                anyLong(), anyLong(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(recordMapper, never()).sealSavedByIdAndUserId(anyLong(), anyLong(), any(), any());
         verify(recordMapper, never()).deleteDraftByIdAndUserId(anyLong(), anyLong());
         verify(recordMapper, never()).updateLaterReflectionByIdAndUserId(anyLong(), anyLong(), any(), any());
     }

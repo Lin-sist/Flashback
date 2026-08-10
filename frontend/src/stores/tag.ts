@@ -15,6 +15,7 @@ export const useTagStore = defineStore('tag', {
     moodTags: (state) => state.tags.filter((item) => item.type === TagType.MOOD),
     topicTags: (state) => state.tags.filter((item) => item.type === TagType.TOPIC),
     recordTypeOptions: () => [
+      { label: 'Moment', value: RecordType.MOMENT },
       { label: 'Future Letter', value: RecordType.FUTURE_LETTER },
       { label: 'Node Record', value: RecordType.NODE_RECORD },
       { label: 'Emotion Note', value: RecordType.EMOTION_NOTE },

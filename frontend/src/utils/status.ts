@@ -4,6 +4,9 @@ export const mapRecordStatus = (status: RecordStatus) => {
   if (status === RecordStatus.DRAFT) {
     return 'Draft'
   }
+  if (status === RecordStatus.SAVED) {
+    return 'Saved'
+  }
   if (status === RecordStatus.SEALED) {
     return 'Sealed'
   }
@@ -11,6 +14,9 @@ export const mapRecordStatus = (status: RecordStatus) => {
 }
 
 export const mapRecordType = (recordType: RecordType) => {
+  if (recordType === RecordType.MOMENT) {
+    return 'Moment'
+  }
   if (recordType === RecordType.FUTURE_LETTER) {
     return 'Future Letter'
   }

@@ -59,6 +59,11 @@ export const useRecordStore = defineStore('record', {
     async updateDraft(id: string | number, payload: UpdateRecordDTO) {
       return recordService.updateDraft(id, payload)
     },
+    async saveRecord(id: string | number) {
+      const result = await recordService.saveRecord(id)
+      this.detail = result
+      return result
+    },
     async sealRecord(id: string | number) {
       return recordService.sealRecord(id)
     },

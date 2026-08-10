@@ -6,7 +6,7 @@
 
 当前唯一 active Type C change：P3.1 `present-moment-capture`。
 位置：`openspec/changes/present-moment-capture/`。
-当前停在**闸门 1：规划等待批准**；未获闸门 2 前不得修改业务代码。真实 MySQL、对象存储、微信真机、`push`、部署与发布均未授权。
+当前处于**闸门 2：实现完成，等待用户审查**；用户已于 2026-08-10 批准规划并授权按 `tasks.md` 修改业务代码。真实 MySQL、对象存储、微信真机、`push`、部署与发布均未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -71,8 +71,8 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：P3.1 规划闸**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者。P3.1 已建立独立 OpenSpec change，但规划批准不等于实现授权；旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：P3.1 实现**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者。P3.1 闸门 1/2 已通过，闸门 3 与 push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -108,7 +108,7 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
-- `openspec/changes/present-moment-capture/`（P3.1 当前 active 规划包；尚未获实现授权）
+- `openspec/changes/present-moment-capture/`（P3.1 当前 active change；实现已完成，等待用户审查）
 - `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**，Agent 核心契约）
 - `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**）
 - `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b + C8 + **C9**；C5/C6/C7 无 delta）
@@ -119,6 +119,32 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-10 — **P3.1 闸门 2 实现完成，等待用户审查**
+  - 用户批准的 P3.1 vertical slice 已实现：`SAVED` / `MOMENT`、显式幂等 `/save`、文字或 AVAILABLE 图片/声音 eligibility、7 天恢复 DRAFT、窄过期清理、DRAFT/SAVED 可编辑矩阵与 SAVED 后封存
+  - frontend 已接通“留下这一刻”、保存内联反馈、恢复草稿二选一、media-first、SAVED 展示/继续补充/交给时间；Preview 保持只读 fail-closed
+  - Agent 仅扩展 WRITING_GUIDANCE 的 DRAFT/SAVED 状态资格；REVIEW_CHAT、Prompt、provider、memory、guardrails、reflection、预算与 eval snapshots 外部语义不变
+  - MySQL 增量脚本已生成但未在真实库执行；脚本 pre/postflight 只输出聚合计数，不读取或打印用户原文、位置、storage key 或 URL
+  - TDD RED 证据覆盖 enum/schema、save、seal、SAVED 更新/附件、DRAFT visibility/expiry/cleanup 与 Agent mode；实现后 focused 回归 PASS
+  - backend full：**91 suites / 687 tests / 0 failures / 0 errors / 8 skipped**；frontend `vue-tsc --noEmit`、标准 mp-weixin build、Preview build 全部 PASS
+  - OpenSpec 文件级校验：4 specs / 28 Requirements / 98 Scenarios，任务、delta、实现与 active pointer 对齐；CLI 不在 PATH，validation 仍记 SKIPPED
+  - 闸门 3a/3b/3c 仍未授权：真实 MySQL migration、真实对象存储、微信开发者工具/真机全部 SKIPPED；E0 目标用户理解仍为 INCONCLUSIVE / SKIPPED
+  - scope guard PASS：未改 package/lockfile、deployment、monitoring、archive、accepted baseline、冻结蓝图或无关 Agent 语义；未实现 P3.2 删除/导出/清除全部
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**: none（真实依赖证据须另行通过对应闸门）
+  - **Next step**：用户审查实现 diff 与证据；闸门 3、delta acceptance、closeout、归档均不自动执行
+
+- **This session**: 2026-08-10 — **P3.1 闸门 1 批准 + 闸门 2 实现授权**
+  - 用户批准 proposal / design / tasks / 四份 delta 与 N1–N11，并明确允许开始实现
+  - 授权范围：backend/frontend/SQL 代码与离线、H2、type-check、build 验证；提交责任继续为 Agent commit
+  - 闸门 3a/3b/3c 均未授权：不连接真实 MySQL、不调用真实对象存储、不执行微信开发者工具/真机验收
+  - P3.1 真实 AI provider 调用预算保持 0；不设置任何 real probe 环境变量
+  - OpenSpec CLI 仍不在 PATH，apply/status/validate 继续记 SKIPPED，改用 change artifacts 和文件级任务跟踪
+  - baseline：backend focused **7 suites / 126 tests / 0 failures / 0 errors / 0 skipped**；backend full **87 suites / 664 tests / 0 failures / 0 errors / 8 skipped**
+  - frontend baseline：bundled Node 下 `vue-tsc --noEmit`、标准 mp-weixin build、Preview build 全部 PASS；build 的 `os - Alias not found` 为退出码 0 的环境噪声
+  - 实现 allowlist 已写入 `tasks.md`；package/lockfile、deployment、monitoring、archive、accepted baseline、冻结蓝图与无关 Agent 语义为 denylist
+  - **Commit**：pending（不 push）
+  - **Next step**：按 TDD 顺序实现 T-18 起的 schema、状态机与业务任务
 
 - **This session**: 2026-08-10 — **P3.1 `present-moment-capture` 规划闸启动**
   - readiness：开刀前 `ACTIVE_TASK=IDLE`、工作树 clean、HEAD 为 `2d9544a`；H0 已完成，当前无其他 active Type C
@@ -495,9 +521,9 @@
 `narrative/agent-tech-story.md`、v1.2 冻结带来的 8 处引用同步改动。
 `roadmap/iteration-blueprint-v1.2-draft.md` **已不存在**（内容已迁入正式蓝图，草稿已删）。
 
-## Out Of Scope While P3.1 Is In Planning
+## Out Of Scope While P3.1 Is In Implementation
 
-- 当前只允许完善 `present-moment-capture` 规划 artifacts；未获闸门 2 前不得修改业务代码，也不得沿用 C9 或 H0 授权
+- 当前只允许按 `present-moment-capture/tasks.md` 实现；不得沿用 C9/H0 授权，也不得提前执行闸门 3、归档或 baseline acceptance
 - **改 prompt / 护栏阈值现在有条件了，但仍须走 Type C**：C6 的基线让改动可比对，
   这解除的是宪法 §7.3 的技术前提，**不是**流程要求。改动后快照会变，
   须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的

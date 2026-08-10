@@ -1,6 +1,6 @@
 # Design：Present Moment Capture（P3.1）
 
-> 本设计依赖 `proposal.md` 与四份 spec delta。所有状态名、API、迁移和交互层级在闸门 1 批准前均为 `planned`；本文不授权业务实现。
+> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；本文仍不授权真实 MySQL、对象存储或微信真机验收。
 
 ## 1. 推荐摘要
 
@@ -368,8 +368,9 @@ P3.1 不改 Prompt、护栏、memory、provider 或 trace 语义，只调整记�
 
 ## 13. 未决与 Gate State
 
-- N1–N11、`draft_expires_at`、`/save`、7 天滑动期限、SAVED 可编辑矩阵与窄 DRAFT 清理均等待闸门 1 批准；
+- N1–N11、`draft_expires_at`、`/save`、7 天滑动期限、SAVED 可编辑矩阵与窄 DRAFT 清理已于 2026-08-10 按推荐方案通过闸门 1；
 - E0 精确交互仍为 unknown，不会在 Gate 1 后变成 confirmed；
-- 闸门 2 未授权，禁止修改 backend/frontend/SQL；
+- 闸门 2 已于 2026-08-10 授权，允许按 `tasks.md` 修改 backend/frontend/SQL 并执行离线/H2/build 验证；
+- 闸门 2 范围内实现已完成并通过自动化回归，当前等待用户审查；
 - 闸门 3 未授权，禁止连接真实 MySQL、对象存储或真机；
 - 任一 exact API、字段、状态或清理语义在用户 Gate 1 修改后，必须同步 proposal、design、tasks 与 delta，不能只改其中一份。

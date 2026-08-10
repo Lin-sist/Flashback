@@ -15,6 +15,7 @@ import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.mapper.RecordAttachmentMapper;
 import com.flashback.mapper.RecordMapper;
+import com.flashback.service.RecordSaveEligibility;
 import com.flashback.storage.ObjectStorageException;
 import com.flashback.storage.ObjectStorageMetadata;
 import com.flashback.storage.ObjectStorageProvider;
@@ -38,6 +39,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,8 +73,14 @@ class RecordAttachmentServiceImplTest {
                 recordAttachmentMapper,
                 mediaProperties,
                 storageRegistry,
+                new RecordSaveEligibility(recordAttachmentMapper),
                 clock,
                 () -> UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        lenient().when(recordMapper.touchDraftByIdAndUserId(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(1);
     }
 
     @Test
@@ -95,6 +103,21 @@ class RecordAttachmentServiceImplTest {
         assertThat(result.getMaxFileSizeBytes()).isEqualTo(41943040L);
         assertThat(result.getUploadMethod()).isEqualTo("POST_MULTIPART");
         assertThat(result.getUploadFormData()).containsEntry("token", "test-upload-token");
+    }
+
+    @Test
+    void shouldCreateUploadTokenForSavedRecord() {
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(record(RecordStatus.SAVED));
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserIdAndType(10L, 1L, RecordAttachmentType.IMAGE))
+                .thenReturn(0);
+        when(recordAttachmentMapper.sumAvailableSizeByRecordIdAndUserId(10L, 1L)).thenReturn(0L);
+
+        var result = service.createUploadToken(
+                1L,
+                10L,
+                request(RecordAttachmentType.IMAGE, "example.jpg", "image/jpeg", 123456L));
+
+        assertThat(result.getProvider()).isEqualTo("QINIU");
     }
 
     @Test
@@ -353,6 +376,27 @@ class RecordAttachmentServiceImplTest {
                 1L,
                 99L,
                 LocalDateTime.of(2026, 6, 18, 10, 0, 0));
+    }
+
+    @Test
+    void shouldRejectDeletingLastEvidenceFromSavedRecord() {
+        Record saved = record(RecordStatus.SAVED);
+        saved.setContent("  ");
+        when(recordMapper.selectByIdAndUserId(10L, 1L)).thenReturn(saved);
+        when(recordAttachmentMapper.selectByIdAndRecordIdAndUserId(99L, 10L, 1L))
+                .thenReturn(attachment(99L, 10L, 1L, "flashback/users/1/records/10/image/a.jpg"));
+        when(recordAttachmentMapper.countAvailableByRecordIdAndUserId(10L, 1L)).thenReturn(1);
+
+        assertThatThrownBy(() -> service.deleteAttachment(1L, 10L, 99L))
+                .isInstanceOf(BizException.class)
+                .hasMessage("至少留下一句话、一张图片或一段声音");
+
+        assertThat(storageProvider.deletedKey).isNull();
+        verify(recordAttachmentMapper, never()).markDeletedByIdAndRecordIdAndUserId(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
     }
 
     @Test

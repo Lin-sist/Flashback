@@ -33,6 +33,7 @@ import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.mapper.UserMapper;
 import com.flashback.wechat.WechatSubscribeMessageClient;
+import com.flashback.service.RecordSaveEligibility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -95,6 +97,9 @@ class RecordServiceImplTest {
 
     private RecordServiceImpl recordService;
 
+    @Mock
+    private RecordSaveEligibility recordSaveEligibility;
+
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-03-26T08:00:00Z"), ZoneId.of("Asia/Shanghai"));
@@ -112,7 +117,9 @@ class RecordServiceImplTest {
                 new ObjectMapper(),
                 appWechatProperties,
                 wechatSubscribeMessageClient,
-                clock);
+                clock,
+                recordSaveEligibility);
+        lenient().when(recordMapper.touchDraftByIdAndUserId(any(), any(), any(), any())).thenReturn(1);
     }
 
     @Test
@@ -139,7 +146,7 @@ class RecordServiceImplTest {
 
         assertThatThrownBy(() -> recordService.update(1L, 100L, request))
                 .isInstanceOf(BizException.class)
-                .hasMessage("仅DRAFT状态允许编辑");
+                .hasMessage("仅DRAFT或SAVED状态允许编辑");
     }
 
     @Test
@@ -232,7 +239,7 @@ class RecordServiceImplTest {
 
         assertThatThrownBy(() -> recordService.updateLocation(1L, 100L, request))
                 .isInstanceOf(BizException.class)
-                .hasMessage("仅DRAFT状态允许编辑位置");
+                .hasMessage("记录已封存，不能编辑位置");
         verify(recordLocationMapper, never()).upsert(any());
     }
 
@@ -320,15 +327,15 @@ class RecordServiceImplTest {
 
         assertThatThrownBy(() -> recordService.updateCover(1L, 100L, request))
                 .isInstanceOf(BizException.class)
-                .hasMessage("仅DRAFT状态允许设置封面");
+                .hasMessage("记录已封存，不能设置封面");
         verify(recordAttachmentMapper, never()).selectByIdAndRecordIdAndUserId(any(), any(), any());
     }
 
     @Test
     void shouldRejectSealWhenUnlockAtBeforeNow() {
-        Record draft = mockRecord(RecordStatus.DRAFT);
-        draft.setUnlockAt(LocalDateTime.of(2026, 3, 26, 15, 30, 0));
-        when(recordMapper.selectByIdAndUserId(102L, 1L)).thenReturn(draft);
+        Record saved = mockRecord(RecordStatus.SAVED);
+        saved.setUnlockAt(LocalDateTime.of(2026, 3, 26, 15, 30, 0));
+        when(recordMapper.selectByIdAndUserId(102L, 1L)).thenReturn(saved);
 
         assertThatThrownBy(() -> recordService.seal(1L, 102L))
                 .isInstanceOf(BizException.class)
@@ -379,7 +386,7 @@ class RecordServiceImplTest {
         Record draft = mockRecord(RecordStatus.DRAFT);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
         when(tagMapper.countEnabledByIds(List.of(1L, 2L))).thenReturn(2L);
-        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(recordMapper.updateEditableByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(1);
 
         UpdateRecordRequest request = new UpdateRecordRequest();
@@ -462,7 +469,7 @@ class RecordServiceImplTest {
     void shouldClearAiFieldsWhenUpdateDraftWithoutAiSnapshot() {
         Record draft = mockRecord(RecordStatus.DRAFT);
         when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(draft, draft);
-        when(recordMapper.updateDraftByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(recordMapper.updateEditableByIdAndUserId(eq(100L), eq(1L), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(1);
 
         UpdateRecordRequest request = new UpdateRecordRequest();
@@ -474,7 +481,7 @@ class RecordServiceImplTest {
 
         recordService.update(1L, 100L, request);
 
-        verify(recordMapper).updateDraftByIdAndUserId(
+        verify(recordMapper).updateEditableByIdAndUserId(
                 eq(100L),
                 eq(1L),
                 any(),
@@ -486,6 +493,7 @@ class RecordServiceImplTest {
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
+                any(),
                 any(),
                 any());
     }
@@ -656,12 +664,12 @@ class RecordServiceImplTest {
     }
 
     @Test
-    void shouldSealDraftSuccessfully() {
-        Record draft = mockRecord(RecordStatus.DRAFT);
-        draft.setUnlockAt(LocalDateTime.of(2026, 3, 27, 10, 0, 0));
+    void shouldSealSavedSuccessfully() {
+        Record saved = mockRecord(RecordStatus.SAVED);
+        saved.setUnlockAt(LocalDateTime.of(2026, 3, 27, 10, 0, 0));
 
-        when(recordMapper.selectByIdAndUserId(103L, 1L)).thenReturn(draft, sealedRecord());
-        when(recordMapper.sealDraftByIdAndUserId(eq(103L), eq(1L), any(), any())).thenReturn(1);
+        when(recordMapper.selectByIdAndUserId(103L, 1L)).thenReturn(saved, sealedRecord());
+        when(recordMapper.sealSavedByIdAndUserId(eq(103L), eq(1L), any(), any())).thenReturn(1);
 
         var result = recordService.seal(1L, 103L);
         assertThat(result.getStatus()).isEqualTo(RecordStatus.SEALED);

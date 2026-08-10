@@ -1,10 +1,12 @@
 export enum RecordStatus {
   DRAFT = 'DRAFT',
+  SAVED = 'SAVED',
   SEALED = 'SEALED',
   UNLOCKED = 'UNLOCKED',
 }
 
 export enum RecordType {
+  MOMENT = 'MOMENT',
   FUTURE_LETTER = 'FUTURE_LETTER',
   NODE_RECORD = 'NODE_RECORD',
   EMOTION_NOTE = 'EMOTION_NOTE',

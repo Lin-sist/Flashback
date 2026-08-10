@@ -11,6 +11,7 @@ import { useAgentChatStore, useRecordStore, useTagStore } from '../../stores'
 import {
   LifeNodeType,
   RecordReminderStatus,
+  RecordStatus,
   RecordType,
   type RecordAttachmentVO,
   type RecordLocationVO,
@@ -34,6 +35,8 @@ type EditorSource = 'home' | 'archive' | 'timeline'
 
 const loading = ref(false)
 const recordId = ref<number | null>(null)
+const recordStatus = ref<RecordStatus>(RecordStatus.DRAFT)
+const savedFeedback = ref(false)
 const isNewlyCreatedDraft = ref(false)
 const source = ref<EditorSource>('home')
 const closing = ref(false)
@@ -145,7 +148,7 @@ const form = reactive({
   volNo: 'Vol. 01',
   title: '',
   content: '',
-  recordType: RecordType.FUTURE_LETTER,
+  recordType: RecordType.MOMENT,
   coreQuestion: '',
   unlockAtInput: '',
   aiSummary: '',
@@ -157,6 +160,7 @@ const form = reactive({
 })
 
 const recordTypeOptions = [
+  { value: RecordType.MOMENT, label: '此刻' },
   { value: RecordType.FUTURE_LETTER, label: '写给未来' },
   { value: RecordType.NODE_RECORD, label: '人生节点' },
   { value: RecordType.EMOTION_NOTE, label: '情绪片段' },
@@ -181,6 +185,9 @@ const imageAttachments = computed(() => attachments.value.filter(
 ))
 const voiceAttachments = computed(() => attachments.value.filter(
   (attachment) => attachment.type === 'VOICE' && attachment.status === 'AVAILABLE'
+))
+const hasPersistableEvidence = computed(() => Boolean(
+  form.content.trim() || imageAttachments.value.length || voiceAttachments.value.length
 ))
 const occupiedImageCount = computed(() => imageAttachments.value.length + pendingImageUploads.value.length)
 const occupiedVoiceCount = computed(() => voiceAttachments.value.length + pendingVoiceUploads.value.length)
@@ -329,7 +336,7 @@ const handleCloseWithAutoSave = async () => {
     return
   }
 
-  if (!validateRecordContent(form.content)) {
+  if (!hasPersistableEvidence.value) {
     const shouldDiscard = await confirmDiscardUnsavedChanges()
     if (shouldDiscard) {
       if (recordId.value && isNewlyCreatedDraft.value) {
@@ -371,6 +378,7 @@ const fillByDetail = async (id: number) => {
   }
 
   form.title = detail.title || ''
+  recordStatus.value = detail.status
   form.content = detail.content || ''
   form.recordType = detail.recordType
   form.coreQuestion = detail.coreQuestion || ''
@@ -418,6 +426,28 @@ const runInitialization = async (query: Record<string, unknown>) => {
       recordId.value = id
       form.volNo = `Vol. ${String(id).padStart(2, '0')}`
       await fillByDetail(id)
+    } else if (!hasPreviewSession()) {
+      const recovery = await recordService.getRecordList(RecordStatus.DRAFT, { pageNum: 1, pageSize: 1 })
+      const activeDraft = recovery.list[0]
+      if (activeDraft) {
+        const shouldContinue = await new Promise<boolean>((resolve) => {
+          uni.showModal({
+            title: '继续上次未完成？',
+            content: '找到一条尚未留下的记录。你可以继续，也可以放弃后重新开始。',
+            confirmText: '继续上次',
+            cancelText: '放弃',
+            success: (result) => resolve(Boolean(result.confirm)),
+            fail: () => resolve(false),
+          })
+        })
+        if (shouldContinue) {
+          recordId.value = activeDraft.id
+          form.volNo = `Vol. ${String(activeDraft.id).padStart(2, '0')}`
+          await fillByDetail(activeDraft.id)
+        } else {
+          await recordService.deleteDraft(activeDraft.id)
+        }
+      }
     }
 
     markSnapshot()
@@ -450,13 +480,16 @@ const persistDraft = async () => {
   }
 
   if (recordId.value) {
-    return recordStore.updateDraft(recordId.value, payload)
+    const updated = await recordStore.updateDraft(recordId.value, payload)
+    recordStatus.value = updated.status
+    return updated
   }
 
   const created = await recordStore.createDraft(payload)
   recordId.value = created.id
   form.volNo = `Vol. ${String(created.id).padStart(2, '0')}`
   isNewlyCreatedDraft.value = true
+  recordStatus.value = created.status
   return created
 }
 
@@ -607,11 +640,8 @@ const discardAgentMaterial = () => {
   uni.showToast({ title: '正文没有改变', icon: 'none' })
 }
 
-const ensureDraftForAuxiliaryEdit = async (subject: '地点' | '图片' | '语音') => {
+const ensureDraftForAuxiliaryEdit = async (_subject: '地点' | '图片' | '语音') => {
   if (recordId.value) return recordId.value
-  if (!validateRecordContent(form.content)) {
-    throw new Error(`先写下正文，再添加${subject}`)
-  }
   const draft = await persistDraft()
   markSnapshot()
   return draft.id
@@ -922,11 +952,6 @@ const selectAndUploadImages = async () => {
     uni.showToast({ title: '每条记录最多添加 9 张图片', icon: 'none' })
     return
   }
-  if (!validateRecordContent(form.content)) {
-    uni.showToast({ title: '先写下正文，再添加图片', icon: 'none' })
-    return
-  }
-
   try {
     const paths = await chooseImagePaths()
     if (!paths.length) return
@@ -1274,10 +1299,6 @@ const startVoiceRecording = () => {
     uni.showToast({ title: '每条记录最多添加 9 条语音', icon: 'none' })
     return
   }
-  if (!validateRecordContent(form.content)) {
-    uni.showToast({ title: '先写下正文，再添加语音', icon: 'none' })
-    return
-  }
   stopActiveAudio()
   voiceStarting.value = true
   recorderManager.start({
@@ -1466,8 +1487,13 @@ const saveDraft = async () => {
     return
   }
 
-  if (!validateRecordContent(form.content)) {
-    uni.showToast({ title: '请先写下正文内容', icon: 'none' })
+  if (mediaOperationActive.value || pendingImageUploads.value.length || pendingVoiceUploads.value.length) {
+    uni.showToast({ title: '请先等待媒体处理完成，或移除失败项目', icon: 'none' })
+    return
+  }
+
+  if (!hasPersistableEvidence.value) {
+    uni.showToast({ title: '至少留下一句话、一张图片或一段声音', icon: 'none' })
     return
   }
 
@@ -1478,11 +1504,14 @@ const saveDraft = async () => {
 
   loading.value = true
   try {
-    await persistDraft()
+    const draft = await persistDraft()
+    const saved = await recordStore.saveRecord(draft.id)
+    recordStatus.value = saved.status
     isNewlyCreatedDraft.value = false
+    savedFeedback.value = true
     markSnapshot()
-    uni.showToast({ title: '草稿已保存', icon: 'success' })
   } catch (error) {
+    savedFeedback.value = false
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
   } finally {
     loading.value = false
@@ -1504,8 +1533,8 @@ const sealRecord = async () => {
     return
   }
 
-  if (!validateRecordContent(form.content)) {
-    uni.showToast({ title: '请先写下正文内容', icon: 'none' })
+  if (recordStatus.value !== RecordStatus.SAVED) {
+    uni.showToast({ title: '请先留下这一刻，再交给时间', icon: 'none' })
     return
   }
 
@@ -1523,7 +1552,8 @@ const sealRecord = async () => {
   loading.value = true
   try {
     const draft = await persistDraft()
-    await recordStore.sealRecord(draft.id)
+    const sealed = await recordStore.sealRecord(draft.id)
+    recordStatus.value = sealed.status
     await reportUnlockReminderAuthorization(draft.id)
     uni.showToast({ title: '已封存这一刻', icon: 'success' })
     setTimeout(() => returnToSource(), 300)
@@ -1641,7 +1671,7 @@ onUnload(() => {
                 <input
                   v-model="form.title"
                   class="title-input"
-                  placeholder="拟定一个标题..."
+                  placeholder="标题（可选）"
                   placeholder-class="title-placeholder"
                 />
                 <textarea
@@ -1649,14 +1679,14 @@ onUnload(() => {
                   class="editor-field"
                   auto-height
                   maxlength="5000"
-                  placeholder="在此刻的宁静中，留下你的记忆碎片..."
+                  placeholder="写下一句话，也可以只留图片或声音..."
                   placeholder-class="editor-placeholder"
                 />
               </view>
             </view>
 
             <view class="m3-panel">
-              <view class="m3-panel-label">记录类型</view>
+              <view class="m3-panel-label">更多记录方式（可选）</view>
               <view class="type-row">
                 <view
                   v-for="option in recordTypeOptions"
@@ -1719,7 +1749,7 @@ onUnload(() => {
             </view>
 
             <!-- 解封时间设置区 -->
-            <view class="unlock-bar" @tap="onUnlockBarTap">
+            <view v-if="recordStatus === RecordStatus.SAVED" class="unlock-bar" @tap="onUnlockBarTap">
               <text class="unlock-label">解封时间</text>
               <view class="unlock-display">
                 <text
@@ -1930,21 +1960,26 @@ onUnload(() => {
         <view class="bottom-area">
           <text class="word-count">{{ wordCount }} 字</text>
 
-          <view class="seal-btn" :class="{ 'seal-btn--disabled': loading }" @tap="sealRecord">
+          <view class="seal-btn" :class="{ 'seal-btn--disabled': loading }" @tap="saveDraft">
             <view class="seal-btn-corner seal-btn-corner--tl" aria-hidden="true" />
             <view class="seal-btn-corner seal-btn-corner--br" aria-hidden="true" />
             <view class="btn-dot" aria-hidden="true" />
-            <text class="seal-btn-text">{{ loading ? '封存中...' : '封存这一刻' }}</text>
+            <text class="seal-btn-text">{{ loading ? '正在留下...' : '留下这一刻' }}</text>
           </view>
 
-          <view class="seal-hint">
+          <view v-if="savedFeedback && !hasDirtyChanges()" class="seal-hint" aria-live="polite">
             <view class="hint-line" aria-hidden="true" />
-            <text class="hint-text">封存后将锁定，到期方可开启</text>
+            <text class="hint-text">这一刻已经留下</text>
             <view class="hint-line" aria-hidden="true" />
           </view>
 
-          <view class="draft-btn" :class="{ 'draft-btn--disabled': loading }" @tap="saveDraft">
-            <text class="draft-btn-text">{{ closing ? '自动保存中...' : loading ? '保存中...' : '保存草稿' }}</text>
+          <view
+            v-if="recordStatus === RecordStatus.SAVED"
+            class="draft-btn"
+            :class="{ 'draft-btn--disabled': loading }"
+            @tap="sealRecord"
+          >
+            <text class="draft-btn-text">{{ loading ? '处理中...' : '交给时间' }}</text>
           </view>
         </view>
       </template>

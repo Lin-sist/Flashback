@@ -7286,3 +7286,57 @@ Commit: pending
   - 真实 MySQL 历史 DRAFT 分布、真实对象存储媒体-only 链路与微信真机行为仍为 unknown，不能由 H2/build 替代
 - **Commit**: pending（Agent commit 已授权；不 push）
 - **Next**: 用户 review 并批准或调整 N1–N11 与规划 artifacts；只有另行通过闸门 2 后才能开始 T-09 之后的业务实现
+
+## 2026-08-10｜P3.1 闸门 1 批准与闸门 2 实现授权｜Type C
+
+- **Scope**:
+  - 用户批准 `present-moment-capture` proposal / design / tasks / 四份 delta 与 N1–N11，并明确允许开始实现
+  - 提交责任继续为 Agent commit；真实 MySQL、对象存储、微信真机、push、部署、发布仍未授权
+- **Changes**:
+  - 同步 proposal、design、tasks 与 `ACTIVE_TASK` 的 Gate State；T-09～T-12 完成
+  - 实现期允许 backend/frontend/SQL 与离线/H2/type-check/build 验证；真实 AI provider 调用预算保持 0
+- **Verification**: PASS（授权边界登记）
+  - 当前唯一 active change 仍为 `present-moment-capture`；未扩大 exact API、enum、TTL、清理或交互方案
+  - `openspec` CLI 仍不在 PATH，后续只做文件级任务跟踪，不声称 CLI apply/status/validate PASS
+- **Verification SKIPPED**:
+  - 真实 MySQL、对象存储、微信真机：闸门 3a/3b/3c 未授权
+- **Risks**:
+  - H2/build 不能证明 InnoDB、真实私有对象删除或微信端交互；这些证据必须继续分层报告
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 执行 T-13/T-14 baseline，然后按 TDD 顺序实现 P3.1
+
+## 2026-08-10｜P3.1 `present-moment-capture` 闸门 2 实现完成｜Type C
+
+- **Scope**:
+  - 按已批准 N1–N11 与 `tasks.md` 实现 P3.1 backend/frontend/SQL vertical slice；提交责任为 Agent commit，不 push
+  - 闸门 3a/3b/3c 未授权；不连接真实 MySQL、不调用真实对象存储、不执行微信开发者工具或真机验收；真实 AI provider 调用保持 0
+- **Changes**:
+  - backend 新增 `SAVED` / `MOMENT`、7 天 `draft_expires_at`、显式幂等 `/save` 与单一 `RecordSaveEligibility`；封存收窄为 SAVED -> SEALED
+  - DRAFT/SAVED 共用可编辑状态门；SAVED 的正文/最后媒体更新受最终 eligibility 保护，SEALED/UNLOCKED 不变性保持
+  - 普通查询排除 DRAFT；显式恢复查询只返回 owner 的未过期草稿；新增窄 cleanup worker/scheduler，远端对象删除失败时保留 DB 并等待重试
+  - Agent WRITING_GUIDANCE 接受 active DRAFT/SAVED，REVIEW_CHAT 仍只接受 UNLOCKED；未修改 Prompt、provider、memory、guardrails、reflection、预算或 eval snapshots
+  - frontend 新记录默认 MOMENT，图片/声音可先于正文；“留下这一刻”先持久化再 `/save`，成功只显示安静的页内反馈；接通恢复草稿、SAVED 继续补充与保存后“交给时间”
+  - Preview fixtures 可展示 MOMENT/SAVED，但 mutation 继续 fail-closed；三个一级 Tab 与 canonical naming 未变
+  - 新增 MySQL P3.1 幂等迁移脚本及 H2/MySQL schema 同步；pre/postflight 仅输出聚合计数
+- **Verification**: PASS
+  - TDD RED -> GREEN：enum/schema、create、eligibility、save、seal、SAVED 更新/附件、DRAFT visibility/expiry/cleanup、Agent mode 均先观察到目标失败再实现
+  - backend full：**91 suites / 687 tests / 0 failures / 0 errors / 8 skipped**；P3.1 focused、旧 record/attachment/Agent 回归均通过
+  - frontend：bundled Node 下 `vue-tsc --noEmit`、标准 mp-weixin build、Preview build 全部 PASS
+  - OpenSpec 文件级校验：4 specs / 28 Requirements / 98 Scenarios；任务、delta、实现与 `ACTIVE_TASK` 链接一致
+  - `git diff --check` PASS；allowlist、package/lockfile 零变化及增量 credential/privacy scan PASS
+- **Verification SKIPPED**:
+  - OpenSpec CLI：本机不在 PATH；只完成文件级校验，不声称 CLI validation PASS
+  - 真实 MySQL migration/pre-postflight：闸门 3a 未授权；H2 与脚本检查不能替代 InnoDB、历史数据或时区证据
+  - 真实对象存储的图片-only/声音-only/过期草稿删除：闸门 3b 未授权；mock storage 不能替代真实私有对象语义
+  - 微信开发者工具/真机：闸门 3c 未授权；type-check/build 不能替代权限、上传、播放与交互验收
+  - E0 目标用户理解：无真实参与者，继续记 `INCONCLUSIVE / SKIPPED`；功能回归不冒充用户研究
+- **Scope safety**:
+  - 未实现 P3.2 导出、任意状态删除、清除全部、账号注销或完整删除编排
+  - 未修改 package/lockfile、deployment、monitoring、admin、archive、accepted baseline specs、冻结蓝图或无关 Agent 语义
+  - 日志与迁移脚本未记录用户原文、图片/声音内容、位置、storage key、signed URL、credential、prompt 或 provider response
+- **Risks**:
+  - 真实 MySQL 执行顺序、历史 DRAFT 聚合、索引/默认值兼容与数据库时区仍需闸门 3a 验证
+  - 真实对象存储的 missing-object 幂等、失败重试与微信端媒体权限/播放仍无生产证据
+  - E0 没有目标用户证据，保存反馈与恢复入口仍是可逆 provisional 基线
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户审查实现 diff 与证据；闸门 3、delta acceptance、closeout 与归档均需后续单独授权

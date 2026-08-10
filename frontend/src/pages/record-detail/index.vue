@@ -163,6 +163,7 @@ const detailErrorText = computed(() => {
 })
 
 const isDraft    = computed(() => detail.value?.status === RecordStatus.DRAFT)
+const isSaved    = computed(() => detail.value?.status === RecordStatus.SAVED)
 const isSealed   = computed(() => detail.value?.status === RecordStatus.SEALED)
 const isUnlocked = computed(() => detail.value?.status === RecordStatus.UNLOCKED)
 const canSubmitReply   = computed(() => Boolean(detail.value?.canReply && !detail.value?.hasReply))
@@ -515,6 +516,22 @@ onLoad(async (query) => {
             <view class="panel-time">计划解锁：{{ formatDateTime(detail.unlockAt) }}</view>
           </PaperContainer>
           <PrimaryButton text="继续编辑草稿" @tap="openEditor" />
+        </view>
+
+        <!-- ══════ SAVED：已留下，仍可补充 ══════ -->
+        <view v-else-if="isSaved" class="fallback-panel">
+          <PaperContainer radius="xl" class="status-card">
+            <view class="panel-title">这一刻已经留下</view>
+            <view class="panel-content">{{ detail.content || '这是一段由图片或声音留下的记录。' }}</view>
+            <view class="panel-time">留下于：{{ formatDateTime(detail.createdAt) }}</view>
+          </PaperContainer>
+          <ReadOnlyRecordMedia
+            :record-id="detail.id"
+            :attachments="detail.attachments || []"
+            :cover-id="detail.cover?.id || null"
+            variant="unlocked"
+          />
+          <PrimaryButton text="继续补充" @tap="openEditor" />
         </view>
 
         <!-- ══════ SEALED：封存页（封存.html 结构） ══════ -->

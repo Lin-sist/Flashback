@@ -1,8 +1,8 @@
 # Present Moment Capture（P3.1）
 
-> Type C 规划草案。change-id：`present-moment-capture`。
+> Type C 已批准规划。change-id：`present-moment-capture`。
 > 开工锚点：`2d9544a`。提交责任：**Agent 提交**（不含 push）。
-> 本文只申请规划闸；未获闸门 2 前不修改业务代码，未获闸门 3 前不执行真实 MySQL、对象存储或微信真机验收。
+> 用户于 2026-08-10 批准闸门 1 并授权闸门 2；未获闸门 3 前不执行真实 MySQL、对象存储或微信真机验收。
 
 ## 1. Why Now
 
@@ -218,7 +218,8 @@ P3.1 只继承蓝图 D43 / D44 的最低基线，不宣称选择 A、B 或 C，�
 
 - readiness：**GO（仅规划）**。
 - E0：**INCONCLUSIVE / SKIPPED**；不是 PASS。
-- 闸门 1（规划批准）：**等待用户审批 N1–N11 与全部 artifacts**。
-- 闸门 2（实现授权）：**未授权**。
+- 闸门 1（规划批准）：**已批准**（2026-08-10；N1–N11 与全部 artifacts 按推荐方案）。
+- 闸门 2（实现授权）：**已授权**（2026-08-10；允许按 `tasks.md` 修改业务代码并执行离线/H2/build 验证）。
+- 闸门 2 实现状态：**已完成，等待用户审查**（backend full 91 suites / 687 tests；frontend type-check 与标准/Preview build PASS）。
 - 闸门 3（真实 MySQL / 对象存储 / 微信真机）：**未授权**。
 - Git：规划文档按既有授权由 Agent commit；`push` 未授权。

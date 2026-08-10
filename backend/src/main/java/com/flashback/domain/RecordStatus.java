@@ -5,6 +5,7 @@ package com.flashback.domain;
  */
 public enum RecordStatus {
     DRAFT,
+    SAVED,
     SEALED,
     UNLOCKED
 }

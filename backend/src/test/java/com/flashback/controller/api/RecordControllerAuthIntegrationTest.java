@@ -37,6 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -84,6 +85,23 @@ class RecordControllerAuthIntegrationTest {
                                 .andExpect(jsonPath("$.data.total").value(1))
                                 .andExpect(jsonPath("$.data.list[0].id").value(9001))
                                 .andExpect(jsonPath("$.data.list[0].status").value("DRAFT"));
+        }
+
+        @Test
+        void shouldSaveOwnedDraftWhenAuthorized() throws Exception {
+                String token = jwtTokenProvider.createToken(new AuthUser(5001L, AuthRole.USER));
+                when(userMapper.selectById(anyLong())).thenReturn(enabledUser());
+                RecordDetailVO saved = mockDetail();
+                saved.setStatus(RecordStatus.SAVED);
+                when(recordService.save(5001L, 9001L)).thenReturn(saved);
+
+                mockMvc.perform(post("/api/records/9001/save")
+                                .header("Authorization", "Bearer " + token))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.code").value(0))
+                                .andExpect(jsonPath("$.data.status").value("SAVED"));
+
+                verify(recordService).save(5001L, 9001L);
         }
 
         @Test

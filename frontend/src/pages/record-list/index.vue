@@ -24,7 +24,7 @@ const listLoadFailed = ref(false)
 
 const statusOptions: { label: string; value: RecordStatus | 'ALL' }[] = [
   { label: '全部', value: 'ALL' },
-  { label: '草稿', value: RecordStatus.DRAFT },
+  { label: '已留下', value: RecordStatus.SAVED },
   { label: '已封存', value: RecordStatus.SEALED },
   { label: '已解锁', value: RecordStatus.UNLOCKED },
 ]
@@ -32,6 +32,7 @@ const statusOptions: { label: string; value: RecordStatus | 'ALL' }[] = [
 const statusLabelMap: Record<RecordStatus | 'ALL', string> = {
   ALL: '全部',
   [RecordStatus.DRAFT]: '草稿',
+  [RecordStatus.SAVED]: '已留下',
   [RecordStatus.SEALED]: '已封存',
   [RecordStatus.UNLOCKED]: '已解锁',
 }
@@ -150,24 +151,28 @@ const goWrite = () => uni.navigateTo({ url: '/pages/record-editor/index' })
 
 const statusBadgeText = (status: RecordStatus) => {
   if (status === RecordStatus.DRAFT) return '草稿'
+  if (status === RecordStatus.SAVED) return '已留下'
   if (status === RecordStatus.SEALED) return '封存中'
   return '已解锁'
 }
 
 const statusBadgeClass = (status: RecordStatus) => {
   if (status === RecordStatus.DRAFT) return 'badge-draft'
+  if (status === RecordStatus.SAVED) return 'badge-draft'
   if (status === RecordStatus.SEALED) return 'badge-sealed'
   return 'badge-unlocked'
 }
 
 const cardStateClass = (status: RecordStatus) => {
   if (status === RecordStatus.DRAFT) return 'is-draft'
+  if (status === RecordStatus.SAVED) return ''
   if (status === RecordStatus.SEALED) return 'is-sealed'
   return ''
 }
 
 const iconWrapClass = (status: RecordStatus) => {
   if (status === RecordStatus.DRAFT) return 'card-icon-wrap--draft'
+  if (status === RecordStatus.SAVED) return 'card-icon-wrap--unlocked'
   if (status === RecordStatus.SEALED) return 'card-icon-wrap--sealed'
   return 'card-icon-wrap--unlocked'
 }
@@ -307,8 +312,8 @@ onShow(loadList)
 
               <!-- 标题 + 摘要 -->
               <view class="card-title-area">
-                <text class="card-title">{{ item.title || '未命名草稿' }}</text>
-                <text class="card-excerpt">{{ item.contentPreview || '…' }}</text>
+                <text class="card-title">{{ item.title || '未命名片段' }}</text>
+                <text class="card-excerpt">{{ item.contentPreview || '一段由图片或声音留下的记录' }}</text>
               </view>
 
               <!-- 状态徽章 -->

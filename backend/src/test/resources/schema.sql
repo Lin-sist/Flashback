@@ -33,12 +33,13 @@ CREATE TABLE `record` (
   `user_id` BIGINT NOT NULL,
   `title` VARCHAR(100) DEFAULT NULL,
   `content` TEXT NOT NULL,
-  `record_type` VARCHAR(30) NOT NULL,
+  `record_type` VARCHAR(30) NOT NULL DEFAULT 'MOMENT',
   `core_question` VARCHAR(255) DEFAULT NULL,
   `status` VARCHAR(20) NOT NULL,
   `unlock_at` DATETIME DEFAULT NULL,
   `sealed_at` DATETIME DEFAULT NULL,
   `unlocked_at` DATETIME DEFAULT NULL,
+  `draft_expires_at` DATETIME DEFAULT NULL,
   `ai_summary` TEXT DEFAULT NULL,
   `ai_prompt_result` TEXT DEFAULT NULL,
   `belief_then` TEXT DEFAULT NULL,
@@ -56,6 +57,7 @@ CREATE TABLE `record` (
   KEY `idx_record_unlock_at` (`unlock_at`),
   KEY `idx_record_user_status_created` (`user_id`, `status`, `created_at`),
   KEY `idx_record_status_unlock_at` (`status`, `unlock_at`),
+  KEY `idx_record_status_draft_expires` (`status`, `draft_expires_at`),
   KEY `idx_record_cover_attachment_id` (`cover_attachment_id`),
   CONSTRAINT `fk_record_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );

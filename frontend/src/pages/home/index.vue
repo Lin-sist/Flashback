@@ -41,7 +41,7 @@ const loadHomeSummary = async () => {
   if (unlockedState.value !== 'ready') unlockedState.value = 'loading'
 
   const [draftResult, sealedResult, unlockedResult] = await Promise.allSettled([
-    recordService.getRecordList(RecordStatus.DRAFT, { pageNum: 1, pageSize: 1 }),
+    recordService.getRecordList(RecordStatus.SAVED, { pageNum: 1, pageSize: 1 }),
     recordService.getRecordList(RecordStatus.SEALED, { pageNum: 1, pageSize: 1 }),
     recordService.getUnlockedRecords(1, 1),
   ])

@@ -74,8 +74,8 @@ export interface AttachmentAccessUrlVO {
 
 export interface CreateRecordDTO {
   title?: string
-  content: string
-  recordType: RecordType
+  content?: string
+  recordType?: RecordType
   coreQuestion?: string
   aiSummary?: string | null
   aiPromptResults?: string[] | null
@@ -86,7 +86,10 @@ export interface CreateRecordDTO {
   unlockAt?: string | null
 }
 
-export interface UpdateRecordDTO extends CreateRecordDTO { }
+export interface UpdateRecordDTO extends Omit<CreateRecordDTO, 'content' | 'recordType'> {
+  content: string
+  recordType: RecordType
+}
 
 export interface TimelineQuery {
   year?: number

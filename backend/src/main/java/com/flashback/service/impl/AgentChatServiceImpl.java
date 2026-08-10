@@ -52,6 +52,7 @@ import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
 import com.flashback.domain.AgentToolCall;
 import com.flashback.domain.Record;
+import com.flashback.domain.RecordStatus;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.mapper.AgentMessageMapper;
@@ -1006,12 +1007,15 @@ public class AgentChatServiceImpl implements AgentChatService {
         if (record == null) {
             throw new NotFoundException("记录不存在");
         }
-        if (record.getStatus() != mode.requiredRecordStatus()) {
+        if (!mode.allowsRecordStatus(record.getStatus())
+                || (record.getStatus() == RecordStatus.DRAFT
+                && record.getDraftExpiresAt() != null
+                && !record.getDraftExpiresAt().isAfter(LocalDateTime.now(clock)))) {
             throw new BizException(
                     ErrorCode.BAD_REQUEST,
                     HttpStatus.BAD_REQUEST,
                     mode.isStageMachineDriven()
-                            ? "只有草稿记录可以开启写作对话"
+                            ? "只有未过期草稿或已留下记录可以开启写作对话"
                             : "只有已解锁的记录可以开启回看对话");
         }
         return record;

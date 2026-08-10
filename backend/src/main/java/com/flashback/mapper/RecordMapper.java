@@ -17,7 +17,7 @@ public interface RecordMapper {
 
         Record selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-        int updateDraftByIdAndUserId(
+        int updateEditableByIdAndUserId(
                         @Param("id") Long id,
                         @Param("userId") Long userId,
                         @Param("title") String title,
@@ -30,11 +30,17 @@ public interface RecordMapper {
                         @Param("lifeNodeType") LifeNodeType lifeNodeType,
                         @Param("lifeNodeCustomLabel") String lifeNodeCustomLabel,
                         @Param("unlockAt") LocalDateTime unlockAt,
-                        @Param("updatedAt") LocalDateTime updatedAt);
+                        @Param("updatedAt") LocalDateTime updatedAt,
+                        @Param("draftExpiresAt") LocalDateTime draftExpiresAt);
 
         int deleteDraftByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
-        int sealDraftByIdAndUserId(
+        int saveDraftByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("now") LocalDateTime now);
+
+        int sealSavedByIdAndUserId(
                         @Param("id") Long id,
                         @Param("userId") Long userId,
                         @Param("sealedAt") LocalDateTime sealedAt,
@@ -43,6 +49,22 @@ public interface RecordMapper {
         List<Record> selectExpiredSealedRecords(
                         @Param("now") LocalDateTime now,
                         @Param("limit") int limit);
+
+        List<Record> selectExpiredDrafts(
+                        @Param("now") LocalDateTime now,
+                        @Param("limit") int limit);
+
+        Record selectExpiredDraftForUpdate(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("expectedExpiresAt") LocalDateTime expectedExpiresAt,
+                        @Param("now") LocalDateTime now);
+
+        int deleteExpiredDraftByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("expectedExpiresAt") LocalDateTime expectedExpiresAt,
+                        @Param("now") LocalDateTime now);
 
         int unlockSealedById(
                         @Param("id") Long id,
@@ -87,6 +109,12 @@ public interface RecordMapper {
                         @Param("userId") Long userId,
                         @Param("coverAttachmentId") Long coverAttachmentId,
                         @Param("updatedAt") LocalDateTime updatedAt);
+
+        int touchDraftByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("now") LocalDateTime now,
+                        @Param("draftExpiresAt") LocalDateTime draftExpiresAt);
 
         long countByUserAndCondition(
                         @Param("userId") Long userId,

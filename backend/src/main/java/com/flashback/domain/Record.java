@@ -17,6 +17,7 @@ public class Record {
     private LocalDateTime unlockAt;
     private LocalDateTime sealedAt;
     private LocalDateTime unlockedAt;
+    private LocalDateTime draftExpiresAt;
     private String aiSummary;
     private String aiPromptResult;
     private String beliefThen;
@@ -106,6 +107,14 @@ public class Record {
 
     public void setUnlockedAt(LocalDateTime unlockedAt) {
         this.unlockedAt = unlockedAt;
+    }
+
+    public LocalDateTime getDraftExpiresAt() {
+        return draftExpiresAt;
+    }
+
+    public void setDraftExpiresAt(LocalDateTime draftExpiresAt) {
+        this.draftExpiresAt = draftExpiresAt;
     }
 
     public String getAiSummary() {

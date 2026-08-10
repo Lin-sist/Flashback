@@ -40,6 +40,7 @@ import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.mapper.UserMapper;
 import com.flashback.service.RecordService;
+import com.flashback.service.RecordSaveEligibility;
 import com.flashback.wechat.WechatSubscribeMessageClient;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordAttachmentVO;
@@ -73,6 +74,7 @@ public class RecordServiceImpl implements RecordService {
 
     private static final int PREVIEW_MAX_LENGTH = 60;
     private static final int UNLOCK_BATCH_SIZE = 100;
+    private static final long DRAFT_RECOVERY_DAYS = 7L;
     /**
      * 与 UpdateRecordRequest / CreateRecordRequest 的 tagIds @Size(max = 20) 保持一致。
      */
@@ -101,6 +103,7 @@ public class RecordServiceImpl implements RecordService {
     private final AppWechatProperties appWechatProperties;
     private final WechatSubscribeMessageClient wechatSubscribeMessageClient;
     private final Clock clock;
+    private final RecordSaveEligibility recordSaveEligibility;
 
     public RecordServiceImpl(
             RecordMapper recordMapper,
@@ -115,7 +118,8 @@ public class RecordServiceImpl implements RecordService {
             ObjectMapper objectMapper,
             AppWechatProperties appWechatProperties,
             WechatSubscribeMessageClient wechatSubscribeMessageClient,
-            Clock clock) {
+            Clock clock,
+            RecordSaveEligibility recordSaveEligibility) {
         this.recordMapper = recordMapper;
         this.tagMapper = tagMapper;
         this.recordTagMapper = recordTagMapper;
@@ -129,6 +133,7 @@ public class RecordServiceImpl implements RecordService {
         this.appWechatProperties = appWechatProperties;
         this.wechatSubscribeMessageClient = wechatSubscribeMessageClient;
         this.clock = clock;
+        this.recordSaveEligibility = recordSaveEligibility;
     }
 
     @Override
@@ -141,8 +146,8 @@ public class RecordServiceImpl implements RecordService {
         Record record = new Record();
         record.setUserId(userId);
         record.setTitle(normalizeOptional(request.getTitle()));
-        record.setContent(normalizeRequired(request.getContent(), "content不能为空"));
-        record.setRecordType(request.getRecordType());
+        record.setContent(normalizeContent(request.getContent()));
+        record.setRecordType(request.getRecordType() == null ? com.flashback.domain.RecordType.MOMENT : request.getRecordType());
         record.setCoreQuestion(normalizeOptional(request.getCoreQuestion()));
         record.setAiSummary(normalizeOptional(request.getAiSummary()));
         record.setAiPromptResult(serializeAiPromptResults(request.getAiPromptResults()));
@@ -153,6 +158,7 @@ public class RecordServiceImpl implements RecordService {
                 request.getLifeNodeCustomLabel()));
         record.setStatus(RecordStatus.DRAFT);
         record.setUnlockAt(request.getUnlockAt());
+        record.setDraftExpiresAt(now.plusDays(DRAFT_RECOVERY_DAYS));
         record.setCreatedAt(now);
         record.setUpdatedAt(now);
 
@@ -166,15 +172,22 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO update(Long userId, Long id, UpdateRecordRequest request) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "仅DRAFT状态允许编辑");
+        ensureEditable(current, "仅DRAFT或SAVED状态允许编辑");
         List<Long> tagIds = normalizeTagIds(request.getTagIds());
         validateTagIdsExist(tagIds);
+        String normalizedContent = normalizeContent(request.getContent());
+        if (current.getStatus() == RecordStatus.SAVED
+                && !recordSaveEligibility.isEligible(current, normalizedContent)) {
+            throw badRequest("至少留下一句话、一张图片或一段声音");
+        }
 
-        int affected = recordMapper.updateDraftByIdAndUserId(
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        int affected = recordMapper.updateEditableByIdAndUserId(
                 id,
                 userId,
                 normalizeOptional(request.getTitle()),
-                normalizeRequired(request.getContent(), "content不能为空"),
+                normalizedContent,
                 request.getRecordType(),
                 normalizeOptional(request.getCoreQuestion()),
                 normalizeOptional(request.getAiSummary()),
@@ -183,7 +196,8 @@ public class RecordServiceImpl implements RecordService {
                 request.getLifeNodeType(),
                 validateLifeNodeCustomLabel(request.getLifeNodeType(), request.getLifeNodeCustomLabel()),
                 request.getUnlockAt(),
-                LocalDateTime.now(clock));
+                now,
+                current.getStatus() == RecordStatus.DRAFT ? now.plusDays(DRAFT_RECOVERY_DAYS) : null);
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
@@ -197,7 +211,7 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public void delete(Long userId, Long id) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "仅DRAFT状态允许删除");
+        ensureActiveDraft(current, "仅DRAFT状态允许删除");
 
         int affected = recordMapper.deleteDraftByIdAndUserId(id, userId);
         if (affected == 0) {
@@ -210,7 +224,7 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO updateLocation(Long userId, Long id, UpdateRecordLocationRequest request) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "仅DRAFT状态允许编辑位置");
+        ensureEditable(current, "记录已封存，不能编辑位置");
         validateLocation(request);
 
         LocalDateTime now = LocalDateTime.now(clock);
@@ -225,6 +239,7 @@ public class RecordServiceImpl implements RecordService {
         location.setCreatedAt(now);
         location.setUpdatedAt(now);
         recordLocationMapper.upsert(location);
+        touchDraft(current, now);
 
         return toDetailVO(requireOwnedRecord(id, userId));
     }
@@ -233,9 +248,10 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO deleteLocation(Long userId, Long id) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "仅DRAFT状态允许删除位置");
+        ensureEditable(current, "记录已封存，不能删除位置");
 
         recordLocationMapper.deleteByRecordIdAndUserId(id, userId);
+        touchDraft(current, LocalDateTime.now(clock));
         return toDetailVO(requireOwnedRecord(id, userId));
     }
 
@@ -243,7 +259,7 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO updateCover(Long userId, Long id, UpdateRecordCoverRequest request) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "仅DRAFT状态允许设置封面");
+        ensureEditable(current, "记录已封存，不能设置封面");
 
         Long attachmentId = request == null ? null : request.getAttachmentId();
         if (attachmentId != null) {
@@ -259,24 +275,24 @@ public class RecordServiceImpl implements RecordService {
             }
         }
 
+        LocalDateTime now = LocalDateTime.now(clock);
         int affected = recordMapper.updateCoverAttachmentByIdAndUserId(
                 id,
                 userId,
                 attachmentId,
-                LocalDateTime.now(clock));
+                now);
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
+        touchDraft(current, now);
         return toDetailVO(requireOwnedRecord(id, userId));
     }
 
     @Override
     public RecordDetailVO seal(Long userId, Long id) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "仅DRAFT状态允许封存");
-
-        if (normalizeOptional(current.getContent()) == null) {
-            throw badRequest("封存前必须填写正文内容");
+        if (current.getStatus() != RecordStatus.SAVED) {
+            throw badRequest("仅SAVED状态允许封存");
         }
         if (current.getUnlockAt() == null) {
             throw badRequest("封存前必须设置解锁时间");
@@ -287,7 +303,7 @@ public class RecordServiceImpl implements RecordService {
             throw badRequest("unlockAt必须晚于当前时间");
         }
 
-        int affected = recordMapper.sealDraftByIdAndUserId(id, userId, now, now);
+        int affected = recordMapper.sealSavedByIdAndUserId(id, userId, now, now);
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
@@ -299,21 +315,24 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO appendContent(Long userId, Long id, String text) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "记录已封存，不能追加正文");
+        ensureEditable(current, "记录已封存，不能追加正文");
 
         String addition = normalizeRequired(text, "追加内容不能为空");
         String existing = normalizeOptional(current.getContent());
         // 只追加：既有正文原样保留在前，不做修剪、润色或替换。
         String merged = existing == null ? addition : existing + "\n\n" + addition;
 
+        LocalDateTime now = LocalDateTime.now(clock);
         int affected = recordMapper.updateDraftContentByIdAndUserId(
                 id,
                 userId,
                 merged,
-                LocalDateTime.now(clock));
+                now);
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
+
+        touchDraft(current, now);
 
         return toDetailVO(requireOwnedRecord(id, userId));
     }
@@ -322,7 +341,7 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO appendTags(Long userId, Long id, List<Long> tagIds) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "记录已封存，不能修改标签");
+        ensureEditable(current, "记录已封存，不能修改标签");
 
         List<Long> incoming = normalizeTagIds(tagIds);
         if (incoming.isEmpty()) {
@@ -343,6 +362,8 @@ public class RecordServiceImpl implements RecordService {
             rebindRecordTags(id, List.copyOf(merged));
         }
 
+        touchDraft(current, LocalDateTime.now(clock));
+
         return toDetailVO(requireOwnedRecord(id, userId));
     }
 
@@ -350,7 +371,7 @@ public class RecordServiceImpl implements RecordService {
     @Transactional
     public RecordDetailVO updateUnlockAt(Long userId, Long id, LocalDateTime unlockAt) {
         Record current = requireOwnedRecord(id, userId);
-        ensureDraft(current, "记录已封存，不能修改解锁时间");
+        ensureEditable(current, "记录已封存，不能修改解锁时间");
 
         if (unlockAt == null) {
             throw badRequest("unlockAt不能为空");
@@ -365,6 +386,8 @@ public class RecordServiceImpl implements RecordService {
         if (affected == 0) {
             throw badRequest("记录状态已变更，请刷新后重试");
         }
+
+        touchDraft(current, now);
 
         return toDetailVO(requireOwnedRecord(id, userId));
     }
@@ -399,7 +422,7 @@ public class RecordServiceImpl implements RecordService {
             Long id,
             UpdateUnlockReminderAuthorizationRequest request) {
         Record current = requireOwnedRecord(id, userId);
-        if (current.getStatus() == RecordStatus.DRAFT) {
+        if (current.getStatus() == RecordStatus.DRAFT || current.getStatus() == RecordStatus.SAVED) {
             throw badRequest("仅封存后的记录允许更新提醒授权状态");
         }
 
@@ -596,12 +619,33 @@ public class RecordServiceImpl implements RecordService {
         if (record == null) {
             throw new NotFoundException("记录不存在");
         }
+        if (record.getStatus() == RecordStatus.DRAFT
+                && record.getDraftExpiresAt() != null
+                && !record.getDraftExpiresAt().isAfter(LocalDateTime.now(clock))) {
+            throw new NotFoundException("记录不存在");
+        }
         return record;
     }
 
-    private void ensureDraft(Record record, String message) {
-        if (record.getStatus() != RecordStatus.DRAFT) {
+    private void ensureActiveDraft(Record record, String message) {
+        if (record.getStatus() != RecordStatus.DRAFT
+                || (record.getDraftExpiresAt() != null
+                && !record.getDraftExpiresAt().isAfter(LocalDateTime.now(clock)))) {
             throw badRequest(message);
+        }
+    }
+
+    private void touchDraft(Record record, LocalDateTime now) {
+        if (record.getStatus() != RecordStatus.DRAFT && record.getStatus() != RecordStatus.SAVED) {
+            return;
+        }
+        int affected = recordMapper.touchDraftByIdAndUserId(
+                record.getId(),
+                record.getUserId(),
+                now,
+                now.plusDays(DRAFT_RECOVERY_DAYS));
+        if (affected == 0) {
+            throw badRequest("记录状态已变更，请刷新后重试");
         }
     }
 
@@ -739,6 +783,50 @@ public class RecordServiceImpl implements RecordService {
             throw badRequest(message);
         }
         return normalized;
+    }
+
+    private void ensureEditable(Record record, String message) {
+        if (record.getStatus() == RecordStatus.SAVED) {
+            return;
+        }
+        if (record.getStatus() != RecordStatus.DRAFT) {
+            throw badRequest(message);
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (record.getDraftExpiresAt() != null && !record.getDraftExpiresAt().isAfter(now)) {
+            throw badRequest("草稿已过期，无法编辑");
+        }
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO save(Long userId, Long id) {
+        Record current = requireOwnedRecord(id, userId);
+        if (current.getStatus() == RecordStatus.SAVED) {
+            return toDetailVO(current);
+        }
+        if (current.getStatus() != RecordStatus.DRAFT) {
+            throw badRequest("仅DRAFT状态允许保存");
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (current.getDraftExpiresAt() == null || !current.getDraftExpiresAt().isAfter(now)) {
+            throw badRequest("草稿已过期，无法保存");
+        }
+        if (!recordSaveEligibility.isEligible(current)) {
+            throw badRequest("至少留下一句话、一张图片或一段声音");
+        }
+
+        int affected = recordMapper.saveDraftByIdAndUserId(id, userId, now);
+        if (affected == 0) {
+            throw badRequest("记录状态已变更，请刷新后重试");
+        }
+        return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    private String normalizeContent(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? "" : normalized;
     }
 
     private String normalizeOptional(String value) {

@@ -15,6 +15,7 @@ import com.flashback.mapper.RecordMapper;
 import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.service.RecordAttachmentService;
+import com.flashback.service.RecordSaveEligibility;
 import com.flashback.storage.ObjectStorageException;
 import com.flashback.storage.ObjectStorageMetadata;
 import com.flashback.storage.ObjectStorageProvider;
@@ -26,6 +27,7 @@ import com.flashback.vo.RecordAttachmentVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -40,6 +42,8 @@ import java.util.function.Supplier;
  */
 @Service
 public class RecordAttachmentServiceImpl implements RecordAttachmentService {
+
+    private static final long DRAFT_RECOVERY_DAYS = 7L;
 
     private static final Set<String> IMAGE_MIME_TYPES = Set.of(
             "image/jpeg",
@@ -59,6 +63,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     private final RecordAttachmentMapper recordAttachmentMapper;
     private final AppMediaProperties appMediaProperties;
     private final ObjectStorageRegistry objectStorageRegistry;
+    private final RecordSaveEligibility recordSaveEligibility;
     private final Clock clock;
     private final Supplier<UUID> uuidSupplier;
 
@@ -68,12 +73,14 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             RecordAttachmentMapper recordAttachmentMapper,
             AppMediaProperties appMediaProperties,
             ObjectStorageRegistry objectStorageRegistry,
+            RecordSaveEligibility recordSaveEligibility,
             Clock clock) {
         this(
                 recordMapper,
                 recordAttachmentMapper,
                 appMediaProperties,
                 objectStorageRegistry,
+                recordSaveEligibility,
                 clock,
                 UUID::randomUUID);
     }
@@ -83,12 +90,14 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             RecordAttachmentMapper recordAttachmentMapper,
             AppMediaProperties appMediaProperties,
             ObjectStorageRegistry objectStorageRegistry,
+            RecordSaveEligibility recordSaveEligibility,
             Clock clock,
             Supplier<UUID> uuidSupplier) {
         this.recordMapper = recordMapper;
         this.recordAttachmentMapper = recordAttachmentMapper;
         this.appMediaProperties = appMediaProperties;
         this.objectStorageRegistry = objectStorageRegistry;
+        this.recordSaveEligibility = recordSaveEligibility;
         this.clock = clock;
         this.uuidSupplier = uuidSupplier;
     }
@@ -99,7 +108,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             Long recordId,
             CreateAttachmentUploadTokenRequest request) {
         Record record = requireOwnedRecord(recordId, userId);
-        ensureDraft(record);
+        ensureEditable(record);
         ObjectStorageProvider storage = requireActiveStorage();
 
         String mimeType = normalizeMimeType(request.getMimeType());
@@ -136,12 +145,14 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     }
 
     @Override
+    @Transactional
     public RecordAttachmentVO commitAttachment(
             Long userId,
             Long recordId,
             CommitRecordAttachmentRequest request) {
         Record record = requireOwnedRecord(recordId, userId);
-        ensureDraft(record);
+        ensureEditable(record);
+        assertEditable(record, LocalDateTime.now(clock));
         ObjectStorageProvider storage = request.getProvider() == null
                 ? requireActiveStorage()
                 : requireStorage(request.getProvider());
@@ -208,9 +219,11 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     }
 
     @Override
+    @Transactional
     public void deleteAttachment(Long userId, Long recordId, Long attachmentId) {
         Record record = requireOwnedRecord(recordId, userId);
-        ensureDraft(record);
+        ensureEditable(record);
+        assertEditable(record, LocalDateTime.now(clock));
 
         RecordAttachment attachment = recordAttachmentMapper.selectByIdAndRecordIdAndUserId(
                 attachmentId,
@@ -218,6 +231,10 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
                 userId);
         if (attachment == null || attachment.getStatus() != RecordAttachmentStatus.AVAILABLE) {
             throw new NotFoundException("附件不存在");
+        }
+        if (record.getStatus() == RecordStatus.SAVED
+                && !recordSaveEligibility.isEligibleAfterRemovingAttachment(record)) {
+            throw badRequest("至少留下一句话、一张图片或一段声音");
         }
         ObjectStorageProvider storage = requireStorage(attachment.getStorageProvider());
 
@@ -253,9 +270,25 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
         return record;
     }
 
-    private void ensureDraft(Record record) {
-        if (record.getStatus() != RecordStatus.DRAFT) {
+    private void ensureEditable(Record record) {
+        if (record.getStatus() == RecordStatus.SAVED) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (record.getStatus() != RecordStatus.DRAFT
+                || (record.getDraftExpiresAt() != null && !record.getDraftExpiresAt().isAfter(now))) {
             throw badRequest("记录已封存，不能修改附件");
+        }
+    }
+
+    private void assertEditable(Record record, LocalDateTime now) {
+        int affected = recordMapper.touchDraftByIdAndUserId(
+                record.getId(),
+                record.getUserId(),
+                now,
+                now.plusDays(DRAFT_RECOVERY_DAYS));
+        if (affected == 0) {
+            throw badRequest("记录状态已变更，请刷新后重试");
         }
     }
 

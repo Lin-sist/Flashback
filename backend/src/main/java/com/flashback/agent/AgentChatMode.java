@@ -3,6 +3,9 @@ package com.flashback.agent;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.RecordStatus;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * 对话模式（C3b agent-review-chat）。
  *
@@ -22,7 +25,7 @@ import com.flashback.domain.RecordStatus;
 public enum AgentChatMode {
 
     /** 「写下此刻」的多轮写作引导（C1 起的既有行为）。 */
-    WRITING_GUIDANCE(RecordStatus.DRAFT, true, true, true),
+    WRITING_GUIDANCE(EnumSet.of(RecordStatus.DRAFT, RecordStatus.SAVED), true, true, true),
 
     /**
      * 解锁后的友人回看对话。
@@ -34,19 +37,19 @@ public enum AgentChatMode {
      * - 无素材：往已解锁记录的正文里追加此刻的整理会破坏它的时间完整性——
      * 用户几个月后无法分辨哪句是当时写的、哪句是回看时补的。
      */
-    REVIEW_CHAT(RecordStatus.UNLOCKED, false, false, false);
+    REVIEW_CHAT(EnumSet.of(RecordStatus.UNLOCKED), false, false, false);
 
-    private final RecordStatus requiredRecordStatus;
+    private final Set<RecordStatus> allowedRecordStatuses;
     private final boolean stageMachineDriven;
     private final boolean toolsAvailable;
     private final boolean materialProduced;
 
     AgentChatMode(
-            RecordStatus requiredRecordStatus,
+            Set<RecordStatus> allowedRecordStatuses,
             boolean stageMachineDriven,
             boolean toolsAvailable,
             boolean materialProduced) {
-        this.requiredRecordStatus = requiredRecordStatus;
+        this.allowedRecordStatuses = Set.copyOf(allowedRecordStatuses);
         this.stageMachineDriven = stageMachineDriven;
         this.toolsAvailable = toolsAvailable;
         this.materialProduced = materialProduced;
@@ -69,8 +72,8 @@ public enum AgentChatMode {
      * 回看要求 UNLOCKED——SEALED 未解锁的记录用户自己都还没到能看的时刻，
      * Agent 陪他聊它等于替时间拆封。
      */
-    public RecordStatus requiredRecordStatus() {
-        return requiredRecordStatus;
+    public boolean allowsRecordStatus(RecordStatus status) {
+        return allowedRecordStatuses.contains(status);
     }
 
     /** 该模式是否由 {@link AgentStageMachine} 推进阶段。 */

@@ -106,9 +106,10 @@ class RecordMapperIntegrationTest {
         }
 
         @Test
-        void updateDraftByIdAndUserIdShouldOnlyAffectDraft() {
+        void updateEditableByIdAndUserIdShouldOnlyAffectDraftOrSaved() {
                 Record draft = newRecord(1002L, "draft-title", RecordStatus.DRAFT, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 2, 2, 10, 0, 0));
+                draft.setDraftExpiresAt(LocalDateTime.of(2026, 3, 1, 0, 0, 0));
                 recordMapper.insert(draft);
 
                 Record sealed = newRecord(1002L, "sealed-title", RecordStatus.SEALED, RecordType.FUTURE_LETTER,
@@ -118,16 +119,16 @@ class RecordMapperIntegrationTest {
                 LocalDateTime updatedAt = LocalDateTime.of(2026, 2, 2, 12, 0, 0);
                 LocalDateTime unlockAt = LocalDateTime.of(2026, 3, 1, 8, 0, 0);
 
-                int updatedDraft = recordMapper.updateDraftByIdAndUserId(
+                int updatedDraft = recordMapper.updateEditableByIdAndUserId(
                                 draft.getId(), 1002L, "draft-updated", "content-updated",
                                 RecordType.EMOTION_NOTE, "core-updated", "summary-updated",
                                 "[\"prompt-a\",\"prompt-b\"]", "belief-updated",
-                                LifeNodeType.OTHER, "自定义节点", unlockAt, updatedAt);
-                int updatedSealed = recordMapper.updateDraftByIdAndUserId(
+                                LifeNodeType.OTHER, "自定义节点", unlockAt, updatedAt, updatedAt.plusDays(7));
+                int updatedSealed = recordMapper.updateEditableByIdAndUserId(
                                 sealed.getId(), 1002L, "sealed-updated", "content-updated",
                                 RecordType.EMOTION_NOTE, "core-updated", "summary-updated",
                                 "[\"prompt-a\",\"prompt-b\"]", "belief-updated",
-                                LifeNodeType.OTHER, "自定义节点", unlockAt, updatedAt);
+                                LifeNodeType.OTHER, "自定义节点", unlockAt, updatedAt, updatedAt.plusDays(7));
 
                 assertThat(updatedDraft).isEqualTo(1);
                 assertThat(updatedSealed).isEqualTo(0);
@@ -184,10 +185,10 @@ class RecordMapperIntegrationTest {
         }
 
         @Test
-        void sealDraftByIdAndUserIdShouldOnlyAffectDraft() {
-                Record draft = newRecord(1003L, "draft-to-seal", RecordStatus.DRAFT, RecordType.NODE_RECORD,
+        void sealSavedByIdAndUserIdShouldOnlyAffectSaved() {
+                Record saved = newRecord(1003L, "saved-to-seal", RecordStatus.SAVED, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 2, 3, 9, 0, 0));
-                recordMapper.insert(draft);
+                recordMapper.insert(saved);
 
                 Record unlocked = newRecord(1003L, "already-unlocked", RecordStatus.UNLOCKED, RecordType.NODE_RECORD,
                                 LocalDateTime.of(2026, 2, 3, 9, 30, 0));
@@ -196,13 +197,13 @@ class RecordMapperIntegrationTest {
                 LocalDateTime sealedAt = LocalDateTime.of(2026, 2, 3, 10, 0, 0);
                 LocalDateTime updatedAt = LocalDateTime.of(2026, 2, 3, 10, 1, 0);
 
-                int sealedDraft = recordMapper.sealDraftByIdAndUserId(draft.getId(), 1003L, sealedAt, updatedAt);
-                int sealedUnlocked = recordMapper.sealDraftByIdAndUserId(unlocked.getId(), 1003L, sealedAt, updatedAt);
+                int sealedSaved = recordMapper.sealSavedByIdAndUserId(saved.getId(), 1003L, sealedAt, updatedAt);
+                int sealedUnlocked = recordMapper.sealSavedByIdAndUserId(unlocked.getId(), 1003L, sealedAt, updatedAt);
 
-                assertThat(sealedDraft).isEqualTo(1);
+                assertThat(sealedSaved).isEqualTo(1);
                 assertThat(sealedUnlocked).isEqualTo(0);
 
-                Record sealedRecord = recordMapper.selectByIdAndUserId(draft.getId(), 1003L);
+                Record sealedRecord = recordMapper.selectByIdAndUserId(saved.getId(), 1003L);
                 assertThat(sealedRecord).isNotNull();
                 assertThat(sealedRecord.getStatus()).isEqualTo(RecordStatus.SEALED);
                 assertThat(sealedRecord.getSealedAt()).isEqualTo(sealedAt);
@@ -597,6 +598,7 @@ class RecordMapperIntegrationTest {
                 record.setRecordType(recordType);
                 record.setCoreQuestion("core-" + title);
                 record.setStatus(status);
+                record.setDraftExpiresAt(status == RecordStatus.DRAFT ? createdAt.plusYears(100) : null);
                 record.setUnlockAt(createdAt.plusDays(1));
                 record.setSealedAt(status == RecordStatus.SEALED ? createdAt.plusHours(1) : null);
                 record.setUnlockedAt(status == RecordStatus.UNLOCKED ? createdAt.plusHours(2) : null);

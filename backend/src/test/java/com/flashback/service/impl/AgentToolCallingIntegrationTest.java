@@ -292,7 +292,8 @@ class AgentToolCallingIntegrationTest {
     private void sealRecord() {
         LocalDateTime now = LocalDateTime.now();
         recordMapper.updateDraftUnlockAtByIdAndUserId(recordId, userId, now.plusYears(1), now);
-        recordMapper.sealDraftByIdAndUserId(recordId, userId, now, now);
+        jdbcTemplate.update("UPDATE `record` SET status = 'SAVED', draft_expires_at = NULL WHERE id = ?", recordId);
+        recordMapper.sealSavedByIdAndUserId(recordId, userId, now, now);
     }
 
     private Long createUser(String suffix) {

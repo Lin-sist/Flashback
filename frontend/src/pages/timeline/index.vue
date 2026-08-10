@@ -13,7 +13,7 @@ import {
 } from '../../types'
 import { formatDateTime, hasAuthenticatedSession } from '../../utils'
 
-type NodeKind = 'sealed' | 'unlocked' | 'draft' | 'locked'
+type NodeKind = 'saved' | 'sealed' | 'unlocked' | 'draft' | 'locked'
 type DateGranularity = 'ALL' | 'YEAR' | 'MONTH' | 'DAY'
 
 interface DecoratedItem {
@@ -109,6 +109,7 @@ function ensureDraftDate() {
 }
 
 const resolveNodeKind = (status: RecordStatus): NodeKind => {
+  if (status === RecordStatus.SAVED) return 'saved'
   if (status === RecordStatus.UNLOCKED) return 'unlocked'
   if (status === RecordStatus.SEALED) return 'sealed'
   return 'draft'
@@ -520,7 +521,7 @@ onShow(() => {
               </template>
 
               <!-- unlocked card with image placeholder -->
-              <template v-else-if="item.kind === 'unlocked'">
+              <template v-else-if="item.kind === 'unlocked' || item.kind === 'saved'">
                 <view class="tl-dot tl-dot-open">
                   <view class="tl-dot-inner tl-dot-inner-open" />
                 </view>
@@ -541,11 +542,13 @@ onShow(() => {
                   </view>
                   <view class="card-meta">
                     <view class="seal seal-open"><text class="seal-char seal-char-open">封</text></view>
-                    <text class="card-tag">{{ item.hasImage ? '已解封 · 图文记忆' : '已解封 · 时间回看' }}</text>
+                    <text class="card-tag">{{ item.kind === 'saved'
+                      ? (item.hasImage ? '已留下 · 图文记录' : '已留下 · 当下记录')
+                      : (item.hasImage ? '已解封 · 图文记忆' : '已解封 · 时间回看') }}</text>
                   </view>
                   <text class="card-title">{{ item.title }}</text>
                   <view class="card-footer">
-                    <text class="card-footer-tag">MEMORY</text>
+                    <text class="card-footer-tag">{{ item.kind === 'saved' ? 'SAVED' : 'MEMORY' }}</text>
                   </view>
                 </view>
               </template>

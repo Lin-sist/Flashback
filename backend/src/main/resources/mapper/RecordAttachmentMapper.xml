@@ -102,6 +102,15 @@
         ORDER BY sort_order ASC, id ASC
     </select>
 
+    <select id="selectAllByRecordIdAndUserId" resultMap="RecordAttachmentResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM record_attachment
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
     <select id="countAvailableByRecordIdAndUserIdAndType" resultType="int">
         SELECT COUNT(1)
         FROM record_attachment

@@ -37,8 +37,8 @@ const buildQueryString = (params: Record<string, string | number | undefined>) =
 
 const toDraftPayload = (payload: CreateRecordDTO | UpdateRecordDTO) => ({
   title: payload.title ?? null,
-  content: payload.content,
-  recordType: payload.recordType,
+  content: payload.content ?? '',
+  recordType: payload.recordType ?? undefined,
   coreQuestion: payload.coreQuestion ?? null,
   aiSummary: payload.aiSummary ?? null,
   aiPromptResults: payload.aiPromptResults ?? [],
@@ -75,6 +75,16 @@ export const recordService = {
       url: `/api/records/${id}`,
       method: 'PUT',
       data: toDraftPayload(payload),
+    })
+  },
+  saveRecord(id: string | number) {
+    if (shouldUsePreviewData()) {
+      return rejectPreviewMutation<RecordDetailVO>()
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/save`,
+      method: 'POST',
     })
   },
   updateLocation(id: string | number, payload: UpdateRecordLocationDTO) {
