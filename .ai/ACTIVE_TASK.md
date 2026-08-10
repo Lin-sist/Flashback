@@ -2,10 +2,11 @@
 
 ## Status
 
-`IDLE`
+`ACTIVE`
 
-当前没有活动 Type C change。C9 `agent-temporal-intelligence` 已于 2026-08-08 完成闸门 3 并归档。
-后续能力须重新建立独立 OpenSpec change；`push`、部署与发布均未授权。
+当前唯一 active Type C change：P3.1 `present-moment-capture`。
+位置：`openspec/changes/present-moment-capture/`。
+当前停在**闸门 1：规划等待批准**；未获闸门 2 前不得修改业务代码。真实 MySQL、对象存储、微信真机、`push`、部署与发布均未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -70,8 +71,8 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：IDLE**。蓝图批准不等于实现授权；H0 尚未启动，任何 Type C 仍须独立 OpenSpec change；
-  旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：P3.1 规划闸**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者。P3.1 已建立独立 OpenSpec change，但规划批准不等于实现授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -107,6 +108,7 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
+- `openspec/changes/present-moment-capture/`（P3.1 当前 active 规划包；尚未获实现授权）
 - `openspec/specs/agent-runtime/spec.md`（含 C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**，Agent 核心契约）
 - `openspec/specs/backend-core/spec.md`（含 M4 + C1 + C2 + C4 + C3a + C3b + C5 + C6 + C7 + C8 + **C9**）
 - `openspec/specs/miniapp-core/spec.md`（含 M4 + C1 + C2 + C3b + C8 + **C9**；C5/C6/C7 无 delta）
@@ -117,6 +119,18 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-10 — **P3.1 `present-moment-capture` 规划闸启动**
+  - readiness：开刀前 `ACTIVE_TASK=IDLE`、工作树 clean、HEAD 为 `2d9544a`；H0 已完成，当前无其他 active Type C
+  - E0 因没有真实用户或参与者以 `INCONCLUSIVE / SKIPPED` 收口：有效参与者 0，不选 A/B/C 胜者，不倒填用户理解 PASS
+  - 新建 `openspec/changes/present-moment-capture/`：proposal / design / tasks，以及 `backend-core` / `miniapp-core` / `agent-runtime` / `v2-product-scope` 四份 delta
+  - N1–N11 推荐：`SAVED`、默认 `MOMENT`、幂等显式 save、文字或 AVAILABLE 图片/声音成立、7 天恢复 DRAFT、窄过期清理、DRAFT/SAVED 可编辑、SAVED 后封存、渐进披露、E0 交互细节 provisional、任意记录删除留 P3.2
+  - 规划期真实 MySQL、对象存储、provider、微信真机调用预算为 0；没有修改业务代码、依赖、lockfile 或 accepted baseline
+  - OpenSpec CLI 不在 PATH；仅执行仓库结构、Requirement/Scenario、任务 ID、范围与 Git 文件级校验，不声称 CLI validate PASS
+  - **Gate state**：闸门 1 等待用户批准全部 artifacts 与 N1–N11；闸门 2、闸门 3 均未授权
+  - **Commit**：pending（Agent commit 已授权；不 push）
+  - **Blocked on**: 闸门 1 用户 review，不是实现阻塞
+  - **Next step**: 用户批准或调整规划；只有另行明确授权闸门 2 后才按 `tasks.md` 修改业务代码
 
 - **This session**: 2026-08-08 — **C9 `agent-temporal-intelligence` 闸门 3 验收归档**
   - 用户明确通过闸门 3 并授权收口归档；Git 仍由 Agent 提交，未授权 push、部署或发布
@@ -481,9 +495,9 @@
 `narrative/agent-tech-story.md`、v1.2 冻结带来的 8 处引用同步改动。
 `roadmap/iteration-blueprint-v1.2-draft.md` **已不存在**（内容已迁入正式蓝图，草稿已删）。
 
-## Out Of Scope While IDLE
+## Out Of Scope While P3.1 Is In Planning
 
-- 当前无 active change；任何新业务能力先建立并批准独立 OpenSpec change，不沿用 C9 授权
+- 当前只允许完善 `present-moment-capture` 规划 artifacts；未获闸门 2 前不得修改业务代码，也不得沿用 C9 或 H0 授权
 - **改 prompt / 护栏阈值现在有条件了，但仍须走 Type C**：C6 的基线让改动可比对，
   这解除的是宪法 §7.3 的技术前提，**不是**流程要求。改动后快照会变，
   须确认符合预期再手工更新并在 `baselineNote` 写明由哪一刀改的

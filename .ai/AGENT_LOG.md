@@ -7236,3 +7236,53 @@ Commit: pending
   - 浏览器研究结论未来仍不能替代小程序真机实现验收
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 安排首名符合条件的目标用户按 P01 执行三轮；场后只把允许字段追加到 `OBSERVATIONS.md`
+
+## 2026-08-10｜E0 无真实参与者收口｜Type B
+
+- **Scope**:
+  - 用户确认没有真实用户或参与者，并接受推荐方案：不以内部判断或 Agent 模拟替代目标用户证据
+  - 本项只收口 E0 研究状态并保留未来恢复材料；提交责任为 Agent commit，不 push
+- **Changes**:
+  - 新增 `OUTCOME.md`，把 E0 结果明确标为 `INCONCLUSIVE`、目标用户观察标为 `SKIPPED`、有效参与者记为 0
+  - 更新 `PLAN.md`、`SESSION_GUIDE.md` 与 `OBSERVATIONS.md`：E0-04 保持未完成，不选 A/B/C 胜者，不宣称用户理解 PASS
+  - 只保留冻结蓝图已确认的最低基线；toast、持续状态条、底部层、具体动效与最终层级继续标为未验证
+- **Verification**: PASS（证据边界与文档一致性）
+  - 结果文档明确区分原型可运行证据与目标用户理解证据；0 名参与者没有被包装成小样本结论
+  - 原型和观察材料继续作为非生产研究资产保留，未复制进 frontend 或业务路由
+- **Verification SKIPPED**:
+  - 目标用户观察：没有真实参与者，无法执行；这是本轮 `INCONCLUSIVE` 的直接原因
+  - 微信真机、frontend/backend build、MySQL、provider、对象存储：本项只收口研究文档，执行这些检查不能补足用户证据
+- **Scope safety**:
+  - 未采集、生成或记录参与者身份、日记原文、真实图片/声音、secret 或外部消息
+  - 未修改原型 HTML、业务代码、依赖、lockfile、accepted baseline、archive、部署或发布配置
+- **Risks**:
+  - 保存反馈与渐进披露仍缺真实用户理解证据；后续实现只能采用可逆、克制基线，不能称为已验证 UX
+- **Commit**: pending（Agent commit 已授权；不 push）
+- **Next**: E0 不再阻塞规划；进入 P3.1 独立规划闸，但不自动获得实现授权
+
+## 2026-08-10｜P3.1 `present-moment-capture` 规划闸启动｜Type C
+
+- **Scope**:
+  - 按用户接受的推荐方案，只创建 P3.1 proposal / design / tasks / delta，并等待独立规划批准
+  - 开工锚点 `2d9544a`；规划期外调预算 0；闸门 2、真实依赖闸门 3、push、部署、发布均未授权
+- **Changes**:
+  - readiness 确认开刀前 `ACTIVE_TASK=IDLE`、工作树 clean、H0 已完成、无并发 active Type C；修正 `openspec/project.md` 与 `ACTIVE_TASK` 的 H0 状态摘要漂移
+  - 新建 `openspec/changes/present-moment-capture/` 下 proposal、design、tasks 及 `backend-core`、`miniapp-core`、`agent-runtime`、`v2-product-scope` 四份 delta
+  - 推荐 N1–N11：`SAVED`、默认 `MOMENT`、幂等显式 save、文字或 AVAILABLE 图片/声音成立、7 天恢复 DRAFT、窄过期清理、DRAFT/SAVED 可编辑、SAVED 后封存、渐进披露、E0 交互细节 provisional、任意记录删除留 P3.2
+  - `.ai/ACTIVE_TASK.md` 现指向该 change，明确停在闸门 1；`tasks.md` 仅规划任务勾选，实现与真实验收任务全部保持未勾选
+- **Verification**: PASS（规划包文件级结构与范围）
+  - proposal / design / tasks / 4 specs 齐备；Requirement / Scenario 层级、任务 ID 唯一性、active pointer 与 source-of-truth 状态已核对
+  - delta 覆盖 backend 状态与保存不变量、miniapp 当下记录主路径、Agent 的 DRAFT/SAVED 兼容及 V2 产品范围边界
+  - `git diff --check`、规划 allowlist 与增量敏感标记扫描 PASS；未发现业务代码、依赖、lockfile、archive 或 accepted baseline 变更
+- **Verification SKIPPED**:
+  - OpenSpec CLI：本机不在 PATH；只完成仓库结构与 Requirement/Scenario 文件级校验，不声称 CLI validation PASS
+  - backend/frontend tests、真实 MySQL、对象存储、provider、微信开发者工具/真机：本轮没有业务实现，且闸门 2/3 未授权
+- **Scope safety**:
+  - 只修改 E0 closeout、P3.1 change artifacts、`ACTIVE_TASK`、`openspec/project.md` 与 append-only 日志
+  - 未修改 frontend/backend 运行时代码、package/lockfile、accepted specs、archive、冻结蓝图、部署或监控；未外发私人内容或 secret
+- **Risks**:
+  - E0 仍无真实用户证据，N9/N10 只能作为 provisional 基线
+  - `SAVED` 会跨 record、附件、位置、封面、Agent、迁移与 frontend 展示；后续实现必须按完整 vertical slice 执行
+  - 真实 MySQL 历史 DRAFT 分布、真实对象存储媒体-only 链路与微信真机行为仍为 unknown，不能由 H2/build 替代
+- **Commit**: pending（Agent commit 已授权；不 push）
+- **Next**: 用户 review 并批准或调整 N1–N11 与规划 artifacts；只有另行通过闸门 2 后才能开始 T-09 之后的业务实现

@@ -4,8 +4,8 @@
 
 - 项目名称： 《时光回序》Flashback。
 - 当前稳定基线： V1.0.1 之上的 **V2.0 M4 已接受能力**（真实 AI / 私有对象存储附件 / 位置 / 封面 / 时光轴筛选分页 / preview 隔离等，见 baseline specs）。
-- 当前工程状态： **Phase 1 / Phase 2 均已完成**；C1–C9 已归档，最后一刀 C9 `agent-temporal-intelligence` 于 2026-08-08 归档。`.ai/ACTIVE_TASK.md` 为 `IDLE`。
-- 当前目标：在 M4 与 C1–C9 能力底座上转向核心体验与信任兑现。长期产品方向见 `Docs/agent-iteration/roadmap/core-product-definition.md` **v0.1**；当前冻结序列见 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v2.0**。下一建议动作是 Type B H0 `truth-surface-cleanup`，随后先做 E0 原型；P3.1 及以后任一 Type C 均须独立 OpenSpec change，蓝图不构成实现授权。
+- 当前工程状态： **Phase 1 / Phase 2 均已完成**；C1–C9 已归档。H0 `truth-surface-cleanup` 已完成，E0 `capture-ritual-prototype` 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口；`.ai/ACTIVE_TASK.md` 当前指向 P3.1 `present-moment-capture` 的规划闸。
+- 当前目标：在 M4 与 C1–C9 能力底座上转向核心体验与信任兑现。长期产品方向见 `Docs/agent-iteration/roadmap/core-product-definition.md` **v0.1**；当前冻结序列见 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v2.0**。P3.1 现阶段只创建 proposal / design / tasks / delta 并等待规划批准；蓝图或规划完成均不构成业务实现、真实外调、push、部署或发布授权。
 - V2.0 核心表达： 写下此刻。
 - V2.0 版本性质： 用于展示与评审的 WeChat Mini Program 演示版，不是生产上线版本。
 - 当前验收目标： 仅验收 WeChat Mini Program。
