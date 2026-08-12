@@ -39,7 +39,7 @@
 
 **技术栈**：Spring Boot 3.3.5 + MyBatis + MySQL 8.0 + Uniapp/Vue3 小程序；AI 侧走 OpenAI-compatible HTTP（DeepSeek），Agent runtime 全自研。
 
-**当前进度**：Phase 1 六刀与 Phase 2 四刀均已归档（Eval → Reflection → Resilience → Temporal）。当前 `ACTIVE_TASK=IDLE`；下一份蓝图先转向真实产品表面、此刻片段与数据主权，不默认继续扩张 Agent 技术栈。
+**当前进度**：Phase 1 六刀、Phase 2 四刀与核心体验 P3.1 / P3.2 均已归档。当前 `ACTIVE_TASK=IDLE`；产品已具备真实“留下这一刻”和数据所有权纵切，下一候选 P4.1 仍须重新走独立规划闸，不默认继续扩张 Agent 技术栈。
 
 ---
 
@@ -382,6 +382,16 @@ budget 桶与终态，不记录 prompt、用户日记、候选回复、provider 
 **证据与边界**：fixed-clock 测试覆盖 30/31、180/181、null/future 与 90 天边界；真实 MySQL 用可清理合成数据验证
 owner/status/focal 排除及时间衰减；真实 provider 固定合成探针 6/6 成功且均通过越界检查。eligible 场景的真实输出
 没有实际采用 recurrence hint，因此不能声称提示采纳稳定；本机无可控微信真机环境，UI 活体证据仍为 SKIPPED。
+
+### 10.2 P3.2 数据所有权：先处理远端对象，再允许数据库说“已删除”
+
+**一句话答案**：导出、单条删除和清除全部不是三个按钮，而是一类 owner-scoped durable operation；只有真实对象、数据库聚合与可恢复状态全部收口，产品才能向用户说“完成”。
+
+**怎么做的**：backend 用 operation + record snapshot 固定授权范围。删除时先逐个处理私有对象，provider success / not-found 才允许数据库 cascade；失败保留 record 与 item 作为 retry anchor。clear-all 确认后冻结 record / attachment / Agent mutation，retry 只沿原 snapshot 继续。导出生成离线 ZIP，records、media、agent 物理分区，manifest 记录 bytes / SHA-256；默认尊重 SEALED，完整取回须由用户显式选择且不改变产品内状态。
+
+**为什么不直接事务包住一切**：MySQL 事务无法回滚对象存储删除；若先删数据库再删对象，provider 失败会留下失去索引的私有对象。remote-first 加 not-found 幂等能覆盖“对象已删、DB 尚未提交”的中断点，而 persisted operation 让失败对用户可见、可重试，不把部分完成冒充成功。
+
+**证据与边界**：H2/离线覆盖 ZIP、owner、状态机与 cascade；真实 MySQL 8.0.41 验证 migration、固定 snapshot、写入冻结和 stale recovery；真实私有对象存储验证 PNG/WAV 的 read/delete/not-found/retry；微信开发者工具验证 `wx.saveFile`、四状态单删、clear-all 与 Preview 只读。最终后端 99 suites / 703 tests 全绿，11 skipped。不可压缩大媒体的内存/磁盘峰值仍未取得，物理真机和生产 SLA 也未因此成立。
 
 ---
 

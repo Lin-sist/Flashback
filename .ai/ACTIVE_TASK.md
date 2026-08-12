@@ -2,17 +2,15 @@
 
 ## Status
 
-`ACTIVE`
+`IDLE`
 
-当前唯一 active Type C change：P3.2 `data-ownership-foundation`。
+当前没有 active Type C change。P3.2 `data-ownership-foundation` 已于 2026-08-12 接受 delta 并归档。
 
-- Change：`openspec/changes/data-ownership-foundation/`
-- 阶段：**Gate 3 真实依赖验收**；Gate 1/2 与 Gate 3a/3b/3c 已于 2026-08-12 获批
-- 开工锚点：`efd2618`
-- Gate 2：已授权，允许按 `tasks.md` 修改业务代码并执行离线/H2/build 验证
-- Gate 3a / 3b / 3c：已授权，允许真实 MySQL、对象存储与微信副作用验收；只使用合成测试数据并负责清理
-- 真实 Agent provider 预算：0；push、部署、发布未授权、未执行
-- 提交责任：用户已明确授权 Agent commit；不 push
+- 归档：`openspec/changes/archive/2026-08-12-data-ownership-foundation/`
+- 结果：本地 MySQL、私有对象存储、微信开发者工具 Gate 3a/3b/3c PASS；T-36 大体量不可压缩真实媒体峰值保持 PARTIAL
+- 真实 Agent provider 调用：0
+- push、PR、部署、发布：未授权、未执行
+- 下一候选：P4.1 `witness-agent-alignment`，必须重新取得独立规划授权
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -21,6 +19,13 @@
 **Phase 2 第四刀 C9 `agent-temporal-intelligence` 已于 2026-08-08 归档。**
 
 ## Previous Completed
+
+- Change：`data-ownership-foundation`（P3.2，**v2.0 核心体验第二刀**）
+- 位置：`openspec/changes/archive/2026-08-12-data-ownership-foundation/`
+- 开工锚点 `efd2618`｜主实现提交 `7b48086`｜真实验收提交 `907feb4`
+- 结果：owner-scoped durable operation、离线可读/媒体可校验导出、双封存策略、四状态单删、clear-all 固定范围与 mutation freeze、远端对象优先删除及重试恢复；五份 delta 已接受进 baseline
+- 闸门 3：真实 MySQL、私有对象存储与微信开发者工具完整矩阵 PASS；合成对象、账号、记录、operation 与 artifact 全部清理；真实 Agent provider 调用 0
+- 验收保留：T-36 不可压缩真实媒体内存/磁盘峰值 PARTIAL；物理真机与 OpenSpec CLI SKIPPED；本地小样本不等于生产 SLA
 
 - Change：`present-moment-capture`（P3.1，**v2.0 核心体验第一刀**）
 - 位置：`openspec/changes/archive/2026-08-12-present-moment-capture/`
@@ -84,9 +89,9 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：P3.2 Gate 3 真实依赖验收**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者；P3.1 已归档。P3.2 `data-ownership-foundation` 的 Gate 1/2 已获批；
-  Gate 3a/3b/3c 已获批；真实 Agent provider、push/deploy/release、delta acceptance 与归档未授权，旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：IDLE**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者；P3.1 与 P3.2 已归档。下一候选 P4.1 `witness-agent-alignment` 仍须独立规划授权；
+  push/deploy/release 未授权，旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -122,7 +127,7 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
-- `openspec/changes/data-ownership-foundation/`（P3.2 active，Gate 1 planning）
+- `openspec/changes/archive/2026-08-12-data-ownership-foundation/`（P3.2 accepted / archived）
 - `openspec/changes/archive/2026-08-12-present-moment-capture/`（P3.1 archived）
 - `openspec/specs/agent-runtime/spec.md`（含 C1–C9 与 P3.1 的 Agent 兼容契约）
 - `openspec/specs/backend-core/spec.md`（含 M4、C1–C9 与 P3.1 当下记录契约）
@@ -134,6 +139,16 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.2 delta accepted、closeout 与归档完成**
+  - 用户明确批准归档当前阶段；五份纯 ADDED delta 接受进 baseline：backend-core 7、miniapp-core 4、v2-product-scope 3、agent-runtime 3、agent-collaboration 3，共 20 Requirements / 51 Scenarios
+  - 新增 `closeout.md`，如实分层记录 H2/build、真实 MySQL、私有对象存储、微信开发者工具与生产 SLA 边界
+  - change 归档至 `openspec/changes/archive/2026-08-12-data-ownership-foundation/`；`ACTIVE_TASK` 回到 `IDLE`
+  - delta exact-copy、新 requirement 标题唯一性、archive 结构、相对链接、隐私/credential 与 `git diff --check` 文件级校验 PASS
+  - **PARTIAL / SKIPPED**：T-36 不可压缩真实媒体峰值保持未勾选；物理真机与 OpenSpec CLI 未验证；真实 Agent provider 调用 0
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**：none
+  - **Next step**：等待用户独立授权 P4.1 规划；不默认启动
 
 - **This session**: 2026-08-12 — **P3.2 Gate 3a/3b/3c 真实依赖验收 PASS，等待用户审查**
   - 用户明确授权 Gate 3a/3b/3c：允许真实 MySQL preflight/migration/删除恢复、私有对象存储合成媒体导出删除清理、微信开发者工具/真机交互矩阵

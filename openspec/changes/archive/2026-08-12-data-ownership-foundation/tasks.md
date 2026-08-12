@@ -1,6 +1,6 @@
 # Tasks：Data Ownership Foundation（P3.2）
 
-> 当前阶段：Gate 1、Gate 2 与 Gate 3a/3b/3c 已于 2026-08-12 获批；正在执行真实依赖验收。
+> 当前阶段：Gate 1、Gate 2、Gate 3a/3b/3c 与归档均已于 2026-08-12 获批；delta 已接受，正在执行 closeout/archive。
 
 ## 阶段 0：Readiness 与规划闸
 
@@ -114,10 +114,10 @@ denylist：package/lockfile、deployment、monitoring、admin、account deletion
 
 ## 阶段 8：验收、delta acceptance 与归档
 
-- [ ] **T-78** 用户审查实现 diff、真实/跳过证据、导出样包与 remaining risks
-- [ ] **T-79** 用户明确验收后，才接受五份 delta 进 baseline
-- [ ] **T-80** 写 closeout，如实区分 H2/build、真实 MySQL、对象存储、微信与生产 SLA
-- [ ] **T-81** 归档 change，ACTIVE_TASK 回到 IDLE，追加 AGENT_LOG；不改写历史
+- [x] **T-78** 用户审查实现 diff、真实/跳过证据、导出样包与 remaining risks，并于 2026-08-12 明确允许归档
+- [x] **T-79** 用户明确验收后，接受五份纯 ADDED delta 进 baseline（20 Requirements / 51 Scenarios，exact-copy PASS）
+- [x] **T-80** 写 closeout，如实区分 H2/build、真实 MySQL、对象存储、微信与生产 SLA
+- [x] **T-81** 归档 change 至 `archive/2026-08-12-data-ownership-foundation/`，ACTIVE_TASK 回到 IDLE，追加 AGENT_LOG；不改写历史
 - [ ] **T-82** 按提交责任处理 commit；push/deploy/release 仍需独立授权
 
 ## 范围守护自检

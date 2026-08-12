@@ -7722,3 +7722,27 @@ Commit: pending
 - **Verification**: 提交前 `git diff --cached --check`、精确路径 staged scope 与 credential scan PASS；提交成功
 - **Scope safety**: 未 push；delta acceptance、closeout、archive、deploy/release 均未执行
 - **Next**: 等待用户审查 Gate 3 证据与 remaining risks
+
+## 2026-08-12｜P3.2 delta acceptance、closeout 与归档｜Type C
+
+- **Scope**: 用户明确允许归档 P3.2；接受五份 delta、生成 closeout、更新对外技术叙事、归档 active change 并将 ACTIVE_TASK 设为 IDLE
+- **Changes**:
+  - 五份 delta 均为 ADDED：backend-core 7 Requirements / 20 Scenarios、miniapp-core 4/9、v2-product-scope 3/8、agent-runtime 3/6、agent-collaboration 3/8
+  - delta 合计 5 specs / 20 Requirements / 51 Scenarios；逐段接受进对应 baseline
+  - 新增 `closeout.md`；更新 narrative 当前进度与 P3.2 durable operation / remote-first 删除叙事
+  - change 归档至 `openspec/changes/archive/2026-08-12-data-ownership-foundation/`；ACTIVE_TASK 回到 IDLE
+- **Verification**: PASS（文件级）
+  - 五份 delta exact-copy 全部为 true；20 个新增 requirement 标题在各自 baseline 中恰好出现一次，没有引入新重复标题
+  - archive 目标原先不存在；归档后包含 proposal/design/tasks/closeout 与 5 份 delta，共 9 files
+  - `git diff --check`、相对链接、路径范围、package/lockfile、credential/privacy 增量扫描待提交前最终复核
+- **Verification PARTIAL / SKIPPED**:
+  - T-36 保持未勾选 PARTIAL：未取得不可压缩真实媒体构包的内存/磁盘峰值，不声称生产容量或 SLA
+  - OpenSpec CLI 不在 PATH；未执行 `openspec status/validate/archive`，采用仓库既有文件级 fallback，不声称 CLI PASS
+  - 未使用物理真机；微信开发者工具 Gate 3c 证据按原边界保留
+  - 真实 Agent provider 调用 0；未验证 provider 可用性或语言质量
+- **Scope safety**:
+  - 未修改业务代码、package/lockfile、deployment、monitoring、admin、三个一级 Tab 或冻结蓝图
+  - 未执行 push、PR、部署、发布，未启动 P4.1
+  - 未记录用户原文、媒体内容、位置、storage key、signed URL、token、credential、prompt 或 provider response
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 完成归档提交与 hash 补录后保持 IDLE
