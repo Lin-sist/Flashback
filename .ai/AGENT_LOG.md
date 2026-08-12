@@ -7438,3 +7438,8 @@ Commit: pending
   - E0 仍无目标用户证据；保存反馈与恢复入口继续是 provisional
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户审查 Gate 3b 证据；若继续完整微信验证，单独批准 Gate 3c
+
+## 2026-08-12｜P3.1 Gate 3b 提交补录｜Type C
+
+- **Commit**: `375d2c6 test: 完成P3.1真实对象存储验收`
+- **Push**: 未授权，未执行

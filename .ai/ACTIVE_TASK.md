@@ -130,7 +130,7 @@
   - 默认 focused **19 tests / 0 failures / 0 errors / 1 skipped**；默认 backend full **92 suites / 688 tests / 0 failures / 0 errors / 9 skipped**；真实 AI provider 调用 0
   - 微信扬声器实际播放、相册/麦克风权限、上传失败 UI、恢复/SAVED 编辑/封存完整矩阵仍属 Gate 3c；E0 用户理解仍为 `INCONCLUSIVE / SKIPPED`
   - OpenSpec CLI 仍不在 PATH，validation 记 SKIPPED；只同步 active change artifacts 与任务状态
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`375d2c6 test: 完成P3.1真实对象存储验收`（不 push）
   - **Blocked on**: none
   - **Next step**：用户审查 Gate 3b 证据；如继续微信开发者工具/真机完整矩阵，需单独批准 Gate 3c
 
