@@ -7403,3 +7403,8 @@ Commit: pending
   - 开启 Gate 3b 后必须只用合成图片/短音频，记录聚合结果并 finally 清理对象和合成数据库记录
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 等待用户明确批准 Gate 3b，并确认可在同一启动环境中提供私有对象存储本地配置
+
+## 2026-08-12｜P3.1 微信窄验证与 Gate 3b readiness 提交补录｜Type C
+
+- **Commit**: `f3ee925 docs: 记录P3.1微信验证与Gate3b准备度`
+- **Push**: 未授权，未执行

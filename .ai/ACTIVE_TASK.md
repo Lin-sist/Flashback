@@ -125,7 +125,7 @@
   - T-78/T-79 继续未勾选：文字-only、图片-only、声音-only、恢复草稿、SAVED 编辑、保存后封存、权限拒绝和上传失败尚未逐项报告
   - Gate 3b 零外调 readiness：provider-neutral Qiniu/S3 实现、私有访问契约、上传授权/commit/delete 路径与离线测试均存在；当前 Codex 进程未发现 Qiniu 或 S3 必填环境变量，且没有现成 P3.1 真实存储 probe
   - 未连接对象存储、未读取/输出 AK/SK、未创建合成对象或数据库记录；真实 AI provider 调用 0
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`f3ee925 docs: 记录P3.1微信验证与Gate3b准备度`（不 push）
   - **Blocked on**: Gate 3b 需要用户明确授权；执行时还需要在启动后端的同一环境中提供可用的私有对象存储本地配置
   - **Next step**：用户明确批准 Gate 3b 后，先做 provider 配置 presence/可用性 preflight，再以合成图片和短音频执行可清理探针；Gate 3c 仍独立
 
