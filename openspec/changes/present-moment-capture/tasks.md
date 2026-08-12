@@ -114,6 +114,8 @@
 
 ## 阶段 9：闸门 3 真实依赖验收（仅分别授权后）
 
+> 2026-08-12 人工窄证据：用户确认 Gate 3a 后微信开发者工具“使用正常”。该证据只确认当前页面访问/数据同步恢复，不足以勾选 Gate 3c 或 T-79 的文字、图片、声音、恢复、SAVED 编辑、封存及失败路径完整矩阵。
+
 - [ ] **T-74 GATE 3b** 用户授权真实对象存储合成探针与清理范围
 - [ ] **T-75** 合成图片-only：authorize/upload/commit AVAILABLE/save/edit/read PASS，finally 清理 PASS
 - [ ] **T-76** 合成声音-only：录制或固定短音频 upload/commit AVAILABLE/save/play PASS，finally 清理 PASS

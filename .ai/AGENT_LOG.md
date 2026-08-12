@@ -7377,3 +7377,29 @@ Commit: pending
 
 - **Commit**: `250b42b fix: 完成P3.1真实MySQL迁移`
 - **Push**: 未授权，未执行
+
+## 2026-08-12｜P3.1 微信开发者工具窄证据与 Gate 3b readiness｜Type C
+
+- **Scope**:
+  - 登记用户提供的微信开发者工具人工结果，并只读核对下一步 Gate 3b 的本地配置入口、实现路径和探针准备度
+  - 不连接对象存储，不执行上传/下载/删除，不操作用户数据，不扩写 Gate 3c，不 push/deploy/release
+- **Evidence**:
+  - 用户原话为“微信开发者工具使用正常，可以进行下一步推进”
+  - 仅据此确认 Gate 3a 后页面访问/数据同步已恢复；没有逐项证明文字-only、图片-only、声音-only、恢复草稿、SAVED 编辑、保存后封存、权限拒绝或上传失败
+- **Gate 3b readiness**:
+  - backend 已有 Qiniu 与 S3-compatible provider、私有短期访问、上传授权、commit 校验、附件删除及 DRAFT cleanup 业务路径；已有离线/H2 测试但没有 P3.1 真实对象存储 probe
+  - 当前进程中 `STORAGE_PROVIDER`、Qiniu 和 S3 必填环境变量均未设置；只检查是否存在，不读取或输出值
+  - `backend/start-dev-wechat.local.ps1` 保留本地 secret/config 接入位置，但当前没有启用真实对象存储配置
+- **Verification**: PASS（read-only readiness 与证据边界）
+  - active change 仍为 `present-moment-capture`；Gate 3a 已完成，T-74～T-80 仍未勾选
+  - OpenSpec CLI 不在 PATH，继续按 proposal/design/tasks/delta 文件级核对，不声称 CLI PASS
+- **Verification SKIPPED**:
+  - Gate 3b 真实图片/声音对象调用：尚未获得明确 Gate 3b 授权且当前进程无可用配置
+  - Gate 3c 完整微信矩阵：用户只报告“使用正常”，没有逐项证据
+- **Scope safety**:
+  - 只修改 active change tasks、ACTIVE_TASK 与 append-only AGENT_LOG；未改业务代码、secret、package/lockfile、accepted baseline、archive、冻结蓝图或部署配置
+- **Risks**:
+  - 在没有真实 provider 配置的环境启动探针会失败，不能用 mock/离线测试冒充 Gate 3b
+  - 开启 Gate 3b 后必须只用合成图片/短音频，记录聚合结果并 finally 清理对象和合成数据库记录
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 等待用户明确批准 Gate 3b，并确认可在同一启动环境中提供私有对象存储本地配置

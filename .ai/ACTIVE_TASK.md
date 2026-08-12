@@ -120,6 +120,15 @@
 
 ## Current Progress
 
+- **This session**: 2026-08-12 — **微信开发者工具窄验证登记 + Gate 3b readiness**
+  - 用户确认 Gate 3a 后微信开发者工具“使用正常”；登记为页面访问/数据同步恢复的人工证据，不扩写为 Gate 3c 全矩阵 PASS
+  - T-78/T-79 继续未勾选：文字-only、图片-only、声音-only、恢复草稿、SAVED 编辑、保存后封存、权限拒绝和上传失败尚未逐项报告
+  - Gate 3b 零外调 readiness：provider-neutral Qiniu/S3 实现、私有访问契约、上传授权/commit/delete 路径与离线测试均存在；当前 Codex 进程未发现 Qiniu 或 S3 必填环境变量，且没有现成 P3.1 真实存储 probe
+  - 未连接对象存储、未读取/输出 AK/SK、未创建合成对象或数据库记录；真实 AI provider 调用 0
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**: Gate 3b 需要用户明确授权；执行时还需要在启动后端的同一环境中提供可用的私有对象存储本地配置
+  - **Next step**：用户明确批准 Gate 3b 后，先做 provider 配置 presence/可用性 preflight，再以合成图片和短音频执行可清理探针；Gate 3c 仍独立
+
 - **This session**: 2026-08-12 — **P3.1 Gate 3a 真实 MySQL preflight 与迁移完成**
   - 用户明确批准 Gate 3a；范围仅含本机真实 MySQL 聚合审计、DDL/迁移、迁移后 backend 读取验证与证据更新，不含对象存储、微信真机、provider、push、部署、发布、delta acceptance 或归档
   - 迁移前后端 8080 未监听；preflight schema 为未迁移状态：`draft_expires_at` 列/索引均不存在、record_type 默认 NODE_RECORD、SAVED=0；数据库 UTC 偏移 +28800 秒，与新加坡 UTC+8 一致
