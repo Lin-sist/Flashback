@@ -1,6 +1,6 @@
 # Design：Present Moment Capture（P3.1）
 
-> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL 于 2026-08-12 授权并完成。Gate 3b 对象存储与 Gate 3c 微信真机仍未授权。
+> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL、Gate 3b 真实对象存储均于 2026-08-12 授权并完成。Gate 3c 微信真机仍未授权。
 
 ## 1. 推荐摘要
 
@@ -285,10 +285,14 @@ Gate 3a 于 2026-08-12 完成。执行前后均只保留聚合证据：迁移前
 
 ### 11.3 真实对象存储（闸门 3）
 
-- 合成图片-only、声音-only 的 upload authorization -> upload -> commit AVAILABLE -> save；
+Gate 3b 于 2026-08-12 完成。探针由显式 `P31_STORAGE_PROBE=1` 门控，默认回归保持跳过和零外调；执行时使用 ignored 本地配置、真实 MySQL 与私有 S3-compatible 对象存储，并强制 AI mock。证据只输出场景布尔值和聚合清理结果，不输出 user/record id、object key、signed URL、bucket 或 credential。
+
+- 合成 PNG 图片-only 完成 upload authorization -> upload -> commit AVAILABLE -> save -> private read/字节一致 -> SAVED edit；
+- 固定合成短 WAV 声音-only 完成 upload authorization -> upload -> commit AVAILABLE -> save -> private read/字节一致，并通过 JVM 标准音频解码；微信扬声器播放与权限体验仍由 Gate 3c 验证；
 - pending/不存在对象不得 save；
-- 过期 DRAFT 删除远端对象后清 DB；模拟远端失败时保留重试锚点；
-- 不记录 key、signed URL 或 secret。
+- 过期 DRAFT 删除远端对象后清 DB；对象已不存在按幂等成功处理；模拟远端鉴权失败时保留重试锚点，恢复配置后可清理；
+- finally 验证所有探针对象不存在，合成 user/record/attachment 聚合均为 0；
+- 不记录 key、signed URL 或 secret；真实 AI provider 调用为 0。
 
 ### 11.4 微信开发者工具 / 真机（闸门 3）
 
@@ -374,5 +378,5 @@ Gate 3a 于 2026-08-12 完成。执行前后均只保留聚合证据：迁移前
 - E0 精确交互仍为 unknown，不会在 Gate 1 后变成 confirmed；
 - 闸门 2 已于 2026-08-10 授权，允许按 `tasks.md` 修改 backend/frontend/SQL 并执行离线/H2/build 验证；
 - 闸门 2 范围内实现已完成并通过自动化回归，当前等待用户审查；
-- Gate 3a 已于 2026-08-12 授权并完成；Gate 3b 对象存储与 Gate 3c 微信真机仍未授权；
+- Gate 3a 与 Gate 3b 已于 2026-08-12 授权并完成；Gate 3c 微信真机仍未授权；
 - 任一 exact API、字段、状态或清理语义在用户 Gate 1 修改后，必须同步 proposal、design、tasks 与 delta，不能只改其中一份。

@@ -6,7 +6,7 @@
 
 当前唯一 active Type C change：P3.1 `present-moment-capture`。
 位置：`openspec/changes/present-moment-capture/`。
-当前处于**闸门 2 实现完成 + Gate 3a 真实 MySQL 完成，等待用户审查**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 授权并完成 Gate 3a。Gate 3b 对象存储、Gate 3c 微信真机、`push`、部署与发布仍未授权。
+当前处于**闸门 2 实现完成 + Gate 3a 真实 MySQL + Gate 3b 真实对象存储完成，等待用户审查**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 授权并完成 Gate 3a/Gate 3b。Gate 3c 微信真机、`push`、部署与发布仍未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -72,7 +72,7 @@
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
 - **当前动作：P3.1 实现审查 / 真实依赖分闸验收**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a 已完成；Gate 3b/3c、push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
+  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a/Gate 3b 已完成；Gate 3c、push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -119,6 +119,20 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.1 Gate 3b 真实对象存储验收完成**
+  - 用户明确授权使用本地配置的私有对象存储执行可清理的合成图片和短音频探针；未扩大到 Gate 3c、真实 AI provider、push/deploy/release、delta acceptance 或归档
+  - 配置 preflight PASS：ignored 本地启动脚本与 secret 文件提供有效 S3-compatible 私有存储配置；只核对存在性/非空性，没有输出或写入 credential
+  - 新增显式 `P31_STORAGE_PROBE=1` 门控的真实探针；默认关闭时跳过且不启动外部调用，执行时使用真实 MySQL/对象存储并强制 AI mock
+  - 合成 PNG：authorize/upload/commit AVAILABLE/save/private read 字节一致/SAVED edit/删除 PASS；固定短 WAV：upload/commit AVAILABLE/save/private read 字节一致/标准音频解码/删除 PASS
+  - fail-closed：仅 upload authorization 的 pending 媒体和 missing object commit 均不能 save；过期 DRAFT 的远端删除成功、对象已不存在幂等清理、模拟鉴权失败 RETRY/恢复后 DELETED 均 PASS
+  - 真实探针 **1 test / 0 failures / 0 errors / 0 skipped**；输出 `image/voice/pending/missing/cleanupSuccess/cleanupAbsent/cleanupRetry=true`，随后探针对象全部不存在，合成 user/record/attachment 聚合均为 0
+  - 默认 focused **19 tests / 0 failures / 0 errors / 1 skipped**；默认 backend full **92 suites / 688 tests / 0 failures / 0 errors / 9 skipped**；真实 AI provider 调用 0
+  - 微信扬声器实际播放、相册/麦克风权限、上传失败 UI、恢复/SAVED 编辑/封存完整矩阵仍属 Gate 3c；E0 用户理解仍为 `INCONCLUSIVE / SKIPPED`
+  - OpenSpec CLI 仍不在 PATH，validation 记 SKIPPED；只同步 active change artifacts 与任务状态
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**: none
+  - **Next step**：用户审查 Gate 3b 证据；如继续微信开发者工具/真机完整矩阵，需单独批准 Gate 3c
 
 - **This session**: 2026-08-12 — **微信开发者工具窄验证登记 + Gate 3b readiness**
   - 用户确认 Gate 3a 后微信开发者工具“使用正常”；登记为页面访问/数据同步恢复的人工证据，不扩写为 Gate 3c 全矩阵 PASS

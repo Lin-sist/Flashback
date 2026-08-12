@@ -7408,3 +7408,33 @@ Commit: pending
 
 - **Commit**: `f3ee925 docs: 记录P3.1微信验证与Gate3b准备度`
 - **Push**: 未授权，未执行
+
+## 2026-08-12｜P3.1 Gate 3b 真实对象存储验收完成｜Type C
+
+- **Scope**:
+  - 用户明确批准使用本地配置的私有对象存储执行可清理的合成图片和短音频探针
+  - 仅覆盖 Gate 3b；不执行 Gate 3c 微信权限/播放/交互矩阵，不调用真实 AI provider，不接受 delta、不归档、不 push/deploy/release
+- **Changes**:
+  - 新增 `P31RealObjectStorageProbeTest`，由显式 `P31_STORAGE_PROBE=1` 环境变量门控；默认测试运行保持跳过和零外调
+  - 探针只构造合成 PNG、固定 0.25 秒 WAV 与合成数据库行；所有对象纳入 finally 清理清单，证据输出不包含 id、object key、URL、bucket 或 credential
+  - 覆盖图片/声音独立保存、私有读取、SAVED 编辑、pending/missing fail-closed，以及过期 DRAFT 远端删除成功/对象已不存在/失败重试与恢复清理
+- **Verification**: PASS
+  - 配置 preflight：ignored 本地启动脚本与 secret 文件存在有效 S3-compatible 私有存储配置；只检查存在性/非空性，没有输出 secret
+  - 真实探针：**1 test / 0 failures / 0 errors / 0 skipped**；图片、声音、pending、missing、cleanup success、cleanup absent、cleanup retry 七类结果均为 true
+  - 图片：真实 authorize/upload/commit AVAILABLE/save/private read 字节一致/SAVED edit/delete PASS
+  - 声音：真实 authorize/upload/commit AVAILABLE/save/private read 字节一致/JVM 标准 WAV 解码/delete PASS
+  - 清理：所有已跟踪远端对象最终均不存在；合成 user/record/attachment 聚合均为 0；诊断结束后 8080 未监听
+  - 默认 focused：**19 tests / 0 failures / 0 errors / 1 skipped**；默认 full：**92 suites / 688 tests / 0 failures / 0 errors / 9 skipped**
+  - 真实 AI provider 调用 0；探针进程强制使用 AI mock
+- **Verification SKIPPED**:
+  - 微信开发者工具/真机扬声器实际播放、相册/麦克风权限、上传失败 UI、恢复草稿、SAVED 编辑与保存后封存完整矩阵：属于未授权 Gate 3c；JVM WAV 解码不冒充真机播放 PASS
+  - E0 目标用户理解：没有真实参与者，继续记 `INCONCLUSIVE / SKIPPED`
+  - OpenSpec CLI：本机不在 PATH，只完成 proposal/design/tasks/ACTIVE_TASK 文件级同步，不声称 CLI validation PASS
+- **Scope safety**:
+  - 只新增默认关闭的 Gate 3b 测试并更新 active change、ACTIVE_TASK 与 append-only AGENT_LOG；未改业务主代码、package/lockfile、deployment、monitoring、accepted baseline、archive 或冻结蓝图
+  - 未上传用户内容；未把本机 secret 写入 tracked files 或证据；未记录 object key、signed URL、用户/记录 id
+- **Risks**:
+  - Gate 3b 证明了当前本地私有存储配置下的 backend 链路，不等于微信端权限、播放和失败交互已通过，也不等于生产 SLA
+  - E0 仍无目标用户证据；保存反馈与恢复入口继续是 provisional
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户审查 Gate 3b 证据；若继续完整微信验证，单独批准 Gate 3c
