@@ -6,7 +6,7 @@
 
 当前唯一 active Type C change：P3.1 `present-moment-capture`。
 位置：`openspec/changes/present-moment-capture/`。
-当前处于**闸门 2：实现完成，等待用户审查**；用户已于 2026-08-10 批准规划并授权按 `tasks.md` 修改业务代码。真实 MySQL、对象存储、微信真机、`push`、部署与发布均未授权。
+当前处于**闸门 2 实现完成 + Gate 3a 真实 MySQL 完成，等待用户审查**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 授权并完成 Gate 3a。Gate 3b 对象存储、Gate 3c 微信真机、`push`、部署与发布仍未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -71,8 +71,8 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：P3.1 实现**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者。P3.1 闸门 1/2 已通过，闸门 3 与 push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：P3.1 实现审查 / 真实依赖分闸验收**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a 已完成；Gate 3b/3c、push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -119,6 +119,20 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.1 Gate 3a 真实 MySQL preflight 与迁移完成**
+  - 用户明确批准 Gate 3a；范围仅含本机真实 MySQL 聚合审计、DDL/迁移、迁移后 backend 读取验证与证据更新，不含对象存储、微信真机、provider、push、部署、发布、delta acceptance 或归档
+  - 迁移前后端 8080 未监听；preflight schema 为未迁移状态：`draft_expires_at` 列/索引均不存在、record_type 默认 NODE_RECORD、SAVED=0；数据库 UTC 偏移 +28800 秒，与新加坡 UTC+8 一致
+  - preflight 仅输出聚合：3 条 DRAFT 均有有效文字、0 条 owner-scoped AVAILABLE 媒体、0 条空白异常、0 条 AVAILABLE 媒体 orphan/owner mismatch；旧 DRAFT 类型均为 FUTURE_LETTER
+  - 执行前发现脚本会在重复运行时顺延 DRAFT expiry；先增加契约断言观察到 1 test FAIL，再将更新收窄为 `draft_expires_at IS NULL`，契约测试转绿后才执行真实迁移
+  - 真实迁移 PASS：3 条有效旧 DRAFT -> SAVED，原 FUTURE_LETTER 保留；新增 nullable DATETIME 列和 `(status,draft_expires_at)` 索引，record_type 默认改为 MOMENT；非 DRAFT expiry 异常为 0
+  - 幂等重跑 PASS：第二次脚本执行不改变聚合状态；强制索引 EXPLAIN 命中 `idx_record_status_draft_expires`；补偿式回滚仅在停服且确认没有新写入时可执行，本轮无需回滚
+  - 迁移后 backend 以 dev + AI mock、unlock/draft cleanup cron 禁用启动；合成 ADMIN 身份的 list/timeline 均为 HTTP 200 / API code 0；诊断进程随后停止，临时日志已清理，真实 provider 调用 0
+  - focused 回归：P31 schema 1 + present-moment integration 13 + draft cleanup 4，合计 **18 tests / 0 failures / 0 errors / 0 skipped**
+  - OpenSpec CLI 仍不在 PATH，validation 记 SKIPPED；Gate 3b/3c、E0 用户理解、delta acceptance、closeout 与归档仍未执行
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**: none
+  - **Next step**：用户在微信开发者工具重新启动本地后端并刷新小程序验证数据页；如需图片/声音真实链路或完整真机清单，分别授权 Gate 3b/3c
 
 - **This session**: 2026-08-10 — **P3.1 闸门 2 实现完成，等待用户审查**
   - 用户批准的 P3.1 vertical slice 已实现：`SAVED` / `MOMENT`、显式幂等 `/save`、文字或 AVAILABLE 图片/声音 eligibility、7 天恢复 DRAFT、窄过期清理、DRAFT/SAVED 可编辑矩阵与 SAVED 后封存

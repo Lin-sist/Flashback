@@ -1,6 +1,6 @@
 # Design：Present Moment Capture（P3.1）
 
-> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；本文仍不授权真实 MySQL、对象存储或微信真机验收。
+> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL 于 2026-08-12 授权并完成。Gate 3b 对象存储与 Gate 3c 微信真机仍未授权。
 
 ## 1. 推荐摘要
 
@@ -275,6 +275,8 @@ P3.1 不改 Prompt、护栏、memory、provider 或 trace 语义，只调整记�
 
 ### 11.2 真实 MySQL（闸门 3）
 
+Gate 3a 于 2026-08-12 完成。执行前后均只保留聚合证据：迁移前 3 条 DRAFT 全部为有效文字记录、无空白异常和附件 owner/orphan 异常；迁移后 3 条成为 SAVED 且保留 FUTURE_LETTER，schema/default/index/UTC+8、第二次执行稳定性和 backend list/timeline 读取 PASS。没有创建合成数据库行。真实并发 refresh/save 与 cleanup race 仍只由自动化测试覆盖，不扩写为真实并发证据。
+
 - 迁移前只读计数与迁移后状态/type/expiry 聚合；
 - content 空字符串、AVAILABLE attachment EXISTS、owner/status 索引与事务语义；
 - DRAFT expiry race：清理选中后被刷新或 save 时不能误删；
@@ -372,5 +374,5 @@ P3.1 不改 Prompt、护栏、memory、provider 或 trace 语义，只调整记�
 - E0 精确交互仍为 unknown，不会在 Gate 1 后变成 confirmed；
 - 闸门 2 已于 2026-08-10 授权，允许按 `tasks.md` 修改 backend/frontend/SQL 并执行离线/H2/build 验证；
 - 闸门 2 范围内实现已完成并通过自动化回归，当前等待用户审查；
-- 闸门 3 未授权，禁止连接真实 MySQL、对象存储或真机；
+- Gate 3a 已于 2026-08-12 授权并完成；Gate 3b 对象存储与 Gate 3c 微信真机仍未授权；
 - 任一 exact API、字段、状态或清理语义在用户 Gate 1 修改后，必须同步 proposal、design、tasks 与 delta，不能只改其中一份。

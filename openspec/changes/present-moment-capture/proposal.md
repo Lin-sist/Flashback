@@ -2,7 +2,7 @@
 
 > Type C 已批准规划。change-id：`present-moment-capture`。
 > 开工锚点：`2d9544a`。提交责任：**Agent 提交**（不含 push）。
-> 用户于 2026-08-10 批准闸门 1 并授权闸门 2；未获闸门 3 前不执行真实 MySQL、对象存储或微信真机验收。
+> 用户于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL 于 2026-08-12 授权并完成。Gate 3b 对象存储与 Gate 3c 微信真机仍未授权。
 
 ## 1. Why Now
 
@@ -221,5 +221,7 @@ P3.1 只继承蓝图 D43 / D44 的最低基线，不宣称选择 A、B 或 C，�
 - 闸门 1（规划批准）：**已批准**（2026-08-10；N1–N11 与全部 artifacts 按推荐方案）。
 - 闸门 2（实现授权）：**已授权**（2026-08-10；允许按 `tasks.md` 修改业务代码并执行离线/H2/build 验证）。
 - 闸门 2 实现状态：**已完成，等待用户审查**（backend full 91 suites / 687 tests；frontend type-check 与标准/Preview build PASS）。
-- 闸门 3（真实 MySQL / 对象存储 / 微信真机）：**未授权**。
+- Gate 3a（真实 MySQL）：**已授权并完成**（2026-08-12）。preflight 仅输出聚合：3 条 DRAFT 均有有效文字、0 条空白异常、0 条 owner/orphan 媒体异常；迁移后 3 条均为 SAVED，原 FUTURE_LETTER 类型保留，`draft_expires_at` 列、复合索引、MOMENT 默认值、UTC+8 与重复执行稳定性 PASS；迁移后真实 backend list/timeline HTTP 200。
+- Gate 3b（真实对象存储）：**未授权**。
+- Gate 3c（微信开发者工具 / 真机）：**未授权**。
 - Git：规划文档按既有授权由 Agent commit；`push` 未授权。

@@ -1,6 +1,6 @@
 # Tasks：Present Moment Capture（P3.1）
 
-> 当前阶段：实现完成，等待用户审查。闸门 1 已批准、闸门 2 已授权；闸门 3 未授权，真实 MySQL、对象存储和微信真机任务不得执行。
+> 当前阶段：实现与 Gate 3a 真实 MySQL 迁移完成，等待用户审查。闸门 1 已批准、闸门 2 已授权、Gate 3a 已于 2026-08-12 授权并完成；Gate 3b 对象存储与 Gate 3c 微信真机仍未授权。
 
 ## 阶段 0：规划与范围闸
 
@@ -22,8 +22,8 @@
 - [x] **T-13** 运行 P3.1 focused 既有测试与 backend 全量 Maven baseline，记录 suites/tests/failures/errors/skipped（focused 7 suites / 126 tests；full 87 suites / 664 tests / 8 skipped，零失败/错误）
 - [x] **T-14** 运行 frontend `vue-tsc --noEmit`、标准 mp-weixin build 与 Preview build baseline（全部 PASS）
 - [x] **T-15** 固定本轮路径 allowlist；确认 package/lockfile、deployment、monitoring、archive 与冻结蓝图不在范围
-- [ ] **T-16 GATE 3a** 在任何真实 MySQL DDL / 数据审计前单独获得授权
-- [ ] **T-17** Gate 3a 通过后先做只读聚合：DRAFT 总数、正文有效数、AVAILABLE 媒体数、异常数与旧类型分布；不读取/输出原文
+- [x] **T-16 GATE 3a** 在任何真实 MySQL DDL / 数据审计前单独获得授权（2026-08-12）
+- [x] **T-17** Gate 3a 通过后先做只读聚合：DRAFT 总数、正文有效数、AVAILABLE 媒体数、异常数与旧类型分布；不读取/输出原文（3 条 DRAFT 均有有效文字、0 条含 owner-scoped AVAILABLE 媒体、0 条空白异常、0 条附件 owner/orphan 异常；旧类型均为 FUTURE_LETTER）
 
 实现 allowlist：
 
@@ -40,7 +40,7 @@
 - [x] **T-18 RED** 增加 schema contract 测试：`draft_expires_at`、MOMENT 默认、SAVED 读取与索引/列同步当前应失败
 - [x] **T-19** 新增 P3.1 MySQL 增量脚本，包含只读 preflight、列/default、有效 DRAFT -> SAVED、异常 DRAFT TTL 与聚合 postflight
 - [x] **T-20** 同步 `backend/sql/mysql/schema.mysql.sql` 与 `backend/src/test/resources/schema.sql`
-- [ ] **T-21** Gate 3a 通过后，在真实 MySQL **先执行 DDL/迁移**，再启动依赖新 schema 的应用代码；记录回滚与幂等检查
+- [x] **T-21** Gate 3a 通过后，在真实 MySQL **先执行 DDL/迁移**，再启动依赖新 schema 的应用代码；记录回滚与幂等检查（3 条有效旧 DRAFT -> SAVED，原类型保留；第二次执行结果稳定；后端 list/timeline HTTP 200；补偿式回滚条件已记录）
 - [x] **T-22 GREEN** schema contract、enum round-trip、旧类型保留与 migration fixture PASS
 - [x] **T-23** 验证迁移日志/脚本输出只有聚合计数，不含 user/record id、原文、位置、storage key 或 URL
 

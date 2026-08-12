@@ -80,10 +80,11 @@ WHERE r.status = 'DRAFT'
     )
   );
 
--- 只给无法成为完整记录的技术 DRAFT 新的恢复窗口。
+-- 只给无法成为完整记录且尚无期限的技术 DRAFT 新的恢复窗口；重复执行不得顺延既有期限。
 UPDATE `record`
 SET draft_expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY)
-WHERE status = 'DRAFT';
+WHERE status = 'DRAFT'
+  AND draft_expires_at IS NULL;
 
 -- Postflight：仍只输出聚合状态与期限分布。
 SELECT

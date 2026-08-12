@@ -7340,3 +7340,35 @@ Commit: pending
   - E0 没有目标用户证据，保存反馈与恢复入口仍是可逆 provisional 基线
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户审查实现 diff 与证据；闸门 3、delta acceptance、closeout 与归档均需后续单独授权
+
+## 2026-08-12｜P3.1 Gate 3a 真实 MySQL preflight 与迁移完成｜Type C
+
+- **Scope**:
+  - 用户明确批准 Gate 3a；仅执行本机真实 MySQL 聚合 preflight、P3.1 DDL/迁移、幂等/postflight、迁移后 backend 读取验证及证据更新
+  - 不调用真实对象存储或 AI provider，不操作微信开发者工具/真机，不接受 delta、不归档、不 push/deploy/release
+- **Changes**:
+  - 在真实执行前新增迁移契约断言，发现重复执行会顺延所有残留 DRAFT 的 7 天期限；将脚本收窄为只填充 `draft_expires_at IS NULL`，避免重跑改变已有恢复窗口
+  - 真实库新增 nullable `draft_expires_at`、`idx_record_status_draft_expires(status,draft_expires_at)`，并将 `record_type` 默认值由 NODE_RECORD 改为 MOMENT
+  - 将 3 条有有效文字的旧 DRAFT 迁为 SAVED；原 FUTURE_LETTER 类型与关联数据不改写
+- **Verification**: PASS
+  - 停服 preflight：新列 0、索引 0、SAVED 0、DRAFT 3；DRAFT 文字有效 3、AVAILABLE 媒体记录 0、空白异常 0、AVAILABLE 媒体 orphan/owner mismatch 0；只输出聚合和枚举分布，不输出 user/record id、正文、位置、媒体元数据、key 或 URL
+  - 时区：MySQL `SYSTEM` / 马来西亚半岛标准时，`NOW()-UTC_TIMESTAMP()` 为 28800 秒，与 Asia/Singapore 的 UTC+8 一致
+  - 迁移 postflight：SAVED 3、DRAFT 0；3 条 SAVED 全部 expiry 为 NULL，原 FUTURE_LETTER 保留；列/default/两段复合索引均正确
+  - 第二次执行 PASS，聚合状态不变；cleanup 查询的 EXPLAIN 使用 `idx_record_status_draft_expires`；`SELECT draft_expires_at FROM record LIMIT 0` PASS
+  - 迁移后 backend 启动 PASS；合成 ADMIN 身份 list/timeline 均 HTTP 200、API code 0；随后停止进程并清理临时日志
+  - TDD：新增幂等断言先得到 1 test FAIL，修复后 GREEN；focused **18 tests / 0 failures / 0 errors / 0 skipped**
+- **Verification SKIPPED**:
+  - OpenSpec CLI：本机不在 PATH，只完成 artifact/task 文件级同步，不声称 CLI validation PASS
+  - Gate 3b 真实对象存储、Gate 3c 微信开发者工具/真机、E0 目标用户理解：均未授权或无真实参与者；真实 AI provider 调用为 0
+  - 真实并发 refresh/save 与 cleanup race：本次维护窗口无并发写入，只保留既有自动化 expected-state 证据，不冒充真实并发 PASS
+- **Rollback**:
+  - MySQL DDL 会自动提交，回滚须使用补偿迁移而非事务回滚；仅可在后端停服、确认 SAVED 仍为本轮迁移产生的 3 条且没有新写入时，将这 3 条恢复为 DRAFT、重置默认值、删除新索引与新列
+  - 本轮全部 postflight 通过，无需执行补偿回滚；后续若已有新 SAVED 写入，禁止使用宽泛状态条件回滚
+- **Scope safety**:
+  - 只修改 P3.1 migration/contract test、active change artifacts、ACTIVE_TASK 与 append-only AGENT_LOG；未改 accepted baseline、archive、冻结蓝图、package/lockfile、deployment、monitoring 或无关 Agent 语义
+  - 没有创建、导出或记录用户正文和媒体内容；没有把本机凭证写入命令输出、日志或 tracked files
+- **Risks**:
+  - Gate 3b 图片/声音真实对象链路和 Gate 3c 微信权限/上传/播放/恢复体验仍无真实证据
+  - E0 仍无目标用户，保存反馈与恢复入口继续是 provisional；功能 PASS 不等于用户理解 PASS
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户重新启动本地后端并刷新微信开发者工具验证；如继续真实媒体或完整真机验收，分别授权 Gate 3b / Gate 3c

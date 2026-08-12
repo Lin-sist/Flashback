@@ -29,6 +29,7 @@ class P31SchemaContractTest {
                 .contains("ra.type IN ('IMAGE', 'VOICE')")
                 .contains("SET status = 'SAVED'")
                 .contains("SET draft_expires_at = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY)")
+                .contains("WHERE status = 'DRAFT'\n  AND draft_expires_at IS NULL")
                 .contains("GROUP BY status");
     }
 }
