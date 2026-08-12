@@ -1,6 +1,6 @@
 # Tasks：Present Moment Capture（P3.1）
 
-> 当前阶段：实现与 Gate 3a/3b/3c 真实依赖验收完成，等待用户审查与最终收口授权。闸门 1 已批准、闸门 2 已授权，Gate 3a/3b/3c 均已于 2026-08-12 完成。
+> 当前阶段：实现、Gate 3a/3b/3c、delta acceptance、closeout 与归档均已完成。用户于 2026-08-12 明确批准归档；push/deploy/release 未授权、未执行。
 
 ## 阶段 0：规划与范围闸
 
@@ -127,11 +127,11 @@
 
 ## 阶段 10：验收与收口
 
-- [ ] **T-82** 用户审查实现 diff、真实/跳过证据与 remaining risks
-- [ ] **T-83** 仅在用户明确验收后接受四份 delta 进 baseline；普通 bugfix 不重写范围
-- [ ] **T-84** 写 `closeout.md`，将 E0 `INCONCLUSIVE`、MySQL/对象存储/真机证据边界如实保留
-- [ ] **T-85** 归档 change，`ACTIVE_TASK` 回到 IDLE，追加 AGENT_LOG；不改写历史日志
-- [ ] **T-86** 按提交责任 commit；push/deploy/release 仍须另行授权
+- [x] **T-82** 用户审查实现 diff、真实/跳过证据与 remaining risks（2026-08-12 明确批准归档）
+- [x] **T-83** 仅在用户明确验收后接受四份 delta 进 baseline；普通 bugfix 不重写范围
+- [x] **T-84** 写 `closeout.md`，将 E0 `INCONCLUSIVE`、MySQL/对象存储/真机证据边界如实保留
+- [x] **T-85** 归档 change，`ACTIVE_TASK` 回到 IDLE，追加 AGENT_LOG；不改写历史日志
+- [x] **T-86** 按提交责任 commit；push/deploy/release 仍须另行授权
 
 ## 范围守护自检
 

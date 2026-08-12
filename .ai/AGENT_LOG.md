@@ -7498,3 +7498,33 @@ Commit: pending
 
 - **Commit**: `1d2223e docs: 完成P3.1 Gate 3c验收`
 - **Push**: 未授权，未执行
+
+## 2026-08-12｜P3.1 delta acceptance、closeout 与归档｜Type C
+
+- **Scope**:
+  - 用户明确批准归档当前阶段；按 `present-moment-capture` T-82～T-86 接受四份 delta、写 closeout、归档 change、将 `ACTIVE_TASK` 置回 `IDLE` 并由 Agent commit
+  - 不 push、不部署、不发布，不调用真实 AI provider，不启动 P3.2 或其他业务实现
+- **Changes**:
+  - 将 P3.1 delta 接受进 `backend-core`、`miniapp-core`、`agent-runtime`、`v2-product-scope` baseline，共 14 MODIFIED + 14 ADDED、0 REMOVED
+  - 新增 `closeout.md`，记录实现范围、Gate 3a/3b/3c 证据、四份 delta、SKIPPED/INCONCLUSIVE、范围安全与 remaining risks
+  - T-82～T-86 勾选完成；change 移至 `openspec/changes/archive/2026-08-12-present-moment-capture/`；`.ai/ACTIVE_TASK.md` 回到 `IDLE`
+- **Verification**: PASS
+  - 四份 delta 的 28 个 requirement 与 accepted baseline 逐块 exact-copy 一致；归档 delta 仍为 4 specs / 28 Requirements / 98 Scenarios
+  - 与 HEAD 的重复标题集合对比，没有引入新的 duplicate requirement title；任务 86/86 完成，无未勾选项
+  - 归档源路径不存在、目标路径与 `closeout.md` 存在；`ACTIVE_TASK` 为 `IDLE` 且指向归档路径
+  - 归档仅修改 OpenSpec/状态/证据文档；最后一次业务代码验证仍为 Gate 3b 后 backend full 92 suites / 688 tests / 0 failures / 0 errors / 9 skipped，frontend type-check、标准与 Preview build PASS
+  - `git diff --check`、路径 allowlist、package/lockfile 零变化与增量 credential/privacy scan PASS
+- **Verification SKIPPED**:
+  - OpenSpec CLI：本机不在 PATH；完成文件级 exact-copy、结构、任务与链接校验，不声称 CLI validation PASS
+  - E0 目标用户理解：无真实参与者，保持 `INCONCLUSIVE / SKIPPED`；功能证据不冒充用户研究
+  - 真实 Agent provider：P3.1 外调预算保持 0；Gate 3c 的 mock fail-closed 不证明真实 provider 可用性或语言质量
+  - 本次仅归档文档/规格，没有业务代码变化，因此未重复运行已通过的 backend full 与 frontend build
+- **Scope safety**:
+  - 未实现 P3.2 导出/删除/清除全部/账号注销，未改变 Agent prompt/provider/memory/guardrails/预算，未修改 package/lockfile、deployment、monitoring 或冻结蓝图
+  - 未记录用户原文、媒体内容、位置、storage key、signed URL、credential、prompt 或 provider response
+- **Risks**:
+  - E0 仍无目标用户证据；保存反馈与恢复入口是 provisional 基线
+  - 真实 Agent provider 未在 P3.1 验证；本地 MySQL/对象存储/微信证据不等于生产兼容性、并发或 SLA
+  - P3.2 只是冻结序列的下一候选，必须重新走独立规划闸门
+- **Commit**: pending（Agent commit；不 push）
+- **Push / deploy / release**: 未授权，未执行
