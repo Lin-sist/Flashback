@@ -7639,3 +7639,11 @@ Commit: pending
   - 对历史 `record_id IS NULL` 但语义上可能属于记录的派生数据不能通过文本猜测归属；当前只对显式 record-linked owner mismatch fail-closed，真实 MySQL 需只读一致性审计
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 创建实现 checkpoint commit 后等待用户审查；Gate 3a/3b/3c 仍须分别授权
+
+## 2026-08-12｜P3.2 Gate 2 实现提交补录｜Type C
+
+- **Commit**: `7b48086 feat: 实现P3.2数据所有权基础`
+- **Scope**: 65 files changed / 2266 insertions / 546 deletions；仅含 P3.2 backend、frontend、schema、测试、active tasks 与证据
+- **Verification**: 提交前 `git diff --cached --check` PASS；提交成功
+- **Scope safety**: 未 push；Gate 3a/3b/3c、delta acceptance、closeout、archive、deploy/release 均未执行
+- **Next**: 等待用户审查；若继续真实依赖验收，分别取得 Gate 3a/3b/3c 授权

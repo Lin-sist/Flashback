@@ -146,7 +146,7 @@
   - 最终离线验证：backend 97 suites / 701 tests / 0 failures / 0 errors / 9 skipped；frontend type-check、standard/Preview mp-weixin build PASS；`git diff --check` 与范围/隐私扫描 PASS
   - 合成边界 PARTIAL：18 个媒体 / 301,989,888 logical bytes，artifact 299,156 bytes / 963ms；样本高度可压缩且未测构建过程磁盘峰值，不代表真实媒体性能或生产 SLA
   - **SKIPPED**：OpenSpec CLI 不在 PATH；真实 MySQL migration/锁语义、真实对象存储读删/失败恢复、微信文件保存/完整交互均待 Gate 3a/3b/3c
-  - **Commit**：implementation checkpoint pending（Agent commit；不 push）
+  - **Commit**：`7b48086 feat: 实现P3.2数据所有权基础`（implementation checkpoint；不 push）
   - **Blocked on**：none
   - **Next step**：提交实现 checkpoint 后等待用户审查；如继续，分别授权 Gate 3a/3b/3c，不得直接接受 delta 或归档
 
