@@ -7372,3 +7372,8 @@ Commit: pending
   - E0 仍无目标用户，保存反馈与恢复入口继续是 provisional；功能 PASS 不等于用户理解 PASS
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户重新启动本地后端并刷新微信开发者工具验证；如继续真实媒体或完整真机验收，分别授权 Gate 3b / Gate 3c
+
+## 2026-08-12｜P3.1 Gate 3a 提交补录｜Type C
+
+- **Commit**: `250b42b fix: 完成P3.1真实MySQL迁移`
+- **Push**: 未授权，未执行

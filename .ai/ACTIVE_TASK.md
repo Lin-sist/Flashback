@@ -130,7 +130,7 @@
   - 迁移后 backend 以 dev + AI mock、unlock/draft cleanup cron 禁用启动；合成 ADMIN 身份的 list/timeline 均为 HTTP 200 / API code 0；诊断进程随后停止，临时日志已清理，真实 provider 调用 0
   - focused 回归：P31 schema 1 + present-moment integration 13 + draft cleanup 4，合计 **18 tests / 0 failures / 0 errors / 0 skipped**
   - OpenSpec CLI 仍不在 PATH，validation 记 SKIPPED；Gate 3b/3c、E0 用户理解、delta acceptance、closeout 与归档仍未执行
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`250b42b fix: 完成P3.1真实MySQL迁移`（不 push）
   - **Blocked on**: none
   - **Next step**：用户在微信开发者工具重新启动本地后端并刷新小程序验证数据页；如需图片/声音真实链路或完整真机清单，分别授权 Gate 3b/3c
 
