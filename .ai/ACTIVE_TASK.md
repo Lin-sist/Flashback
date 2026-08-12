@@ -146,7 +146,7 @@
   - change 归档至 `openspec/changes/archive/2026-08-12-data-ownership-foundation/`；`ACTIVE_TASK` 回到 `IDLE`
   - delta exact-copy、新 requirement 标题唯一性、archive 结构、相对链接、隐私/credential 与 `git diff --check` 文件级校验 PASS
   - **PARTIAL / SKIPPED**：T-36 不可压缩真实媒体峰值保持未勾选；物理真机与 OpenSpec CLI 未验证；真实 Agent provider 调用 0
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`a24f550 feat: 接受并归档P3.2数据所有权基础`（不 push）
   - **Blocked on**：none
   - **Next step**：等待用户独立授权 P4.1 规划；不默认启动
 

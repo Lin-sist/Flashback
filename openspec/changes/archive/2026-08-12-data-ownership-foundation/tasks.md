@@ -118,7 +118,7 @@ denylist：package/lockfile、deployment、monitoring、admin、account deletion
 - [x] **T-79** 用户明确验收后，接受五份纯 ADDED delta 进 baseline（20 Requirements / 51 Scenarios，exact-copy PASS）
 - [x] **T-80** 写 closeout，如实区分 H2/build、真实 MySQL、对象存储、微信与生产 SLA
 - [x] **T-81** 归档 change 至 `archive/2026-08-12-data-ownership-foundation/`，ACTIVE_TASK 回到 IDLE，追加 AGENT_LOG；不改写历史
-- [ ] **T-82** 按提交责任处理 commit；push/deploy/release 仍需独立授权
+- [x] **T-82** 按提交责任完成归档 commit `a24f550`；未执行 push/deploy/release
 
 ## 范围守护自检
 

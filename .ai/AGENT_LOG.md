@@ -7744,5 +7744,14 @@ Commit: pending
   - 未修改业务代码、package/lockfile、deployment、monitoring、admin、三个一级 Tab 或冻结蓝图
   - 未执行 push、PR、部署、发布，未启动 P4.1
   - 未记录用户原文、媒体内容、位置、storage key、signed URL、token、credential、prompt 或 provider response
-- **Commit**: pending（Agent commit；不 push）
-- **Next**: 完成归档提交与 hash 补录后保持 IDLE
+- **Commit**: `a24f550 feat: 接受并归档P3.2数据所有权基础`
+- **Push / deploy / release**: 未授权、未执行
+- **Next**: 保持 IDLE；等待用户独立授权下一阶段规划
+
+## 2026-08-12｜P3.2 归档提交补录｜Type C
+
+- **Commit**: `a24f550 feat: 接受并归档P3.2数据所有权基础`
+- **Scope**: 17 files changed / 599 insertions / 20 deletions；包含 5 份 baseline acceptance、9-file archive、closeout、ACTIVE_TASK、AGENT_LOG 与 narrative
+- **Verification**: 提交前 staged `git diff --check`、精确路径、relative links、delta exact-copy、新 requirement 标题唯一性、package/lockfile 与 credential scan PASS
+- **Scope safety**: 未 push、PR、部署、发布；未启动 P4.1
+- **Next**: hash 补录后保持 `ACTIVE_TASK=IDLE`
