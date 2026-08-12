@@ -151,4 +151,4 @@ P3.2 将 Flashback 当前“看起来能备份、实际上没有真实结果”�
 - OpenSpec CLI：当前 shell 未安装，`openspec new change` 已失败；本轮采用仓库既有文件级 scaffold，并将 CLI validation 记为 `SKIPPED`。
 - Gate 1：用户于 2026-08-12 以“授权实现”批准本 proposal、design、tasks、五份 delta 与推荐决策。
 - Gate 2：用户于 2026-08-12 明确授权按 `tasks.md` 实现。
-- Gate 3a/3b/3c：均未授权。
+- Gate 3a/3b/3c：用户于 2026-08-12 明确授权；真实 Agent provider 预算仍为 0，push、PR、部署、发布、delta acceptance 与归档仍未授权。

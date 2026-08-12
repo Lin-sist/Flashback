@@ -7647,3 +7647,70 @@ Commit: pending
 - **Verification**: 提交前 `git diff --cached --check` PASS；提交成功
 - **Scope safety**: 未 push；Gate 3a/3b/3c、delta acceptance、closeout、archive、deploy/release 均未执行
 - **Next**: 等待用户审查；若继续真实依赖验收，分别取得 Gate 3a/3b/3c 授权
+
+## 2026-08-12｜P3.2 Gate 3a/3b/3c 授权与验收启动｜Type C
+
+- **Scope**: 用户明确授权真实 MySQL、私有对象存储与微信开发者工具/真机三部分验收
+- **Authorization**:
+  - Gate 3a：真实 MySQL 只读 schema/孤儿聚合 preflight、migration、合成记录删除/cascade/中断恢复
+  - Gate 3b：私有对象存储合成 PNG/WAV 导出、hash、删除/not-found/retry 与 finally cleanup
+  - Gate 3c：微信端真实 ZIP 保存/打开或转存、四状态删除、clear-all、写入冻结、失败重试与 Preview 只读矩阵
+  - 真实 Agent provider 预算 0；push、PR、部署、发布、delta acceptance、closeout、archive 均未授权
+- **Privacy**: 只使用合成内容；输出只含 schema、状态、计数、hash 与布尔结果，不含内容、位置、storage key、signed URL、download token、credential、prompt 或 provider response
+- **Verification**: pending
+- **Commit**: pending（Agent commit；不 push）
+
+## 2026-08-12｜P3.2 Gate 3a 真实 MySQL 验收完成｜Type C
+
+- **Scope**: 仅执行本机真实 MySQL schema/孤儿聚合 preflight、P3.2 migration 幂等、合成单条与 clear-all 删除/cascade/中断恢复探针
+- **Verification**: PASS
+  - MySQL 8.0.41；迁移前 P3.2 表为 0；既有记录只输出状态计数，record_location/attachment/reply/tag/reminder/unlock notice/agent session 的 orphan 与 owner mismatch 聚合均为 0
+  - `p32-data-ownership-foundation.sql` 连续执行两次成功；postflight 为 2 tables / 4 foreign keys / 9 indexes
+  - `P32RealMySqlProbeTest`：1 test / 0 failures / 0 errors / 0 skipped；单条 owner scope 与幂等、clear-all 固定 snapshot、mutation freeze、关联 cascade、RUNNING stale recovery 均 PASS
+  - 合成 user、record、operation、operation item 最终计数均为 0；另一 owner 与确认后 snapshot 外记录未被误删
+- **Privacy**: 输出只含版本、表/索引/外键、状态计数、孤儿聚合与布尔结果；未读取或输出正文、位置、storage key、URL、token 或 secret
+- **Remaining boundary**: 本结果证明当前本机 MySQL 迁移与合成链路，不等于生产并发、容量或 SLA
+- **Commit**: pending（Agent commit；不 push）
+
+## 2026-08-12｜P3.2 Gate 3b 真实私有对象存储验收完成｜Type C
+
+- **Scope**: 使用本地 ignored 配置的真实 S3-compatible 私有存储，仅上传可清理的合成 1x1 PNG 与短 WAV；真实 Agent provider 保持关闭
+- **Verification**: PASS
+  - 配置 presence preflight：required 6 / missing 0；未输出配置值、bucket、key、URL 或 secret
+  - `P32RealDataOwnershipStorageProbeTest`：1 test / 0 failures / 0 errors / 0 skipped
+  - 真实导出包含 records/media/agent/manifest/index/README；PNG/WAV 原始 bytes 与 manifest bytes/SHA-256 一致
+  - 真实读取鉴权失败进入 RETRY_REQUIRED，无 partial artifact；恢复凭据后 retry SUCCEEDED；artifact expiry 清理后状态 EXPIRED 且文件不可读取
+  - 删除 success、对象已不存在 + RUNNING stale restart、真实鉴权失败保留 record/item、恢复后 retry 均 PASS
+  - finally cleanup：合成对象、临时 artifact、数据库 user/record/operation 全部移除
+- **Diagnostic note**: 首次启动因验收包装器误解析注释中的备用 Qiniu 配置，在任何上传/插入前 fail-fast；改为只解析非注释环境行后同一探针 PASS，业务代码未因此改动
+- **Privacy**: 输出仅含配置项数量、布尔结果与 test count；未输出内容、位置、bucket、storage key、URL、token、credential、prompt 或 provider response
+- **Remaining boundary**: 证明当前本机配置与合成小样本，不等于对象存储生产容量、长期可用性或 SLA
+- **Commit**: pending（Agent commit；不 push）
+
+## 2026-08-12｜P3.2 Gate 3c 微信开发者工具验收完成｜Type C
+
+- **Scope**: 使用微信开发者工具与真实本机 backend/MySQL/private S3-compatible 配置，完成 standard 与 Preview 小程序交互矩阵；仅使用可清理合成账号和记录
+- **Verification**: PASS
+  - standard：真实页面显示 `RETRY_REQUIRED`；clear-all 期间编辑保存被前后端冻结，原数据不变；点击重试后原操作 `SUCCEEDED`
+  - export：默认 `RESPECT_SEAL` 与显式 `FULL_CONTENT` 各生成一个真实 ZIP；通过微信 `wx.saveFile` 保存后 saved file 大小大于 0，并在验收后移除；未用桌面下载或 build 代替
+  - single delete：DRAFT、SAVED、SEALED、UNLOCKED 均从记录详情真实删除；clear-all 通过页面输入服务端生成的完整确认短语后删除固定范围
+  - postflight：合成账号下 2 个 clear-all、4 个 single-delete、2 个 export operation 均为 `SUCCEEDED`；记录计数为 0
+  - Preview：刷新开发者工具 compile/file cache 后进入真实 Preview 构建；页面显示 1/2/2/1 演示计数，默认/完整导出、单删与 clear-all 均 fail-closed，未生成 operation 或 saved file
+  - cleanup：2 个本地 export artifact、合成账号、record、operation 全部移除；数据库复核计数均为 0
+  - Gate 3 后 backend full：99 suites / 703 tests / 0 failures / 0 errors / 11 skipped；新增真实 MySQL/存储探针未显式启用时各默认 skip，防止误触真实依赖
+  - frontend：`vue-tsc --noEmit`、Preview build、最终 standard mp-weixin build PASS；package/lockfile 未修改
+- **Diagnostic notes**:
+  - standard 首轮自动化在完成 DRAFT/SAVED 后过早切页，与详情页 450ms 关闭定时器相撞；增加 700ms 页面稳定等待后续跑 SEALED/UNLOCKED/clear-all PASS，业务代码未改
+  - standard 切换到 Preview 后开发者工具先加载旧编译缓存并重定向登录页；清理当前项目 compile/file cache 并重开后，页面路径、Preview notice 与只读矩阵 PASS，业务代码未改
+  - backend full 首次在沙箱内因本机 Maven 缓存访问权限失败；同一命令在沙箱外重跑 PASS
+- **Verification SKIPPED / boundary**:
+  - 未使用物理真机；Gate 3c 授权允许微信开发者工具或真机，本次以开发者工具完成 `wx.saveFile` 与完整交互矩阵
+  - OpenSpec CLI 仍不在 PATH；未声称 CLI validation PASS
+  - 真实 Agent provider 调用预算 0，backend 明确保持 mock，实测外调 0
+  - 当前本机 MySQL、私有对象存储与微信开发者工具小样本 PASS 不等于生产容量、并发、长期可用性或 SLA；T-36 不可压缩真实媒体磁盘峰值仍为 PARTIAL
+- **Scope safety**:
+  - 未修改业务代码、accepted specs、archive、package/lockfile、deployment、monitoring、admin、三个一级 Tab 或冻结蓝图
+  - 未执行 push、PR、部署、发布、delta acceptance、closeout 或归档
+  - 日志未记录合成内容、位置、storage key、bucket、URL、artifact/download token、credential、prompt 或 provider response
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 提交 Gate 3 验收证据 checkpoint 后等待用户审查；T-78～T-82 仍未授权执行

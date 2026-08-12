@@ -7,10 +7,10 @@
 当前唯一 active Type C change：P3.2 `data-ownership-foundation`。
 
 - Change：`openspec/changes/data-ownership-foundation/`
-- 阶段：**Gate 2 离线实现**；Gate 1/2 已于 2026-08-12 获批
+- 阶段：**Gate 3 真实依赖验收**；Gate 1/2 与 Gate 3a/3b/3c 已于 2026-08-12 获批
 - 开工锚点：`efd2618`
 - Gate 2：已授权，允许按 `tasks.md` 修改业务代码并执行离线/H2/build 验证
-- Gate 3a / 3b / 3c：未授权，禁止真实 MySQL、对象存储与微信副作用验收
+- Gate 3a / 3b / 3c：已授权，允许真实 MySQL、对象存储与微信副作用验收；只使用合成测试数据并负责清理
 - 真实 Agent provider 预算：0；push、部署、发布未授权、未执行
 - 提交责任：用户已明确授权 Agent commit；不 push
 
@@ -84,9 +84,9 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：P3.2 Gate 2 离线实现**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+- **当前动作：P3.2 Gate 3 真实依赖验收**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
   未选出 A/B/C 胜者；P3.1 已归档。P3.2 `data-ownership-foundation` 的 Gate 1/2 已获批；
-  Gate 3a/3b/3c、push/deploy/release 未授权，旧 Optional C0/C10/C11 继续证据触发
+  Gate 3a/3b/3c 已获批；真实 Agent provider、push/deploy/release、delta acceptance 与归档未授权，旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -134,6 +134,24 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.2 Gate 3a/3b/3c 真实依赖验收 PASS，等待用户审查**
+  - 用户明确授权 Gate 3a/3b/3c：允许真实 MySQL preflight/migration/删除恢复、私有对象存储合成媒体导出删除清理、微信开发者工具/真机交互矩阵
+  - 仅使用合成内容和可清理对象；证据只记录 schema、状态、计数、hash 与结果，不记录日记原文、位置、storage key、URL、token 或 secret
+  - 真实 Agent provider 预算继续为 0；push、PR、部署、发布、delta acceptance、closeout 与归档未授权
+  - Gate 3a PASS：MySQL 8.0.41；preflight 仅含 schema/状态/孤儿聚合，关联 orphan/owner mismatch 均为 0；migration 连续两次成功
+  - Gate 3a 真实探针：单条删除、cross-owner 拒绝、clear-all 固定快照、mutation freeze、record-linked cascade、RUNNING 中断恢复均 PASS；postflight 2 tables / 4 FKs / 9 indexes，合成 user/record/operation/item 均为 0
+  - Gate 3b PASS：真实私有 S3-compatible 合成 PNG/WAV 导出，ZIP 中原始 bytes 与 manifest SHA-256 一致；真实读取鉴权失败进入 RETRY_REQUIRED，恢复后成功
+  - Gate 3b 删除覆盖 success、not-found + stale restart、鉴权失败重试；24h artifact 到期路径验证为 EXPIRED；合成对象、artifact、user/record/operation 最终全部清理
+  - Gate 3c standard PASS：微信开发者工具中写入冻结与 RETRY_REQUIRED 重试、默认 `RESPECT_SEAL` / 显式 `FULL_CONTENT` 导出、DRAFT/SAVED/SEALED/UNLOCKED 单删、clear-all 强确认逐项通过
+  - Gate 3c 文件交付 PASS：通过微信 `wx.saveFile` 保存真实 ZIP，saved file 大小大于 0，验收后移除；不是桌面下载或 build 替代
+  - Gate 3c Preview PASS：页面显示 1/2/2/1 演示计数；导出、单删、clear-all 均 fail-closed，saved file 数不变；同一验收时间窗真实 MySQL 新增 operation 为 0
+  - Gate 3c cleanup PASS：2 个导出 artifact、合成账号、record 与 operation 全部清理；真实 MySQL 聚合归零
+  - Gate 3 后全量回归：backend 99 suites / 703 tests / 0 failures / 0 errors / 11 skipped（2 个真实探针默认 skip）；frontend type-check、standard/Preview build PASS
+  - 工具诊断：开发者工具从 standard 切换 Preview 后需清理 compile/file cache 才加载新构建；刷新后页面路径与只读矩阵 PASS，未修改业务代码
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**：none
+  - **Next step**：提交 Gate 3 验收证据 checkpoint，等待用户审查；未授权 delta acceptance、closeout 或归档
 
 - **This session**: 2026-08-12 — **P3.2 Gate 2 离线实现完成，等待 Gate 3 / 用户审查**
   - 用户明确“授权实现，并且可以为我提交commit”：批准原规划与五份 delta，授权按 tasks 修改业务代码并由 Agent commit

@@ -1,6 +1,6 @@
 # Tasks：Data Ownership Foundation（P3.2）
 
-> 当前阶段：Gate 1 与 Gate 2 已于 2026-08-12 获批，进入离线实现；Gate 3a/3b/3c 均未授权。
+> 当前阶段：Gate 1、Gate 2 与 Gate 3a/3b/3c 已于 2026-08-12 获批；正在执行真实依赖验收。
 
 ## 阶段 0：Readiness 与规划闸
 
@@ -102,15 +102,15 @@ denylist：package/lockfile、deployment、monitoring、admin、account deletion
 
 ## 阶段 7：Gate 3 真实依赖验收（分别授权）
 
-- [ ] **T-69 GATE 3a** 用户授权真实 MySQL 只读 preflight、DDL/migration、删除/cascade 与中断恢复探针
-- [ ] **T-70** Gate 3a preflight 只输出 schema、外键、状态计数与孤儿聚合，不读取/输出用户原文、位置或 key
-- [ ] **T-71** 真实 MySQL migration 幂等；单条与 clear-all 合成聚合删除/恢复 PASS
-- [ ] **T-72 GATE 3b** 用户授权私有对象存储合成图片/WAV 的导出、下载、删除、not-found/retry 与 finally cleanup
-- [ ] **T-73** 真实对象存储导出 bytes/SHA-256 PASS；删除/中断恢复 PASS；合成对象与 artifact 全部清理
-- [ ] **T-74 GATE 3c** 用户授权微信开发者工具/真机文件保存与完整交互矩阵
-- [ ] **T-75** 微信端 export 生成并保存/打开或转存真实 ZIP；不能用桌面下载或 build 代替
-- [ ] **T-76** 微信端四状态单删、clear-all 强确认、写入冻结、失败重试、Preview 只读逐项记录
-- [ ] **T-77** 真实 Agent provider 调用保持 0；本 change 不申请 provider 外调
+- [x] **T-69 GATE 3a** 用户授权真实 MySQL 只读 preflight、DDL/migration、删除/cascade 与中断恢复探针（2026-08-12）
+- [x] **T-70** Gate 3a preflight 只输出 schema、外键、状态计数与孤儿聚合，不读取/输出用户原文、位置或 key（MySQL 8.0.41；已检查关联 orphan/owner mismatch 均为 0）
+- [x] **T-71** 真实 MySQL migration 幂等；单条与 clear-all 合成聚合删除/恢复 PASS（schema 2 tables / 4 FKs / 9 indexes；合成数据最终为 0）
+- [x] **T-72 GATE 3b** 用户授权私有对象存储合成图片/WAV 的导出、下载、删除、not-found/retry 与 finally cleanup（2026-08-12）
+- [x] **T-73** 真实对象存储导出 bytes/SHA-256 PASS；删除/中断恢复 PASS；合成对象与 artifact 全部清理（PNG/WAV；read/delete retry、not-found restart、expiry 均 PASS）
+- [x] **T-74 GATE 3c** 用户授权微信开发者工具/真机文件保存与完整交互矩阵（2026-08-12）
+- [x] **T-75** 微信开发者工具中 export 生成真实 ZIP，调用 `wx.saveFile` 后 saved file 大小大于 0，并在验收后移除；未用桌面下载或 build 代替
+- [x] **T-76** 微信开发者工具中 DRAFT/SAVED/SEALED/UNLOCKED 单删、clear-all 强确认、写入冻结、失败重试、默认/完整导出与 Preview 只读逐项 PASS
+- [x] **T-77** 真实 Agent provider 调用保持 0；本 change 未申请 provider 外调
 
 ## 阶段 8：验收、delta acceptance 与归档
 
