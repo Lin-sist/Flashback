@@ -126,7 +126,7 @@
   - JVM 系统属性确认本轮验收进程由我们主动强制 `app.ai.provider=mock`，因此 Agent 不可用是守住 P3.1 真实 AI 调用 0 的预期结果，不是微信网络、会话状态或 P3.1 Agent 兼容回归
   - 未切换真实 DeepSeek：Gate 3c 授权不自动包含真实 provider 外调；如需恢复/验证 Agent，必须另行授权真实 provider 调用后重启 backend
   - E0 用户理解继续为 `INCONCLUSIVE / SKIPPED`；功能矩阵 PASS 不倒填用户访谈
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`1d2223e docs: 完成P3.1 Gate 3c验收`（不 push）
   - **Blocked on**: none
   - **Next step**：用户审查全部实现、真实证据与 remaining risks；确认后再接受 delta、写 closeout 并归档
 

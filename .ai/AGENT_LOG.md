@@ -7493,3 +7493,8 @@ Commit: pending
   - 真实 Agent 当前未验；若用户希望恢复 Agent，需要单独授权真实 provider 调用并重启 backend，再按固定合成短文本做窄验证
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户审查 P3.1 全部实现与证据；批准后执行 delta acceptance、closeout 与 archive
+
+## 2026-08-12｜P3.1 Gate 3c 验收提交补录｜Type C
+
+- **Commit**: `1d2223e docs: 完成P3.1 Gate 3c验收`
+- **Push**: 未授权，未执行
