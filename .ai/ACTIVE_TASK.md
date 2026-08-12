@@ -127,7 +127,7 @@
   - 微信开发者工具 CLI 已打开 `frontend/dist/dev/mp-weixin` 当前构建并启用 automation；生成物包含“留下这一刻”“这一刻已经留下”“继续上次未完成”“交给时间”和录音权限失败分支
   - 当前仓库/本机没有可调用的 `miniprogram-automator` 客户端；相册/麦克风权限、录音、扬声器播放及真实交互不能由后端测试替代，须用户在开发者工具或真机操作
   - E0 用户理解继续为 `INCONCLUSIVE / SKIPPED`，即使 T-79 功能全通过也不倒填用户访谈 PASS
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`087d22e docs: 启动P3.1 Gate 3c人工验收`（不 push）
   - **Blocked on**: 用户完成 Gate 3c 人工矩阵并报告逐项结果
   - **Next step**：保持本地后端运行，用户按最短清单操作；收到结果后读取同一启动日志、登记 T-79 与 remaining risks
 

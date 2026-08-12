@@ -7465,3 +7465,8 @@ Commit: pending
   - 若使用真实手机而非开发者工具模拟器，`127.0.0.1:8080` 不能代表电脑地址，需另行采用同局域网地址并核对防火墙/合法域名设置
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户按 Gate 3c 最短清单操作并报告逐项结果；随后核对 backend 日志并收口 T-79
+
+## 2026-08-12｜P3.1 Gate 3c 启动提交补录｜Type C
+
+- **Commit**: `087d22e docs: 启动P3.1 Gate 3c人工验收`
+- **Push**: 未授权，未执行
