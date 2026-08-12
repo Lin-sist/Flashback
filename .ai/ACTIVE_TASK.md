@@ -6,7 +6,7 @@
 
 当前唯一 active Type C change：P3.1 `present-moment-capture`。
 位置：`openspec/changes/present-moment-capture/`。
-当前处于**闸门 2 实现完成 + Gate 3a/Gate 3b 完成 + Gate 3c 人工验收执行中**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 授权并完成 Gate 3a/Gate 3b，并于同日批准 Gate 3c。`push`、部署与发布仍未授权。
+当前处于**闸门 2 实现完成 + Gate 3a/Gate 3b/Gate 3c 完成，等待用户审查与最终收口授权**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 完成三组真实依赖验收。`push`、部署与发布仍未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -72,7 +72,7 @@
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
 - **当前动作：P3.1 实现审查 / 真实依赖分闸验收**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a/Gate 3b 已完成；Gate 3c 已授权并等待用户人工操作结果，push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
+  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a/Gate 3b/Gate 3c 已完成；等待用户审查、delta acceptance、closeout/archive 授权，push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -119,6 +119,16 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.1 Gate 3c 人工矩阵完成，Agent mock 原因确认**
+  - 用户在微信端报告“目前仅有 Agent 对话是用不了的，其他都正常”；结合上一轮明确的 8 项清单，登记文字/图片/声音独立保存、恢复、SAVED 编辑、保存后交给时间、权限拒绝与上传失败/重试为人工 PASS，T-79 完成
+  - 截图中的 Agent 文案为 C8 固定 opening fail-closed 模板；同期日志确认请求到达后端、WRITING_GUIDANCE 会话创建成功，opening 与用户主动 retry 均为 `provider=mock`、`auth-configuration`、0ms
+  - JVM 系统属性确认本轮验收进程由我们主动强制 `app.ai.provider=mock`，因此 Agent 不可用是守住 P3.1 真实 AI 调用 0 的预期结果，不是微信网络、会话状态或 P3.1 Agent 兼容回归
+  - 未切换真实 DeepSeek：Gate 3c 授权不自动包含真实 provider 外调；如需恢复/验证 Agent，必须另行授权真实 provider 调用后重启 backend
+  - E0 用户理解继续为 `INCONCLUSIVE / SKIPPED`；功能矩阵 PASS 不倒填用户访谈
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**: none
+  - **Next step**：用户审查全部实现、真实证据与 remaining risks；确认后再接受 delta、写 closeout 并归档
 
 - **This session**: 2026-08-12 — **P3.1 Gate 3c 已授权，等待微信人工矩阵结果**
   - 用户明确批准 Gate 3c；T-78 已完成，T-79 保持未勾选，直到文字/图片/声音独立保存、恢复、SAVED 编辑、保存后封存、权限拒绝与上传失败逐项获得人工结果

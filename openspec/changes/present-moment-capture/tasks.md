@@ -1,6 +1,6 @@
 # Tasks：Present Moment Capture（P3.1）
 
-> 当前阶段：实现、Gate 3a 真实 MySQL与 Gate 3b 真实对象存储验收完成，Gate 3c 微信开发者工具 / 真机验收执行中。闸门 1 已批准、闸门 2 已授权、Gate 3a/Gate 3b 已完成，Gate 3c 已于 2026-08-12 授权。
+> 当前阶段：实现与 Gate 3a/3b/3c 真实依赖验收完成，等待用户审查与最终收口授权。闸门 1 已批准、闸门 2 已授权，Gate 3a/3b/3c 均已于 2026-08-12 完成。
 
 ## 阶段 0：规划与范围闸
 
@@ -121,7 +121,7 @@
 - [x] **T-76** 固定合成短 WAV 声音-only：upload/commit AVAILABLE/save/private read/标准音频解码 PASS，finally 清理 PASS；微信扬声器播放仍属 Gate 3c
 - [x] **T-77** pending/missing object save FAIL；过期 DRAFT 远端删除成功/不存在/失败重试语义 PASS
 - [x] **T-78 GATE 3c** 用户授权微信开发者工具 / 真机文字、图片、声音、恢复、保存后封存验证（2026-08-12）
-- [ ] **T-79** 微信端三种独立保存、返回恢复、SAVED 编辑、保存后交给时间、权限拒绝/上传失败路径逐项记录
+- [x] **T-79** 微信端三种独立保存、返回恢复、SAVED 编辑、保存后交给时间、权限拒绝/上传失败路径逐项记录（用户报告除 Agent 对话外均正常；Agent 因本次强制 mock 在 0ms fail-closed，不属于本任务矩阵）
 - [x] **T-80** E0 用户理解仍记 SKIPPED；真机功能 PASS 不得冒充目标用户访谈 PASS
 - [x] **T-81** P3.1 真实 AI provider 调用保持 0；本 change 不申请 provider 外调预算
 

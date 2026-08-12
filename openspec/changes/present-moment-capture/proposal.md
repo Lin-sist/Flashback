@@ -2,7 +2,7 @@
 
 > Type C 已批准规划。change-id：`present-moment-capture`。
 > 开工锚点：`2d9544a`。提交责任：**Agent 提交**（不含 push）。
-> 用户于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL、Gate 3b 真实对象存储均于 2026-08-12 授权并完成，Gate 3c 微信开发者工具 / 真机于同日授权并进入人工验收。
+> 用户于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL、Gate 3b 真实对象存储与 Gate 3c 微信开发者工具 / 真机均于 2026-08-12 授权并完成。
 
 ## 1. Why Now
 
@@ -223,5 +223,5 @@ P3.1 只继承蓝图 D43 / D44 的最低基线，不宣称选择 A、B 或 C，�
 - 闸门 2 实现状态：**已完成，等待用户审查**（当前 backend default full 92 suites / 688 tests，0 failures / 0 errors / 9 条件跳过；frontend type-check 与标准/Preview build PASS）。
 - Gate 3a（真实 MySQL）：**已授权并完成**（2026-08-12）。preflight 仅输出聚合：3 条 DRAFT 均有有效文字、0 条空白异常、0 条 owner/orphan 媒体异常；迁移后 3 条均为 SAVED，原 FUTURE_LETTER 类型保留，`draft_expires_at` 列、复合索引、MOMENT 默认值、UTC+8 与重复执行稳定性 PASS；迁移后真实 backend list/timeline HTTP 200。
 - Gate 3b（真实对象存储）：**已授权并完成**（2026-08-12）。仅使用合成 PNG 与固定短 WAV：图片/声音各自完成真实 upload、commit AVAILABLE、save、私有读取与字节一致性；图片完成 SAVED edit，WAV 通过标准音频解码。pending/missing object 拒绝保存，过期 DRAFT 的远端删除成功、对象已不存在和失败保留重试锚点均 PASS；最终对象与合成数据库行清理为 0 残留。未调用真实 AI provider，未记录 key、URL 或 secret。
-- Gate 3c（微信开发者工具 / 真机）：**已授权，人工验收执行中**（2026-08-12）。本地真实后端已在 AI mock、定时任务关闭状态启动，微信开发者工具已打开当前 dev 构建；权限弹窗、相册选择、麦克风录制与扬声器播放须由用户操作后逐项登记，尚不声称 T-79 PASS。
+- Gate 3c（微信开发者工具 / 真机）：**已授权并完成**（2026-08-12）。用户在当前 dev 构建与真实 backend/MySQL/对象存储下报告“仅有 Agent 对话用不了，其他都正常”，据此登记文字/图片/声音独立保存、恢复、SAVED 编辑、保存后封存及失败路径人工矩阵 PASS。Agent opening 请求确实到达后端，但因本轮为守住 P3.1 真实 AI 调用 0 而强制 `provider=mock`，以 `auth-configuration` 在 0ms fail-closed；这不是 T-79 的失败，也不构成真实 provider 质量证据。
 - Git：规划文档按既有授权由 Agent commit；`push` 未授权。

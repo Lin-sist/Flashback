@@ -7470,3 +7470,26 @@ Commit: pending
 
 - **Commit**: `087d22e docs: 启动P3.1 Gate 3c人工验收`
 - **Push**: 未授权，未执行
+
+## 2026-08-12｜P3.1 Gate 3c 人工矩阵与 Agent mock 诊断｜Type C
+
+- **User evidence**:
+  - 用户在当前微信环境报告：“目前仅有 Agent 对话是用不了的，其他都正常”
+  - 结合已给出的 Gate 3c 8 项清单，登记文字/图片/声音独立保存与播放、返回恢复、SAVED 编辑、保存后交给时间、权限拒绝、上传失败与重试为人工 PASS
+- **Diagnosis**: CONFIRMED
+  - 截图文案“我现在暂时无法接上，请稍后再回来。”与 `AgentResiliencePolicy.OPENING_UNAVAILABLE` 完全一致
+  - 同期日志显示微信请求到达 backend，WRITING_GUIDANCE session 创建成功；opening 与多次 opening-retry 均记录 `provider=mock`、`category=auth-configuration`、`durationMs=0`
+  - 运行中 JVM 属性为 `app.ai.provider=mock`；这是 Gate 3c 启动时为守住 T-81 真实 AI provider 调用 0 而主动设置，不是微信网络、数据库、会话状态或业务代码故障
+- **Verification boundary**:
+  - T-79 人工功能矩阵 PASS；Agent 不属于 T-79，且本轮 mock 降级不阻塞 Gate 3c
+  - 未启动真实 DeepSeek、未产生真实 AI provider 调用；Gate 3c 授权不自动扩展为 provider 外调授权
+  - E0 目标用户理解继续为 `INCONCLUSIVE / SKIPPED`；功能 PASS 不冒充用户研究
+- **Changes**:
+  - 仅更新 active change、ACTIVE_TASK 与 append-only AGENT_LOG；无业务代码变更
+- **Scope safety**:
+  - 未读取/记录用户对话内容、prompt、provider response 或 credential；日志证据只保留稳定 operation/provider/category/duration
+  - 未改 package/lockfile、accepted baseline、archive、冻结蓝图、deployment 或 monitoring
+- **Risks**:
+  - 真实 Agent 当前未验；若用户希望恢复 Agent，需要单独授权真实 provider 调用并重启 backend，再按固定合成短文本做窄验证
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户审查 P3.1 全部实现与证据；批准后执行 delta acceptance、closeout 与 archive
