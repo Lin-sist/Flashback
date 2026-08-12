@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `data_operation_record`;
+DROP TABLE IF EXISTS `data_operation`;
 DROP TABLE IF EXISTS `agent_turn_trace`;
 DROP TABLE IF EXISTS `agent_tool_call`;
 DROP TABLE IF EXISTS `agent_message`;
@@ -265,4 +267,50 @@ CREATE TABLE `agent_turn_trace` (
   CONSTRAINT `fk_agent_turn_trace_session_id` FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_agent_turn_trace_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_agent_turn_trace_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `data_operation` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT NOT NULL,
+  `operation_type` VARCHAR(30) NOT NULL,
+  `status` VARCHAR(30) NOT NULL,
+  `active_slot` TINYINT GENERATED ALWAYS AS (
+    CASE WHEN `status` IN ('PREPARED','PENDING','RUNNING','RETRY_REQUIRED') THEN 1 ELSE NULL END
+  ),
+  `sealed_content_policy` VARCHAR(30) DEFAULT NULL,
+  `total_items` INT NOT NULL DEFAULT 0,
+  `processed_items` INT NOT NULL DEFAULT 0,
+  `failed_items` INT NOT NULL DEFAULT 0,
+  `confirmation_nonce_hash` CHAR(64) DEFAULT NULL,
+  `confirmation_expires_at` TIMESTAMP DEFAULT NULL,
+  `artifact_token` CHAR(36) DEFAULT NULL,
+  `artifact_expires_at` TIMESTAMP DEFAULT NULL,
+  `failure_code` VARCHAR(50) DEFAULT NULL,
+  `confirmed_at` TIMESTAMP DEFAULT NULL,
+  `started_at` TIMESTAMP DEFAULT NULL,
+  `completed_at` TIMESTAMP DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT `uk_data_operation_artifact_token` UNIQUE (`artifact_token`),
+  CONSTRAINT `uk_data_operation_user_active` UNIQUE (`user_id`, `active_slot`),
+  KEY `idx_data_operation_user_status` (`user_id`, `status`, `operation_type`, `id`),
+  CONSTRAINT `fk_data_operation_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `data_operation_record` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `operation_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `record_id` BIGINT DEFAULT NULL,
+  `item_status` VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+  `attempt_count` INT NOT NULL DEFAULT 0,
+  `failure_code` VARCHAR(50) DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT `uk_data_operation_record_target` UNIQUE (`operation_id`, `record_id`),
+  KEY `idx_data_operation_record_operation_status` (`operation_id`, `item_status`, `id`),
+  KEY `idx_data_operation_record_user_record` (`user_id`, `record_id`, `item_status`),
+  CONSTRAINT `fk_data_operation_record_operation_id` FOREIGN KEY (`operation_id`) REFERENCES `data_operation` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_data_operation_record_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_data_operation_record_record_id` FOREIGN KEY (`record_id`) REFERENCES `record` (`id`) ON DELETE SET NULL
 );

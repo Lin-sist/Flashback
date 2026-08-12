@@ -52,6 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -150,24 +151,17 @@ class RecordServiceImplTest {
     }
 
     @Test
-    void shouldRejectDeleteWhenStatusIsNotDraft() {
-        Record sealed = mockRecord(RecordStatus.SEALED);
-        when(recordMapper.selectByIdAndUserId(101L, 1L)).thenReturn(sealed);
-
+    void shouldMigrateLegacyDeleteEndpointToOwnershipFlow() {
         assertThatThrownBy(() -> recordService.delete(1L, 101L))
                 .isInstanceOf(BizException.class)
-                .hasMessage("仅DRAFT状态允许删除");
+                .hasMessage("请通过数据与所有权的二次确认流程删除记录");
+        verify(recordMapper, never()).deleteDraftByIdAndUserId(anyLong(), anyLong());
     }
 
     @Test
-    void shouldClearRecordTagsWhenDeleteDraft() {
-        Record draft = mockRecord(RecordStatus.DRAFT);
-        when(recordMapper.selectByIdAndUserId(101L, 1L)).thenReturn(draft);
-        when(recordMapper.deleteDraftByIdAndUserId(101L, 1L)).thenReturn(1);
-
-        recordService.delete(1L, 101L);
-
-        verify(recordTagMapper).deleteByRecordId(101L);
+    void shouldNotUseLegacyDirectDeleteForDraft() {
+        assertThatThrownBy(() -> recordService.delete(1L, 101L)).isInstanceOf(BizException.class);
+        verify(recordTagMapper, never()).deleteByRecordId(anyLong());
     }
 
     @Test

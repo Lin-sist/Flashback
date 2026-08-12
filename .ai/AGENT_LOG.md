@@ -7599,3 +7599,43 @@ Commit: pending
 - **Verification SKIPPED**: Gate 3a/3b/3c 与真实 Agent provider 均未授权/预算 0
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 运行 backend/frontend baseline，再从 operation/schema RED 开始
+
+## 2026-08-12｜P3.2 Gate 2 离线实现 checkpoint｜Type C
+
+- **Scope**:
+  - 按已批准的 `data-ownership-foundation` proposal/design/tasks/五份 delta 实现 operation、离线导出、任意状态删除/clear-all 与 Mini Program 真实入口
+  - 仅执行离线/H2/build 验证；真实 MySQL、私有对象存储、微信文件交付、真实 Agent provider、push/deploy/release 均不在本轮授权内
+- **Changes**:
+  - 新增 `data_operation` / `data_operation_record` MySQL migration、完整 schema 与 H2 schema；operation/item domain、mapper、owner isolation、数据库级 active operation 唯一约束、expected-state 状态迁移、短期确认 hash、失败 taxonomy、stale operation 恢复
+  - 新增 summary/export/status/download/prepare-delete/confirm-delete/retry API；导出以 JDK ZIP 构建私有临时 artifact，默认 24h 到期并定时清理
+  - 导出包固定包含离线 index、records、media、agent、manifest、README；默认 `RESPECT_SEAL` 遮蔽 SEALED 标题/正文/位置/媒体/Agent，显式 `FULL_CONTENT` 不改变 record 状态；manifest 校验 bytes / SHA-256
+  - 删除 worker 对 DRAFT/SAVED/SEALED/UNLOCKED 使用统一 snapshot；先确认全部 provider object 已删除或 not-found，再删除 DB 聚合；远端失败保留 RETRY_REQUIRED，owner-mismatch 派生数据进入 FAILED，不静默删除
+  - record 关联 location/attachment/tag/reply/reminder/unlock notice 与 agent session/message/tool/trace 由 H2 集成测试覆盖级联清理；旧 `DELETE /api/records/{id}` 改为明确迁移错误，不再直删数据库
+  - clear-all 确认后，普通读取隐藏目标；record/attachment/Agent mutation 后端 fail-closed，前端补充本地辅助拦截；操作成功后解除
+  - 个人中心注册“数据与所有权”；重写旧 data-backup 页面并移除固定日期/数量、iCloud、自动备份、恢复和 PDF/纯文本假能力；接入真实 summary、双封存策略、状态、下载、重试、clear-all 强确认
+  - 详情页四种记录状态均提供两步删除；编辑器放弃已持久化草稿迁移到同一 operation；Preview 所有 mutation/download fail-closed
+- **Verification**: PASS
+  - schema TDD 先因 migration 缺失按预期 RED，补齐 migration/domain/mapper 后 GREEN
+  - focused：schema、operation owner/expiry/idempotency/conflict、四状态 clear-all、provider success/not-found/failure、DB cascade、owner mismatch、auth controller、ZIP exact tree、sealed 双策略、离线 HTML、Agent 分区与 manifest bytes/SHA-256 PASS
+  - 最终 backend full：97 suites / 701 tests / 0 failures / 0 errors / 9 skipped；C1–C9 与 P3.1 既有回归共同通过
+  - frontend：`vue-tsc --noEmit`、standard mp-weixin build、Preview build PASS；使用 bundled Node 驱动本地依赖，未安装/升级 package
+  - 合成边界：18 个媒体 / 301,989,888 logical bytes，artifact 299,156 bytes，构包 963ms；只作为高度可压缩离线探针，不作为真实媒体性能或生产 SLA
+  - OpenSpec 文件级：5 specs / 20 Requirements / 51 Scenarios / 82 tasks；15 项未完成均为 T-36 PARTIAL、Gate 3、用户审查/验收/closeout/archive/commit
+  - `git diff --check`、path allowlist、package/lockfile 零变化、三个 Tab/canonical naming、假能力残留、Agent tool registry、credential/privacy 增量扫描 PASS
+  - 最终 migration 补齐只读 `information_schema` preflight 后，`P32SchemaContractTest` PASS；首次沙箱内 Maven 因本机依赖缓存访问权限失败，同命令在沙箱外重跑通过
+- **Verification SKIPPED**:
+  - OpenSpec CLI：本机不在 PATH；完成文件级结构/数量/任务/链接核对，不声称 CLI validation PASS
+  - Gate 3a：真实 MySQL migration 幂等、InnoDB 锁/并发/恢复与真实 cascade 未执行；H2 不能替代
+  - Gate 3b：真实私有对象存储读/删/not-found/retry/partial cleanup 未执行；Mockito provider 不能替代
+  - Gate 3c：微信开发者工具/真机 ZIP 保存、四状态删除、clear-all、失败重试与 Preview 完整矩阵未执行；build 不能替代
+  - T-36 磁盘峰值与不可压缩真实媒体边界未取得；真实 Agent provider 调用预算 0，实测外调 0
+- **Scope safety**:
+  - 未实现账号注销、云备份/恢复、iCloud、订阅收费、生产备份；未修改三个一级 Tab、冻结蓝图、accepted specs、archive、package/lockfile、deployment、monitoring 或 admin
+  - 未给 Agent 增加 export/delete/clear-all 工具，未改变 prompt/provider/memory/guardrails/reflection；SEALED/UNLOCKED 删除不构成编辑旁路
+  - 日志不保存日记原文、媒体内容、位置、storage key、signed URL、artifact token、secret、prompt/provider response；operation row 仅保存随机 artifact token、有效期、状态与计数，不保存内容、对象 key 或路径
+- **Risks**:
+  - 实现 checkpoint 仍是 active change，delta 尚未接受、未 closeout、未归档；必须经过用户审查与独立 Gate 3 才能继续
+  - 导出当前在单个 worker 进程内聚合字节并构包；真实不可压缩大媒体的内存/磁盘峰值、超时与微信文件限制仍 unknown
+  - 对历史 `record_id IS NULL` 但语义上可能属于记录的派生数据不能通过文本猜测归属；当前只对显式 record-linked owner mismatch fail-closed，真实 MySQL 需只读一致性审计
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 创建实现 checkpoint commit 后等待用户审查；Gate 3a/3b/3c 仍须分别授权

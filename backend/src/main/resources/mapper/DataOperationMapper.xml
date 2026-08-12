@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.DataOperationMapper">
+    <resultMap id="DataOperationResultMap" type="com.flashback.domain.DataOperation">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="operationType" column="operation_type" javaType="com.flashback.domain.DataOperationType"/>
+        <result property="status" column="status" javaType="com.flashback.domain.DataOperationStatus"/>
+        <result property="sealedContentPolicy" column="sealed_content_policy" javaType="com.flashback.domain.SealedContentPolicy"/>
+        <result property="totalItems" column="total_items"/>
+        <result property="processedItems" column="processed_items"/>
+        <result property="failedItems" column="failed_items"/>
+        <result property="confirmationNonceHash" column="confirmation_nonce_hash"/>
+        <result property="confirmationExpiresAt" column="confirmation_expires_at"/>
+        <result property="artifactToken" column="artifact_token"/>
+        <result property="artifactExpiresAt" column="artifact_expires_at"/>
+        <result property="failureCode" column="failure_code" javaType="com.flashback.domain.DataOperationFailureCode"/>
+        <result property="confirmedAt" column="confirmed_at"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="completedAt" column="completed_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Columns">id,user_id,operation_type,status,sealed_content_policy,total_items,processed_items,failed_items,confirmation_nonce_hash,confirmation_expires_at,artifact_token,artifact_expires_at,failure_code,confirmed_at,started_at,completed_at,created_at,updated_at</sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.DataOperation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO data_operation (user_id,operation_type,status,sealed_content_policy,total_items,processed_items,failed_items,confirmation_nonce_hash,confirmation_expires_at,artifact_token,artifact_expires_at,failure_code,confirmed_at,started_at,completed_at,created_at,updated_at)
+        VALUES (#{userId},#{operationType},#{status},#{sealedContentPolicy},#{totalItems},#{processedItems},#{failedItems},#{confirmationNonceHash},#{confirmationExpiresAt},#{artifactToken},#{artifactExpiresAt},#{failureCode},#{confirmedAt},#{startedAt},#{completedAt},#{createdAt},#{updatedAt})
+    </insert>
+
+    <select id="selectByIdAndUserId" resultMap="DataOperationResultMap">
+        SELECT <include refid="Columns"/> FROM data_operation WHERE id=#{id} AND user_id=#{userId} LIMIT 1
+    </select>
+
+    <select id="selectLatestActiveByUser" resultMap="DataOperationResultMap">
+        SELECT <include refid="Columns"/> FROM data_operation
+        WHERE user_id=#{userId} AND status IN ('PREPARED','PENDING','RUNNING','RETRY_REQUIRED')
+        ORDER BY id DESC LIMIT 1
+    </select>
+
+    <select id="countActiveByUserAndTypes" resultType="int">
+        SELECT COUNT(1) FROM data_operation
+        WHERE user_id=#{userId} AND status IN ('PREPARED','PENDING','RUNNING','RETRY_REQUIRED')
+        AND operation_type IN
+        <foreach collection="types" item="type" open="(" separator="," close=")">#{type}</foreach>
+    </select>
+
+    <select id="countBlockingClearAllByUser" resultType="int">
+        SELECT COUNT(1) FROM data_operation
+        WHERE user_id=#{userId} AND operation_type='CLEAR_ALL_RECORDS'
+          AND status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+    </select>
+
+    <update id="updateIfStatus">
+        UPDATE data_operation SET
+          status=#{operation.status}, sealed_content_policy=#{operation.sealedContentPolicy},
+          total_items=#{operation.totalItems}, processed_items=#{operation.processedItems}, failed_items=#{operation.failedItems},
+          confirmation_nonce_hash=#{operation.confirmationNonceHash}, confirmation_expires_at=#{operation.confirmationExpiresAt},
+          artifact_token=#{operation.artifactToken}, artifact_expires_at=#{operation.artifactExpiresAt}, failure_code=#{operation.failureCode},
+          confirmed_at=#{operation.confirmedAt}, started_at=#{operation.startedAt}, completed_at=#{operation.completedAt}, updated_at=#{operation.updatedAt}
+        WHERE id=#{operation.id} AND user_id=#{operation.userId} AND status=#{expectedStatus}
+    </update>
+
+    <select id="selectExpiredArtifacts" resultMap="DataOperationResultMap">
+        SELECT <include refid="Columns"/> FROM data_operation
+        WHERE status='SUCCEEDED' AND operation_type='EXPORT' AND artifact_expires_at &lt;= #{now}
+        ORDER BY artifact_expires_at ASC, id ASC LIMIT #{limit}
+    </select>
+
+    <select id="selectStaleRunnable" resultMap="DataOperationResultMap">
+        SELECT <include refid="Columns"/> FROM data_operation
+        WHERE status IN ('PENDING','RUNNING') AND updated_at &lt;= #{cutoff}
+        ORDER BY updated_at ASC, id ASC LIMIT #{limit}
+    </select>
+</mapper>

@@ -4,6 +4,7 @@ import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionPurpose;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import java.util.List;
 
 @Mapper
 public interface AgentSessionMapper {
@@ -14,6 +15,8 @@ public interface AgentSessionMapper {
      * 按 id + userId 查询，归属校验直接落在 SQL 上，避免遗漏。
      */
     AgentSession selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
+    List<AgentSession> selectByRecordIdAndUserId(@Param("recordId") Long recordId, @Param("userId") Long userId);
 
     /**
      * 查询该用户在某记录上、某用途下进行中的会话（recordId 为 null 时查无记录关联的会话）。

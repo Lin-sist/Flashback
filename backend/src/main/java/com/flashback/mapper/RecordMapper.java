@@ -17,6 +17,12 @@ public interface RecordMapper {
 
         Record selectByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
+        Record selectByIdAndUserIdForDeletion(@Param("id") Long id, @Param("userId") Long userId);
+
+        List<Record> selectAllByUserId(@Param("userId") Long userId);
+
+        int deleteAnyByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
         int updateEditableByIdAndUserId(
                         @Param("id") Long id,
                         @Param("userId") Long userId,

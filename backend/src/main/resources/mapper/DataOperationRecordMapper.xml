@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.DataOperationRecordMapper">
+    <resultMap id="DataOperationRecordResultMap" type="com.flashback.domain.DataOperationRecord">
+        <id property="id" column="id"/>
+        <result property="operationId" column="operation_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="recordId" column="record_id"/>
+        <result property="itemStatus" column="item_status" javaType="com.flashback.domain.DataOperationItemStatus"/>
+        <result property="attemptCount" column="attempt_count"/>
+        <result property="failureCode" column="failure_code" javaType="com.flashback.domain.DataOperationFailureCode"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+    <sql id="Columns">id,operation_id,user_id,record_id,item_status,attempt_count,failure_code,created_at,updated_at</sql>
+    <insert id="insert" parameterType="com.flashback.domain.DataOperationRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO data_operation_record (operation_id,user_id,record_id,item_status,attempt_count,failure_code,created_at,updated_at)
+        VALUES (#{operationId},#{userId},#{recordId},#{itemStatus},#{attemptCount},#{failureCode},#{createdAt},#{updatedAt})
+    </insert>
+    <select id="selectByOperationIdAndUserId" resultMap="DataOperationRecordResultMap">
+        SELECT <include refid="Columns"/> FROM data_operation_record
+        WHERE operation_id=#{operationId} AND user_id=#{userId} ORDER BY id ASC
+    </select>
+    <update id="updateIfStatus">
+        UPDATE data_operation_record SET item_status=#{item.itemStatus}, attempt_count=#{item.attemptCount},
+          failure_code=#{item.failureCode}, updated_at=#{item.updatedAt}
+        WHERE id=#{item.id} AND operation_id=#{item.operationId} AND user_id=#{item.userId} AND item_status=#{expectedStatus}
+    </update>
+    <select id="countActiveByUserAndRecord" resultType="int">
+        SELECT COUNT(1) FROM data_operation_record i JOIN data_operation o ON o.id=i.operation_id
+        WHERE i.user_id=#{userId} AND i.record_id=#{recordId}
+          AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          AND o.operation_type IN ('DELETE_RECORD','CLEAR_ALL_RECORDS')
+    </select>
+</mapper>

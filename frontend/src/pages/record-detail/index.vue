@@ -9,7 +9,7 @@ import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import ReadOnlyRecordMedia from './components/ReadOnlyRecordMedia.vue'
 import ReviewChatSheet from './components/ReviewChatSheet.vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
-import { agentService, recordService, replyService, type AgentSession } from '../../services'
+import { agentService, dataOwnershipService, recordService, replyService, type AgentSession } from '../../services'
 import { useRecordStore } from '../../stores'
 import { RecordReminderStatus, RecordStatus, ReplyType, type ReplyVO } from '../../types'
 import { formatDateTime, getToken, hasAuthenticatedSession, toUserMessage } from '../../utils'
@@ -29,6 +29,7 @@ const detailErrorState = ref<'NONE' | 'INVALID_ID' | 'NOT_FOUND' | 'LOAD_FAILED'
 const showReplySheet = ref(false)
 const laterReflectionDraft = ref('')
 const submittingLaterReflection = ref(false)
+const deletingRecord = ref(false)
 
 // C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
 const showReviewChat = ref(false)
@@ -439,6 +440,40 @@ const closeReplySheet = () => {
   showReplySheet.value = false
 }
 
+const deleteOwnedRecord = () => {
+  if (!detail.value || deletingRecord.value) return
+  if (!getToken() && hasPreviewSession()) { showPreviewReadonlyToast('演示模式不会删除记录'); return }
+  uni.showModal({
+    title: '删除这条记录？',
+    content: '将同时清理关联媒体、位置、回信与 Agent 数据，且不可恢复。',
+    confirmText: '继续',
+    confirmColor: '#a23d34',
+    success: async (first) => {
+      if (!first.confirm || !detail.value) return
+      deletingRecord.value = true
+      try {
+        const intent = await dataOwnershipService.prepareDeletion('RECORD', detail.value.id)
+        uni.showModal({
+          title: '最后确认',
+          content: `确认范围：1 条记录\n确认短语：${intent.confirmationText ?? ''}`,
+          confirmText: '确认删除',
+          confirmColor: '#a23d34',
+          success: async (second) => {
+            if (!second.confirm || !intent.confirmationText) { deletingRecord.value = false; return }
+            try {
+              const result = await dataOwnershipService.confirmDeletion(intent.id, intent.confirmationText)
+              if (result.status !== 'SUCCEEDED') throw new Error(result.retryable ? '仍有数据未清理，请到“数据与所有权”重试' : '删除尚未完成')
+              uni.showToast({ title: '记录已删除', icon: 'success' })
+              setTimeout(closePage, 450)
+            } catch (error) { uni.showToast({ title: toUserMessage(error), icon: 'none' }) }
+            finally { deletingRecord.value = false }
+          },
+        })
+      } catch (error) { deletingRecord.value = false; uni.showToast({ title: toUserMessage(error), icon: 'none' }) }
+    },
+  })
+}
+
 onLoad(async (query) => {
   if (!ensureLogin()) return
   const querySource = resolveSource(typeof query?.source === 'string' ? query.source : undefined)
@@ -749,6 +784,7 @@ onLoad(async (query) => {
           </view>
         </view>
 
+        <view class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
       </view>
 
       <!-- 无 detail 兜底 -->
@@ -1827,4 +1863,5 @@ onLoad(async (query) => {
 .reply-send-corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
 
 .reply-send--disabled { opacity: 0.6; }
+.ownership-delete{margin:60rpx auto 24rpx;text-align:center;color:#9e4a43;font-size:24rpx;letter-spacing:.08em;padding:24rpx}
 </style>

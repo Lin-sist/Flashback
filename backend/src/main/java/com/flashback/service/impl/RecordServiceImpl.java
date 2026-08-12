@@ -41,6 +41,7 @@ import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.mapper.UserMapper;
 import com.flashback.service.RecordService;
 import com.flashback.service.RecordSaveEligibility;
+import com.flashback.service.data.DataOwnershipMutationGuard;
 import com.flashback.wechat.WechatSubscribeMessageClient;
 import com.flashback.vo.RecordDetailVO;
 import com.flashback.vo.RecordAttachmentVO;
@@ -51,6 +52,7 @@ import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
 import com.flashback.vo.TimelinePageVO;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,6 +106,12 @@ public class RecordServiceImpl implements RecordService {
     private final WechatSubscribeMessageClient wechatSubscribeMessageClient;
     private final Clock clock;
     private final RecordSaveEligibility recordSaveEligibility;
+    private DataOwnershipMutationGuard dataOwnershipMutationGuard;
+
+    @Autowired
+    void setDataOwnershipMutationGuard(DataOwnershipMutationGuard guard) {
+        this.dataOwnershipMutationGuard = guard;
+    }
 
     public RecordServiceImpl(
             RecordMapper recordMapper,
@@ -139,6 +147,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO create(Long userId, CreateRecordRequest request) {
+        assertOwnershipWritable(userId);
         LocalDateTime now = LocalDateTime.now(clock);
         List<Long> tagIds = normalizeTagIds(request.getTagIds());
         validateTagIdsExist(tagIds);
@@ -171,6 +180,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO update(Long userId, Long id, UpdateRecordRequest request) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "仅DRAFT或SAVED状态允许编辑");
         List<Long> tagIds = normalizeTagIds(request.getTagIds());
@@ -210,19 +220,13 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public void delete(Long userId, Long id) {
-        Record current = requireOwnedRecord(id, userId);
-        ensureActiveDraft(current, "仅DRAFT状态允许删除");
-
-        int affected = recordMapper.deleteDraftByIdAndUserId(id, userId);
-        if (affected == 0) {
-            throw badRequest("记录状态已变更，请刷新后重试");
-        }
-        recordTagMapper.deleteByRecordId(id);
+        throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.CONFLICT, "请通过数据与所有权的二次确认流程删除记录");
     }
 
     @Override
     @Transactional
     public RecordDetailVO updateLocation(Long userId, Long id, UpdateRecordLocationRequest request) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "记录已封存，不能编辑位置");
         validateLocation(request);
@@ -247,6 +251,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO deleteLocation(Long userId, Long id) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "记录已封存，不能删除位置");
 
@@ -258,6 +263,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO updateCover(Long userId, Long id, UpdateRecordCoverRequest request) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "记录已封存，不能设置封面");
 
@@ -290,6 +296,7 @@ public class RecordServiceImpl implements RecordService {
 
     @Override
     public RecordDetailVO seal(Long userId, Long id) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         if (current.getStatus() != RecordStatus.SAVED) {
             throw badRequest("仅SAVED状态允许封存");
@@ -314,6 +321,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO appendContent(Long userId, Long id, String text) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "记录已封存，不能追加正文");
 
@@ -340,6 +348,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO appendTags(Long userId, Long id, List<Long> tagIds) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "记录已封存，不能修改标签");
 
@@ -370,6 +379,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO updateUnlockAt(Long userId, Long id, LocalDateTime unlockAt) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         ensureEditable(current, "记录已封存，不能修改解锁时间");
 
@@ -395,6 +405,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO updateLaterReflection(Long userId, Long id, UpdateLaterReflectionRequest request) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         if (current.getStatus() != RecordStatus.UNLOCKED) {
             throw badRequest("仅UNLOCKED状态允许填写后来其实");
@@ -421,6 +432,7 @@ public class RecordServiceImpl implements RecordService {
             Long userId,
             Long id,
             UpdateUnlockReminderAuthorizationRequest request) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         if (current.getStatus() == RecordStatus.DRAFT || current.getStatus() == RecordStatus.SAVED) {
             throw badRequest("仅封存后的记录允许更新提醒授权状态");
@@ -657,6 +669,10 @@ public class RecordServiceImpl implements RecordService {
         return new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, message);
     }
 
+    private void assertOwnershipWritable(Long userId) {
+        if (dataOwnershipMutationGuard != null) dataOwnershipMutationGuard.assertWritable(userId);
+    }
+
     private void validateLocation(UpdateRecordLocationRequest request) {
         if (request.getSource() == RecordLocationSource.CURRENT_LOCATION
                 || request.getSource() == RecordLocationSource.MAP_PICKER) {
@@ -801,6 +817,7 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public RecordDetailVO save(Long userId, Long id) {
+        assertOwnershipWritable(userId);
         Record current = requireOwnedRecord(id, userId);
         if (current.getStatus() == RecordStatus.SAVED) {
             return toDetailVO(current);

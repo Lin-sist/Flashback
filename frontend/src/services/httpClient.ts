@@ -1,5 +1,6 @@
 import type { ApiResponse } from '../types'
 import { clearToken, getToken, hasAuthenticatedSession } from '../utils'
+import { isDataOwnershipMutationBlocked } from '../features/data-ownership/mutation-state'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 type RequestData = UniApp.RequestOptions['data']
@@ -12,16 +13,21 @@ interface RequestOptions {
   timeout?: number
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8080'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8080'
 
 export const httpRequest = <T>(options: RequestOptions): Promise<T> => {
+  const method = options.method ?? 'GET'
+  if (method !== 'GET' && isDataOwnershipMutationBlocked()
+      && (options.url.startsWith('/api/records') || options.url.startsWith('/api/agent'))) {
+    return Promise.reject(new Error('清除全部记录正在进行，暂时不能新建、编辑或写入 Agent 内容'))
+  }
   const token = getToken()
   const authRequired = options.auth ?? true
 
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${API_BASE_URL}${options.url}`,
-      method: options.method ?? 'GET',
+      method,
       data: options.data,
       timeout: options.timeout ?? 10000,
       header: {

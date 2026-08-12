@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.DataOwnershipInvariantMapper">
+    <select id="countRecordLinkedOwnerMismatches" resultType="int">
+        SELECT
+          (SELECT COUNT(1) FROM record_location WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM record_attachment WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM reply WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM record_reminder WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM unlock_notice_log WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM agent_session WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM agent_tool_call WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM agent_turn_trace WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId})
+    </select>
+</mapper>

@@ -49,6 +49,12 @@
       "style": {
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/user-center/data-backup/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
     }
   ],
   "tabBar": {

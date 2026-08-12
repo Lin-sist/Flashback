@@ -61,12 +61,14 @@ import com.flashback.mapper.RecordMapper;
 import com.flashback.mapper.RecordTagMapper;
 import com.flashback.service.AgentChatService;
 import com.flashback.service.TagService;
+import com.flashback.service.data.DataOwnershipMutationGuard;
 import com.flashback.vo.AgentMessageVO;
 import com.flashback.vo.AgentSessionVO;
 import com.flashback.vo.AgentToolCallVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,6 +127,10 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentTraceVersions traceVersions;
     private final AppAgentProperties appAgentProperties;
     private final Clock clock;
+    private DataOwnershipMutationGuard dataOwnershipMutationGuard;
+
+    @Autowired
+    void setDataOwnershipMutationGuard(DataOwnershipMutationGuard guard) { this.dataOwnershipMutationGuard = guard; }
 
     public AgentChatServiceImpl(
             AgentSessionMapper agentSessionMapper,
@@ -190,6 +196,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     @Transactional
     public AgentSessionVO startOrResume(Long userId, AgentSessionStartRequest request) {
+        assertOwnershipWritable(userId);
         AgentCallBudget budget = newCallBudget();
         Long recordId = request == null ? null : request.getRecordId();
         // C3b：模式在最开始定一次，之后编排只问模式、不问 purpose（design 决策 1）。
@@ -305,6 +312,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     @Transactional
     public AgentSessionVO sendMessage(Long userId, Long sessionId, AgentMessageRequest request) {
+        assertOwnershipWritable(userId);
         AgentTraceCollector[] holder = new AgentTraceCollector[1];
         AgentCallBudget budget = newCallBudget();
         try {
@@ -490,6 +498,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Transactional
     public AgentSessionVO confirmToolCall(
             Long userId, Long sessionId, Long toolCallId, AgentToolDecision decision) {
+        assertOwnershipWritable(userId);
         AgentSession session = requireOwnedSession(userId, sessionId);
         if (decision == null) {
             throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "decision不能为空");
@@ -518,6 +527,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     @Transactional
     public AgentSessionVO finish(Long userId, Long sessionId) {
+        assertOwnershipWritable(userId);
         AgentCallBudget budget = newCallBudget();
         AgentSession session = requireOwnedSession(userId, sessionId);
         List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
@@ -1194,6 +1204,10 @@ public class AgentChatServiceImpl implements AgentChatService {
                 0,
                 category.wireId(),
                 category.isTransient());
+    }
+
+    private void assertOwnershipWritable(Long userId) {
+        if (dataOwnershipMutationGuard != null) dataOwnershipMutationGuard.assertWritable(userId);
     }
 
 }

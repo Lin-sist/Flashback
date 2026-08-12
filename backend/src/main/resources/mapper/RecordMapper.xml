@@ -104,8 +104,28 @@
         FROM `record`
         WHERE id = #{id}
           AND user_id = #{userId}
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = `record`.id AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
         LIMIT 1
     </select>
+
+    <select id="selectByIdAndUserIdForDeletion" resultMap="RecordResultMap">
+        SELECT <include refid="BaseColumnList"/> FROM `record`
+        WHERE id = #{id} AND user_id = #{userId} LIMIT 1
+    </select>
+
+    <select id="selectAllByUserId" resultMap="RecordResultMap">
+        SELECT <include refid="BaseColumnList"/> FROM `record`
+        WHERE user_id = #{userId} ORDER BY created_at ASC, id ASC
+    </select>
+
+    <delete id="deleteAnyByIdAndUserId">
+        DELETE FROM `record` WHERE id = #{id} AND user_id = #{userId}
+    </delete>
 
     <update id="updateEditableByIdAndUserId">
         UPDATE `record`
@@ -163,6 +183,12 @@
         <include refid="BaseColumnList"/>
         FROM `record`
         WHERE status = 'SEALED'
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id=i.operation_id
+            WHERE i.record_id=`record`.id
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
           AND unlock_at IS NOT NULL
           AND unlock_at &lt;= #{now}
         ORDER BY id ASC
@@ -186,6 +212,12 @@
         FROM `record`
         WHERE id = #{id}
           AND user_id = #{userId}
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = `record`.id AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
           AND status = 'DRAFT'
           AND draft_expires_at = #{expectedExpiresAt}
           AND draft_expires_at &lt;= #{now}
@@ -209,6 +241,12 @@
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND status = 'SEALED'
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id=i.operation_id
+            WHERE i.record_id=`record`.id
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
     </update>
 
     <update id="updateLaterReflectionByIdAndUserId">
@@ -287,6 +325,12 @@
         SELECT COUNT(1)
         FROM `record` r
         WHERE r.user_id = #{userId}
+        AND NOT EXISTS (
+          SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+          WHERE i.record_id = r.id AND i.user_id = #{userId}
+            AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+            AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+        )
         <if test="status != null">
             AND r.status = #{status}
         </if>
@@ -318,6 +362,12 @@
         <include refid="BaseColumnList"/>
         FROM `record` r
         WHERE r.user_id = #{userId}
+        AND NOT EXISTS (
+          SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+          WHERE i.record_id = r.id AND i.user_id = #{userId}
+            AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+            AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+        )
         <if test="status != null">
             AND r.status = #{status}
         </if>
@@ -351,6 +401,12 @@
         FROM `record`
         WHERE user_id = #{userId}
           AND status = 'UNLOCKED'
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = `record`.id AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
     </select>
 
     <select id="selectUnlockedPageByUser" resultMap="RecordResultMap">
@@ -359,6 +415,12 @@
         FROM `record`
         WHERE user_id = #{userId}
           AND status = 'UNLOCKED'
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = `record`.id AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
         ORDER BY unlocked_at DESC, id DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
@@ -366,6 +428,12 @@
     <sql id="TimelineConditions">
         WHERE r.user_id = #{userId}
           AND r.status &lt;&gt; 'DRAFT'
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = r.id AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
         <if test="createdFrom != null">
             AND r.created_at &gt;= #{createdFrom}
         </if>
@@ -416,6 +484,12 @@
         FROM `record` r
         WHERE r.user_id = #{userId}
           AND r.status &lt;&gt; 'SEALED'
+          AND NOT EXISTS (
+            SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = r.id AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
         <if test="excludeRecordId != null">
             AND r.id &lt;&gt; #{excludeRecordId}
         </if>

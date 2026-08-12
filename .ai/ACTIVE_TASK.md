@@ -135,14 +135,20 @@
 
 ## Current Progress
 
-- **This session**: 2026-08-12 — **P3.2 Gate 1/2 获批，进入离线实现**
+- **This session**: 2026-08-12 — **P3.2 Gate 2 离线实现完成，等待 Gate 3 / 用户审查**
   - 用户明确“授权实现，并且可以为我提交commit”：批准原规划与五份 delta，授权按 tasks 修改业务代码并由 Agent commit
   - 授权不包含真实 MySQL、对象存储、微信副作用验收、真实 Agent provider、push、部署或发布
-  - 实现顺序：baseline → operation/schema → export → deletion/clear-all → Mini Program → 离线全量验证
-  - baseline：backend 92 suites / 688 tests / 0 failures / 0 errors / 9 skipped；frontend type-check、standard/Preview mp-weixin build PASS
-  - **Commit**：pending（Agent commit；不 push）
+  - 已实现 durable owner-scoped operation、数据库级 active operation 唯一约束、短期 hash 确认、expected-state 状态迁移、stale operation 恢复与 24h artifact 清理
+  - 已实现 `RESPECT_SEAL` / `FULL_CONTENT` 离线 ZIP：records/media/agent 物理分区、manifest bytes/SHA-256、无 CDN/fetch index、私有 owner-scoped 下载
+  - 已实现任意状态单删/clear-all：远端对象 success/not-found 后 DB cascade，provider failure 保留 item 重试锚点，owner mismatch fail-closed；旧 DELETE 不再直删
+  - clear-all 期间普通 record list/timeline/detail 隐藏目标，record/attachment/Agent mutation 后端冻结；前端有辅助拦截但以后端为权威
+  - Mini Program 个人中心已注册“数据与所有权”；移除假 iCloud/自动备份/恢复/固定数量，接入 summary/export/status/download/retry/强确认；详情四状态删除与草稿放弃统一 operation；Preview fail-closed
+  - 最终离线验证：backend 97 suites / 701 tests / 0 failures / 0 errors / 9 skipped；frontend type-check、standard/Preview mp-weixin build PASS；`git diff --check` 与范围/隐私扫描 PASS
+  - 合成边界 PARTIAL：18 个媒体 / 301,989,888 logical bytes，artifact 299,156 bytes / 963ms；样本高度可压缩且未测构建过程磁盘峰值，不代表真实媒体性能或生产 SLA
+  - **SKIPPED**：OpenSpec CLI 不在 PATH；真实 MySQL migration/锁语义、真实对象存储读删/失败恢复、微信文件保存/完整交互均待 Gate 3a/3b/3c
+  - **Commit**：implementation checkpoint pending（Agent commit；不 push）
   - **Blocked on**：none
-  - **Next step**：从 operation schema 的 TDD 切片开始
+  - **Next step**：提交实现 checkpoint 后等待用户审查；如继续，分别授权 Gate 3a/3b/3c，不得直接接受 delta 或归档
 
 - **This session**: 2026-08-12 — **P3.2 readiness GO，Gate 1 规划工件已创建**
   - 只读准入：P3.1 已归档、`ACTIVE_TASK=IDLE`、工作树 clean、HEAD=`efd2618`；冻结蓝图下一候选为 P3.2

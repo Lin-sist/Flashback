@@ -16,6 +16,7 @@ import com.flashback.dto.CommitRecordAttachmentRequest;
 import com.flashback.dto.CreateAttachmentUploadTokenRequest;
 import com.flashback.service.RecordAttachmentService;
 import com.flashback.service.RecordSaveEligibility;
+import com.flashback.service.data.DataOwnershipMutationGuard;
 import com.flashback.storage.ObjectStorageException;
 import com.flashback.storage.ObjectStorageMetadata;
 import com.flashback.storage.ObjectStorageProvider;
@@ -66,6 +67,10 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     private final RecordSaveEligibility recordSaveEligibility;
     private final Clock clock;
     private final Supplier<UUID> uuidSupplier;
+    private DataOwnershipMutationGuard dataOwnershipMutationGuard;
+
+    @Autowired
+    void setDataOwnershipMutationGuard(DataOwnershipMutationGuard guard) { this.dataOwnershipMutationGuard = guard; }
 
     @Autowired
     public RecordAttachmentServiceImpl(
@@ -107,6 +112,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             Long userId,
             Long recordId,
             CreateAttachmentUploadTokenRequest request) {
+        assertOwnershipWritable(userId);
         Record record = requireOwnedRecord(recordId, userId);
         ensureEditable(record);
         ObjectStorageProvider storage = requireActiveStorage();
@@ -150,6 +156,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
             Long userId,
             Long recordId,
             CommitRecordAttachmentRequest request) {
+        assertOwnershipWritable(userId);
         Record record = requireOwnedRecord(recordId, userId);
         ensureEditable(record);
         assertEditable(record, LocalDateTime.now(clock));
@@ -221,6 +228,7 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
     @Override
     @Transactional
     public void deleteAttachment(Long userId, Long recordId, Long attachmentId) {
+        assertOwnershipWritable(userId);
         Record record = requireOwnedRecord(recordId, userId);
         ensureEditable(record);
         assertEditable(record, LocalDateTime.now(clock));
@@ -478,6 +486,10 @@ public class RecordAttachmentServiceImpl implements RecordAttachmentService {
 
     private BizException badRequest(String message) {
         return new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, message);
+    }
+
+    private void assertOwnershipWritable(Long userId) {
+        if (dataOwnershipMutationGuard != null) dataOwnershipMutationGuard.assertWritable(userId);
     }
 
     private BizException serviceUnavailable(String message) {

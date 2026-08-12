@@ -8,7 +8,7 @@ import { RecordStatus } from '../../types'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { getToken, hasAuthenticatedSession } from '../../utils'
 
-type SettingKey = 'about'
+type SettingKey = 'dataOwnership' | 'about'
 
 interface SettingItem {
   key: SettingKey
@@ -24,10 +24,17 @@ interface SettingGroup {
 
 const userStore = useUserStore()
 const routeMap: Record<SettingKey, string> = {
+  dataOwnership: '/pages/user-center/data-backup/index',
   about: '/pages/user-center/about/index',
 }
 
 const settingGroups: SettingGroup[] = [
+  {
+    label: '数 据',
+    items: [
+      { key: 'dataOwnership', title: '数据与所有权', iconClass: 'icon-info', meta: '导出与清理' },
+    ],
+  },
   {
     label: '关 于',
     items: [

@@ -15,6 +15,10 @@ server:
   port: 8080
 
 app:
+  data-ownership:
+    artifact-directory: ${DATA_OWNERSHIP_ARTIFACT_DIRECTORY:${java.io.tmpdir}/flashback-data-ownership}
+    artifact-ttl-hours: ${DATA_OWNERSHIP_ARTIFACT_TTL_HOURS:24}
+    confirmation-ttl-minutes: ${DATA_OWNERSHIP_CONFIRMATION_TTL_MINUTES:10}
   time:
     # 业务时区，避免依赖部署机默认时区导致解锁与时间轴偏移
     zone-id: Asia/Shanghai

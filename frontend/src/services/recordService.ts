@@ -119,16 +119,6 @@ export const recordService = {
       data: payload,
     })
   },
-  deleteDraft(id: string | number) {
-    if (shouldUsePreviewData()) {
-      return rejectPreviewMutation<void>()
-    }
-
-    return httpRequest<void>({
-      url: `/api/records/${id}`,
-      method: 'DELETE',
-    })
-  },
   sealRecord(id: string | number) {
     if (shouldUsePreviewData()) {
       return rejectPreviewMutation<RecordDetailVO>()

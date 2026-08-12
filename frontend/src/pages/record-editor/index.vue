@@ -6,7 +6,7 @@ import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import AgentChatSheet from './components/AgentChatSheet.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
-import { aiService, attachmentService, recordService, type AgentToolDecision } from '../../services'
+import { aiService, attachmentService, dataOwnershipService, recordService, type AgentToolDecision } from '../../services'
 import { useAgentChatStore, useRecordStore, useTagStore } from '../../stores'
 import {
   LifeNodeType,
@@ -321,6 +321,29 @@ const confirmDiscardUnsavedChanges = () => {
   })
 }
 
+const deletePersistedDraftWithOwnership = async (id: number) => {
+  try {
+    const intent = await dataOwnershipService.prepareDeletion('RECORD', id)
+    const confirmed = await new Promise<boolean>((resolve) => {
+      uni.showModal({
+        title: '确认放弃这条记录',
+        content: `已持久化的草稿将连同媒体一起清理，且不可恢复。\n确认短语：${intent.confirmationText ?? ''}`,
+        confirmText: '确认放弃',
+        confirmColor: '#a23d34',
+        success: (result) => resolve(Boolean(result.confirm)),
+        fail: () => resolve(false),
+      })
+    })
+    if (!confirmed || !intent.confirmationText) return false
+    const result = await dataOwnershipService.confirmDeletion(intent.id, intent.confirmationText)
+    if (result.status !== 'SUCCEEDED') throw new Error(result.retryable ? '仍有数据未清理，请到“数据与所有权”重试' : '草稿尚未清理')
+    return true
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+    return false
+  }
+}
+
 const handleCloseWithAutoSave = async () => {
   if (loading.value || closing.value) {
     return
@@ -340,11 +363,7 @@ const handleCloseWithAutoSave = async () => {
     const shouldDiscard = await confirmDiscardUnsavedChanges()
     if (shouldDiscard) {
       if (recordId.value && isNewlyCreatedDraft.value) {
-        try {
-          await recordService.deleteDraft(recordId.value)
-        } catch {
-          // Ignore deletion error to avoid blocking navigation
-        }
+        if (!await deletePersistedDraftWithOwnership(recordId.value)) return
       }
       returnToSource()
     }
@@ -445,7 +464,11 @@ const runInitialization = async (query: Record<string, unknown>) => {
           form.volNo = `Vol. ${String(activeDraft.id).padStart(2, '0')}`
           await fillByDetail(activeDraft.id)
         } else {
-          await recordService.deleteDraft(activeDraft.id)
+          if (!await deletePersistedDraftWithOwnership(activeDraft.id)) {
+            recordId.value = activeDraft.id
+            form.volNo = `Vol. ${String(activeDraft.id).padStart(2, '0')}`
+            await fillByDetail(activeDraft.id)
+          }
         }
       }
     }

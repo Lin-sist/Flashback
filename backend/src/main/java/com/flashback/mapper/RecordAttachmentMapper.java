@@ -38,6 +38,8 @@ public interface RecordAttachmentMapper {
             @Param("recordId") Long recordId,
             @Param("userId") Long userId);
 
+    Long sumAvailableSizeByUserId(@Param("userId") Long userId);
+
     int markDeletedByIdAndRecordIdAndUserId(
             @Param("id") Long id,
             @Param("recordId") Long recordId,

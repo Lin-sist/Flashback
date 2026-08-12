@@ -86,6 +86,13 @@
         LIMIT 1
     </select>
 
+    <select id="selectByRecordIdAndUserId" resultMap="AgentSessionResultMap">
+        SELECT <include refid="AgentSessionColumns"/>
+        FROM agent_session
+        WHERE record_id = #{recordId} AND user_id = #{userId}
+        ORDER BY id ASC
+    </select>
+
     <update id="updateProgress" parameterType="com.flashback.domain.AgentSession">
         UPDATE agent_session
         SET stage = #{stage},
