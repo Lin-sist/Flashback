@@ -7443,3 +7443,25 @@ Commit: pending
 
 - **Commit**: `375d2c6 test: 完成P3.1真实对象存储验收`
 - **Push**: 未授权，未执行
+
+## 2026-08-12｜P3.1 Gate 3c 授权与人工验收准备｜Type C
+
+- **Scope**:
+  - 用户明确批准 Gate 3c，范围为微信开发者工具 / 真机的文字、图片、声音、恢复、SAVED 编辑、保存后封存、权限拒绝与上传失败路径
+  - 不调用真实 AI provider，不接受 delta、不归档、不 push/deploy/release
+- **Readiness**: PASS
+  - MySQL80、Redis 服务运行；本地 backend 启动成功并监听 8080，未登录 records 请求返回预期 401，启动日志无 ERROR/Exception
+  - 使用 `JAVA_TOOL_OPTIONS` 将运行中 Spring Boot 强制为 `app.ai.provider=mock`，并关闭 unlock/draft cleanup cron；通过 JVM 系统属性只读确认三项设置生效
+  - 微信开发者工具 CLI 已打开 `frontend/dist/dev/mp-weixin` 并启用 automation；AppID 与当前生成物一致，生成物包含本轮保存、恢复、媒体和权限失败 UI
+- **Verification SKIPPED / pending**:
+  - T-79 人工矩阵尚未执行：相册选择、麦克风授权/拒绝、录音、扬声器播放、返回恢复与实际点击路径不能由 backend/构建替代
+  - 本机没有可直接调用的 `miniprogram-automator` 客户端；不新增依赖或修改 package/lockfile来伪造自动化覆盖
+  - E0 目标用户理解继续为 `INCONCLUSIVE / SKIPPED`；Gate 3c 功能结果不等于用户研究
+- **Scope safety**:
+  - 未改业务代码、package/lockfile、accepted baseline、archive、冻结蓝图或 deployment；只更新 active change 状态与 append-only 证据
+  - 未读取、输出或提交本机 credential；真实 AI provider 调用预算保持 0
+- **Risks**:
+  - 当前只确认验收环境 ready，不能在用户完成逐项操作前声明 Gate 3c 或 T-79 PASS
+  - 若使用真实手机而非开发者工具模拟器，`127.0.0.1:8080` 不能代表电脑地址，需另行采用同局域网地址并核对防火墙/合法域名设置
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户按 Gate 3c 最短清单操作并报告逐项结果；随后核对 backend 日志并收口 T-79

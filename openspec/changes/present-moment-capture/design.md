@@ -1,6 +1,6 @@
 # Design：Present Moment Capture（P3.1）
 
-> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL、Gate 3b 真实对象存储均于 2026-08-12 授权并完成。Gate 3c 微信真机仍未授权。
+> 本设计依赖 `proposal.md` 与四份 spec delta。用户已于 2026-08-10 批准闸门 1 并授权闸门 2；Gate 3a 真实 MySQL、Gate 3b 真实对象存储均于 2026-08-12 授权并完成，Gate 3c 微信开发者工具 / 真机于同日授权并进入人工验收。
 
 ## 1. 推荐摘要
 
@@ -378,5 +378,5 @@ Gate 3b 于 2026-08-12 完成。探针由显式 `P31_STORAGE_PROBE=1` 门控，�
 - E0 精确交互仍为 unknown，不会在 Gate 1 后变成 confirmed；
 - 闸门 2 已于 2026-08-10 授权，允许按 `tasks.md` 修改 backend/frontend/SQL 并执行离线/H2/build 验证；
 - 闸门 2 范围内实现已完成并通过自动化回归，当前等待用户审查；
-- Gate 3a 与 Gate 3b 已于 2026-08-12 授权并完成；Gate 3c 微信真机仍未授权；
+- Gate 3a 与 Gate 3b 已于 2026-08-12 授权并完成；Gate 3c 已于 2026-08-12 授权，当前等待用户完成权限、媒体播放与交互矩阵后登记；
 - 任一 exact API、字段、状态或清理语义在用户 Gate 1 修改后，必须同步 proposal、design、tasks 与 delta，不能只改其中一份。

@@ -6,7 +6,7 @@
 
 当前唯一 active Type C change：P3.1 `present-moment-capture`。
 位置：`openspec/changes/present-moment-capture/`。
-当前处于**闸门 2 实现完成 + Gate 3a 真实 MySQL + Gate 3b 真实对象存储完成，等待用户审查**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 授权并完成 Gate 3a/Gate 3b。Gate 3c 微信真机、`push`、部署与发布仍未授权。
+当前处于**闸门 2 实现完成 + Gate 3a/Gate 3b 完成 + Gate 3c 人工验收执行中**。用户已于 2026-08-10 批准规划并授权实现，于 2026-08-12 授权并完成 Gate 3a/Gate 3b，并于同日批准 Gate 3c。`push`、部署与发布仍未授权。
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -72,7 +72,7 @@
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
 - **当前动作：P3.1 实现审查 / 真实依赖分闸验收**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a/Gate 3b 已完成；Gate 3c、push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
+  未选出 A/B/C 胜者。P3.1 闸门 1/2 与 Gate 3a/Gate 3b 已完成；Gate 3c 已授权并等待用户人工操作结果，push/deploy/release 未授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -119,6 +119,17 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.1 Gate 3c 已授权，等待微信人工矩阵结果**
+  - 用户明确批准 Gate 3c；T-78 已完成，T-79 保持未勾选，直到文字/图片/声音独立保存、恢复、SAVED 编辑、保存后封存、权限拒绝与上传失败逐项获得人工结果
+  - MySQL80 与 Redis 服务运行；后端在 8080 启动成功，未登录请求返回预期 401，启动日志无 ERROR/Exception
+  - 通过运行中 JVM 系统属性确认 `app.ai.provider=mock`，unlock/draft cleanup cron 均为 `-`；真实 AI provider 调用预算继续为 0
+  - 微信开发者工具 CLI 已打开 `frontend/dist/dev/mp-weixin` 当前构建并启用 automation；生成物包含“留下这一刻”“这一刻已经留下”“继续上次未完成”“交给时间”和录音权限失败分支
+  - 当前仓库/本机没有可调用的 `miniprogram-automator` 客户端；相册/麦克风权限、录音、扬声器播放及真实交互不能由后端测试替代，须用户在开发者工具或真机操作
+  - E0 用户理解继续为 `INCONCLUSIVE / SKIPPED`，即使 T-79 功能全通过也不倒填用户访谈 PASS
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**: 用户完成 Gate 3c 人工矩阵并报告逐项结果
+  - **Next step**：保持本地后端运行，用户按最短清单操作；收到结果后读取同一启动日志、登记 T-79 与 remaining risks
 
 - **This session**: 2026-08-12 — **P3.1 Gate 3b 真实对象存储验收完成**
   - 用户明确授权使用本地配置的私有对象存储执行可清理的合成图片和短音频探针；未扩大到 Gate 3c、真实 AI provider、push/deploy/release、delta acceptance 或归档
