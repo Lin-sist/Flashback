@@ -7533,3 +7533,69 @@ Commit: pending
 
 - **Commit**: `5f8b623 feat: 接受并归档P3.1当下记录`
 - **Push / deploy / release**: 未授权，未执行
+
+## 2026-08-12｜P3.2 readiness 与 Gate 1 规划启动｜Type C
+
+- **Scope**:
+  - 检查 P3.1 归档后的下一阶段准入；若允许，直接建立 P3.2 `data-ownership-foundation` 规划工件
+  - 本轮只允许 proposal / design / tasks / spec deltas、ACTIVE_TASK 与 append-only AGENT_LOG；不修改业务代码，不执行真实依赖或外部副作用
+- **Changes**:
+  - 创建 `openspec/changes/data-ownership-foundation/`，包含 proposal、design、tasks 与 backend-core / miniapp-core / v2-product-scope / agent-runtime / agent-collaboration 五份 delta
+  - 将 `.ai/ACTIVE_TASK.md` 从 `IDLE` 更新为唯一 active P3.2，阶段为 Gate 1 planning review
+  - 推荐 durable owner-scoped operation、默认 `RESPECT_SEAL` / 显式 `FULL_CONTENT`、先清远端对象后删 DB、clear-all mutation freeze、24h 私有临时 ZIP
+- **Readiness evidence**: PASS
+  - P3.1 已归档；开工前 `ACTIVE_TASK=IDLE`、工作树 clean、HEAD=`efd2618`
+  - 冻结蓝图顺序明确 P3.2 为下一候选；accepted P3.1 spec 也把任意状态删除、clear-all、完整导出与 ownership center 延后至 P3.2
+  - 当前代码事实：DELETE 仅限 DRAFT 且直接删除 DB；Qiniu/S3 provider 具备 delete；P3.1 过期 DRAFT 已有 remote-first 重试模式；Agent 数据具备 owner/record/session 外键基础；假 data-backup 文件存在但真实路由已移除
+  - `openspec/changes/` 遗留 M1/M3 为早期历史工件，不是 ACTIVE_TASK 当前指针；同名 P3.2 change 开工前不存在
+- **Verification**:
+  - 规划期文件级结构、Requirement/Scenario、链接、状态指针、范围与敏感信息边界待最终脚本复核
+  - `git diff --check` 与 `git diff --stat` 待本轮规划工件全部落盘后执行
+- **Verification SKIPPED**:
+  - OpenSpec CLI：`openspec new change "data-ownership-foundation"` 失败，当前 shell 未安装该命令；采用仓库既有文件级 scaffold，不声称 CLI validation PASS
+  - backend/frontend tests：本轮未修改业务代码，规划期不重复运行实现测试
+  - 真实 MySQL、对象存储、微信：Gate 3a/3b/3c 均未授权
+  - 真实 Agent provider：本 change 预算为 0，不需要 provider 调用
+- **Scope safety**:
+  - 未修改 backend/frontend/schema/package/lockfile、accepted baseline、archive、冻结蓝图、deployment、monitoring 或 admin
+  - 未实现账号注销、云备份/恢复、订阅收费、PDF-only、Agent destructive tools 或任何新 AI 能力
+  - 未读取或记录用户日记原文、媒体内容、位置、storage key、signed URL、download token、secret、prompt/provider response
+- **Risks**:
+  - 微信 ZIP 保存/打开或转存、真实 MySQL 历史 migration 一致性、真实对象存储失败恢复与大体量导出性能仍为 unknown，须分别经过 Gate 3
+  - 规划中的 API、operation enum、24h TTL、sealed policy、clear-all freeze 与确认方式仍待用户 Gate 1 批准
+- **Commit**: pending（默认用户手动提交）
+- **Next**: 用户审查 Gate 1 artifacts；未获 Gate 2 前禁止业务实现
+
+## 2026-08-12｜P3.2 Gate 1 文件级验证补录｜Type C
+
+- **Verification**: PASS
+  - change 共 8 个新文件、1095 行；5 个 spec 目录集合 exact-match
+  - delta 合计 20 Requirements / 51 Scenarios；delta 内 requirement 标题重复 0，与 accepted baseline 标题冲突 0；每条 requirement 至少 1 个 scenario
+  - tasks 共 82 项，规划 readiness T-01～T-10 已完成；Gate 1 T-11 与 Gate 2 T-13 保持未勾选
+  - 新工件 trailing whitespace 0、credential 格式命中 0；`git diff --check` PASS
+  - 路径边界为 `.ai/ACTIVE_TASK.md`、`.ai/AGENT_LOG.md` 与新 `openspec/changes/data-ownership-foundation/`；业务代码、schema、package/lockfile、accepted baseline、archive、冻结蓝图零变化
+- **Git diff --stat**:
+  - tracked：`.ai/ACTIVE_TASK.md | 31`、`.ai/AGENT_LOG.md | 32`，合计 `2 files changed, 57 insertions(+), 6 deletions(-)`（本补录后 AGENT_LOG 行数会继续增加）
+  - untracked：8 个 planning files / 1095 行；原生 `git diff --stat` 不统计 untracked，未用 `git add -N` 改索引
+- **Verification SKIPPED**:
+  - OpenSpec CLI 仍不可用；backend/frontend tests 与 Gate 3 真实依赖均不属于本轮规划文件验证
+- **Commit**: pending（默认用户手动提交）
+
+## 2026-08-12｜P3.2 Gate 1/2 授权与实现启动｜Type C
+
+- **Scope**: 用户明确授权按 `data-ownership-foundation` 规划实现，并授权 Agent commit
+- **Authorization**:
+  - Gate 1：PASS（原 proposal/design/tasks/五份 delta 与决策 1–12 获批）
+  - Gate 2：PASS（允许业务代码、schema、测试与 Mini Program 实现）
+  - Gate 3a/3b/3c：未授权；真实 MySQL、对象存储、微信副作用验收不得执行
+  - Commit：Agent 可 stage/commit；push/PR/deploy/release 未授权
+- **Changes**: 同步 proposal、tasks、ACTIVE_TASK 与本日志的授权状态；尚未修改业务代码
+- **Verification**:
+  - 授权边界与 active change 指针文件级核对 PASS
+  - backend full baseline：92 suites / 688 tests / 0 failures / 0 errors / 9 skipped
+  - frontend baseline：`vue-tsc --noEmit`、standard mp-weixin build、Preview build PASS
+  - 首次沙箱 Maven 因依赖访问权限失败；按授权以同一 `mvn -q test` 在沙箱外重跑 PASS
+  - Node/npm 不在 PATH；使用 Codex bundled Node 驱动既有本地 `vue-tsc` / `uni`，未安装或升级依赖
+- **Verification SKIPPED**: Gate 3a/3b/3c 与真实 Agent provider 均未授权/预算 0
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 运行 backend/frontend baseline，再从 operation/schema RED 开始

@@ -2,11 +2,17 @@
 
 ## Status
 
-`IDLE`
+`ACTIVE`
 
-当前没有 active Type C change。P3.1 `present-moment-capture` 已于 2026-08-12 接受 delta 并归档至
-`openspec/changes/archive/2026-08-12-present-moment-capture/`。P3.2 仍须重新走独立规划闸门；
-`push`、部署与发布未授权、未执行。
+当前唯一 active Type C change：P3.2 `data-ownership-foundation`。
+
+- Change：`openspec/changes/data-ownership-foundation/`
+- 阶段：**Gate 2 离线实现**；Gate 1/2 已于 2026-08-12 获批
+- 开工锚点：`efd2618`
+- Gate 2：已授权，允许按 `tasks.md` 修改业务代码并执行离线/H2/build 验证
+- Gate 3a / 3b / 3c：未授权，禁止真实 MySQL、对象存储与微信副作用验收
+- 真实 Agent provider 预算：0；push、部署、发布未授权、未执行
+- 提交责任：用户已明确授权 Agent commit；不 push
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -78,8 +84,9 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：IDLE / 等待独立规划授权**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者；P3.1 已归档。冻结序列的下一候选为 P3.2 `data-ownership-foundation`，但不得因本次归档自动启动；push/deploy/release 未授权，旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：P3.2 Gate 2 离线实现**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者；P3.1 已归档。P3.2 `data-ownership-foundation` 的 Gate 1/2 已获批；
+  Gate 3a/3b/3c、push/deploy/release 未授权，旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -115,6 +122,7 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
+- `openspec/changes/data-ownership-foundation/`（P3.2 active，Gate 1 planning）
 - `openspec/changes/archive/2026-08-12-present-moment-capture/`（P3.1 archived）
 - `openspec/specs/agent-runtime/spec.md`（含 C1–C9 与 P3.1 的 Agent 兼容契约）
 - `openspec/specs/backend-core/spec.md`（含 M4、C1–C9 与 P3.1 当下记录契约）
@@ -126,6 +134,26 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-12 — **P3.2 Gate 1/2 获批，进入离线实现**
+  - 用户明确“授权实现，并且可以为我提交commit”：批准原规划与五份 delta，授权按 tasks 修改业务代码并由 Agent commit
+  - 授权不包含真实 MySQL、对象存储、微信副作用验收、真实 Agent provider、push、部署或发布
+  - 实现顺序：baseline → operation/schema → export → deletion/clear-all → Mini Program → 离线全量验证
+  - baseline：backend 92 suites / 688 tests / 0 failures / 0 errors / 9 skipped；frontend type-check、standard/Preview mp-weixin build PASS
+  - **Commit**：pending（Agent commit；不 push）
+  - **Blocked on**：none
+  - **Next step**：从 operation schema 的 TDD 切片开始
+
+- **This session**: 2026-08-12 — **P3.2 readiness GO，Gate 1 规划工件已创建**
+  - 只读准入：P3.1 已归档、`ACTIVE_TASK=IDLE`、工作树 clean、HEAD=`efd2618`；冻结蓝图下一候选为 P3.2
+  - `openspec/changes/` 中 M1/M3 为早期历史工件，不是当前 active 指针；本轮将 P3.2 设为唯一 active change
+  - 当前事实：任意状态导出/删除/clear-all 均未实现；现有 DELETE 仅限 DRAFT 且直接删 DB，不能证明远端对象清理；假 data-backup 页面文件存在但已从真实路由移除
+  - 已创建 proposal、design、tasks 与 backend-core / miniapp-core / v2-product-scope / agent-runtime / agent-collaboration 五份 delta
+  - 推荐主契约：durable owner-scoped operation；`RESPECT_SEAL` 默认 / `FULL_CONTENT` 显式选择；远端对象 success/not-found 后再删 DB；clear-all 确认后冻结 record mutation；导出临时 ZIP 默认 24h
+  - planning 外部调用 0、真实 Agent provider 预算 0；OpenSpec CLI 未安装，`openspec new change` 失败，文件级 scaffold 完成，CLI validation `SKIPPED`
+  - **Commit**：pending（默认用户手动提交）
+  - **Blocked on**：用户 Gate 1 审查与批准
+  - **Next step**：用户批准/修改 design 决策 1–12 与五份 delta；未获 Gate 2 前不改业务代码
 
 - **This session**: 2026-08-12 — **P3.1 delta accepted、closeout 与归档完成**
   - 用户明确批准归档当前阶段；T-82～T-86 完成，四份 delta 按 requirement 精确接受进 baseline：backend-core 6 MODIFIED + 3 ADDED、miniapp-core 6 MODIFIED + 5 ADDED、agent-runtime 2 MODIFIED + 1 ADDED、v2-product-scope 5 ADDED
