@@ -132,7 +132,7 @@
   - 新增 `closeout.md`，如实保留 E0 `INCONCLUSIVE / SKIPPED`、真实 Agent provider 0 调用、OpenSpec CLI SKIPPED，以及本地 MySQL/对象存储/微信证据不等于生产 SLA 的边界
   - change 归档至 `openspec/changes/archive/2026-08-12-present-moment-capture/`；`ACTIVE_TASK` 回到 `IDLE`
   - 文件级校验：4 specs / 28 Requirements / 98 Scenarios；delta exact-copy PASS，未引入新的重复 requirement 标题；所有 86 个任务均完成
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`5f8b623 feat: 接受并归档P3.1当下记录`（不 push）
   - **Blocked on**: none
   - **Next step**：若进入 P3.2 `data-ownership-foundation`，必须重新获得独立规划授权；push/deploy/release 仍须单独授权
 

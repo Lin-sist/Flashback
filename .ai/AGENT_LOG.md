@@ -7528,3 +7528,8 @@ Commit: pending
   - P3.2 只是冻结序列的下一候选，必须重新走独立规划闸门
 - **Commit**: pending（Agent commit；不 push）
 - **Push / deploy / release**: 未授权，未执行
+
+## 2026-08-12｜P3.1 归档提交补录｜Type C
+
+- **Commit**: `5f8b623 feat: 接受并归档P3.1当下记录`
+- **Push / deploy / release**: 未授权，未执行
