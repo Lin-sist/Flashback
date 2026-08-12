@@ -149,9 +149,9 @@
   - Gate 3c cleanup PASS：2 个导出 artifact、合成账号、record 与 operation 全部清理；真实 MySQL 聚合归零
   - Gate 3 后全量回归：backend 99 suites / 703 tests / 0 failures / 0 errors / 11 skipped（2 个真实探针默认 skip）；frontend type-check、standard/Preview build PASS
   - 工具诊断：开发者工具从 standard 切换 Preview 后需清理 compile/file cache 才加载新构建；刷新后页面路径与只读矩阵 PASS，未修改业务代码
-  - **Commit**：pending（Agent commit；不 push）
+  - **Commit**：`907feb4 test: 完成P3.2真实依赖验收`（Gate 3 evidence checkpoint；不 push）
   - **Blocked on**：none
-  - **Next step**：提交 Gate 3 验收证据 checkpoint，等待用户审查；未授权 delta acceptance、closeout 或归档
+  - **Next step**：等待用户审查 Gate 3 证据与 remaining risks；未授权 delta acceptance、closeout 或归档
 
 - **This session**: 2026-08-12 — **P3.2 Gate 2 离线实现完成，等待 Gate 3 / 用户审查**
   - 用户明确“授权实现，并且可以为我提交commit”：批准原规划与五份 delta，授权按 tasks 修改业务代码并由 Agent commit

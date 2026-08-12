@@ -7714,3 +7714,11 @@ Commit: pending
   - 日志未记录合成内容、位置、storage key、bucket、URL、artifact/download token、credential、prompt 或 provider response
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 提交 Gate 3 验收证据 checkpoint 后等待用户审查；T-78～T-82 仍未授权执行
+
+## 2026-08-12｜P3.2 Gate 3 验收提交补录｜Type C
+
+- **Commit**: `907feb4 test: 完成P3.2真实依赖验收`
+- **Scope**: 8 files changed / 1076 insertions / 15 deletions；仅含 Gate 3a/3b 真实探针、Gate 3c 可重复自动化脚本、active tasks 与证据
+- **Verification**: 提交前 `git diff --cached --check`、精确路径 staged scope 与 credential scan PASS；提交成功
+- **Scope safety**: 未 push；delta acceptance、closeout、archive、deploy/release 均未执行
+- **Next**: 等待用户审查 Gate 3 证据与 remaining risks
