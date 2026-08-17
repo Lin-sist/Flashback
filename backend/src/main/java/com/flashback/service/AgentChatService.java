@@ -4,6 +4,7 @@ import com.flashback.agent.tool.AgentToolDecision;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.vo.AgentSessionVO;
+import com.flashback.domain.AgentConversationIntent;
 
 /**
  * Agent 多轮对话服务（C1 + C2）。
@@ -32,6 +33,10 @@ public interface AgentChatService {
      * 用户主动结束会话，返回素材草稿。
      */
     AgentSessionVO finish(Long userId, Long sessionId);
+
+    /** P4.1：显式切换 ACTIVE WRITING_GUIDANCE 的用户意图。 */
+    AgentSessionVO switchConversationIntent(
+            Long userId, Long sessionId, AgentConversationIntent conversationIntent);
 
     /**
      * C2：确认（接受或拒绝）一条工具提议。

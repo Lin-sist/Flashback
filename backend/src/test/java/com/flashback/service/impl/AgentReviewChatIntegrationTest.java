@@ -3,6 +3,7 @@ package com.flashback.service.impl;
 import com.flashback.agent.AgentChatMode;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentSessionPurpose;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.service.AgentChatService;
@@ -80,7 +81,13 @@ class AgentReviewChatIntegrationTest {
 
         assertThat(opened.getStatus()).isEqualTo("SUCCESS");
         assertThat(opened.getStage()).isEqualTo("REVIEW");
+        assertThat(opened.getConversationIntent()).isNull();
         assertThat(opened.getMessages()).hasSize(1);
+
+        AgentSessionVO reloaded = agentChatService.getSession(USER_ID, opened.getSessionId());
+        assertThat(reloaded.getConversationIntent())
+                .as("REVIEW_CHAT 从数据库重读后仍不得获得写作 intent")
+                .isNull();
 
         String purpose = jdbcTemplate.queryForObject(
                 "SELECT purpose FROM agent_session WHERE id = ?", String.class, opened.getSessionId());
@@ -107,6 +114,17 @@ class AgentReviewChatIntegrationTest {
 
         assertThatThrownBy(() -> agentChatService.startOrResume(USER_ID, request))
                 .hasMessageContaining("需要指定记录");
+    }
+
+    @Test
+    void shouldRejectWritingIntentOnReviewChat() {
+        AgentSessionStartRequest request = new AgentSessionStartRequest();
+        request.setRecordId(UNLOCKED_ID);
+        request.setPurpose(AgentSessionPurpose.REVIEW_CHAT);
+        request.setConversationIntent(AgentConversationIntent.LISTEN);
+
+        assertThatThrownBy(() -> agentChatService.startOrResume(USER_ID, request))
+                .hasMessageContaining("不接受写作会话意图");
     }
 
     @Test

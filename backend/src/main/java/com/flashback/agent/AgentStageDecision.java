@@ -20,6 +20,8 @@ public record AgentStageDecision(AgentStage nextStage, int stageReaskCount, Reas
         USER_FINISH_INTENT,
         /** 达到轮次上限强制收束。 */
         TURN_LIMIT_REACHED,
+        /** P4.1：见证型会话保持当前 WITNESS/REVIEW 语义。 */
+        WITNESS_RETAINED,
         /** 收束完成，会话结束。 */
         CLOSED
     }

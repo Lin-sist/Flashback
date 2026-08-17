@@ -1,6 +1,7 @@
 package com.flashback.agent.eval;
 
 import com.flashback.domain.AgentSessionPurpose;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentStage;
 
 import java.time.LocalDateTime;
@@ -181,6 +182,8 @@ final class AgentEvalCase {
             Object value = entry.getValue();
             switch (key) {
                 case "purpose" -> builder.purpose(AgentSessionPurpose.valueOf(String.valueOf(value)));
+                case "conversationIntent" -> builder.conversationIntent(
+                        AgentConversationIntent.valueOf(String.valueOf(value)));
                 case "stage" -> builder.stage(AgentStage.valueOf(String.valueOf(value)));
                 case "turnCount" -> builder.turnCount(intOf(value));
                 case "stageReaskCount" -> builder.stageReaskCount(intOf(value));

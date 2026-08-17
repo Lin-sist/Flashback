@@ -29,14 +29,14 @@
 snapshots:
   # ---------- 阶段推进 ----------
   - caseId: stage-advance-through-guiding-sequence
-    baselineNote: "C6 定基线（2026-07-31）：四轮连续 ADVANCE 走完引导序列，第 4 轮进 CLOSING 并产出素材，故 materialCalls=1"
+    baselineNote: "P4.1 witness-agent-alignment: 固定四阶段改为普通轮保持 WITNESS；第 4 轮不因阶段序列自动收束，故不产素材"
     metrics:
       turns: 4
-      stagePath: [CONFUSION, CORE_QUESTION, EXPECTATION, CLOSING]
-      stageReasons: [ADVANCE, ADVANCE, ADVANCE, ADVANCE]
+      stagePath: [WITNESS, WITNESS, WITNESS, WITNESS]
+      stageReasons: [WITNESS_RETAINED, WITNESS_RETAINED, WITNESS_RETAINED, WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 4
-      materialCalls: 1
+      materialCalls: 0
       injectedCount: 0
       injectedChars: 0
       promptMessageCount: 10
@@ -44,7 +44,7 @@ snapshots:
       violation: null
       replyLength: 12
       replyToInputRatio: 0.67
-    checksum: "c94f597ed023"
+    checksum: "f107db9dc88e"
 
   - caseId: stage-closing-then-ended
     baselineNote: "C6 定基线（2026-07-31）：CLOSING 阶段的下一轮 reason=CLOSED；轨迹 stage 记 CLOSING（编排把 ENDED 折回 CLOSING 再收束，属既有行为）"
@@ -101,12 +101,84 @@ snapshots:
     checksum: "a31e8018d9f9"
 
   # ---------- 克制 ----------
-  - caseId: restraint-reply-within-length-cap
-    baselineNote: "C6 定基线（2026-07-31）：正常一轮，未触碰长度上限，无裁剪痕迹"
+  - caseId: p41-listen-long-expression-zero-questions
+    baselineNote: "P4.1 witness-agent-alignment: LISTEN 长表达保持 WITNESS 且后端问题上限为 0"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 36
+      replyToInputRatio: 1.33
+    checksum: "c5acb8ff2ade"
+
+  - caseId: p41-listen-brief-expression-zero-questions
+    baselineNote: "P4.1 witness-agent-alignment: LISTEN 极短表达不触发 reask，保持 REFLECT_ONLY"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 13
+      replyToInputRatio: 13.0
+    checksum: "996c1a6ed9ab"
+
+  - caseId: p41-untangle-normal-may-ask-one
+    baselineNote: "P4.1 witness-agent-alignment: UNTANGLE 正常表达允许至多一个问题并保持 WITNESS"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 29
+      replyToInputRatio: 1.38
+    checksum: "510b12b351a8"
+
+  - caseId: p41-question-limit-reflects-once
+    baselineNote: "P4.1 witness-agent-alignment: LISTEN 候选越过 0 问题上限后只做一次 typed reflection"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 2
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 19
+      replyToInputRatio: 2.71
+    checksum: "8107cae21df5"
+
+  - caseId: restraint-reply-within-length-cap
+    baselineNote: "P4.1 witness-agent-alignment: 正常一轮改为 WITNESS retained，长度与裁剪指标不变"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -117,14 +189,14 @@ snapshots:
       violation: null
       replyLength: 14
       replyToInputRatio: 0.78
-    checksum: "27aab751913d"
+    checksum: "d5e9e90b8e21"
 
   - caseId: restraint-overlong-reply-must-be-clipped
-    baselineNote: "C6 定基线（2026-07-31）：maxReplyChars 压到 30，回复被裁剪到恰好 30；outcome 仍为 SUCCESS（裁剪不算降级）"
+    baselineNote: "P4.1 witness-agent-alignment: 阶段改为 WITNESS retained；长度裁剪仍为 30 且 outcome 不变"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -135,14 +207,14 @@ snapshots:
       violation: null
       replyLength: 30
       replyToInputRatio: 2.31
-    checksum: "057ee7bcd38e"
+    checksum: "da10a8856f91"
 
   - caseId: restraint-reask-at-most-once-per-stage
-    baselineNote: "C6 定基线（2026-07-31）：REASK 后必须 ADVANCE。replyToInputRatio=25.0 是「嗯」这类极短输入的必然结果，不是话痨——正因如此长度比只进快照层，不做不变量"
+    baselineNote: "P4.1 witness-agent-alignment: 极短输入不再触发 reask；两轮均 WITNESS retained 且使用无问题回复"
     metrics:
       turns: 2
-      stagePath: [EMOTION, CONFUSION]
-      stageReasons: [REASK, ADVANCE]
+      stagePath: [WITNESS, WITNESS]
+      stageReasons: [WITNESS_RETAINED, WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 2
       materialCalls: 0
@@ -151,9 +223,9 @@ snapshots:
       promptMessageCount: 6
       downgradeLayer: null
       violation: null
-      replyLength: 25
-      replyToInputRatio: 25.0
-    checksum: "3e64d4fd24b0"
+      replyLength: 17
+      replyToInputRatio: 17.0
+    checksum: "0d20a06c8b46"
 
   - caseId: restraint-turn-limit-must-close-session
     baselineNote: "C6 定基线（2026-07-31）：轮次上限强制收束（TURN_LIMIT_REACHED）并产出素材"
@@ -193,11 +265,11 @@ snapshots:
 
   # ---------- 记忆 ----------
   - caseId: memory-enabled-with-hits
-    baselineNote: "C6 定基线（2026-07-31）：两条候选全部注入，injectedChars=25 为两段 aiSummary 的实际长度之和"
+    baselineNote: "P4.1 witness-agent-alignment: 记忆命中与注入指标不变；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -208,14 +280,14 @@ snapshots:
       violation: null
       replyLength: 14
       replyToInputRatio: 1.08
-    checksum: "6e49eae1eaa1"
+    checksum: "1f691795f3cc"
 
   - caseId: memory-enabled-without-hits
-    baselineNote: "C6 定基线（2026-07-31）：有线索、查了库、无命中。与 memory-disabled-by-config 的指标相同，两者的区别在轨迹的 memory-retrieval.enabled 上（由不变量层断言），这正是「三态可分」不能只靠快照的原因"
+    baselineNote: "P4.1 witness-agent-alignment: 无命中三态语义不变；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -226,14 +298,14 @@ snapshots:
       violation: null
       replyLength: 14
       replyToInputRatio: 1.08
-    checksum: "c9d15a9a7589"
+    checksum: "b92c4cc7a32b"
 
   - caseId: memory-disabled-by-config
-    baselineNote: "C6 定基线（2026-07-31）：开关关闭，即便有候选也不检索。见上一条关于「快照相同但三态可分」的说明"
+    baselineNote: "P4.1 witness-agent-alignment: 记忆开关关闭语义不变；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -244,14 +316,14 @@ snapshots:
       violation: null
       replyLength: 14
       replyToInputRatio: 1.08
-    checksum: "d3d7c9652004"
+    checksum: "c4b1c2e90a67"
 
   - caseId: memory-injection-must-respect-fragment-cap
-    baselineNote: "C6 定基线（2026-07-31）：5 条候选收口到 memory.maxFragments=3，由真实 MySqlMemoryPort 的 limit 逻辑完成"
+    baselineNote: "P4.1 witness-agent-alignment: 片段上限与注入指标不变；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -262,14 +334,14 @@ snapshots:
       violation: null
       replyLength: 14
       replyToInputRatio: 1.08
-    checksum: "bff20c8176da"
+    checksum: "b3d6e31a7679"
 
   - caseId: memory-long-fragment-must-be-truncated
-    baselineNote: "C9 审阅更新（2026-08-08）：该合成片段相对固定时钟为 DISTANT；C3 先截断到 120，C9 再按 75% 确定性衰减到 90。providerCalls、阶段与其余指标不变"
+    baselineNote: "P4.1 witness-agent-alignment: C9 衰减后 90 字符不变；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -280,15 +352,15 @@ snapshots:
       violation: null
       replyLength: 14
       replyToInputRatio: 1.08
-    checksum: "c917c94fa919"
+    checksum: "72633e5284be"
 
   # ---------- 护栏 ----------
   - caseId: guardrail-diagnostic-reply-must-downgrade
-    baselineNote: "C6 定基线（2026-07-31）：诊断话术被 reply-content 闸拦下，回复替换为本地兜底（replyLength=20 即兜底文案长度）"
+    baselineNote: "P4.1 witness-agent-alignment: WITNESS retained；诊断仍降级，兜底改为无问题 witness 文案故长度为 25"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "DOWNGRADED"
       providerCalls: 1
       materialCalls: 0
@@ -297,16 +369,16 @@ snapshots:
       promptMessageCount: 4
       downgradeLayer: "reply-content"
       violation: "diagnostic"
-      replyLength: 20
-      replyToInputRatio: 1.18
-    checksum: "b46070805d51"
+      replyLength: 25
+      replyToInputRatio: 1.47
+    checksum: "5d08063f84c0"
 
   - caseId: guardrail-fake-action-must-downgrade
-    baselineNote: "C6 定基线（2026-07-31）：谎称已封存被拦下。这补的是 C2 的盲区——白名单能防它做，防不住它说自己做了"
+    baselineNote: "P4.1 witness-agent-alignment: WITNESS retained；假动作仍降级，使用新的无问题 witness 兜底"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "DOWNGRADED"
       providerCalls: 1
       materialCalls: 0
@@ -315,16 +387,16 @@ snapshots:
       promptMessageCount: 4
       downgradeLayer: "reply-content"
       violation: "fake-action"
-      replyLength: 20
-      replyToInputRatio: 2.0
-    checksum: "81949e3a46f7"
+      replyLength: 25
+      replyToInputRatio: 2.5
+    checksum: "f6f17111413c"
 
   - caseId: guardrail-compliant-reply-must-pass
-    baselineNote: "C6 定基线（2026-07-31）：反例，合规共情回复不得被误伤（守「过度限制导致 Agent 无话可说」那个方向）"
+    baselineNote: "P4.1 witness-agent-alignment: 合规回复仍放行；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -335,14 +407,14 @@ snapshots:
       violation: null
       replyLength: 13
       replyToInputRatio: 0.76
-    checksum: "8b504250922f"
+    checksum: "11d730d9fc91"
 
   - caseId: guardrail-user-own-symptom-word-must-not-be-punished
-    baselineNote: "C6 定基线（2026-07-31）：复述用户自己说的病名且连带复用周边措辞时放行（分区逻辑生效，未退化成全文匹配）"
+    baselineNote: "P4.1 witness-agent-alignment: 用户自有症状词仍不误伤；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -353,14 +425,14 @@ snapshots:
       violation: null
       replyLength: 20
       replyToInputRatio: 1.25
-    checksum: "64b3013f9833"
+    checksum: "2e418260bd9c"
 
   - caseId: guardrail-symptom-word-reuse-boundary-is-ngram-sensitive
-    baselineNote: "C6 定基线（2026-07-31）：**实测发现的边界，非缺陷修复**。同一用户输入下，只改复述措辞（不连带复用周边 4-gram）即被判 diagnostic。属 n-gram 方案固有性质，C6 不校准阈值，只把边界钉成回归"
+    baselineNote: "P4.1 witness-agent-alignment: n-gram 诊断边界不变；WITNESS retained 且使用新的无问题兜底"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "DOWNGRADED"
       providerCalls: 1
       materialCalls: 0
@@ -369,16 +441,16 @@ snapshots:
       promptMessageCount: 4
       downgradeLayer: "reply-content"
       violation: "diagnostic"
-      replyLength: 20
-      replyToInputRatio: 1.25
-    checksum: "3e8154dcdf25"
+      replyLength: 25
+      replyToInputRatio: 1.56
+    checksum: "623f67a01b58"
 
   - caseId: guardrail-missing-time-attribution-must-rewrite-once
-    baselineNote: "C7 agent-reflection-loop（2026-08-02）：reply-only 对 missing-time-attribution 固定重写一次；脚本化第二答补足时间归属后 SUCCESS，providerCalls 由 1 变 2"
+    baselineNote: "P4.1 witness-agent-alignment: 时间归属一次 reflection 语义不变；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 2
       materialCalls: 0
@@ -389,14 +461,14 @@ snapshots:
       violation: null
       replyLength: 32
       replyToInputRatio: 2.91
-    checksum: "e275a960c1c5"
+    checksum: "bd6ce4415272"
 
   - caseId: guardrail-reflection-still-invalid-must-fallback
-    baselineNote: "C7 agent-reflection-loop（2026-08-02）：第二答仍缺时间归属，达到一次上限后本地兜底；两次调用且无第三次重试"
+    baselineNote: "P4.1 witness-agent-alignment: 第二答仍违规后两次调用即兜底；WITNESS retained 且兜底改为无问题文案"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "DOWNGRADED"
       providerCalls: 2
       materialCalls: 0
@@ -405,16 +477,16 @@ snapshots:
       promptMessageCount: 4
       downgradeLayer: "reply-attribution"
       violation: "missing-time-attribution"
-      replyLength: 20
-      replyToInputRatio: 1.82
-    checksum: "00b8569f5baf"
+      replyLength: 25
+      replyToInputRatio: 2.27
+    checksum: "da95fb8dcfd7"
 
   - caseId: guardrail-reflection-provider-failure-must-fallback
-    baselineNote: "C7 agent-reflection-loop（2026-08-02）：reflection provider 异常不进入 C8 重试，第二次调用后立即本地兜底"
+    baselineNote: "P4.1 witness-agent-alignment: reflection provider 异常仍不重试；WITNESS retained 且兜底改为无问题文案"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "DOWNGRADED"
       providerCalls: 2
       materialCalls: 0
@@ -423,16 +495,16 @@ snapshots:
       promptMessageCount: 4
       downgradeLayer: "reply-attribution"
       violation: "missing-time-attribution"
-      replyLength: 20
-      replyToInputRatio: 1.82
-    checksum: "c1e6ed352a62"
+      replyLength: 25
+      replyToInputRatio: 2.27
+    checksum: "0ffc71c61f4a"
 
   - caseId: guardrail-closing-reply-must-not-reflect
-    baselineNote: "C7 agent-reflection-loop（2026-08-02）：CLOSING reply 缺时间归属仍直接兜底，reply 一次加 material 一次，守住整轮两次调用上限"
+    baselineNote: "P4.1 witness-agent-alignment: fixture 显式从 legacy CLOSING 读取，reason=CLOSED；仍不 reflection 且使用无问题兜底"
     metrics:
       turns: 1
       stagePath: [CLOSING]
-      stageReasons: [ADVANCE]
+      stageReasons: [CLOSED]
       outcome: "DOWNGRADED"
       providerCalls: 1
       materialCalls: 1
@@ -441,16 +513,16 @@ snapshots:
       promptMessageCount: 4
       downgradeLayer: "reply-attribution"
       violation: "missing-time-attribution"
-      replyLength: 20
-      replyToInputRatio: 2.0
-    checksum: "7f88b4206ded"
+      replyLength: 25
+      replyToInputRatio: 2.5
+    checksum: "d76de16b1a5b"
 
   - caseId: guardrail-unfaithful-material-must-not-reflect
-    baselineNote: "C7 agent-reflection-loop（2026-08-02）：material 仍按 C4 对无来源增写直接丢弃，reply providerCalls 保持 1，不引入 material reflection"
+    baselineNote: "P4.1 witness-agent-alignment: fixture 显式从 legacy CLOSING 读取，reason=CLOSED；material 仍直接丢弃且不 reflection"
     metrics:
       turns: 1
       stagePath: [CLOSING]
-      stageReasons: [ADVANCE]
+      stageReasons: [CLOSED]
       outcome: "DOWNGRADED"
       providerCalls: 1
       materialCalls: 1
@@ -461,14 +533,14 @@ snapshots:
       violation: "unfaithful"
       replyLength: 9
       replyToInputRatio: 0.9
-    checksum: "72388b507467"
+    checksum: "a2b07600a722"
 
   - caseId: guardrail-time-attributed-recall-must-pass
-    baselineNote: "C6 定基线（2026-07-31）：反例，同样复述记忆但带了时间锚点（「三月份」）→ 放行"
+    baselineNote: "P4.1 witness-agent-alignment: 带时间锚点仍放行；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [CONFUSION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -479,14 +551,14 @@ snapshots:
       violation: null
       replyLength: 29
       replyToInputRatio: 2.64
-    checksum: "3a6780469d72"
+    checksum: "b13c07ee36bc"
 
   - caseId: guardrail-unfaithful-tool-args-must-be-rejected
-    baselineNote: "C6 定基线（2026-07-31）：R1 形态的提议被拒（unfaithful-args），但本轮对话仍 SUCCESS——提议失败不影响 Agent 该说的话"
+    baselineNote: "P4.1 witness-agent-alignment: unfaithful 工具参数仍被拒且对话成功；固定阶段改为 WITNESS retained"
     metrics:
       turns: 1
-      stagePath: [EXPECTATION]
-      stageReasons: [ADVANCE]
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
       outcome: "SUCCESS"
       providerCalls: 1
       materialCalls: 0
@@ -497,7 +569,7 @@ snapshots:
       violation: null
       replyLength: 11
       replyToInputRatio: 1.38
-    checksum: "56adb9caa6ad"
+    checksum: "d41cd57caa12"
 
   - caseId: guardrail-review-mode-must-fail-close-tool-calls
     baselineNote: "C6 定基线（2026-07-31）：回看模式 fail-closed 丢弃提议。该分支在 C3b+C5 共 9 轮真实观察里从未活体触发（R10），此前只有单测覆盖"

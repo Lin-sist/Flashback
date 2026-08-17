@@ -266,11 +266,12 @@ class AgentToolCallingIntegrationTest {
     private Long startSession() {
         AgentSessionStartRequest request = new AgentSessionStartRequest();
         request.setRecordId(recordId);
+        request.setConversationIntent(com.flashback.domain.AgentConversationIntent.UNTANGLE);
         return agentChatService.startOrResume(userId, request).getSessionId();
     }
 
     /**
-     * 推进到 mock provider 会给出提议的阶段（CORE_QUESTION）。
+     * UNTANGLE 下 mock provider 可给出一次待确认提议。
      */
     private AgentSessionVO advanceToProposal(Long sessionId) {
         AgentSessionVO vo = null;

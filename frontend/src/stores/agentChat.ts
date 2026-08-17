@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import {
     agentService,
     type AgentMessage,
+    type AgentConversationIntent,
     type AgentSession,
     type AgentToolCall,
     type AgentToolDecision,
@@ -12,6 +13,7 @@ interface AgentChatState {
     loading: boolean
     sending: boolean
     finishing: boolean
+    switchingIntent: boolean
     /** C2：工具确认进行中，用于防抖，避免重复点击重复提交。 */
     confirmingToolCall: boolean
     errorMessage: string
@@ -25,6 +27,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         loading: false,
         sending: false,
         finishing: false,
+        switchingIntent: false,
         confirmingToolCall: false,
         errorMessage: '',
     }),
@@ -45,6 +48,7 @@ export const useAgentChatStore = defineStore('agentChat', {
             this.loading = false
             this.sending = false
             this.finishing = false
+            this.switchingIntent = false
             this.confirmingToolCall = false
             this.errorMessage = ''
         },
@@ -53,11 +57,11 @@ export const useAgentChatStore = defineStore('agentChat', {
             this.errorMessage = session.status === 'SUCCESS' ? '' : session.message || '暂时无法继续对话'
             return session
         },
-        async startOrResume(recordId?: number | null) {
+        async startOrResume(conversationIntent: AgentConversationIntent, recordId?: number | null) {
             this.loading = true
             this.errorMessage = ''
             try {
-                return this.applySession(await agentService.startOrResume(recordId))
+                return this.applySession(await agentService.startOrResume(conversationIntent, recordId))
             } catch (error) {
                 this.errorMessage = errorText(error)
                 throw error
@@ -93,6 +97,24 @@ export const useAgentChatStore = defineStore('agentChat', {
                 this.finishing = false
             }
         },
+        async switchConversationIntent(conversationIntent: AgentConversationIntent) {
+            if (!this.session || this.switchingIntent) return null
+            if (this.session.conversationIntent === conversationIntent) return this.session
+            this.switchingIntent = true
+            this.errorMessage = ''
+            try {
+                // 不做本地乐观更新：只展示 backend 返回的权威 intent。
+                return this.applySession(await agentService.switchConversationIntent(
+                    this.session.sessionId,
+                    conversationIntent,
+                ))
+            } catch (error) {
+                this.errorMessage = errorText(error)
+                throw error
+            } finally {
+                this.switchingIntent = false
+            }
+        },
         /**
          * C2：确认或拒绝当前工具提议。
          *
@@ -122,7 +144,7 @@ export const useAgentChatStore = defineStore('agentChat', {
                 this.confirmingToolCall = false
             }
         },
-        async retry(recordId?: number | null) {
+        async retry(conversationIntent: AgentConversationIntent, recordId?: number | null) {
             this.loading = true
             this.errorMessage = ''
             try {
@@ -140,7 +162,7 @@ export const useAgentChatStore = defineStore('agentChat', {
                     }
                 }
                 // 开场失败（无消息）时重新触发 startOrResume，后端复用空的 ACTIVE 会话。
-                return this.applySession(await agentService.startOrResume(recordId))
+                return this.applySession(await agentService.startOrResume(conversationIntent, recordId))
             } catch (error) {
                 this.errorMessage = errorText(error)
                 throw error

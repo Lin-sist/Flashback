@@ -179,10 +179,24 @@ final class AgentEvalInvariants {
         for (String reason : run.stageReasons()) {
             assertThat(reason)
                     .as("用例 %s：阶段判定结论必须取自 AgentStageDecision.Reason", caseId)
-                    .isIn("ADVANCE", "REASK", "USER_FINISH_INTENT", "TURN_LIMIT_REACHED", "CLOSED");
+                    .isIn("ADVANCE", "REASK", "USER_FINISH_INTENT", "TURN_LIMIT_REACHED",
+                            "WITNESS_RETAINED", "CLOSED");
         }
 
-        // 5. 一轮一条：轮次序号必须严格不减，且不得凭空跳号。
+        // 5. P4.1：每一轮都必须经过后端问题上限检查；不是只靠 prompt 请求模型克制。
+        for (AgentTraceCollector each : run.traces()) {
+            Object maxQuestions = run.stepValue(each, "witness-policy", "maxQuestions");
+            assertThat(maxQuestions)
+                    .as("用例 %s：缺少 witness policy 的 0/1 问题上限", caseId)
+                    .isIn(0, 1);
+            assertThat(each.steps().stream().anyMatch(step ->
+                    "guardrail".equals(step.get("step"))
+                            && "reply-question-limit".equals(step.get("layer"))))
+                    .as("用例 %s：回复未经过问题数后置检查", caseId)
+                    .isTrue();
+        }
+
+        // 6. 一轮一条：轮次序号必须严格不减，且不得凭空跳号。
         int previousTurn = 0;
         for (AgentTraceCollector each : run.traces()) {
             assertThat(each.turnNo())
@@ -191,7 +205,7 @@ final class AgentEvalInvariants {
             previousTurn = each.turnNo();
         }
 
-        // 6. 版本锚点必须在位——C6 的回归比对依赖它按版本分组。
+        // 7. 版本锚点必须在位——C6 的回归比对依赖它按版本分组。
         assertThat(trace.promptVersion())
                 .as("用例 %s：提示词版本锚点缺失，回归比对将无法按版本分组", caseId)
                 .isNotNull();

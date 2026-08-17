@@ -15,6 +15,63 @@
 # 与真实模型的语言能力无关——这正是 mock 路径能评的东西与不能评的东西的分界。
 
 cases:
+  - caseId: p41-listen-long-expression-zero-questions
+    dimension: REASK_RESTRAINT
+    note: P4.1 LISTEN 对长表达也保持 REFLECT_ONLY，不把内容送进固定访谈阶段。
+    setup:
+      conversationIntent: LISTEN
+    turns:
+      - userInput: 最近工作和家里的事情叠在一起，我只是想先把这股累说出来
+        reply: 我听见这些事情正一起压在你身上。你可以按自己的节奏继续，也可以停一会儿。
+    expect:
+      outcome: SUCCESS
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      providerCalls: 1
+
+  - caseId: p41-listen-brief-expression-zero-questions
+    dimension: REASK_RESTRAINT
+    note: P4.1 极短回答不触发 reask，也不要求用户补充。
+    setup:
+      conversationIntent: LISTEN
+    turns:
+      - userInput: 嗯
+        reply: 我听见了。说到这里也可以。
+    expect:
+      outcome: SUCCESS
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      maxReaskPerStage: 0
+
+  - caseId: p41-untangle-normal-may-ask-one
+    dimension: REASK_RESTRAINT
+    note: P4.1 UNTANGLE 正常表达允许一个具体且可跳过的问题。
+    setup:
+      conversationIntent: UNTANGLE
+    turns:
+      - userInput: 最近几件事情搅在一起，我不知道先处理哪一件
+        reply: 我听见这些事情挤在一起了。如果只理一小步，你想先看哪一件？
+    expect:
+      outcome: SUCCESS
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      providerCalls: 1
+
+  - caseId: p41-question-limit-reflects-once
+    dimension: REASK_RESTRAINT
+    note: LISTEN 候选带问题时进入一次 typed reflection，改写后不得再有问题。
+    setup:
+      conversationIntent: LISTEN
+    turns:
+      - userInput: 今天真的有点累
+        reply: 你为什么这么累？还想再多说一点吗？
+        reflectionReply: 我听见今天的疲惫了。你可以先停在这里。
+    expect:
+      outcome: SUCCESS
+      providerCalls: 2
+      reflectionAttempted: true
+      reflectionTerminal: rewritten
+
   - caseId: restraint-reply-within-length-cap
     dimension: LENGTH_RESTRAINT
     note: 回复不得超过 maxReplyChars；未超上限时不应产生裁剪痕迹。
@@ -47,16 +104,16 @@ cases:
   - caseId: restraint-reask-at-most-once-per-stage
     dimension: REASK_RESTRAINT
     note: |
-      回避型极短回答触发同阶段追问，但同一阶段最多追问 1 次，第二次必须前进。
-      追问上限是代码常量 MAX_REASK_PER_STAGE=1（不是配置项），故这里断言它而非调它。
+      P4.1 后极短回答不再被视为需要追问；保持 WITNESS 且两轮均为 0 问题策略。
     turns:
       - userInput: 不知道
-        reply: 这种感觉是从什么时候开始的？
+        reply: 我听见你现在还不确定。先停在这里也可以。
       - userInput: 嗯
-        reply: 让你卡住的，是具体某件事，还是那种一直压着的感觉？
+        reply: 我听见了。你可以按自己的节奏继续。
     expect:
-      stageReasons: [REASK, ADVANCE]
-      maxReaskPerStage: 1
+      stagePath: [WITNESS, WITNESS]
+      stageReasons: [WITNESS_RETAINED, WITNESS_RETAINED]
+      maxReaskPerStage: 0
 
   - caseId: restraint-turn-limit-must-close-session
     dimension: REASK_RESTRAINT

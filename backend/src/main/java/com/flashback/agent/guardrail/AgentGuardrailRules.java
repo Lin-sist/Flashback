@@ -107,7 +107,7 @@ public class AgentGuardrailRules {
      * 使用它时必须留下结构化痕迹，使其可与真实回复区分——
      * 兜底不得伪装成模型正常输出（对齐 AGENTS.md「真实路径不得 mock success 冒充真实成功」）。
      */
-    public static final String SAFE_FALLBACK_REPLY = "这些听起来挺不容易的。你想再多说一点吗？";
+    public static final String SAFE_FALLBACK_REPLY = "我听见了。你可以按自己的节奏继续，也可以停在这里。";
 
     /**
      * 护栏条款文本，供 system prompt 组装使用。

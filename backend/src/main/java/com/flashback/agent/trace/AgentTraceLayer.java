@@ -20,6 +20,9 @@ public enum AgentTraceLayer {
     /** 回复路径的时间解释越界检查（C9）。 */
     REPLY_TEMPORAL("reply-temporal"),
 
+    /** P4.1：回复问题数 0/1 上限检查。 */
+    REPLY_QUESTION_LIMIT("reply-question-limit"),
+
     /** 素材路径的忠实度检查。 */
     MATERIAL_FAITHFULNESS("material-faithfulness"),
 

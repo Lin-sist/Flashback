@@ -25,6 +25,7 @@ import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentSessionStatus;
@@ -62,6 +63,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -179,7 +181,7 @@ class AgentChatServiceImplTest {
         AgentSessionVO vo = service.startOrResume(USER_ID, new AgentSessionStartRequest());
 
         assertThat(vo.getStatus()).isEqualTo("SUCCESS");
-        assertThat(vo.getStage()).isEqualTo(AgentStage.EMOTION.name());
+        assertThat(vo.getStage()).isEqualTo(AgentStage.WITNESS.name());
         assertThat(vo.getSessionStatus()).isEqualTo(AgentSessionStatus.ACTIVE.name());
         assertThat(vo.getMessages()).hasSize(1);
         assertThat(vo.getMessages().get(0).getRole()).isEqualTo(AgentMessageRole.ASSISTANT.name());
@@ -191,6 +193,7 @@ class AgentChatServiceImplTest {
     @Test
     void shouldResumeExistingActiveSessionInsteadOfCreatingNew() {
         AgentSession existing = activeSession(AgentStage.CONFUSION, 2);
+        existing.setConversationIntent(AgentConversationIntent.UNTANGLE);
         // C3b：查询新增 purpose 谓词；写作引导传 WRITING_GUIDANCE。
         when(agentSessionMapper.selectActiveByUserAndRecord(
                 USER_ID, null, AgentSessionPurpose.WRITING_GUIDANCE)).thenReturn(existing);
@@ -201,8 +204,34 @@ class AgentChatServiceImplTest {
         AgentSessionVO vo = service.startOrResume(USER_ID, new AgentSessionStartRequest());
 
         assertThat(vo.getMessages()).hasSize(2);
-        assertThat(vo.getStage()).isEqualTo(AgentStage.CONFUSION.name());
+        assertThat(vo.getStage()).isEqualTo(AgentStage.WITNESS.name());
+        assertThat(vo.getConversationIntent()).isEqualTo(AgentConversationIntent.UNTANGLE.name());
         verify(agentSessionMapper, never()).insert(any());
+        verify(agentSessionMapper, never()).updateConversationIntent(any());
+    }
+
+    @Test
+    void shouldApplyExplicitIntentWhenResumingCompletedActiveSession() throws Exception {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 1);
+        existing.setConversationIntent(AgentConversationIntent.LISTEN);
+        when(agentSessionMapper.selectActiveByUserAndRecord(
+                USER_ID, null, AgentSessionPurpose.WRITING_GUIDANCE)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "我在这里，你可以按自己的节奏说。"),
+                userMessage(1, "最近总觉得事情挤在一起"),
+                assistantMessage(1, "我听见了，你可以继续，也可以停在这里。")));
+        AgentSessionStartRequest request = new AgentSessionStartRequest();
+        request.setConversationIntent(AgentConversationIntent.UNTANGLE);
+
+        AgentSessionVO vo = service.startOrResume(USER_ID, request);
+
+        assertThat(vo.getConversationIntent()).isEqualTo(AgentConversationIntent.UNTANGLE.name());
+        assertThat(vo.getTurnCount()).isEqualTo(1);
+        assertThat(vo.getStage()).isEqualTo(AgentStage.WITNESS.name());
+        verify(agentSessionMapper).updateConversationIntent(existing);
+        verify(agentSessionMapper, never()).insert(any());
+        verify(modelClient, never()).complete(anyList(), any());
+        verify(modelClient, never()).completeWithTools(anyList(), anyList(), anyBoolean(), any());
     }
 
     @Test
@@ -226,11 +255,16 @@ class AgentChatServiceImplTest {
                 assistantMessage(0, "今天是什么让你想写下这一刻？"),
                 userMessage(1, "工作上有点撑不住")));
 
-        AgentSessionVO vo = service.startOrResume(USER_ID, new AgentSessionStartRequest());
+        AgentSessionStartRequest request = new AgentSessionStartRequest();
+        request.setConversationIntent(AgentConversationIntent.UNTANGLE);
+
+        AgentSessionVO vo = service.startOrResume(USER_ID, request);
 
         assertThat(vo.getStatus()).isEqualTo("FAILED");
         assertThat(vo.getMessage()).contains("重试");
+        assertThat(vo.getConversationIntent()).isEqualTo(AgentConversationIntent.LISTEN.name());
         verify(agentSessionMapper, never()).insert(any());
+        verify(agentSessionMapper, never()).updateConversationIntent(any());
     }
 
     @Test
@@ -307,6 +341,23 @@ class AgentChatServiceImplTest {
     }
 
     @Test
+    void shouldRejectIntentSwitchWhileFailedTurnIsPending() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 1);
+        existing.setConversationIntent(AgentConversationIntent.LISTEN);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "我在这里，你可以按自己的节奏说。"),
+                userMessage(1, "工作上有点撑不住")));
+
+        assertThatThrownBy(() -> service.switchConversationIntent(
+                USER_ID, SESSION_ID, AgentConversationIntent.UNTANGLE))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("先重试");
+        verify(agentSessionMapper, never()).updateConversationIntent(any());
+        verifyNoInteractions(modelClient);
+    }
+
+    @Test
     void shouldRejectUserInputBeyondConfiguredLimit() {
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
@@ -327,7 +378,7 @@ class AgentChatServiceImplTest {
         AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好，压力挺大的"));
 
         assertThat(vo.getStatus()).isEqualTo("SUCCESS");
-        assertThat(vo.getStage()).isEqualTo(AgentStage.CONFUSION.name());
+        assertThat(vo.getStage()).isEqualTo(AgentStage.WITNESS.name());
         assertThat(vo.getTurnCount()).isEqualTo(1);
         assertThat(stored).hasSize(2);
         assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);

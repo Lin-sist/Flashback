@@ -17,6 +17,11 @@ public class AgentSession {
      * 变更前创建的历史会话按 DDL 默认值同样视为 WRITING_GUIDANCE。
      */
     private AgentSessionPurpose purpose = AgentSessionPurpose.WRITING_GUIDANCE;
+    /**
+     * P4.1：仅 WRITING_GUIDANCE 使用；REVIEW_CHAT 保持 null。
+     * 写作会话的安全缺省由 service 归一，避免 MyBatis 读取 SQL NULL 时保留字段初始化值。
+     */
+    private AgentConversationIntent conversationIntent;
     private AgentStage stage;
     private AgentSessionStatus status;
     private int turnCount;
@@ -56,6 +61,14 @@ public class AgentSession {
     public void setPurpose(AgentSessionPurpose purpose) {
         // null 兜底为写作引导：读取历史数据或列缺失时不应得到一个无用途的会话。
         this.purpose = purpose == null ? AgentSessionPurpose.WRITING_GUIDANCE : purpose;
+    }
+
+    public AgentConversationIntent getConversationIntent() {
+        return conversationIntent;
+    }
+
+    public void setConversationIntent(AgentConversationIntent conversationIntent) {
+        this.conversationIntent = conversationIntent;
     }
 
     public AgentStage getStage() {

@@ -1,6 +1,7 @@
 package com.flashback.dto;
 
 import com.flashback.domain.AgentSessionPurpose;
+import com.flashback.domain.AgentConversationIntent;
 
 /**
  * 开启或恢复 Agent 会话请求。
@@ -18,6 +19,9 @@ public class AgentSessionStartRequest {
 
     private AgentSessionPurpose purpose;
 
+    /** P4.1：只对 WRITING_GUIDANCE 有效；缺省为最少打扰的 LISTEN。 */
+    private AgentConversationIntent conversationIntent;
+
     public Long getRecordId() {
         return recordId;
     }
@@ -34,10 +38,22 @@ public class AgentSessionStartRequest {
         this.purpose = purpose;
     }
 
+    public AgentConversationIntent getConversationIntent() {
+        return conversationIntent;
+    }
+
+    public void setConversationIntent(AgentConversationIntent conversationIntent) {
+        this.conversationIntent = conversationIntent;
+    }
+
     /**
      * 归一化后的用途：未指定视为写作引导，保证既有调用行为不变。
      */
     public AgentSessionPurpose purposeOrDefault() {
         return purpose == null ? AgentSessionPurpose.WRITING_GUIDANCE : purpose;
+    }
+
+    public AgentConversationIntent conversationIntentOrDefault() {
+        return conversationIntent == null ? AgentConversationIntent.LISTEN : conversationIntent;
     }
 }

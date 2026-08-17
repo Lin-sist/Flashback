@@ -12,6 +12,7 @@ public class AgentSessionVO {
 
     private Long sessionId;
     private Long recordId;
+    private String conversationIntent;
     private String stage;
     private String sessionStatus;
     private int turnCount;
@@ -46,6 +47,14 @@ public class AgentSessionVO {
 
     public void setRecordId(Long recordId) {
         this.recordId = recordId;
+    }
+
+    public String getConversationIntent() {
+        return conversationIntent;
+    }
+
+    public void setConversationIntent(String conversationIntent) {
+        this.conversationIntent = conversationIntent;
     }
 
     public String getStage() {

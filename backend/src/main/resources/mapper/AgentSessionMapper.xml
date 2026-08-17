@@ -9,6 +9,7 @@
         <result property="userId" column="user_id"/>
         <result property="recordId" column="record_id"/>
         <result property="purpose" column="purpose" javaType="com.flashback.domain.AgentSessionPurpose"/>
+        <result property="conversationIntent" column="conversation_intent" javaType="com.flashback.domain.AgentConversationIntent"/>
         <result property="stage" column="stage" javaType="com.flashback.domain.AgentStage"/>
         <result property="status" column="status" javaType="com.flashback.domain.AgentSessionStatus"/>
         <result property="turnCount" column="turn_count"/>
@@ -23,6 +24,7 @@
         user_id,
         record_id,
         purpose,
+        conversation_intent,
         stage,
         status,
         turn_count,
@@ -37,6 +39,7 @@
             user_id,
             record_id,
             purpose,
+            conversation_intent,
             stage,
             status,
             turn_count,
@@ -48,6 +51,7 @@
             #{userId},
             #{recordId},
             #{purpose},
+            #{conversationIntent},
             #{stage},
             #{status},
             #{turnCount},
@@ -96,6 +100,7 @@
     <update id="updateProgress" parameterType="com.flashback.domain.AgentSession">
         UPDATE agent_session
         SET stage = #{stage},
+            conversation_intent = #{conversationIntent},
             status = #{status},
             turn_count = #{turnCount},
             stage_reask_count = #{stageReaskCount},
@@ -103,6 +108,16 @@
             updated_at = #{updatedAt}
         WHERE id = #{id}
           AND user_id = #{userId}
+    </update>
+
+    <update id="updateConversationIntent" parameterType="com.flashback.domain.AgentSession">
+        UPDATE agent_session
+        SET conversation_intent = #{conversationIntent},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND purpose = 'WRITING_GUIDANCE'
+          AND status = 'ACTIVE'
     </update>
 
 </mapper>

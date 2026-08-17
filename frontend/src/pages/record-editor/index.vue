@@ -5,8 +5,16 @@ import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/prev
 import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
 import AgentChatSheet from './components/AgentChatSheet.vue'
+import AgentIntentChooser from './components/AgentIntentChooser.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
-import { aiService, attachmentService, dataOwnershipService, recordService, type AgentToolDecision } from '../../services'
+import {
+  aiService,
+  attachmentService,
+  dataOwnershipService,
+  recordService,
+  type AgentConversationIntent,
+  type AgentToolDecision,
+} from '../../services'
 import { useAgentChatStore, useRecordStore, useTagStore } from '../../stores'
 import {
   LifeNodeType,
@@ -46,6 +54,8 @@ const initErrorMessage = ref('')
 const latestQuery = ref<Record<string, unknown>>({})
 const aiOrganizing = ref(false)
 const showAgentChat = ref(false)
+const showAgentIntentChooser = ref(false)
+const selectedAgentIntent = ref<AgentConversationIntent>('LISTEN')
 const showUnlockPicker = ref(false)
 const showLocationPanel = ref(false)
 const showCoverPicker = ref(false)
@@ -568,19 +578,35 @@ const organizeBeliefThen = async () => {
   }
 }
 
-const openAgentChat = async () => {
+const openAgentChat = () => {
   if (!getToken() && hasPreviewSession()) {
     showPreviewReadonlyToast()
     return
   }
+  showAgentIntentChooser.value = true
+}
+
+const chooseAgentIntent = async (intent: AgentConversationIntent) => {
+  selectedAgentIntent.value = intent
+  showAgentIntentChooser.value = false
   showAgentChat.value = true
   try {
-    await agentChatStore.startOrResume(recordId.value)
+    await agentChatStore.startOrResume(intent, recordId.value)
   } catch (error) {
     // 浮层保留错误态与重试入口，不用 toast 覆盖用户注意力。
     if (!agentChatStore.errorMessage) {
       agentChatStore.errorMessage = toUserMessage(error)
     }
+  }
+}
+
+const switchAgentIntent = async (intent: AgentConversationIntent) => {
+  if (agentChatStore.switchingIntent || agentChatStore.session?.conversationIntent === intent) return
+  try {
+    const session = await agentChatStore.switchConversationIntent(intent)
+    if (session?.conversationIntent) selectedAgentIntent.value = session.conversationIntent
+  } catch (error) {
+    if (!agentChatStore.errorMessage) agentChatStore.errorMessage = toUserMessage(error)
   }
 }
 
@@ -628,7 +654,7 @@ const confirmAgentToolCall = async (decision: AgentToolDecision) => {
 
 const retryAgentChat = async () => {
   try {
-    await agentChatStore.retry(recordId.value)
+    await agentChatStore.retry(selectedAgentIntent.value, recordId.value)
   } catch (error) {
     if (!agentChatStore.errorMessage) {
       agentChatStore.errorMessage = toUserMessage(error)
@@ -1748,7 +1774,7 @@ onUnload(() => {
               <view class="agent-entry" @tap="openAgentChat">
                 <view class="agent-entry-copy">
                   <text class="agent-entry-kicker">不知道从哪里写起时</text>
-                  <text class="agent-entry-title">让它陪你聊一会儿</text>
+                  <text class="agent-entry-title">选择这次想怎么聊</text>
                 </view>
                 <text class="agent-entry-arrow">›</text>
               </view>
@@ -2023,14 +2049,22 @@ onUnload(() => {
     :sending="agentChatStore.sending"
     :finishing="agentChatStore.finishing"
     :confirming-tool-call="agentChatStore.confirmingToolCall"
+    :switching-intent="agentChatStore.switchingIntent"
     :error-message="agentChatStore.errorMessage"
     @confirm-tool-call="confirmAgentToolCall"
+    @switch-intent="switchAgentIntent"
     @close="showAgentChat = false"
     @send="sendAgentMessage"
     @finish="finishAgentChat"
     @retry="retryAgentChat"
     @use-material="persistAgentMaterial"
     @discard-material="discardAgentMaterial"
+  />
+
+  <AgentIntentChooser
+    :visible="showAgentIntentChooser"
+    @close="showAgentIntentChooser = false"
+    @choose="chooseAgentIntent"
   />
 </template>
 

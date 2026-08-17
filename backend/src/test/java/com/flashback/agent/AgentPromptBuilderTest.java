@@ -125,7 +125,7 @@ class AgentPromptBuilderTest {
                 AgentStage.CLOSING, List.of(), null);
 
         assertThat(messages.get(messages.size() - 1).get("content")).contains("收束");
-        assertThat(messages.get(messages.size() - 1).get("content")).contains("不要再提新问题");
+        assertThat(messages.get(messages.size() - 1).get("content")).contains("不提新问题");
     }
 
     @Test
@@ -137,6 +137,32 @@ class AgentPromptBuilderTest {
         assertThat(system).contains("只使用用户说过的内容");
         assertThat(system).contains("\"material\"");
         assertThat(system).contains("不添加你的分析");
+    }
+
+    @Test
+    void witnessPromptMustNotClaimFriendshipOrPresetJourney() {
+        String source = promptBuilder.promptTemplateFingerprintSource();
+        assertThat(source).contains("有温度的见证者", "不自称朋友或伴侣", "不要求用户得出结论");
+        assertThat(source).doesNotContain(
+                "一个朋友",
+                "当前引导目标",
+                "最明显的感受",
+                "真正想弄明白的问题");
+    }
+
+    @Test
+    void typedTurnInstructionMustMapZeroOrOneQuestionLimit() {
+        List<Map<String, String>> listen = promptBuilder.buildConversationMessages(
+                AgentStage.WITNESS,
+                AgentWitnessTurnDirective.reflectOnly(AgentStage.WITNESS),
+                List.of(), null, null, null);
+        List<Map<String, String>> untangle = promptBuilder.buildConversationMessages(
+                AgentStage.WITNESS,
+                AgentWitnessTurnDirective.mayAskOne(AgentStage.WITNESS),
+                List.of(), null, null, null);
+
+        assertThat(listen.get(listen.size() - 1).get("content")).contains("不提问题");
+        assertThat(untangle.get(untangle.size() - 1).get("content")).contains("至多问一个", "可跳过");
     }
 
     @Test

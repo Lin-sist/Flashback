@@ -160,7 +160,7 @@ cases:
     dimension: GUARDRAIL
     note: CLOSING 已包含 material provider 调用；即使 reply 缺时间归属也直接兜底，整轮仍保持最多两次调用。
     setup:
-      stage: EXPECTATION
+      stage: CLOSING
       memoryCandidates:
         - id: 70001
           text: 那阵子一直在纠结要不要换个方向，怕选错了就回不去了
@@ -183,7 +183,7 @@ cases:
     dimension: GUARDRAIL
     note: material 仍沿用 C4 直接丢弃；C7 reply-only 不为 material 增加 provider 调用。
     setup:
-      stage: EXPECTATION
+      stage: CLOSING
     turns:
       - userInput: 希望以后能更踏实一点
         reply: 那我们先停在这里。

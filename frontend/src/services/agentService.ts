@@ -5,6 +5,7 @@ import { getToken } from '../utils'
 export type AgentResultStatus = 'SUCCESS' | 'UNAVAILABLE' | 'FAILED'
 export type AgentSessionStatus = 'ACTIVE' | 'ENDED'
 export type AgentStage =
+    | 'WITNESS'
     | 'OPENING'
     | 'EMOTION'
     | 'CONFUSION'
@@ -23,6 +24,7 @@ export type AgentStage =
  * 缺省不传即写作引导，既有调用无需改动。
  */
 export type AgentSessionPurpose = 'WRITING_GUIDANCE' | 'REVIEW_CHAT'
+export type AgentConversationIntent = 'LISTEN' | 'UNTANGLE'
 export type AgentMessageRole = 'USER' | 'ASSISTANT'
 
 export interface AgentMessage {
@@ -61,6 +63,8 @@ export interface AgentSession {
      * 不是前端隐藏（回看无工具、不产可回填素材）。
      */
     purpose?: AgentSessionPurpose
+    /** P4.1：仅写作会话有值；回看会话为 null。 */
+    conversationIntent?: AgentConversationIntent | null
     stage: AgentStage
     sessionStatus: AgentSessionStatus
     turnCount: number
@@ -105,11 +109,11 @@ const requireRealSession = <T>(request: () => Promise<T>) => {
 }
 
 export const agentService = {
-    startOrResume(recordId?: number | null) {
+    startOrResume(conversationIntent: AgentConversationIntent, recordId?: number | null) {
         return requireRealSession(() => httpRequest<AgentSession>({
             url: '/api/agent/sessions',
             method: 'POST',
-            data: recordId ? { recordId } : {},
+            data: recordId ? { recordId, conversationIntent } : { conversationIntent },
             // 开会话会生成 Agent 的开场，含一次 provider 调用。
             timeout: AGENT_AI_TIMEOUT_MS,
         }))
@@ -133,6 +137,14 @@ export const agentService = {
             url: `/api/agent/sessions/${sessionId}`,
             // 刻意沿用默认 10 秒：读会话是纯数据库操作，不调 provider。
             // 给它放宽只会让真正的网络故障晚 20 秒才暴露。
+        }))
+    },
+    switchConversationIntent(sessionId: number, conversationIntent: AgentConversationIntent) {
+        return requireRealSession(() => httpRequest<AgentSession>({
+            url: `/api/agent/sessions/${sessionId}/intent`,
+            method: 'PUT',
+            data: { conversationIntent },
+            // 只更新会话业务状态，不调用 provider。
         }))
     },
     sendMessage(sessionId: number, content: string) {

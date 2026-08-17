@@ -5,8 +5,10 @@ import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentMockResponder;
 import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentPromptBuilder;
-import com.flashback.agent.AgentStageDecision;
 import com.flashback.agent.AgentStageMachine;
+import com.flashback.agent.AgentWitnessTurnDirective;
+import com.flashback.agent.AgentWitnessTurnPolicy;
+import com.flashback.agent.AgentWitnessTurnType;
 import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentFaithfulnessChecker;
 import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
@@ -45,6 +47,7 @@ import com.flashback.common.exception.BizException;
 import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionPurpose;
@@ -106,6 +109,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentMessageMapper agentMessageMapper;
     private final RecordMapper recordMapper;
     private final AgentStageMachine stageMachine;
+    private final AgentWitnessTurnPolicy witnessTurnPolicy;
     private final AgentPromptBuilder promptBuilder;
     private final AgentGuardrailPolicy guardrailPolicy;
     private final AgentModelClient modelClient;
@@ -160,6 +164,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         this.agentMessageMapper = agentMessageMapper;
         this.recordMapper = recordMapper;
         this.stageMachine = stageMachine;
+        this.witnessTurnPolicy = new AgentWitnessTurnPolicy(stageMachine);
         this.promptBuilder = promptBuilder;
         this.guardrailPolicy = guardrailPolicy;
         this.modelClient = modelClient;
@@ -204,6 +209,20 @@ public class AgentChatServiceImpl implements AgentChatService {
                 ? AgentSessionPurpose.WRITING_GUIDANCE
                 : request.purposeOrDefault();
         AgentChatMode mode = AgentChatMode.of(purpose);
+        AgentConversationIntent requestedIntent = request == null
+                ? AgentConversationIntent.LISTEN
+                : request.conversationIntentOrDefault();
+        boolean intentExplicitlyRequested = request != null
+                && request.getConversationIntent() != null;
+
+        if (purpose == AgentSessionPurpose.REVIEW_CHAT
+                && request != null
+                && request.getConversationIntent() != null) {
+            throw new BizException(
+                    ErrorCode.BAD_REQUEST,
+                    HttpStatus.BAD_REQUEST,
+                    "回看对话不接受写作会话意图");
+        }
 
         if (mode.requiresRecord() && recordId == null) {
             // 回看没有可回看的对象。
@@ -214,12 +233,24 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         AgentSession existing = agentSessionMapper.selectActiveByUserAndRecord(userId, recordId, purpose);
         if (existing != null) {
+            normalizeWritingSession(existing);
             List<AgentMessage> existingMessages = agentMessageMapper.selectBySessionId(existing.getId());
+            AgentMessage pendingUserMessage = findPendingUserMessage(
+                    existingMessages, existing.getTurnCount());
+            if (purpose == AgentSessionPurpose.WRITING_GUIDANCE
+                    && intentExplicitlyRequested
+                    && existing.getConversationIntent() != requestedIntent
+                    && pendingUserMessage == null) {
+                existing.setConversationIntent(requestedIntent);
+                existing.setUpdatedAt(LocalDateTime.now(clock));
+                agentSessionMapper.updateConversationIntent(existing);
+            }
             // 正常中断恢复：若最后一条用户消息尚无同轮 Agent 回复，显式提示重试，
-            // 不把 provider 失败后的半轮会话误报为 SUCCESS。
+            // 不把 provider 失败后的半轮会话误报为 SUCCESS，也不让 start/resume
+            // 绕过 intent switch 的冲突边界，使同一 attempt 在另一 policy 下重放。
             if (!existingMessages.isEmpty()) {
                 AgentSessionVO resumed = toSessionVO(existing, existingMessages, null, statusOfConfig());
-                if (findPendingUserMessage(existingMessages, existing.getTurnCount()) != null) {
+                if (pendingUserMessage != null) {
                     resumed.setStatus(STATUS_FAILED);
                     resumed.setMessage("上一轮回复尚未完成，请重试");
                 }
@@ -237,7 +268,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentStage openingStage = openingStageOf(mode);
             AgentReply openingReply = generateReply(
                     openingStage, List.of(), reviewFragmentsOf(userId, existing, mode),
-                    "opening-retry", mode, budget);
+                    "opening-retry", mode, existing.getConversationIntent(), budget);
             if (!openingReply.success()) {
                 return failed(existing, existingMessages, openingReply.message());
             }
@@ -253,8 +284,9 @@ public class AgentChatServiceImpl implements AgentChatService {
         session.setUserId(userId);
         session.setRecordId(recordId);
         session.setPurpose(purpose);
-        // 回看恒为 REVIEW（不经阶段机）；写作引导从 OPENING 起。
-        session.setStage(mode.isStageMachineDriven() ? AgentStage.OPENING : AgentStage.REVIEW);
+        session.setConversationIntent(mode.isStageMachineDriven() ? requestedIntent : null);
+        // P4.1：新写作引导从单一 WITNESS 起；回看恒为 REVIEW。
+        session.setStage(mode.isStageMachineDriven() ? AgentStage.WITNESS : AgentStage.REVIEW);
         session.setStatus(AgentSessionStatus.ACTIVE);
         session.setTurnCount(0);
         session.setStageReaskCount(0);
@@ -274,7 +306,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentStage openingStage = openingStageOf(mode);
         AgentReply reply = generateReply(
                 openingStage, List.of(), reviewFragmentsOf(userId, session, mode),
-                "opening", mode, budget);
+                "opening", mode, session.getConversationIntent(), budget);
         if (!reply.success()) {
             return failed(session, List.of(), reply.message());
         }
@@ -290,6 +322,7 @@ public class AgentChatServiceImpl implements AgentChatService {
     @Override
     public AgentSessionVO getSession(Long userId, Long sessionId) {
         AgentSession session = requireOwnedSession(userId, sessionId);
+        normalizeWritingSession(session);
         List<AgentMessage> messages = agentMessageMapper.selectBySessionId(sessionId);
         AgentSessionVO vo = toSessionVO(session, messages, null, statusOfConfig());
         if (findPendingUserMessage(messages, session.getTurnCount()) != null) {
@@ -332,6 +365,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentCallBudget budget) {
         AgentSession session = requireOwnedSession(userId, sessionId);
         requireActive(session);
+        normalizeWritingSession(session);
 
         String content = normalizeUserInput(request == null ? null : request.getContent());
         LocalDateTime now = LocalDateTime.now(clock);
@@ -343,6 +377,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentMessage pendingUserMessage = findPendingUserMessage(history, session.getTurnCount());
         int turnNo;
         AgentStage targetStage;
+        AgentWitnessTurnDirective directive;
         boolean retry = pendingUserMessage != null;
         if (retry) {
             // provider 失败后的同轮重试：用户消息已经落库，不重复 insert，也不再次推进状态机。
@@ -354,9 +389,11 @@ public class AgentChatServiceImpl implements AgentChatService {
             }
             turnNo = pendingUserMessage.getTurnNo();
             targetStage = session.getStage();
+            directive = directiveFor(mode, session, content, turnNo, maxTurns);
         } else {
             turnNo = session.getTurnCount() + 1;
             targetStage = null;
+            directive = null;
         }
 
         // 轨迹从这里开始收集：turnNo 已确定，且后续每条分支都要留痕。
@@ -366,31 +403,35 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         if (retry) {
             traceOf(trace, t -> t.stageRetained(session.getStage()));
+            AgentWitnessTurnDirective retryDirective = directive;
+            traceOf(trace, t -> t.witnessPolicy(
+                    mode.isStageMachineDriven() ? session.getConversationIntent() : null,
+                    retryDirective.type(),
+                    retryDirective.maxQuestions()));
         } else if (mode.isStageMachineDriven()) {
             AgentStage fromStage = session.getStage();
-            AgentStageDecision decision = stageMachine.decide(
-                    fromStage,
-                    content,
-                    session.getStageReaskCount(),
-                    turnNo,
-                    maxTurns);
+            directive = directiveFor(mode, session, content, turnNo, maxTurns);
 
             // 用户的话先落库：即使随后 provider 失败，用户输入也不丢。
             AgentMessage userMessage = persistMessage(
                     session, AgentMessageRole.USER, turnNo, session.getStage(), content, now);
             history = appended(history, userMessage);
             session.setTurnCount(turnNo);
-            session.setStageReaskCount(decision.stageReaskCount());
-            session.setStage(decision.nextStage() == AgentStage.ENDED ? AgentStage.CLOSING : decision.nextStage());
+            session.setStageReaskCount(0);
+            session.setStage(directive.nextStage());
             updateProgress(session, now);
             targetStage = session.getStage();
-            // C5：复用既有 AgentStageDecision.Reason（它的注释早就为此预留），
-            // 不为可观测另造一套并行的阶段语义。
             AgentStage toStage = targetStage;
-            traceOf(trace, t -> t.stageDecision(fromStage, toStage, decision.reason()));
+            AgentWitnessTurnDirective turnDirective = directive;
+            traceOf(trace, t -> t.stageDecision(fromStage, toStage, turnDirective.reason())
+                    .witnessPolicy(
+                            session.getConversationIntent(),
+                            turnDirective.type(),
+                            turnDirective.maxQuestions()));
         } else {
             // C3b：回看无阶段机（design 决策 2）。阶段恒为 REVIEW，
             // stageReaskCount 不被回看逻辑改写——回看不追问，没有「同阶段再问一次」的概念。
+            directive = witnessTurnPolicy.reviewTurn(content, turnNo, maxTurns);
             AgentMessage userMessage = persistMessage(
                     session, AgentMessageRole.USER, turnNo, AgentStage.REVIEW, content, now);
             history = appended(history, userMessage);
@@ -398,8 +439,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             session.setStage(AgentStage.REVIEW);
             updateProgress(session, now);
             targetStage = AgentStage.REVIEW;
-            // 刻意不调 stageDecision：回看没有判定结论，伪造一个会让轨迹说谎。
-            traceOf(trace, t -> t.stageRetained(AgentStage.REVIEW));
+            AgentWitnessTurnDirective turnDirective = directive;
+            traceOf(trace, t -> t.stageRetained(AgentStage.REVIEW)
+                    .witnessPolicy(null, turnDirective.type(), turnDirective.maxQuestions()));
         }
 
         String unavailableReason = modelClient.unavailableReason();
@@ -436,6 +478,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                 : null;
         AgentReply reply = generateReply(
                 targetStage,
+                directive,
                 history,
                 draftExcerpt,
                 "turn",
@@ -483,7 +526,9 @@ public class AgentChatServiceImpl implements AgentChatService {
             traceOf(trace, t -> t.material(produced != null, produced == null ? 0 : produced.length()));
             endSession(session, now);
             traceOf(trace, t -> t.sessionEnded("closing"));
-        } else if (!mode.isStageMachineDriven() && session.getTurnCount() >= maxTurns) {
+        } else if (!mode.isStageMachineDriven()
+                && (directive.type() == AgentWitnessTurnType.CLOSE
+                || session.getTurnCount() >= maxTurns)) {
             // 回看没有 CLOSING 阶段，达到轮次上限即温和收束（design 决策 2）。
             endSession(session, now);
             traceOf(trace, t -> t.sessionEnded("turn-limit"));
@@ -623,11 +668,15 @@ public class AgentChatServiceImpl implements AgentChatService {
             List<MemoryFragment> reviewFragments,
             String operation,
             AgentChatMode mode,
+            AgentConversationIntent conversationIntent,
             AgentCallBudget budget) {
         List<MemoryFragment> fragments = reviewFragments == null ? List.of() : reviewFragments;
         TemporalPolicyResult temporal = temporalPolicy.evaluate(mode, "", fragments, List.of());
+        AgentWitnessTurnDirective directive = mode.isStageMachineDriven()
+                ? witnessTurnPolicy.opening(conversationIntent)
+                : witnessTurnPolicy.reviewOpening();
         return generateReply(
-                targetStage, history, null, operation,
+                targetStage, directive, history, null, operation,
                 new AgentToolContext(false, null),
                 layeredCorpusOf(history, temporal.injectedFragments()), temporal.injectedFragments(), temporal,
                 budget,
@@ -727,7 +776,23 @@ public class AgentChatServiceImpl implements AgentChatService {
      * C3b：模式对应的开场阶段。
      */
     private AgentStage openingStageOf(AgentChatMode mode) {
-        return mode.isStageMachineDriven() ? stageMachine.firstStage() : AgentStage.REVIEW;
+        return mode.isStageMachineDriven() ? AgentStage.WITNESS : AgentStage.REVIEW;
+    }
+
+    private AgentWitnessTurnDirective directiveFor(
+            AgentChatMode mode,
+            AgentSession session,
+            String userInput,
+            int turnNo,
+            int maxTurns) {
+        if (mode.isStageMachineDriven() && session.getStage() == AgentStage.CLOSING) {
+            return AgentWitnessTurnDirective.close(
+                    AgentStage.CLOSING, com.flashback.agent.AgentStageDecision.Reason.CLOSED);
+        }
+        return mode.isStageMachineDriven()
+                ? witnessTurnPolicy.decide(
+                        session.getConversationIntent(), userInput, turnNo, maxTurns)
+                : witnessTurnPolicy.reviewTurn(userInput, turnNo, maxTurns);
     }
 
     /**
@@ -810,6 +875,7 @@ public class AgentChatServiceImpl implements AgentChatService {
      */
     private AgentReply generateReply(
             AgentStage targetStage,
+            AgentWitnessTurnDirective directive,
             List<AgentMessage> history,
             String draftExcerpt,
             String operation,
@@ -821,6 +887,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentTraceCollector trace) {
         return replyPipeline.generate(
                 targetStage,
+                directive,
                 history,
                 draftExcerpt,
                 operation,
@@ -831,6 +898,32 @@ public class AgentChatServiceImpl implements AgentChatService {
                 temporal,
                 budget,
                 trace);
+    }
+
+    @Override
+    @Transactional
+    public AgentSessionVO switchConversationIntent(
+            Long userId, Long sessionId, AgentConversationIntent conversationIntent) {
+        assertOwnershipWritable(userId);
+        AgentSession session = requireOwnedSession(userId, sessionId);
+        requireActive(session);
+        normalizeWritingSession(session);
+        if (session.getPurpose() != AgentSessionPurpose.WRITING_GUIDANCE) {
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "回看对话不能切换写作意图");
+        }
+        if (conversationIntent == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "conversationIntent不能为空");
+        }
+        List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
+        if (findPendingUserMessage(history, session.getTurnCount()) != null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.CONFLICT, "请先重试上一轮回复或结束对话");
+        }
+        if (session.getConversationIntent() != conversationIntent) {
+            session.setConversationIntent(conversationIntent);
+            session.setUpdatedAt(LocalDateTime.now(clock));
+            agentSessionMapper.updateConversationIntent(session);
+        }
+        return toSessionVO(session, history, null, statusOfConfig());
     }
 
     private void traceTemporal(AgentTraceCollector trace, TemporalPolicyResult result) {
@@ -995,6 +1088,28 @@ public class AgentChatServiceImpl implements AgentChatService {
         return session;
     }
 
+    /** migration 之外的防御性兼容：只归一当前 session，不改写历史 message/trace。 */
+    private void normalizeWritingSession(AgentSession session) {
+        if (session == null || session.getPurpose() != AgentSessionPurpose.WRITING_GUIDANCE) {
+            return;
+        }
+        boolean changed = false;
+        if (session.getConversationIntent() == null) {
+            session.setConversationIntent(AgentConversationIntent.LISTEN);
+            changed = true;
+        }
+        if (session.getStatus() == AgentSessionStatus.ACTIVE
+                && session.getStage() != AgentStage.WITNESS
+                && session.getStage() != AgentStage.CLOSING) {
+            session.setStage(AgentStage.WITNESS);
+            session.setStageReaskCount(0);
+            changed = true;
+        }
+        if (changed && session.getId() != null) {
+            updateProgress(session, LocalDateTime.now(clock));
+        }
+    }
+
     private void requireActive(AgentSession session) {
         if (session.getStatus() != AgentSessionStatus.ACTIVE) {
             throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "会话已结束，可以重新开启一次对话");
@@ -1114,6 +1229,10 @@ public class AgentChatServiceImpl implements AgentChatService {
         AgentSessionVO vo = new AgentSessionVO();
         vo.setSessionId(session.getId());
         vo.setRecordId(session.getRecordId());
+        vo.setConversationIntent(session.getPurpose() == AgentSessionPurpose.WRITING_GUIDANCE
+                && session.getConversationIntent() != null
+                ? session.getConversationIntent().name()
+                : null);
         vo.setStage(session.getStage() == null ? null : session.getStage().name());
         vo.setSessionStatus(session.getStatus() == null ? null : session.getStatus().name());
         vo.setTurnCount(session.getTurnCount());

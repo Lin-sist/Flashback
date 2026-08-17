@@ -24,7 +24,7 @@ import java.util.Map;
  * 组装 Agent 对话的 provider 请求 messages。
  *
  * 约定：
- * - system 段固定包含角色设定 + 五条最小护栏 + 长度上限 + 当前阶段目标；
+ * - system 段固定包含 witness 角色设定 + 五条最小护栏 + 长度上限 + typed turn 边界；
  * - 历史消息按滑动窗口截取，C1 不做摘要压缩（留给 C3 Memory）；
  * - 草稿正文只作为只读引用注入，禁止让模型改写。
  */
@@ -32,9 +32,10 @@ import java.util.Map;
 public class AgentPromptBuilder {
 
     private static final String ROLE_SETTING = """
-            你是《时光回序》里的一个朋友。用户在这里写下当下的情绪、困惑、期待与生活片段。
-            你的气质是安静、私密、克制、温柔：不热情也不冷漠，用户找你时你就在。
-            你的任务是用温和的提问，帮用户把此刻的感受一点点说出来，而不是替他写、替他总结、替他决定。
+            你是《时光回序》里有温度的见证者。你在场，但不替用户解释、决定或完成表达。
+            先回应用户实际说出的内容；理解不确定时可以说明“我可能理解得不完全”，把修正权留给用户。
+            不自称朋友或伴侣，不承诺一直陪伴、主动关心或最懂用户；不把一次表达固化成人格、人生阶段或诊断。
+            不强制用户谈情绪、困惑、核心问题或未来期待，不要求用户得出结论。
             """;
 
     /**
@@ -112,8 +113,28 @@ public class AgentPromptBuilder {
             String draftExcerpt,
             String toolSupplement,
             String memorySupplement) {
+        return buildConversationMessages(
+                targetStage,
+                AgentWitnessTurnDirective.safeDefault(targetStage),
+                history,
+                draftExcerpt,
+                toolSupplement,
+                memorySupplement);
+    }
+
+    /** P4.1：生产编排显式传入后端计算的 typed turn contract。 */
+    public List<Map<String, String>> buildConversationMessages(
+            AgentStage targetStage,
+            AgentWitnessTurnDirective directive,
+            List<AgentMessage> history,
+            String draftExcerpt,
+            String toolSupplement,
+            String memorySupplement) {
         List<Map<String, String>> messages = new ArrayList<>();
-        String system = buildSystemPrompt(targetStage, draftExcerpt);
+        AgentWitnessTurnDirective effective = directive == null
+                ? AgentWitnessTurnDirective.safeDefault(targetStage)
+                : directive;
+        String system = buildSystemPrompt(targetStage, effective, draftExcerpt);
         if (toolSupplement != null && !toolSupplement.isBlank()) {
             system = system + "\n\n" + toolSupplement.trim();
         }
@@ -128,16 +149,24 @@ public class AgentPromptBuilder {
                     "content", message.getContent()));
         }
 
-        messages.add(Map.of("role", "user", "content", buildTurnInstruction(targetStage)));
+        messages.add(Map.of("role", "user", "content", buildTurnInstruction(effective)));
         return List.copyOf(messages);
     }
 
     String buildSystemPrompt(AgentStage targetStage, String draftExcerpt) {
+        return buildSystemPrompt(
+                targetStage, AgentWitnessTurnDirective.safeDefault(targetStage), draftExcerpt);
+    }
+
+    String buildSystemPrompt(
+            AgentStage targetStage,
+            AgentWitnessTurnDirective directive,
+            String draftExcerpt) {
         StringBuilder builder = new StringBuilder();
         builder.append(ROLE_SETTING.trim()).append("\n\n");
         builder.append(guardrailPolicy.guardrailClause()).append("\n\n");
         builder.append("回复长度硬上限：").append(guardrailPolicy.maxReplyChars()).append(" 个字符以内。\n\n");
-        builder.append("当前引导目标：").append(stageGoal(targetStage)).append("\n\n");
+        builder.append("本轮回复边界：").append(buildTurnInstruction(directive)).append("\n\n");
         // C2 起走原生 function calling：回复取自 message.content，不再包一层 JSON。
         // 若这里仍要求模型输出 {"reply":...}，模型会照做，而后端不再剥壳，
         // JSON 原文就会直接显示在对话气泡里（C2 手验实际发生过）。
@@ -341,9 +370,14 @@ public class AgentPromptBuilder {
     public String promptTemplateFingerprintSource() {
         StringBuilder builder = new StringBuilder();
         builder.append(ROLE_SETTING).append('\n');
-        for (AgentStage stage : AgentStage.values()) {
-            builder.append(stage.name()).append('=').append(stageGoal(stage)).append('\n');
-            builder.append(stage.name()).append('>').append(buildTurnInstruction(stage)).append('\n');
+        for (AgentWitnessTurnType type : AgentWitnessTurnType.values()) {
+            AgentWitnessTurnDirective directive = switch (type) {
+                case REFLECT_ONLY -> AgentWitnessTurnDirective.reflectOnly(AgentStage.WITNESS);
+                case MAY_ASK_ONE -> AgentWitnessTurnDirective.mayAskOne(AgentStage.WITNESS);
+                case CLOSE -> AgentWitnessTurnDirective.close(
+                        AgentStage.CLOSING, AgentStageDecision.Reason.CLOSED);
+            };
+            builder.append(type.name()).append('>').append(buildTurnInstruction(directive)).append('\n');
         }
         builder.append(OUTPUT_REQUIREMENT).append('\n');
         builder.append(DRAFT_EXCERPT_LABEL).append('\n');
@@ -351,25 +385,11 @@ public class AgentPromptBuilder {
         return builder.toString();
     }
 
-    private String buildTurnInstruction(AgentStage targetStage) {
-        return switch (targetStage) {
-            case CLOSING -> "请温和地收束这次对话，让用户知道说到这里已经够了，不要再提新问题。";
-            // C3b：回看没有引导目标，本轮指令换成「陪他看那时的自己」。
-            case REVIEW -> "请顺着他刚说的往下聊，可以提起他过去写过的事，但必须说清那是哪个时候的。";
-            default -> "请基于上面的对话，围绕当前引导目标问一个具体、温和、好回答的问题。";
-        };
-    }
-
-    private String stageGoal(AgentStage targetStage) {
-        return switch (targetStage) {
-            case OPENING, EMOTION -> "让用户说出此刻最明显的感受是什么，不要问抽象的大问题。";
-            case CONFUSION -> "在用户已说出的感受基础上，帮他指出让他卡住的具体地方。";
-            case CORE_QUESTION -> "帮用户把困惑收敛成一个他真正想弄明白的问题。";
-            case EXPECTATION -> "问用户希望接下来变成什么样，或者希望未来的自己怎么看这一刻。";
-            case CLOSING -> "温和收束，不再追问，让用户知道可以停在这里。";
-            // C3b：回看不是引导，目标是陪他重新理解那时的自己。
-            case REVIEW -> "陪他一起看那时写下的东西，帮他自己发现变化，不替他下结论。";
-            case ENDED -> "对话已结束，不要再发问。";
+    private String buildTurnInstruction(AgentWitnessTurnDirective directive) {
+        return switch (directive.type()) {
+            case REFLECT_ONLY -> "回应已经听见的内容，留出继续或停下的空间，不提问题。";
+            case MAY_ASK_ONE -> "先回应，再至多问一个具体且可跳过的问题；没有必要就不问。";
+            case CLOSE -> "温和收束，不挽留，不要求结论，也不提新问题。";
         };
     }
 

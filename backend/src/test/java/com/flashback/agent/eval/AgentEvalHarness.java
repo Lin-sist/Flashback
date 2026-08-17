@@ -20,6 +20,7 @@ import com.flashback.agent.tool.AgentToolValidator;
 import com.flashback.agent.trace.AgentTraceVersions;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentMessageRole;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionPurpose;
@@ -175,8 +176,8 @@ final class AgentEvalHarness {
             opening.setTurnNo(0);
             opening.setStage(builder.purpose == AgentSessionPurpose.REVIEW_CHAT
                     ? AgentStage.REVIEW
-                    : AgentStage.OPENING);
-            opening.setContent("今天是什么让你想写下这一刻？");
+                    : AgentStage.WITNESS);
+            opening.setContent("我在这里，你可以按自己的节奏说。");
             opening.setCreatedAt(LocalDateTime.of(2026, 7, 31, 10, 0));
             messages.add(opening);
         }
@@ -272,7 +273,10 @@ final class AgentEvalHarness {
 
         private final AppAgentProperties properties = new AppAgentProperties();
         private AgentSessionPurpose purpose = AgentSessionPurpose.WRITING_GUIDANCE;
-        private AgentStage stage = AgentStage.EMOTION;
+        private AgentStage stage = AgentStage.WITNESS;
+        // 既有 scripted fixtures 多数包含一个问题；显式以 UNTANGLE 跑，
+        // P4.1 LISTEN 专项 fixture 会覆盖为 LISTEN。
+        private AgentConversationIntent conversationIntent = AgentConversationIntent.UNTANGLE;
         private int turnCount;
         private int stageReaskCount;
         private boolean withOpening = true;
@@ -294,7 +298,12 @@ final class AgentEvalHarness {
 
         Builder purpose(AgentSessionPurpose value) {
             this.purpose = value;
-            this.stage = value == AgentSessionPurpose.REVIEW_CHAT ? AgentStage.REVIEW : AgentStage.EMOTION;
+            this.stage = value == AgentSessionPurpose.REVIEW_CHAT ? AgentStage.REVIEW : AgentStage.WITNESS;
+            return this;
+        }
+
+        Builder conversationIntent(AgentConversationIntent value) {
+            this.conversationIntent = value;
             return this;
         }
 
@@ -379,6 +388,8 @@ final class AgentEvalHarness {
             session.setUserId(USER_ID);
             session.setRecordId(recordId);
             session.setPurpose(purpose);
+            session.setConversationIntent(
+                    purpose == AgentSessionPurpose.WRITING_GUIDANCE ? conversationIntent : null);
             session.setStage(stage);
             session.setStatus(AgentSessionStatus.ACTIVE);
             session.setTurnCount(turnCount);

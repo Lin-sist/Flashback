@@ -8,6 +8,12 @@ package com.flashback.domain;
  */
 public enum AgentStage {
 
+    /**
+     * P4.1：用户主导的写作见证阶段。
+     *
+     * 新写作会话普通轮次恒为该值；旧四阶段仅保留历史读取兼容。
+     */
+    WITNESS,
     /** 开场，尚未开始引导。 */
     OPENING,
     /** 引导用户描述此刻情绪。 */

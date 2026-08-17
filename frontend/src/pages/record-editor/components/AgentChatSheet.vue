@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import type { AgentMessage, AgentSession, AgentToolDecision } from '../../../services'
+import type {
+  AgentConversationIntent,
+  AgentMessage,
+  AgentSession,
+  AgentToolDecision,
+} from '../../../services'
 
 const props = defineProps<{
   visible: boolean
@@ -9,6 +14,7 @@ const props = defineProps<{
   sending: boolean
   finishing: boolean
   confirmingToolCall: boolean
+  switchingIntent: boolean
   errorMessage: string
 }>()
 
@@ -20,6 +26,7 @@ const emit = defineEmits<{
   useMaterial: [material: string]
   discardMaterial: []
   confirmToolCall: [decision: AgentToolDecision]
+  switchIntent: [intent: AgentConversationIntent]
 }>()
 
 const input = ref('')
@@ -37,13 +44,13 @@ const canSend = computed(() => Boolean(input.value.trim())
   && !awaitingRetry.value)
 const phaseText = computed(() => {
   if (!props.session) return '写下此刻'
-  if (props.session.stage === 'EMOTION') return '从此刻的感受开始'
-  if (props.session.stage === 'CONFUSION') return '看看是什么让你停在这里'
-  if (props.session.stage === 'CORE_QUESTION') return '慢慢找到真正想问的事'
-  if (props.session.stage === 'EXPECTATION') return '留一点给未来的期待'
   if (props.session.stage === 'CLOSING' || props.session.stage === 'ENDED') return '说到这里已经很好'
-  return '写下此刻'
+  return props.session.conversationIntent === 'UNTANGLE' ? '一起理一理' : '先听你说'
 })
+
+const currentIntent = computed<AgentConversationIntent>(() =>
+  props.session?.conversationIntent === 'UNTANGLE' ? 'UNTANGLE' : 'LISTEN'
+)
 
 /** C2：仅待确认的提议才展示确认条。 */
 const pendingToolCall = computed(() => {
@@ -105,6 +112,25 @@ const submit = () => {
       </view>
 
       <view class="privacy-note">这里只陪你慢慢说，不会替你改写或做决定。</view>
+
+      <view v-if="session && !isEnded" class="intent-switch" aria-label="切换对话方式">
+        <view
+          class="intent-switch-item"
+          :class="{
+            'intent-switch-item--active': currentIntent === 'LISTEN',
+            'intent-switch-item--disabled': switchingIntent,
+          }"
+          @tap="emit('switchIntent', 'LISTEN')"
+        >先听我说</view>
+        <view
+          class="intent-switch-item"
+          :class="{
+            'intent-switch-item--active': currentIntent === 'UNTANGLE',
+            'intent-switch-item--disabled': switchingIntent,
+          }"
+          @tap="emit('switchIntent', 'UNTANGLE')"
+        >{{ switchingIntent ? '正在切换...' : '帮我理一理' }}</view>
+      </view>
 
       <scroll-view
         class="message-list"
@@ -300,6 +326,35 @@ const submit = () => {
   color: rgba(68, 58, 48, 0.54);
   font-size: 21rpx;
   line-height: 1.6;
+}
+
+.intent-switch {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10rpx;
+  margin-top: 16rpx;
+  padding: 6rpx;
+  border-radius: 999rpx;
+  background: rgba(102, 85, 65, 0.07);
+}
+
+.intent-switch-item {
+  flex: 1;
+  padding: 12rpx 14rpx;
+  border-radius: 999rpx;
+  color: rgba(64, 55, 47, 0.58);
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.intent-switch-item--active {
+  color: #744c36;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 2rpx 8rpx rgba(63, 52, 39, 0.07);
+}
+
+.intent-switch-item--disabled {
+  opacity: 0.45;
 }
 
 /*

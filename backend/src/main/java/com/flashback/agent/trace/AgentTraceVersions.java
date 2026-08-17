@@ -3,6 +3,7 @@ package com.flashback.agent.trace;
 import com.flashback.agent.AgentGuardrailPolicy;
 import com.flashback.agent.AgentPromptBuilder;
 import com.flashback.agent.guardrail.AgentGuardrailRules;
+import com.flashback.agent.guardrail.AgentQuestionLimitPolicy;
 import com.flashback.agent.reflection.AgentReflectionPolicy;
 import com.flashback.agent.temporal.AgentTemporalLanguageChecker;
 import com.flashback.agent.temporal.AgentTemporalPolicy;
@@ -82,6 +83,7 @@ public class AgentTraceVersions {
         builder.append(guardrailRules.memoryUsageClause()).append('\n');
         builder.append(guardrailRules.materialClause()).append('\n');
         builder.append(reflectionPolicy.fingerprintSource()).append('\n');
+        builder.append(AgentQuestionLimitPolicy.fingerprintSource()).append('\n');
         builder.append(AgentTemporalPolicy.fingerprintSource(properties.getTemporal())).append('\n');
         builder.append(temporalLanguageChecker.fingerprintSource()).append('\n');
         builder.append(AgentGuardrailRules.SAFE_FALLBACK_REPLY).append('\n');

@@ -2,6 +2,7 @@ package com.flashback.agent.trace;
 
 import com.flashback.agent.AgentChatMode;
 import com.flashback.agent.AgentStageDecision;
+import com.flashback.agent.AgentWitnessTurnType;
 import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
 import com.flashback.agent.reflection.AgentProviderPhase;
@@ -9,6 +10,7 @@ import com.flashback.agent.reflection.AgentReflectionTerminal;
 import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.domain.AgentSessionPurpose;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentStage;
 
 import java.util.ArrayList;
@@ -107,6 +109,17 @@ public final class AgentTraceCollector {
     public AgentTraceCollector stageRetained(AgentStage current) {
         this.stage = current;
         return step("stage-retained", "stage", current == null ? null : current.name());
+    }
+
+    /** P4.1：只记录 intent/policy/上限枚举，不接收用户或模型文本。 */
+    public AgentTraceCollector witnessPolicy(
+            AgentConversationIntent intent,
+            AgentWitnessTurnType policy,
+            int maxQuestions) {
+        return step("witness-policy",
+                "intent", intent == null ? null : intent.name(),
+                "policy", policy == null ? null : policy.name(),
+                "maxQuestions", maxQuestions);
     }
 
     /**

@@ -32,4 +32,7 @@ public interface AgentSessionMapper {
             @Param("purpose") AgentSessionPurpose purpose);
 
     int updateProgress(AgentSession session);
+
+    /** P4.1：仅更新会话意图，不推进阶段或轮次。 */
+    int updateConversationIntent(AgentSession session);
 }

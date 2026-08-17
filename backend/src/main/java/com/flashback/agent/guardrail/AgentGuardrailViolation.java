@@ -31,6 +31,9 @@ public enum AgentGuardrailViolation {
     /** C9：把有限时间证据扩写成频率、趋势、因果、诊断或预测。 */
     TEMPORAL_OVERREACH("temporal-overreach"),
 
+    /** P4.1：候选回复中的问题数超过本轮后端 policy 允许的 0/1 上限。 */
+    EXCESSIVE_QUESTIONS("excessive-questions"),
+
     /** 判定过程自身异常，按 fail-closed 处理。 */
     CHECK_ERROR("check-error");
 

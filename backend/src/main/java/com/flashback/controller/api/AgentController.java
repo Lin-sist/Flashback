@@ -2,6 +2,7 @@ package com.flashback.controller.api;
 
 import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.AgentMessageRequest;
+import com.flashback.dto.AgentConversationIntentRequest;
 import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.dto.AgentToolCallConfirmRequest;
 import com.flashback.security.auth.AuthUser;
@@ -13,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -62,6 +64,15 @@ public class AgentController {
             @CurrentUser AuthUser authUser,
             @PathVariable Long sessionId) {
         return ApiResponse.success(agentChatService.finish(authUser.getUserId(), sessionId));
+    }
+
+    @PutMapping("/sessions/{sessionId}/intent")
+    public ApiResponse<AgentSessionVO> switchConversationIntent(
+            @CurrentUser AuthUser authUser,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody AgentConversationIntentRequest request) {
+        return ApiResponse.success(agentChatService.switchConversationIntent(
+                authUser.getUserId(), sessionId, request.getConversationIntent()));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.flashback.service.impl;
 
 import com.flashback.domain.AgentMessageRole;
+import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
 import com.flashback.dto.AgentMessageRequest;
@@ -52,7 +53,7 @@ class AgentRuntimeIntegrationTest {
 
         assertThat(opened.getStatus()).isEqualTo("SUCCESS");
         assertThat(opened.getSource()).isEqualTo("mock");
-        assertThat(opened.getStage()).isEqualTo(AgentStage.EMOTION.name());
+        assertThat(opened.getStage()).isEqualTo(AgentStage.WITNESS.name());
         assertThat(opened.getMessages()).singleElement()
                 .satisfies(message -> {
                     assertThat(message.getRole()).isEqualTo(AgentMessageRole.ASSISTANT.name());
@@ -65,7 +66,7 @@ class AgentRuntimeIntegrationTest {
                 message("工作上有点撑不住，最近一直睡不好"));
 
         assertThat(afterFirstTurn.getStatus()).isEqualTo("SUCCESS");
-        assertThat(afterFirstTurn.getStage()).isEqualTo(AgentStage.CONFUSION.name());
+        assertThat(afterFirstTurn.getStage()).isEqualTo(AgentStage.WITNESS.name());
         assertThat(afterFirstTurn.getTurnCount()).isEqualTo(1);
         assertThat(afterFirstTurn.getMessages()).extracting("role")
                 .containsExactly("ASSISTANT", "USER", "ASSISTANT");
@@ -73,7 +74,7 @@ class AgentRuntimeIntegrationTest {
         var resumed = agentChatService.startOrResume(USER_ID, new AgentSessionStartRequest());
 
         assertThat(resumed.getSessionId()).isEqualTo(opened.getSessionId());
-        assertThat(resumed.getStage()).isEqualTo(AgentStage.CONFUSION.name());
+        assertThat(resumed.getStage()).isEqualTo(AgentStage.WITNESS.name());
         assertThat(resumed.getMessages()).hasSize(3);
 
         var finished = agentChatService.finish(USER_ID, opened.getSessionId());
@@ -97,15 +98,38 @@ class AgentRuntimeIntegrationTest {
     }
 
     @Test
-    void shouldReaskOnceThenAdvanceForConsecutiveShortAnswers() {
+    void shouldKeepWitnessStageWithoutReaskForConsecutiveShortAnswers() {
         var opened = agentChatService.startOrResume(USER_ID, new AgentSessionStartRequest());
 
-        var reasked = agentChatService.sendMessage(USER_ID, opened.getSessionId(), message("嗯"));
-        assertThat(reasked.getStage()).isEqualTo(AgentStage.EMOTION.name());
+        var first = agentChatService.sendMessage(USER_ID, opened.getSessionId(), message("嗯"));
+        assertThat(first.getStage()).isEqualTo(AgentStage.WITNESS.name());
 
-        var advanced = agentChatService.sendMessage(USER_ID, opened.getSessionId(), message("不知道"));
-        assertThat(advanced.getStage()).isEqualTo(AgentStage.CONFUSION.name());
-        assertThat(advanced.getTurnCount()).isEqualTo(2);
+        var second = agentChatService.sendMessage(USER_ID, opened.getSessionId(), message("不知道"));
+        assertThat(second.getStage()).isEqualTo(AgentStage.WITNESS.name());
+        assertThat(second.getTurnCount()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldPersistAndSwitchIntentWithoutCreatingMessagesOrAdvancingTurn() {
+        AgentSessionStartRequest request = new AgentSessionStartRequest();
+        request.setConversationIntent(AgentConversationIntent.UNTANGLE);
+        var opened = agentChatService.startOrResume(USER_ID, request);
+
+        assertThat(opened.getConversationIntent()).isEqualTo("UNTANGLE");
+        assertThat(opened.getStage()).isEqualTo(AgentStage.WITNESS.name());
+        int messageCount = opened.getMessages().size();
+
+        var switched = agentChatService.switchConversationIntent(
+                USER_ID, opened.getSessionId(), AgentConversationIntent.LISTEN);
+
+        assertThat(switched.getConversationIntent()).isEqualTo("LISTEN");
+        assertThat(switched.getTurnCount()).isZero();
+        assertThat(switched.getStage()).isEqualTo(AgentStage.WITNESS.name());
+        assertThat(switched.getMessages()).hasSize(messageCount);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT conversation_intent FROM agent_session WHERE id = ?",
+                String.class,
+                opened.getSessionId())).isEqualTo("LISTEN");
     }
 
     private AgentMessageRequest message(String content) {

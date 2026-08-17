@@ -10,8 +10,7 @@ cases:
   - caseId: stage-advance-through-guiding-sequence
     dimension: STAGE_PROGRESSION
     note: |
-      正常作答连续推进：EMOTION → CONFUSION → CORE_QUESTION → EXPECTATION。
-      每轮 reason 均为 ADVANCE。
+      P4.1 后正常作答不再经过固定四阶段，普通轮次恒保持 WITNESS。
     turns:
       - userInput: 最近工作上有点撑不住，想写下来
         reply: 这种感觉是从什么时候开始的？
@@ -22,8 +21,8 @@ cases:
       - userInput: 我大概想问的是这样撑下去到底值不值得
         reply: 你希望接下来变成什么样？
     expect:
-      stagePath: [CONFUSION, CORE_QUESTION, EXPECTATION, CLOSING]
-      stageReasons: [ADVANCE, ADVANCE, ADVANCE, ADVANCE]
+      stagePath: [WITNESS, WITNESS, WITNESS, WITNESS]
+      stageReasons: [WITNESS_RETAINED, WITNESS_RETAINED, WITNESS_RETAINED, WITNESS_RETAINED]
 
   - caseId: stage-closing-then-ended
     dimension: STAGE_PROGRESSION

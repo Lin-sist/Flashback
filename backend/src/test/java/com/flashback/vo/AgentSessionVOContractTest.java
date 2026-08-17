@@ -20,6 +20,7 @@ class AgentSessionVOContractTest {
         assertThat(fields).containsExactlyInAnyOrder(
                 "sessionId",
                 "recordId",
+                "conversationIntent",
                 "stage",
                 "sessionStatus",
                 "turnCount",

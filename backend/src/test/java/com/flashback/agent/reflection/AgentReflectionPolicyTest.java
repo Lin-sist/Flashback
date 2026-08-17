@@ -13,7 +13,8 @@ class AgentReflectionPolicyTest {
     @Test
     void shouldOnlyAllowMissingTimeAttributionOutsideClosing() {
         for (AgentGuardrailViolation violation : AgentGuardrailViolation.values()) {
-            boolean expected = violation == AgentGuardrailViolation.MISSING_TIME_ATTRIBUTION;
+            boolean expected = violation == AgentGuardrailViolation.MISSING_TIME_ATTRIBUTION
+                    || violation == AgentGuardrailViolation.EXCESSIVE_QUESTIONS;
             assertThat(policy.instructionFor(AgentStage.EMOTION, violation).isPresent())
                     .as("violation=%s", violation)
                     .isEqualTo(expected);

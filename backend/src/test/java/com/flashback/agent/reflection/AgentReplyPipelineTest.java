@@ -6,11 +6,13 @@ import com.flashback.agent.AgentModelClient;
 import com.flashback.agent.AgentModelResponse;
 import com.flashback.agent.AgentPromptBuilder;
 import com.flashback.agent.AgentRawToolCall;
+import com.flashback.agent.AgentWitnessTurnDirective;
 import com.flashback.agent.guardrail.AgentContentChecker;
 import com.flashback.agent.guardrail.AgentGuardrailDowngrade;
 import com.flashback.agent.guardrail.AgentGuardrailVerdict;
 import com.flashback.agent.guardrail.AgentGuardrailViolation;
 import com.flashback.agent.guardrail.AgentLayeredCorpus;
+import com.flashback.agent.guardrail.AgentSourceCorpus;
 import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentResiliencePolicy;
@@ -60,6 +62,8 @@ class AgentReplyPipelineTest {
         when(modelClient.provider()).thenReturn("scripted");
         when(promptBuilder.buildMemorySupplement(any())).thenReturn(null);
         when(promptBuilder.buildConversationMessages(any(), any(), any(), any(), any()))
+                .thenReturn(List.of(Map.of("role", "system", "content", "fixed-system")));
+        when(promptBuilder.buildConversationMessages(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(Map.of("role", "system", "content", "fixed-system")));
         when(promptBuilder.normalizeReplyShape(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(guardrailPolicy.enforceReplyLength(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -195,6 +199,40 @@ class AgentReplyPipelineTest {
         assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
                 .containsEntry("step", "reflection-result")
                 .containsEntry("terminal", "invalid-content"));
+    }
+
+    @Test
+    void excessiveQuestionsMustReflectOnceThenFallbackWithoutThirdCall() throws Exception {
+        when(modelClient.completeWithTools(any(), any(), anyBoolean(), any()))
+                .thenReturn(new AgentModelResponse("为什么这么累？还想再说一点吗？", List.of()))
+                .thenReturn(new AgentModelResponse("要先说工作吗？还是先说家里？", List.of()));
+        when(timeAttributionChecker.check(any(), any())).thenReturn(AgentGuardrailVerdict.pass());
+        AgentTraceCollector trace = trace(AgentStage.WITNESS);
+
+        AgentReply reply = pipeline.generate(
+                AgentStage.WITNESS,
+                AgentWitnessTurnDirective.reflectOnly(AgentStage.WITNESS),
+                List.of(),
+                null,
+                "test",
+                false,
+                null,
+                AgentLayeredCorpus.sessionOnly(AgentSourceCorpus.ofTexts(List.of(), 4)),
+                List.of(),
+                new TemporalPolicyResult(false, List.of(), List.of(),
+                        TemporalPatternEvidence.absent(), 0, 0),
+                AgentCallBudget.start(20_000),
+                trace);
+
+        assertThat(reply.content()).isEqualTo("安全兜底");
+        verify(modelClient, times(2)).completeWithTools(any(), any(), anyBoolean(), any());
+        assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
+                .containsEntry("step", "guardrail")
+                .containsEntry("layer", "reply-question-limit")
+                .containsEntry("violation", "excessive-questions"));
+        assertThat(trace.steps()).anySatisfy(step -> assertThat(step)
+                .containsEntry("step", "reflection-result")
+                .containsEntry("terminal", "fallback"));
     }
 
     @Test

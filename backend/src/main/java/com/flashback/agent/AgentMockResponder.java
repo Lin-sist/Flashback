@@ -19,7 +19,25 @@ import java.util.List;
 public class AgentMockResponder {
 
     public String reply(AgentStage targetStage, String userInput) {
+        return reply(targetStage, AgentWitnessTurnDirective.safeDefault(targetStage), userInput);
+    }
+
+    public String reply(
+            AgentStage targetStage, AgentWitnessTurnDirective directive, String userInput) {
+        AgentWitnessTurnDirective effective = directive == null
+                ? AgentWitnessTurnDirective.safeDefault(targetStage)
+                : directive;
+        if (effective.type() == AgentWitnessTurnType.CLOSE) {
+            return "好的，说到这里已经很好了。";
+        }
         return switch (targetStage) {
+            case WITNESS -> effective.type() == AgentWitnessTurnType.MAY_ASK_ONE
+                    ? (firstTurn(userInput)
+                    ? "我在听。如果你愿意，可以从此刻最想理清的那一部分说起？"
+                    : "我听见这件事正占着你的心思。如果只理一小步，你想先看哪一部分？")
+                    : (firstTurn(userInput)
+                    ? "我在这里，你可以按自己的节奏说。"
+                    : "我听见了，你可以继续，也可以停在这里。");
             case OPENING, EMOTION -> firstTurn(userInput)
                     ? "今天是什么让你想写下这一刻？"
                     : "这种感觉是从什么时候开始的？";
@@ -70,7 +88,20 @@ public class AgentMockResponder {
      * 避免 mock 下每轮都弹确认条影响其他测试。
      */
     public List<AgentRawToolCall> toolCalls(AgentStage targetStage, String userInput, boolean toolsEnabled) {
-        if (!toolsEnabled || targetStage != AgentStage.CORE_QUESTION) {
+        return toolCalls(
+                targetStage, AgentWitnessTurnDirective.safeDefault(targetStage), userInput, toolsEnabled);
+    }
+
+    public List<AgentRawToolCall> toolCalls(
+            AgentStage targetStage,
+            AgentWitnessTurnDirective directive,
+            String userInput,
+            boolean toolsEnabled) {
+        boolean legacyProposalStage = targetStage == AgentStage.CORE_QUESTION;
+        boolean witnessProposalTurn = targetStage == AgentStage.WITNESS
+                && directive != null
+                && directive.type() == AgentWitnessTurnType.MAY_ASK_ONE;
+        if (!toolsEnabled || (!legacyProposalStage && !witnessProposalTurn)) {
             return List.of();
         }
         String material = userInput == null || userInput.isBlank() ? "先记下此刻的感受" : userInput.trim();
