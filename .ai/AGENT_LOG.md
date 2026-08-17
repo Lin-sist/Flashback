@@ -7867,3 +7867,12 @@ Commit: pending
 - **Scope safety**: 未读取或记录用户/模型/数据库内容、prompt 或 secret；未接受 delta、未归档、未 push/PR/deploy/release
 - **Risks**: 真实 provider 小样本不等于生产稳定性或普遍语言质量；微信真实交互与 MySQL migration 仍无证据，P4.1 不可收口
 - **Commit**: pending（active checkpoint；不 push）
+
+## 2026-08-17｜witness-agent-alignment active checkpoint 提交补录｜Type C
+
+- **Commit**: `09304a1 feat(agent): 实现P4.1见证者对齐并记录验收状态`
+- **Scope**: 63 files changed / 3420 insertions / 228 deletions；P4.1 planning、backend/frontend 实现、离线与真实 provider 探针、微信失败复现脚本及分层证据
+- **Verification**: 提交前 `git diff --cached --check` PASS；backend 103 suites / 727 tests / 0 failures / 0 errors / 12 skipped；frontend type-check、standard / Preview build PASS
+- **Boundary**: Gate 3a PASS；Gate 3b FAIL、Gate 3c BLOCKED；未接受 delta、未 closeout/archive，`ACTIVE_TASK` 保持 ACTIVE
+- **Scope safety**: accepted specs、archive、package/lockfile、pom、deployment、monitoring 未修改；未 push、PR、deploy、release
+- **Next**: 等待用户重新授权 Gate 3b retry；用户以管理员权限启动 MySQL80 后重新授权 Gate 3c

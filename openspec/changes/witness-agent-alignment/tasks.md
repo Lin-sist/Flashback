@@ -126,7 +126,7 @@ denylist：package/lockfile、deployment、monitoring、admin、工具扩面、P
 - [ ] **T-76** 接受五份 delta 进 baseline，exact-copy/operation 检查 PASS
 - [ ] **T-77** 写 closeout，如实区分 scripted/C6、real provider、人评、MySQL、微信与生产边界
 - [ ] **T-78** 归档 change，ACTIVE_TASK 回 IDLE，追加 AGENT_LOG
-- [ ] **T-79** 仅在 P4.1 单独授权 Agent commit 时 stage/commit；不执行 push/deploy/release
+- [x] **T-79** 仅在 P4.1 单独授权 Agent commit 时 stage/commit；不执行 push/deploy/release（checkpoint `09304a1`；未 push）
 
 ## 范围守护自检
 

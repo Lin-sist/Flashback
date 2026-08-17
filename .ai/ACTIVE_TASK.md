@@ -8,7 +8,7 @@
 
 - Active change：`openspec/changes/witness-agent-alignment/`
 - 当前 Gate：Gate 3a PASS；Gate 3b 首次 automation 连接 FAIL；Gate 3c 因 MySQL80 启动权限 BLOCKED
-- 提交责任：用户已授权 Agent 完成本地 stage/commit；不含 push
+- 提交责任：Agent 已创建本地 checkpoint `09304a1`；不含 push
 - 真实 Agent provider：8 次（预算已用尽）；MySQL migration/数据库写入：0；微信 automation：1 次连接失败、UI 操作 0
 - delta acceptance 与归档虽已授权，但因 Gate 3b/3c 未完成不得执行；本地 checkpoint commit 已授权；push、PR、部署、发布未授权
 
@@ -149,9 +149,9 @@
   - checkpoint 回归：backend 103 suites / 727 tests / 0 failures / 0 errors / 12 skipped；frontend type-check、standard / Preview mp-weixin build PASS；`git diff --check` PASS
   - 新增第 12 个 skipped 为默认关闭的 `P41RealProviderProbeTest`；真实 provider 已在显式 Gate 3a 命令中单独 8/8 PASS，不把默认 skip 写成真实证据
   - delta acceptance / closeout / archive：未执行；不能把部分 Gate 3 证据写成 P4.1 完成
-  - **Commit**：pending（按用户授权创建 active checkpoint；不 push）
+  - **Commit**：`09304a1 feat(agent): 实现P4.1见证者对齐并记录验收状态`（active checkpoint；未 push）
   - **Blocked on**：用户重新授权 Gate 3b retry；用户在管理员权限下启动 MySQL80 后重新授权 Gate 3c
-  - **Next step**：先完成默认关闭探针下的全量离线回归与范围验证，再提交当前 checkpoint；保持 P4.1 active
+  - **Next step**：等待用户重新授权 Gate 3b retry；用户在管理员权限下启动 MySQL80 后重新授权 Gate 3c；保持 P4.1 active
 
 - **This session**: 2026-08-17 — **P4.1 Gate 3 / acceptance / archive / local commit 已授权**
   - 用户明确要求完成上一轮列出的 P4.1 收口工作并记得提交 commit；授权范围据此限定为 Gate 3a 固定合成真实 provider（总调用 <=8）、Gate 3b 微信开发者工具/真机、Gate 3c 真实 MySQL、delta acceptance、归档与 Agent 本地提交
