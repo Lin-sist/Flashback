@@ -7938,3 +7938,10 @@ Commit: pending
   - 本地小样本 PASS 不等于生产容量、并发、长期可用性或 SLA
 - **Commit**: pending（Agent 本地提交；不 push）
 - **Next**: P4.1 归档后保持 IDLE；若继续 P4.2，先创建独立规划 change，不得直接实现
+
+## 2026-08-25｜witness-agent-alignment 归档提交补录｜Type C
+
+- **Commit**: `357521c test(agent): 完成P4.1真实验收并归档`
+- **Scope**: 19 files changed / 1236 insertions / 159 deletions；Gate 3b/3c 探针、五份 accepted baseline、closeout、archive、ACTIVE_TASK 与 append-only evidence
+- **Verification**: 提交前 `git diff --cached --check` PASS；backend 104 suites / 728 tests / 0 failures / 0 errors / 13 skipped；frontend type-check、standard/Preview build、微信 Standard/Preview matrix 与真实 MySQL probe PASS
+- **Boundary**: 未 push、PR、deploy、release；P4.1 已归档，下一阶段仍须独立规划

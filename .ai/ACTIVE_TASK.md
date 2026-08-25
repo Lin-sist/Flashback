@@ -148,7 +148,7 @@
   - 收口回归：backend 104 suites / 728 tests / 0 failures / 0 errors / 13 skipped；frontend type-check、standard/Preview build PASS；`git diff --check` PASS
   - 五份 delta 已接受进 baseline并 exact-copy PASS；closeout 已写；change 归档至 `openspec/changes/archive/2026-08-25-witness-agent-alignment/`
   - 真实 provider 总调用保持 8 次硬上限；tracked evidence 不含用户/模型文本、token、openid、prompt 或 secret
-  - **Commit**：pending（Agent 本地提交；不 push）
+  - **Commit**：`357521c test(agent): 完成P4.1真实验收并归档`（未 push）
   - **Blocked on**：none
   - **Next step**：若继续冻结序列，只能从 IDLE 新建 P4.2 独立规划 change；不得直接实现
 
