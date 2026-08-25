@@ -146,7 +146,7 @@
   - Gate 3c：普通、提升沙箱与 UAC 管理员 PowerShell 启动均未使 MySQL80 离开 `Stopped`；3306 未监听，preflight/migration/合成会话仍未执行，数据库读取/写入/改动 0
   - Gate 3b：微信开发者工具 9420 IDE server 已成功监听；automation 因开发者工具登录过期返回 `code 10`，官方二维码登录会话已启动并等待用户扫码，standard / Preview UI 矩阵尚未执行
   - 本轮未调用真实 Agent provider，Gate 3a 已用尽的 8-call 预算保持不变；未读取或记录用户/模型/数据库内容、prompt、账号、二维码内容或 secret
-  - **Commit**：pending（按既有 Agent 本地提交授权记录本次 active checkpoint；不 push）
+  - **Commit**：`dd49600 docs(agent): 记录P4.1真实依赖重试阻断`（active checkpoint；未 push）
   - **Blocked on**：用户扫码登录微信开发者工具；用户在管理员 PowerShell 中成功执行 `Start-Service MySQL80`
   - **Next step**：确认微信已登录且 MySQL80/3306 已运行后，继续 Gate 3b/3c；两项通过前不得接受 delta 或归档
 

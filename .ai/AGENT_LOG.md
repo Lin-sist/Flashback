@@ -7895,3 +7895,10 @@ Commit: pending
 - **Scope safety**: 未修改业务代码、accepted specs、archive、package/lockfile、deployment、monitoring、admin、三个一级 Tab或冻结蓝图；未记录用户/模型/数据库内容、prompt、账号、二维码内容或 secret
 - **Commit**: pending（active checkpoint；不 push）
 - **Next**: 用户扫码登录微信开发者工具，并在管理员 PowerShell 成功执行 `Start-Service MySQL80`；随后继续 Gate 3b/3c，两项通过前不得接受 delta 或归档
+
+## 2026-08-25｜witness-agent-alignment retry checkpoint 提交补录｜Type C
+
+- **Commit**: `dd49600 docs(agent): 记录P4.1真实依赖重试阻断`
+- **Scope**: ACTIVE_TASK、active tasks 与 append-only AGENT_LOG；仅记录授权、结构化失败状态与下一步
+- **Verification**: staged `git diff --check` 与精确三路径 scope PASS
+- **Boundary**: 未 push；Gate 3b/3c 仍未完成，未接受 delta、未归档、未启动 P4.2
