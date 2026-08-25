@@ -7902,3 +7902,39 @@ Commit: pending
 - **Scope**: ACTIVE_TASK、active tasks 与 append-only AGENT_LOG；仅记录授权、结构化失败状态与下一步
 - **Verification**: staged `git diff --check` 与精确三路径 scope PASS
 - **Boundary**: 未 push；Gate 3b/3c 仍未完成，未接受 delta、未归档、未启动 P4.2
+
+## 2026-08-25｜witness-agent-alignment Gate 3 retry、acceptance 与归档｜Type C
+
+- **Scope**:
+  - P4.1 Gate 3b 微信登录与 Standard/Preview 开发者工具矩阵
+  - P4.1 Gate 3c 真实 MySQL migration/合成恢复探针
+  - 五份 delta acceptance、closeout、archive、ACTIVE_TASK 与本条 append-only evidence
+- **Changes**:
+  - 新增默认关闭的 `P41RealMySqlWitnessProbeTest`，显式 Gate 环境下验证 schema、恢复、intent switch、REVIEW_CHAT null 与 owner scope；finally 清理合成数据
+  - 新增 Standard 微信自动化脚本；真实登录后将 Agent API 替换为合成 `wx.request` 响应，以守住已用尽的 8-call provider 预算
+  - Preview 脚本增加仅在失败时输出的路由/结构诊断，不输出用户内容
+  - 五份 delta 按 operation 接受进 baseline；P4.1 closeout 完成并归档，ACTIVE_TASK 回 `IDLE`
+- **Verification PASS**:
+  - 微信登录真实链路 PASS；故障根因为本机 backend 未运行、8080 无监听，恢复 ignored 本地启动脚本后成功，不是登录业务代码缺陷
+  - Gate 3b Standard：真实标准构建/登录边界，chooser、textarea、长消息 scroll、switch failure 原值保留、retry switch、ended 均 PASS；新增 provider 调用 0
+  - Gate 3b Preview：entry=true、chooser=false、sheet=false、agentRequests=0，PASS
+  - automation 连接使用 IDE `--port 9421`、automation `--auto-port 9420` 与 `ws://[::1]:9420`；按项目清 compile cache 后加载当前构建
+  - Gate 3c：MySQL 8.0.41 migration 连续两次 PASS；schema/recovery/switch/reviewNull/ownerScope PASS；cleanup 后 synthetic users/records/sessions/blocking operations 均为 0
+  - backend full：104 suites / 728 tests / 0 failures / 0 errors / 13 skipped；frontend type-check、standard/Preview build PASS
+  - 五份 delta：31 operation blocks / 101 Scenarios；MODIFIED/ADDED exact-copy 与 REMOVED absence PASS；`git diff --check` PASS
+- **Verification PARTIAL / SKIPPED**:
+  - 物理真机 SKIPPED；微信证据仅称开发者工具，不称真机
+  - OpenSpec CLI 不在 PATH；采用 artifact/delta/task/link/structure 文件级校验，不声称 CLI PASS
+  - T-16 实现前 standard/Preview build baseline 未留证，保持 PARTIAL；实现后与收口双构建 PASS
+- **Scope safety**:
+  - 真实 provider 总调用仍为 8，不重开预算；未将 Standard 合成 UI response 冒充真实语言质量
+  - 未修改 package/lockfile、deployment、monitoring、admin、三个一级 Tab、canonical naming 或冻结蓝图
+  - 未实现 P4.2、关系型 AI、图/画像/评分/诊断/建议清单；未新增或扩大 Agent 工具
+  - tracked evidence 不含用户日记、对话、provider 回复、prompt、token、openid、secret 或凭证明文
+- **Risks**:
+  - 物理真机键盘、滚动触感与尺寸矩阵仍未验证
+  - 本地 MySQL/backend 依赖手动启动，缺少显式健康提示
+  - dev profile MyBatis DEBUG 会输出 SQL 参数；本轮未写入 tracked evidence，但账号标识/用户内容日志边界须独立 Type B 安全收口
+  - 本地小样本 PASS 不等于生产容量、并发、长期可用性或 SLA
+- **Commit**: pending（Agent 本地提交；不 push）
+- **Next**: P4.1 归档后保持 IDLE；若继续 P4.2，先创建独立规划 change，不得直接实现

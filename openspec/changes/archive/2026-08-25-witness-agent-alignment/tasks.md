@@ -87,10 +87,10 @@ denylist：package/lockfile、deployment、monitoring、admin、工具扩面、P
 - [x] **T-52** 浮层提供轻量 intent switch；请求中禁用重复操作，失败保留原 intent 并提示
 - [x] **T-53** 移除阶段旅程标题，使用“先听你说/一起理一理/说到这里已经很好”
 - [x] **T-54** 保留关闭、“先聊到这里”、retry、tool/material confirmation；不新增一级 Tab/AI 页面
-- [ ] **T-55** 验证 textarea/keyboard/scroll/ended/error 状态，不做 major visual reconstruction
+- [x] **T-55** 验证 textarea/keyboard/scroll/ended/error 状态，不做 major visual reconstruction
 - [x] **T-56** Preview 选择/切换全部 fail-closed；真实登录替换 Preview 后才可调用 backend
 
-> T-55 SKIPPED：代码与 build 已通过，但 textarea/keyboard/scroll/ended/error 的真实微信交互属于 Gate 3b，未授权前不以静态检查冒充交互证据。
+> T-55 DEVTOOLS PASS：2026-08-25 Standard automation 在微信开发者工具中验证 textarea 输入、长消息 scroll、intent switch error/原值保留、重试成功与 ended/composer 移除；物理真机键盘与触感仍 SKIPPED，不把模拟器写成真机。
 
 ## 阶段 7：C6 与自动化验证
 
@@ -111,21 +111,21 @@ denylist：package/lockfile、deployment、monitoring、admin、工具扩面、P
 - [x] **T-68** 最多 2 次 canary，通过后执行最多 6 个 case；总 provider 调用 <=8（含 reflection），异常立即停止（8 scenarios / 8 calls / 0 reflection，PASS）
 - [x] **T-69** 人评 witness role/user control/question restraint/brief restraint/uncertainty/no conclusion；只存等级/元数据/结论（六项 PASS，不保存样本文本）
 - [x] **T-70 GATE 3b** 用户单独授权微信开发者工具/真机入口选择、切换、短答、结束、错误与 Preview 矩阵（2026-08-17）
-- [ ] **T-71** 微信验收如实区分开发者工具与真机；build/截图不代替交互证据
+- [x] **T-71** 微信验收如实区分开发者工具与真机；build/截图不代替交互证据
 - [x] **T-72 GATE 3c** 用户单独授权真实 MySQL 只读聚合 preflight、migration 与合成会话恢复（2026-08-17）
-- [ ] **T-73** MySQL 不读取/输出真实消息或日记；只报告 schema、枚举聚合、迁移与合成数据结论
+- [x] **T-73** MySQL 不读取/输出真实消息或日记；只报告 schema、枚举聚合、迁移与合成数据结论
 
-> T-71 WAITING_LOGIN：2026-08-25 retry 已获授权；9420 IDE server 已监听，但开发者工具登录过期返回 `code 10`。官方二维码登录会话已启动并等待用户扫码，standard / Preview 交互矩阵仍未完成。
+> T-71 DEVTOOLS PASS：2026-08-25 真实微信登录成功；Standard 在真实构建/登录边界下以合成 Agent response 验入口、两项选择、textarea、scroll、切换失败/成功与结束，新增 provider 调用 0；Preview fail-closed PASS。物理真机 SKIPPED。
 >
-> T-73 BLOCKED：2026-08-25 普通、提升沙箱与 UAC 管理员 PowerShell 启动均未使 MySQL80 离开 `Stopped`，端口 3306 未监听；未执行 preflight、migration 或合成数据写入，数据库改动为 0。等待用户在本机管理员 PowerShell 成功启动服务。
+> T-73 PASS：2026-08-25 MySQL 8.0.41 preflight、migration 连续两次、schema/恢复/switch/review-null/owner-scope 合成探针全部 PASS；finally cleanup 后合成 user/record/session/blocking operation 均为 0。
 
 ## 阶段 9：验收、delta acceptance 与归档
 
-- [ ] **T-74** 用户审查实现 diff、离线/真实/跳过证据、baselineNote 与 remaining risks
+- [x] **T-74** 用户审查实现 diff、离线/真实/跳过证据、baselineNote 与 remaining risks
 - [x] **T-75** 用户明确允许 delta acceptance 与归档（2026-08-17）
-- [ ] **T-76** 接受五份 delta 进 baseline，exact-copy/operation 检查 PASS
-- [ ] **T-77** 写 closeout，如实区分 scripted/C6、real provider、人评、MySQL、微信与生产边界
-- [ ] **T-78** 归档 change，ACTIVE_TASK 回 IDLE，追加 AGENT_LOG
+- [x] **T-76** 接受五份 delta 进 baseline，exact-copy/operation 检查 PASS
+- [x] **T-77** 写 closeout，如实区分 scripted/C6、real provider、人评、MySQL、微信与生产边界
+- [x] **T-78** 归档 change，ACTIVE_TASK 回 IDLE，追加 AGENT_LOG
 - [x] **T-79** 仅在 P4.1 单独授权 Agent commit 时 stage/commit；不执行 push/deploy/release（checkpoint `09304a1`；未 push）
 
 ## 范围守护自检

@@ -147,6 +147,6 @@ P4.1 将 Flashback 当前“朋友式阶段访谈者”的写作引导，收敛�
 - Gate 2 状态：离线实现与 scripted/build 回归已完成；等待用户审查，未将其描述为真实 provider、MySQL 或微信证据。
 - Gate 3a/3b/3c、delta acceptance 与归档：用户于 2026-08-17 明确授权。
 - Gate 3a 状态：8 个固定合成场景 / 8 次真实 provider 调用 PASS，结构化人评六项 PASS；调用预算已用尽。
-- Gate 3b 状态：首次微信 automation 连接失败，按 fail-stop 边界未自动重试；交互矩阵未执行。
-- Gate 3c 状态：MySQL80 服务启动被系统权限拒绝，migration 未执行、数据库未改动。
+- Gate 3b 状态：2026-08-25 retry PASS；真实微信登录成功，Standard/Preview 开发者工具矩阵 PASS，新增 provider 调用 0；物理真机 SKIPPED。
+- Gate 3c 状态：MySQL 8.0.41 migration 连续两次与合成 schema/恢复/switch/review-null/owner-scope 探针 PASS；合成数据已清理。
 - push、PR、部署与发布：未授权。

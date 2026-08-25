@@ -22,6 +22,16 @@ async function main() {
     await page.waitFor(1600)
 
     const entry = await page.$('.agent-entry')
+    if (!entry) {
+      const currentPage = await miniProgram.currentPage()
+      const loadingStates = await page.$$('.state-paper')
+      const bodyStates = await page.$$('.letter-wrap')
+      const previewEntries = await currentPage.$$('.preview-entry')
+      const previewSession = await miniProgram.callWxMethod('getStorageSync', 'flashback:preview-session')
+      console.log(
+        `P41WECHAT PREVIEW DIAG path=${currentPage?.path || '<unknown>'} statePapers=${loadingStates.length} letterBodies=${bodyStates.length} previewEntries=${previewEntries.length} sessionEnabled=${previewSession?.enabled === true}`,
+      )
+    }
     assert.ok(entry)
     assert.match(await entry.text(), /选择这次想怎么聊/)
     await entry.tap()

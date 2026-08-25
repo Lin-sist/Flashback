@@ -2,15 +2,15 @@
 
 ## Status
 
-`ACTIVE`
+`IDLE`
 
-当前唯一 active Type C change：P4.1 `witness-agent-alignment`。Gate 1 / Gate 2 已获批，离线实现与回归完成，等待用户审查及分别授权 Gate 3。
+当前无 active Type C change。P4.1 `witness-agent-alignment` 已于 2026-08-25 完成 Gate 3、delta acceptance 与归档；下一阶段不得继承 P4.1 授权，须重新走独立规划闸。
 
-- Active change：`openspec/changes/witness-agent-alignment/`
-- 当前 Gate：Gate 3a PASS；Gate 3b 首次 automation 连接 FAIL；Gate 3c 因 MySQL80 启动权限 BLOCKED
-- 提交责任：Agent 已创建本地 checkpoint `09304a1`；不含 push
-- 真实 Agent provider：8 次（预算已用尽）；MySQL migration/数据库写入：0；微信 automation：1 次连接失败、UI 操作 0
-- delta acceptance 与归档虽已授权，但因 Gate 3b/3c 未完成不得执行；本地 checkpoint commit 已授权；push、PR、部署、发布未授权
+- Active change：none
+- 最近归档：`openspec/changes/archive/2026-08-25-witness-agent-alignment/`
+- 验收：Gate 3a provider/人评 PASS；Gate 3b 微信开发者工具 Standard/Preview PASS；Gate 3c 真实 MySQL PASS
+- 提交责任：P4.1 Agent 本地提交已授权；push、PR、部署、发布未授权
+- 真实 Agent provider：8 次（预算已用尽）；P4.1 后续不得沿用该预算继续外调
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -89,9 +89,9 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：P4.1 Gate 2 离线实现完成，等待审查 / Gate 3 分别授权**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者；P3.1 与 P3.2 已归档。P4.1 `witness-agent-alignment` 已完成实现与 scripted/build 回归；
-  Gate 3、delta acceptance、归档、commit、push/deploy/release 未授权，旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：P4.1 已归档，等待下一阶段独立规划**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者；P3.1、P3.2 与 P4.1 已归档。冻结序列下一候选为 P4.2 `memory-agency`，但尚无 active change，
+  不得沿用 P4.1 的规划、实现、外调、提交或发布授权；旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -127,7 +127,7 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
-- `openspec/changes/witness-agent-alignment/`（P4.1 active；Gate 2 离线实现完成）
+- `openspec/changes/archive/2026-08-25-witness-agent-alignment/`（P4.1 accepted / archived）
 - `openspec/changes/archive/2026-08-12-data-ownership-foundation/`（P3.2 accepted / archived）
 - `openspec/changes/archive/2026-08-12-present-moment-capture/`（P3.1 archived）
 - `openspec/specs/agent-runtime/spec.md`（含 C1–C9 与 P3.1 的 Agent 兼容契约）
@@ -140,6 +140,17 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-25 — **P4.1 ACCEPTED / ARCHIVED；ACTIVE_TASK=IDLE**
+  - 微信登录报错定位为本机 backend 未运行、8080 无监听；使用 ignored 本地启动脚本恢复后，真实微信登录链路 PASS
+  - Gate 3b：automation 正确分离 IDE `--port 9421` 与 `--auto-port 9420`，使用 IPv6 `ws://[::1]:9420`；Standard/Preview 开发者工具矩阵 PASS，新增 provider 调用 0；物理真机 SKIPPED
+  - Gate 3c：MySQL 8.0.41 migration 连续两次、schema/恢复/switch/review-null/owner-scope 合成探针 PASS；finally cleanup 后合成数据为 0
+  - 收口回归：backend 104 suites / 728 tests / 0 failures / 0 errors / 13 skipped；frontend type-check、standard/Preview build PASS；`git diff --check` PASS
+  - 五份 delta 已接受进 baseline并 exact-copy PASS；closeout 已写；change 归档至 `openspec/changes/archive/2026-08-25-witness-agent-alignment/`
+  - 真实 provider 总调用保持 8 次硬上限；tracked evidence 不含用户/模型文本、token、openid、prompt 或 secret
+  - **Commit**：pending（Agent 本地提交；不 push）
+  - **Blocked on**：none
+  - **Next step**：若继续冻结序列，只能从 IDLE 新建 P4.2 独立规划 change；不得直接实现
 
 - **This session**: 2026-08-25 — **P4.1 Gate 3b/3c retry 已授权，等待本机交互解阻**
   - 用户明确授权完成上一轮列出的 P4.1 收口任务；范围继续包含 Gate 3b retry、Gate 3c、delta acceptance、closeout、归档与 Agent 本地提交，不含 push、PR、部署或发布
