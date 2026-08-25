@@ -115,9 +115,9 @@ denylist：package/lockfile、deployment、monitoring、admin、工具扩面、P
 - [x] **T-72 GATE 3c** 用户单独授权真实 MySQL 只读聚合 preflight、migration 与合成会话恢复（2026-08-17）
 - [ ] **T-73** MySQL 不读取/输出真实消息或日记；只报告 schema、枚举聚合、迁移与合成数据结论
 
-> T-71 FAIL：微信 CLI 报告 automation 已开启，但首次客户端连接 `ws://127.0.0.1:9420` 失败；按本轮 fail-stop 约定未切换 endpoint 自动重试，standard / Preview 交互矩阵均未完成。
+> T-71 WAITING_LOGIN：2026-08-25 retry 已获授权；9420 IDE server 已监听，但开发者工具登录过期返回 `code 10`。官方二维码登录会话已启动并等待用户扫码，standard / Preview 交互矩阵仍未完成。
 >
-> T-73 BLOCKED：MySQL80 服务存在但启动被系统权限拒绝，端口 3306 未监听；未执行 preflight、migration 或合成数据写入，数据库改动为 0。
+> T-73 BLOCKED：2026-08-25 普通、提升沙箱与 UAC 管理员 PowerShell 启动均未使 MySQL80 离开 `Stopped`，端口 3306 未监听；未执行 preflight、migration 或合成数据写入，数据库改动为 0。等待用户在本机管理员 PowerShell 成功启动服务。
 
 ## 阶段 9：验收、delta acceptance 与归档
 

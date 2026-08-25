@@ -141,6 +141,15 @@
 
 ## Current Progress
 
+- **This session**: 2026-08-25 — **P4.1 Gate 3b/3c retry 已授权，等待本机交互解阻**
+  - 用户明确授权完成上一轮列出的 P4.1 收口任务；范围继续包含 Gate 3b retry、Gate 3c、delta acceptance、closeout、归档与 Agent 本地提交，不含 push、PR、部署或发布
+  - Gate 3c：普通、提升沙箱与 UAC 管理员 PowerShell 启动均未使 MySQL80 离开 `Stopped`；3306 未监听，preflight/migration/合成会话仍未执行，数据库读取/写入/改动 0
+  - Gate 3b：微信开发者工具 9420 IDE server 已成功监听；automation 因开发者工具登录过期返回 `code 10`，官方二维码登录会话已启动并等待用户扫码，standard / Preview UI 矩阵尚未执行
+  - 本轮未调用真实 Agent provider，Gate 3a 已用尽的 8-call 预算保持不变；未读取或记录用户/模型/数据库内容、prompt、账号、二维码内容或 secret
+  - **Commit**：pending（按既有 Agent 本地提交授权记录本次 active checkpoint；不 push）
+  - **Blocked on**：用户扫码登录微信开发者工具；用户在管理员 PowerShell 中成功执行 `Start-Service MySQL80`
+  - **Next step**：确认微信已登录且 MySQL80/3306 已运行后，继续 Gate 3b/3c；两项通过前不得接受 delta 或归档
+
 - **This session**: 2026-08-17 — **P4.1 Gate 3a PASS；Gate 3b FAIL；Gate 3c BLOCKED**
   - Gate 3a：2 canary + 6 fixed synthetic scenarios，真实 provider 8 calls / 0 reflection / hard max 8；问题上限、长度与关系/结论 marker 自动边界 PASS
   - 结构化人评：witness role、user control、question restraint、brief restraint、uncertainty、no conclusion 六项均 PASS；仓库不保存合成输入或模型回复

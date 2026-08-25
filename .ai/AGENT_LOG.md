@@ -7876,3 +7876,22 @@ Commit: pending
 - **Boundary**: Gate 3a PASS；Gate 3b FAIL、Gate 3c BLOCKED；未接受 delta、未 closeout/archive，`ACTIVE_TASK` 保持 ACTIVE
 - **Scope safety**: accepted specs、archive、package/lockfile、pom、deployment、monitoring 未修改；未 push、PR、deploy、release
 - **Next**: 等待用户重新授权 Gate 3b retry；用户以管理员权限启动 MySQL80 后重新授权 Gate 3c
+
+## 2026-08-25｜witness-agent-alignment Gate 3b/3c retry 授权与本机交互阻断｜Type C
+
+- **Scope**: P4.1 Gate 3b 微信 automation retry、Gate 3c MySQL 服务恢复；后续 delta acceptance、closeout、归档与 Agent 本地提交继续沿用本轮明确授权
+- **Authorization**: 用户明确授权完成上一轮列出的全部任务；不包含 push、PR、部署或发布
+- **Gate 3c Verification**: BLOCKED / SKIPPED
+  - MySQL80 服务配置可读取，StartType=Manual、服务账号为 NetworkService、binary path 指向既有 MySQL 8.0 配置
+  - 普通、提升沙箱与 UAC 管理员 PowerShell 启动后服务仍为 `Stopped`，3306 未监听
+  - 未执行 schema preflight、migration、聚合查询或合成 session 恢复；数据库读取/写入/改动 0
+- **Gate 3b Verification**: WAITING_LOGIN
+  - 微信开发者工具 CLI 已定位至既有安装；9420 IDE server 成功监听
+  - automation 初始化因开发者工具登录过期返回 `code 10`；官方二维码登录会话已启动并等待用户扫码
+  - standard / Preview UI 操作 0；尚未验证入口选择、intent switch、短答、结束、失败、textarea/keyboard/scroll 或 Preview fail-closed
+- **Verification boundary**:
+  - 本轮真实 Agent provider 调用 0；Gate 3a 已用尽的 8-call 预算不重开
+  - 没有把 9420 监听或二维码生成写成微信交互 PASS，也没有把服务配置读取写成 MySQL migration PASS
+- **Scope safety**: 未修改业务代码、accepted specs、archive、package/lockfile、deployment、monitoring、admin、三个一级 Tab或冻结蓝图；未记录用户/模型/数据库内容、prompt、账号、二维码内容或 secret
+- **Commit**: pending（active checkpoint；不 push）
+- **Next**: 用户扫码登录微信开发者工具，并在管理员 PowerShell 成功执行 `Start-Service MySQL80`；随后继续 Gate 3b/3c，两项通过前不得接受 delta 或归档
