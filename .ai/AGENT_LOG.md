@@ -8124,3 +8124,28 @@ Commit: pending
   - 未新增 E1/P5 实现，未 push/PR/deploy/release，未写入用户日记、真实危机文本、provider reply、prompt、token、账号或 secret
 - **Commit**: `4ed09a7 feat(agent): 完成P4.2与R1验收归档`（未 push）
 - **Next**: 保持 `ACTIVE_TASK=IDLE`；从 E1 Type A 探索开始，形成正证据前不进入 P5.x
+
+## 2026-08-28｜E1 time-chapter-prototype readiness 与规划｜Type A → Type B（落盘）
+
+- **Scope**:
+  - 在 P4.2/R1 Git 收口后检查是否允许进入冻结序列下一项 E1，并形成时间篇章心智模型研究计划
+  - 只规划原型、合成任务、观察字段、证据门与停止条件；不实现原型或产品能力
+- **Changes**:
+  - 新增 `Docs/design/e1-time-chapter/PLAN.md`
+  - 规划 A 独立片段+标签/时间范围、B 用户定义时间篇章、C 轻量时间视图三个信息模型
+  - 明确至少 5 名有效参与者、合成材料、结构化观察、`POSITIVE / NEGATIVE / INCONCLUSIVE` 与 P5.x 证据门
+- **Verification PASS**:
+  - readiness 开始时 `ACTIVE_TASK=IDLE`、工作树 clean，P4.2/R1 提交 `4ed09a7` 与补录 `85bd61e` 均存在
+  - 冻结蓝图顺序、产品宪章、P3.1/accepted specs 与当前 frontend/backend 事实已核对
+  - 当前代码与 accepted specs 无时间篇章实体、字段、API、路由或既有契约；计划未把方向假设写成现状
+- **Verification SKIPPED**:
+  - 原型实现、浏览器走查、微信真机与目标用户观察均未执行；本轮只有规划，不能形成 E1 产品结论
+  - OpenSpec CLI 不在 PATH，`openspec list --json` 失败；采用文件级 readiness，不声称 CLI PASS
+- **Scope safety**:
+  - 未修改 ACTIVE_TASK、OpenSpec、backend/frontend、package/lockfile、deployment、monitoring 或 archive
+  - 未调用 provider、MySQL、对象存储、微信或外部服务；未记录用户日记、真实人生阶段、账号或 secret
+- **Risks**:
+  - E0 曾因参与者为 0 收口为 `INCONCLUSIVE / SKIPPED`；E1 若仍无真实参与者，必须同样停止，不能由内部偏好代替正证据
+  - A/B/C 目前只是研究设计；P5.x 仍未获规划或实现授权
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户审查 E1 计划；若继续，单独授权 E1-02～E1-04 原型与研究材料准备，仍不进入 P5.x
