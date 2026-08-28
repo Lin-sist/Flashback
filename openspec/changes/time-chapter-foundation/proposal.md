@@ -127,6 +127,6 @@ P5.x 为 Flashback 增加最小、用户定义的“时间篇章”：片段仍�
 - 提交责任：沿用用户授权的 Agent 本地提交；不 push。
 - E1：`INCONCLUSIVE`；2026-08-28 产品负责人显式豁免正证据进入条件，不伪造用户验证。
 - OpenSpec CLI：不在 PATH；采用仓库既有文件级 scaffold，CLI validation 记 `SKIPPED`。
-- Gate 1：`PENDING`，等待用户审查 proposal/design/tasks/三份 delta 与决策记录。
+- Gate 1：`APPROVED`；用户于 2026-08-28 接受 proposal/design/tasks、三份 delta、决策 1–12 与全部推荐精确契约。
 - Gate 2：`NOT AUTHORIZED`；Gate 1 批准后仍须用户明确授权实现。
 - Gate 3、delta acceptance、archive、push、PR、deploy、release：均未授权。

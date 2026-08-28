@@ -72,7 +72,7 @@ MySQL: time_chapter + time_chapter_record
 
 ## 4. API And DTO Contract
 
-以下是 Gate 1 推荐精确契约；用户批准规划后冻结。所有路径继续使用既有 authenticated `ApiResponse` 外壳。
+以下精确契约已于 2026-08-28 通过 Gate 1；后续修改须同步 proposal/design/tasks/delta 并重新确认。所有路径继续使用既有 authenticated `ApiResponse` 外壳。
 
 | Method / Path | 语义 |
 |---|---|

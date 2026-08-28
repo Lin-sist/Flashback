@@ -1,6 +1,6 @@
 # Tasks：Time Chapter Foundation（P5.x）
 
-> 当前阶段：Gate 1 `PENDING`。本文件完成不等于实现授权；T-13 未勾选前禁止修改业务代码。
+> 当前阶段：Gate 1 `APPROVED`（2026-08-28）；Gate 2 `NOT AUTHORIZED`。T-13 未勾选前禁止修改业务代码。
 
 ## 阶段 0：Readiness 与规划闸
 
@@ -15,7 +15,7 @@
 - [x] **T-09** OpenSpec CLI 不在 PATH，记录 CLI validation `SKIPPED` 并采用文件级 scaffold
 - [x] **T-10** 更新 ACTIVE_TASK 指向本 change，初始化 Current Progress
 - [x] **T-11** 文件级检查 artifacts、Requirement/Scenario、链接、路径范围与隐私边界
-- [ ] **T-12 GATE 1** 用户批准 proposal/design/tasks、三份 delta 与决策 1–12；修改任一精确契约需同步 artifacts 后重新批准
+- [x] **T-12 GATE 1** 用户于 2026-08-28 批准 proposal/design/tasks、三份 delta、决策 1–12，以及名称 100 字、自述 1000 字、单批 100 条、expectedVersion、fromChapterId 显式转移等推荐契约
 
 ## 阶段 1：实现授权与 baseline
 

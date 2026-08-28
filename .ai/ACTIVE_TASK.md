@@ -4,12 +4,12 @@
 
 `ACTIVE`
 
-当前 active Type C change 为 P5.x `time-chapter-foundation`。本轮只完成 Gate 1 规划工件；业务实现、真实依赖、delta acceptance 与归档均未授权。
+当前 active Type C change 为 P5.x `time-chapter-foundation`。Gate 1 已批准；业务实现、真实依赖、delta acceptance 与归档均未授权。
 
 - Active change：`openspec/changes/time-chapter-foundation/`
 - 最近归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
 - 前一归档：`openspec/changes/archive/2026-08-28-memory-agency/`
-- 当前闸门：Gate 1 `PENDING`；Gate 2/3 `NOT AUTHORIZED`
+- 当前闸门：Gate 1 `APPROVED`；Gate 2/3 `NOT AUTHORIZED`
 - 提交责任：Agent 本地提交；不 push
 - 外部调用：P4.2 provider=0；R1 仅 1 次固定合成普通边界 provider 探针；无真实危机实验
 
@@ -151,9 +151,9 @@
   - **Frontend boundary**：“我的记录”内记录/篇章二级切换、独立详情、次级归属入口；三个一级 Tab 保持；Preview 固定合成且 mutation fail-closed
   - **Agent/privacy**：Agent 完全解耦，provider/object storage/research 调用预算 0；日志不记录 name/note/title/content/location/media key/URL
   - **Validation**：文件级 6 artifacts、12 Requirements / 40 Scenarios、决策 1–12、scope/privacy 与 `git diff --check` PASS；OpenSpec CLI 不在 PATH，CLI validation SKIPPED
-  - **Authorization**：仅规划工件生成；Gate 1 尚待用户批准，Gate 2/3、业务代码、真实 MySQL/微信、delta acceptance、archive、push/PR/deploy/release 均未授权
+  - **Authorization**：Gate 1 已于 2026-08-28 获批，包含 proposal/design/tasks、三份 delta、决策 1–12、名称 100 字、自述 1000 字、单批 100 条、expectedVersion 与 fromChapterId 显式转移；Gate 2/3、业务代码、真实 MySQL/微信、delta acceptance、archive、push/PR/deploy/release 均未授权
   - **Planning commit**：`4454beb docs(openspec): 规划P5时间篇章基础`（未 push）
-  - **Next step**：用户审查并批准/修改 design 决策 1–12、精确 API/DTO/schema 与三份 delta；批准后仍须另行授予 Gate 2
+  - **Next step**：等待用户单独授予 Gate 2；获批前不得运行实现 baseline 或修改业务代码
 
 - **This session**: 2026-08-28 — **P4.2 与 R1 收口，ACTIVE_TASK 恢复 IDLE**
   - **Authorization**：用户明确授予 Gate 1–3，允许完成当前 P4.2 收尾，并规划、实现、验证与归档下一阶段 R1；commit/push/PR/deploy/release 未获独立授权

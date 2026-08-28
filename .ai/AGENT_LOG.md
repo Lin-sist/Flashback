@@ -8262,3 +8262,23 @@ Commit: pending
 - **Scope**: 治理豁免、P5.x 六份 artifacts、ACTIVE_TASK、蓝图/项目事实与 append-only evidence；13 files / 925 insertions / 14 deletions
 - **Verification**: staged `git diff --cached --check` PASS；12 Requirements / 40 Scenarios、T-01～T-73、决策 1–12、requirement title collision 与 denylist 检查 PASS
 - **Boundary**: Gate 1 `PENDING`，Gate 2/3 未授权；未包含业务代码、accepted baseline、依赖、lockfile 或 archive
+
+## 2026-08-28｜time-chapter-foundation Gate 1 批准登记｜Type C
+
+- **Authorization**:
+  - 用户明确批准 P5.x proposal、design、tasks、backend-core/miniapp-core/v2-product-scope 三份 delta 与决策 1–12
+  - 用户同时接受名称 100 字、自述 1000 字、单批 100 条、expectedVersion 和 fromChapterId 显式转移等推荐精确契约
+- **Changes**:
+  - `tasks.md` T-12 标记完成；proposal/design 与 ACTIVE_TASK 更新为 Gate 1 `APPROVED`
+  - Gate 2/3 继续为 `NOT AUTHORIZED`，未开始 baseline、TDD 或任何业务实现
+- **Verification PASS**:
+  - 授权内容与 proposal/design/tasks/delta 精确契约一致；T-13 保持未勾选
+  - `git diff --check` 在提交前执行；变更范围仅 active change 状态、ACTIVE_TASK 与 append-only evidence
+- **Verification SKIPPED**:
+  - backend/frontend tests、MySQL、微信开发者工具与真机均 SKIPPED：本轮只登记 Gate 1
+- **Scope safety**:
+  - 未修改 backend/frontend、schema、accepted baseline、依赖或 lockfile；未调用真实系统
+- **Risks**:
+  - 用户价值仍无真实参与者证据；Gate 1 只批准规划，不证明实现或用户价值
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 等待用户另行明确授予 Gate 2，之后才可按 T-14 起执行实现准备
