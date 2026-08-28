@@ -8192,3 +8192,25 @@ Commit: pending
 - **Scope**: E1 决策、A/B/C throwaway 原型、研究手册、空观察矩阵、`INCONCLUSIVE` 结果与 append-only evidence；8 files / 930 insertions / 22 deletions
 - **Verification**: staged `git diff --cached --check` PASS；Edge / Playwright 3 视口 43 项断言 PASS；控制台错误 0、外部请求 0
 - **Boundary**: 目标用户 0，E1-05 `SKIPPED`，P5.x 未创建；未包含业务代码、OpenSpec、依赖或 lockfile
+
+## 2026-08-28｜E1 产品负责人验证声明审核｜Type A → Type B（落盘）
+
+- **Scope**:
+  - 审核产品负责人“已经验证 E1”的声明是否满足已冻结证据门；满足时才允许创建 P5.x Type C 规划
+- **Changes**:
+  - 新增 `Docs/design/e1-time-chapter/EVIDENCE_REVIEW.md`，登记收到的声明、缺失的可审计材料、规则对照与重新审核最小输入
+  - 更新 `OUTCOME.md`，将本次声明登记为产品负责人自验，审核结果为 `GATE NOT MET`
+- **Verification PASS**:
+  - 对照 `DECISIONS.md` D38/D39、`PLAN.md` E1-05、空 `OBSERVATIONS.md` 与冻结蓝图 E1→P5.x 依赖
+  - 当前有效参与者仍为 0；没有把产品负责人自验、内部走查或偏好声明写成目标用户观察
+- **Verification SKIPPED**:
+  - 无参与者数量、场次有效性、逐轮观察或聚合结果，无法执行 E1 `POSITIVE` 判定
+  - OpenSpec proposal/design/tasks/delta 未生成：证据门未成立，`openspec-propose` 在前置检查处停止
+- **Scope safety**:
+  - `.ai/ACTIVE_TASK.md` 保持 `IDLE`；未创建 P5.x 目录，未修改 OpenSpec baseline/archive 或业务代码
+  - 未记录姓名、联系方式、真实日记、生活阶段、照片、声音、地点、账号或 secret
+  - 未修改依赖/lockfile，未 push/PR/deploy/release
+- **Risks**:
+  - 如果产品负责人实际完成了目标用户验证但未提供结构化汇总，当前审核可能低估已有证据；补充最小非隐私汇总后可重新审核
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 提供至少 5 名有效参与者的非隐私结构化汇总后重新审核；证据门成立前不创建 P5.x
