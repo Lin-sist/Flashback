@@ -152,6 +152,7 @@
   - **Agent/privacy**：Agent 完全解耦，provider/object storage/research 调用预算 0；日志不记录 name/note/title/content/location/media key/URL
   - **Validation**：文件级 6 artifacts、12 Requirements / 40 Scenarios、决策 1–12、scope/privacy 与 `git diff --check` PASS；OpenSpec CLI 不在 PATH，CLI validation SKIPPED
   - **Authorization**：仅规划工件生成；Gate 1 尚待用户批准，Gate 2/3、业务代码、真实 MySQL/微信、delta acceptance、archive、push/PR/deploy/release 均未授权
+  - **Planning commit**：`4454beb docs(openspec): 规划P5时间篇章基础`（未 push）
   - **Next step**：用户审查并批准/修改 design 决策 1–12、精确 API/DTO/schema 与三份 delta；批准后仍须另行授予 Gate 2
 
 - **This session**: 2026-08-28 — **P4.2 与 R1 收口，ACTIVE_TASK 恢复 IDLE**

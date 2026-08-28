@@ -8255,3 +8255,10 @@ Commit: pending
   - 精确 API/DTO/schema、100/1000 字符限制、100 条批量上限与 version 冲突语义须由用户在 Gate 1 明确批准或修改
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户审查 proposal/design/tasks、三份 delta 与决策 1–12；Gate 1 批准后仍须另行授予 Gate 2 才能实现
+
+## 2026-08-28｜time-chapter-foundation 规划提交补录｜Type C
+
+- **Commit**: `4454beb docs(openspec): 规划P5时间篇章基础`（未 push）
+- **Scope**: 治理豁免、P5.x 六份 artifacts、ACTIVE_TASK、蓝图/项目事实与 append-only evidence；13 files / 925 insertions / 14 deletions
+- **Verification**: staged `git diff --cached --check` PASS；12 Requirements / 40 Scenarios、T-01～T-73、决策 1–12、requirement title collision 与 denylist 检查 PASS
+- **Boundary**: Gate 1 `PENDING`，Gate 2/3 未授权；未包含业务代码、accepted baseline、依赖、lockfile 或 archive
