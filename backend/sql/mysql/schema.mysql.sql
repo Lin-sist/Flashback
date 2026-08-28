@@ -34,6 +34,8 @@ CREATE TABLE `record` (
   `life_node_type` VARCHAR(30) DEFAULT NULL,
   `life_node_custom_label` VARCHAR(50) DEFAULT NULL,
   `cover_attachment_id` BIGINT DEFAULT NULL,
+  `agent_memory_excluded` TINYINT(1) NOT NULL DEFAULT 0,
+  `agent_memory_context_note` VARCHAR(255) DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -185,6 +187,7 @@ CREATE TABLE `agent_session` (
   `status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
   `turn_count` INT NOT NULL DEFAULT 0,
   `stage_reask_count` INT NOT NULL DEFAULT 0,
+  `cross_record_memory_enabled` TINYINT(1) NOT NULL DEFAULT 0,
   `last_active_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -214,6 +217,28 @@ CREATE TABLE `agent_message` (
     FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_agent_message_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `agent_memory_source` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `session_id` BIGINT NOT NULL,
+  `assistant_message_id` BIGINT NOT NULL,
+  `source_record_id` BIGINT NULL,
+  `source_kind` VARCHAR(24) NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_agent_memory_source_message_record_kind` (`assistant_message_id`, `source_record_id`, `source_kind`),
+  KEY `idx_agent_memory_source_session` (`session_id`, `assistant_message_id`),
+  KEY `idx_agent_memory_source_user` (`user_id`, `session_id`),
+  CONSTRAINT `fk_agent_memory_source_user_id`
+    FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_memory_source_session_id`
+    FOREIGN KEY (`session_id`) REFERENCES `agent_session` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_memory_source_message_id`
+    FOREIGN KEY (`assistant_message_id`) REFERENCES `agent_message` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_agent_memory_source_record_id`
+    FOREIGN KEY (`source_record_id`) REFERENCES `record` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `data_operation` (

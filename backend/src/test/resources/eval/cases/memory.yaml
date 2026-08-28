@@ -14,6 +14,7 @@ cases:
     dimension: MEMORY_STATES
     note: 检索成功且有命中 → enabled=true failed=false retrievedCount>0。
     setup:
+      crossRecordMemoryEnabled: true
       memoryCandidates:
         - id: 70001
           text: 那时候在纠结要不要换个方向
@@ -38,6 +39,8 @@ cases:
     note: |
       检索成功但无命中 → retrievedCount=0，且**必须**与开关关闭可区分。
       有线索、查了库、没查到，这三件事都发生了。
+    setup:
+      crossRecordMemoryEnabled: true
     turns:
       - userInput: 最近又开始纠结方向的事情了
         reply: 这种感觉是从什么时候开始的？
@@ -56,6 +59,7 @@ cases:
       沿用 C3a「关闭不静默」的既有语义。
     setup:
       memoryEnabled: false
+      crossRecordMemoryEnabled: true
       memoryCandidates:
         - id: 70001
           text: 那时候在纠结要不要换个方向
@@ -76,6 +80,7 @@ cases:
       候选多于 maxFragments（默认 3）时，注入条数必须收口到上限。
       走的是真实 MySqlMemoryPort 的 limit 逻辑，不是替身写死的数字。
     setup:
+      crossRecordMemoryEnabled: true
       memoryCandidates:
         - id: 70001
           text: 那时候在纠结要不要换个方向
@@ -106,6 +111,7 @@ cases:
       单条片段先由 C3 截断到 maxFragmentChars（默认 120），再因距固定时钟 31–180 天
       由 C9 DISTANT 预算收口到 75%（90 字），因此注入长度不会随候选文本线性膨胀。
     setup:
+      crossRecordMemoryEnabled: true
       memoryCandidates:
         - id: 70001
           text: 那时候一直在纠结要不要换个方向怕选错了就回不去了每天都在心里反复算这件事算到最后也没有答案只是越来越累越来越怀疑自己是不是根本没有判断力这种反复消耗掉了我大半年的精力现在回头看那些纠结本身可能才是最耗人的部分而不是那个选择本身到底选了哪一边其实没有那么要紧要紧的是我一直没允许自己停下来好好看一眼这件事
@@ -119,3 +125,92 @@ cases:
       injectionWithinBudget: true
       maxInjectedChars: 90
       injectedCharsExactly: 90
+
+  - caseId: p42-authorization-off-zero-retrieval
+    dimension: MEMORY_STATES
+    note: |
+      P4.2：会话授权关闭时即使配置开启且有候选，cue/MemoryPort 也不得执行。
+    setup:
+      crossRecordMemoryEnabled: false
+      memoryCandidates:
+        - id: 70001
+          text: 那时候在纠结要不要换个方向
+          createdAt: "2026-03-14T21:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      memoryEnabled: false
+      retrievedCount: 0
+      injectedCount: 0
+      memorySupplementPresent: false
+      authorizationAllowed: false
+      sourceCount: 0
+
+  - caseId: p42-authorization-enable-injects-and-sources
+    dimension: MEMORY_STATES
+    note: P4.2：授权开启后最终注入与用户可见来源条数一致。
+    setup:
+      crossRecordMemoryEnabled: true
+      memoryCandidates:
+        - id: 70001
+          text: 那时候在纠结要不要换个方向
+          createdAt: "2026-03-14T21:00:00"
+        - id: 70002
+          text: 写下这些的时候心里挺沉的
+          createdAt: "2026-04-02T20:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      memoryEnabled: true
+      retrievedCount: 2
+      injectedCount: 2
+      memorySupplementPresent: true
+      authorizationAllowed: true
+      sourceCount: 2
+
+  - caseId: p42-exclude-record-not-injected
+    dimension: MEMORY_STATES
+    note: P4.2：被排除记录不得进入候选或来源。
+    setup:
+      crossRecordMemoryEnabled: true
+      memoryCandidates:
+        - id: 70001
+          text: 那时候在纠结要不要换个方向
+          createdAt: "2026-03-14T21:00:00"
+          excluded: true
+        - id: 70002
+          text: 写下这些的时候心里挺沉的
+          createdAt: "2026-04-02T20:00:00"
+    turns:
+      - userInput: 最近又开始纠结方向的事情了
+        reply: 这种感觉是从什么时候开始的？
+    expect:
+      outcome: SUCCESS
+      retrievedCount: 1
+      injectedCount: 1
+      authorizationAllowed: true
+      sourceCount: 1
+
+  - caseId: p42-review-target-remains-distinct
+    dimension: MEMORY_STATES
+    note: P4.2：回看目标是用户主动选择的默认上下文，不因跨记录授权关闭而消失。
+    setup:
+      purpose: REVIEW_CHAT
+      crossRecordMemoryEnabled: false
+      recordContent: 那时候正在为一次重要选择反复犹豫
+    turns:
+      - userInput: 现在回头看，我好像没那么害怕了
+        reply: 回看那时候的犹豫，现在的你已经能留出一点距离。
+    expect:
+      outcome: SUCCESS
+      stage: REVIEW
+      stageReasonAbsent: true
+      retrievedCount: 0
+      injectedCount: 1
+      memorySupplementPresent: true
+      authorizationAllowed: false
+      sourceCount: 1

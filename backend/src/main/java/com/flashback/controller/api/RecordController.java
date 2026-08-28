@@ -3,6 +3,7 @@ package com.flashback.controller.api;
 import com.flashback.common.page.PageResult;
 import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.CreateRecordRequest;
+import com.flashback.dto.RecordAgentMemoryPolicyRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
@@ -99,6 +100,14 @@ public class RecordController {
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateLaterReflectionRequest request) {
         return ApiResponse.success(recordService.updateLaterReflection(authUser.getUserId(), id, request));
+    }
+
+    @PutMapping("/{id}/agent-memory-policy")
+    public ApiResponse<RecordDetailVO> updateAgentMemoryPolicy(
+            @CurrentUser AuthUser authUser,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody RecordAgentMemoryPolicyRequest request) {
+        return ApiResponse.success(recordService.updateAgentMemoryPolicy(authUser.getUserId(), id, request));
     }
 
     @PutMapping("/{id}/unlock-reminder-authorization")

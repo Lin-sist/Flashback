@@ -178,6 +178,21 @@ export const recordService = {
       data: { realityLater },
     })
   },
+  updateAgentMemoryPolicy(
+    id: string | number,
+    excluded: boolean,
+    contextNote: string | null,
+  ) {
+    if (shouldUsePreviewData()) {
+      return rejectPreviewMutation<RecordDetailVO>()
+    }
+
+    return httpRequest<RecordDetailVO>({
+      url: `/api/records/${id}/agent-memory-policy`,
+      method: 'PUT',
+      data: { excluded, contextNote },
+    })
+  },
   getUnlockedRecords(pageNum = 1, pageSize = 10) {
     if (shouldUsePreviewData()) {
       return Promise.resolve(getPreviewUnlockedRecords(pageNum, pageSize))

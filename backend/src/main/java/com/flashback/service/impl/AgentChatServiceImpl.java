@@ -27,6 +27,8 @@ import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentProviderFailureCategory;
 import com.flashback.agent.resilience.AgentProviderFailures;
 import com.flashback.agent.resilience.AgentResiliencePolicy;
+import com.flashback.agent.safety.AgentSafetyDecision;
+import com.flashback.agent.safety.AgentSafetyPolicy;
 import com.flashback.agent.tool.AgentToolCallStatus;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolDecision;
@@ -53,11 +55,14 @@ import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentSessionStatus;
 import com.flashback.domain.AgentStage;
+import com.flashback.domain.AgentMemorySource;
+import com.flashback.domain.AgentMemorySourceKind;
 import com.flashback.domain.AgentToolCall;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
+import com.flashback.mapper.AgentMemorySourceMapper;
 import com.flashback.mapper.AgentMessageMapper;
 import com.flashback.mapper.AgentSessionMapper;
 import com.flashback.mapper.RecordMapper;
@@ -65,6 +70,7 @@ import com.flashback.mapper.RecordTagMapper;
 import com.flashback.service.AgentChatService;
 import com.flashback.service.TagService;
 import com.flashback.service.data.DataOwnershipMutationGuard;
+import com.flashback.vo.AgentMemorySourceVO;
 import com.flashback.vo.AgentMessageVO;
 import com.flashback.vo.AgentSessionVO;
 import com.flashback.vo.AgentToolCallVO;
@@ -79,6 +85,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -122,8 +130,10 @@ public class AgentChatServiceImpl implements AgentChatService {
     private final AgentTimeAttributionChecker timeAttributionChecker;
     private final AgentReplyPipeline replyPipeline;
     private final AgentResiliencePolicy resiliencePolicy;
+    private final AgentSafetyPolicy safetyPolicy = new AgentSafetyPolicy();
     private final AgentTemporalPolicy temporalPolicy;
     private final MemoryPort memoryPort;
+    private final AgentMemorySourceMapper agentMemorySourceMapper;
     private final MemoryCueExtractor memoryCueExtractor;
     private final RecordTagMapper recordTagMapper;
     private final TagService tagService;
@@ -153,6 +163,7 @@ public class AgentChatServiceImpl implements AgentChatService {
             AgentTimeAttributionChecker timeAttributionChecker,
             AgentReflectionPolicy reflectionPolicy,
             MemoryPort memoryPort,
+            AgentMemorySourceMapper agentMemorySourceMapper,
             MemoryCueExtractor memoryCueExtractor,
             RecordTagMapper recordTagMapper,
             TagService tagService,
@@ -189,6 +200,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                 reflectionPolicy,
                 resiliencePolicy);
         this.memoryPort = memoryPort;
+        this.agentMemorySourceMapper = agentMemorySourceMapper;
         this.memoryCueExtractor = memoryCueExtractor;
         this.recordTagMapper = recordTagMapper;
         this.tagService = tagService;
@@ -266,14 +278,17 @@ public class AgentChatServiceImpl implements AgentChatService {
             }
             LocalDateTime retryAt = LocalDateTime.now(clock);
             AgentStage openingStage = openingStageOf(mode);
+            TemporalPolicyResult openingTemporal = temporalPolicy.evaluate(
+                    mode, "", reviewFragmentsOf(userId, existing, mode), List.of());
             AgentReply openingReply = generateReply(
-                    openingStage, List.of(), reviewFragmentsOf(userId, existing, mode),
+                    openingStage, List.of(), openingTemporal,
                     "opening-retry", mode, existing.getConversationIntent(), budget);
             if (!openingReply.success()) {
                 return failed(existing, existingMessages, openingReply.message());
             }
             AgentMessage openingMessage = persistMessage(
                     existing, AgentMessageRole.ASSISTANT, 0, openingStage, openingReply.content(), retryAt);
+            persistMemorySources(existing, openingMessage, openingTemporal.injectedFragments());
             existing.setStage(openingStage);
             updateProgress(existing, retryAt);
             return toSessionVO(existing, List.of(openingMessage), null, STATUS_SUCCESS);
@@ -304,8 +319,10 @@ public class AgentChatServiceImpl implements AgentChatService {
         }
 
         AgentStage openingStage = openingStageOf(mode);
+        TemporalPolicyResult openingTemporal = temporalPolicy.evaluate(
+                mode, "", reviewFragmentsOf(userId, session, mode), List.of());
         AgentReply reply = generateReply(
-                openingStage, List.of(), reviewFragmentsOf(userId, session, mode),
+                openingStage, List.of(), openingTemporal,
                 "opening", mode, session.getConversationIntent(), budget);
         if (!reply.success()) {
             return failed(session, List.of(), reply.message());
@@ -313,6 +330,7 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         AgentMessage assistantMessage = persistMessage(
                 session, AgentMessageRole.ASSISTANT, 0, openingStage, reply.content(), now);
+        persistMemorySources(session, assistantMessage, openingTemporal.injectedFragments());
         session.setStage(openingStage);
         updateProgress(session, now);
 
@@ -444,6 +462,24 @@ public class AgentChatServiceImpl implements AgentChatService {
                     .witnessPolicy(null, turnDirective.type(), turnDirective.maxQuestions()));
         }
 
+        AgentSafetyDecision safetyDecision = safetyPolicy.assess(content);
+        traceOf(trace, t -> t.safetyResponse(
+                safetyDecision.level(), safetyDecision.rule(), safetyDecision.intervenes()));
+        if (safetyDecision.intervenes()) {
+            AgentMessage assistantMessage = persistMessage(
+                    session,
+                    AgentMessageRole.ASSISTANT,
+                    turnNo,
+                    targetStage,
+                    AgentSafetyPolicy.LOCAL_RESPONSE,
+                    now);
+            traceOf(trace, t -> t.memorySources(0).tools(false, 0, 0).material(false, 0));
+            history = appended(history, assistantMessage);
+            AgentSessionVO vo = toSessionVO(session, history, null, STATUS_SUCCESS);
+            vo.setPendingToolCall(null);
+            return vo;
+        }
+
         String unavailableReason = modelClient.unavailableReason();
         if (unavailableReason != null) {
             traceOf(trace, t -> t.providerUnavailable(budget));
@@ -496,6 +532,8 @@ public class AgentChatServiceImpl implements AgentChatService {
 
         AgentMessage assistantMessage = persistMessage(
                 session, AgentMessageRole.ASSISTANT, turnNo, targetStage, reply.content(), now);
+        int sourceCount = persistMemorySources(session, assistantMessage, injectedMemory);
+        traceOf(trace, t -> t.memorySources(sourceCount));
         history = appended(history, assistantMessage);
 
         // 提议只落库为待确认，**不执行**；执行只发生在 confirmToolCall（C2 决策 2、9）。
@@ -665,13 +703,11 @@ public class AgentChatServiceImpl implements AgentChatService {
     private AgentReply generateReply(
             AgentStage targetStage,
             List<AgentMessage> history,
-            List<MemoryFragment> reviewFragments,
+            TemporalPolicyResult temporal,
             String operation,
             AgentChatMode mode,
             AgentConversationIntent conversationIntent,
             AgentCallBudget budget) {
-        List<MemoryFragment> fragments = reviewFragments == null ? List.of() : reviewFragments;
-        TemporalPolicyResult temporal = temporalPolicy.evaluate(mode, "", fragments, List.of());
         AgentWitnessTurnDirective directive = mode.isStageMachineDriven()
                 ? witnessTurnPolicy.opening(conversationIntent)
                 : witnessTurnPolicy.reviewOpening();
@@ -731,9 +767,15 @@ public class AgentChatServiceImpl implements AgentChatService {
     private List<MemoryFragment> retrieveMemory(
             AgentSession session, List<AgentMessage> history, AgentTraceCollector trace) {
         AppAgentProperties.Memory config = appAgentProperties.getMemory();
-        if (!config.isEnabled()) {
-            // 开关关闭必须留痕，不静默表现为检索无命中（backend-core delta 要求）。
-            log.info("agent memory retrieval disabled by config sessionId={}", session.getId());
+        boolean configEnabled = config.isEnabled();
+        boolean sessionEnabled = session.isCrossRecordMemoryEnabled()
+                && session.getStatus() == AgentSessionStatus.ACTIVE;
+        boolean allowed = configEnabled && sessionEnabled;
+        traceOf(trace, t -> t.memoryAuthorization(configEnabled, sessionEnabled, allowed));
+        if (!allowed) {
+            // 配置或用户授权任一关闭都必须留痕，且 cue / MemoryPort 调用数为 0。
+            log.info("agent memory retrieval blocked sessionId={} config={} sessionAuth={}",
+                    session.getId(), configEnabled, sessionEnabled);
             traceOf(trace, t -> t.memoryRetrieval(false, false, false, 0, 0, 0));
             return List.of();
         }
@@ -832,9 +874,10 @@ public class AgentChatServiceImpl implements AgentChatService {
                 : occurredAt.getYear() + "年" + occurredAt.getMonthValue() + "月";
 
         List<MemoryFragment> fragments = new ArrayList<>();
-        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getContent(), limit);
-        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getAiSummary(), limit);
-        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getBeliefThen(), limit);
+        String contextNote = blankToNull(record.getAgentMemoryContextNote());
+        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getContent(), limit, contextNote);
+        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getAiSummary(), limit, contextNote);
+        addReviewFragment(fragments, record.getId(), occurredAt, timeLabel, record.getBeliefThen(), limit, contextNote);
         return List.copyOf(fragments);
     }
 
@@ -844,13 +887,14 @@ public class AgentChatServiceImpl implements AgentChatService {
             LocalDateTime occurredAt,
             String timeLabel,
             String text,
-            int limit) {
+            int limit,
+            String contextNote) {
         if (text == null || text.isBlank()) {
             return;
         }
         String normalized = text.trim();
         String clipped = normalized.length() <= limit ? normalized : normalized.substring(0, limit);
-        sink.add(new MemoryFragment(recordId, occurredAt, timeLabel, clipped));
+        sink.add(new MemoryFragment(recordId, occurredAt, timeLabel, clipped, contextNote));
     }
 
     /**
@@ -922,6 +966,35 @@ public class AgentChatServiceImpl implements AgentChatService {
             session.setConversationIntent(conversationIntent);
             session.setUpdatedAt(LocalDateTime.now(clock));
             agentSessionMapper.updateConversationIntent(session);
+        }
+        return toSessionVO(session, history, null, statusOfConfig());
+    }
+
+    @Override
+    @Transactional
+    public AgentSessionVO switchMemoryAuthorization(
+            Long userId, Long sessionId, Boolean crossRecordMemoryEnabled) {
+        assertOwnershipWritable(userId);
+        if (crossRecordMemoryEnabled == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.BAD_REQUEST, "crossRecordMemoryEnabled不能为空");
+        }
+        AgentSession session = requireOwnedSession(userId, sessionId);
+        requireActive(session);
+        normalizeWritingSession(session);
+        List<AgentMessage> history = agentMessageMapper.selectBySessionId(sessionId);
+        boolean pendingRetry = findPendingUserMessage(history, session.getTurnCount()) != null;
+        if (pendingRetry && crossRecordMemoryEnabled && !session.isCrossRecordMemoryEnabled()) {
+            throw new BizException(ErrorCode.BAD_REQUEST, HttpStatus.CONFLICT, "请先重试上一轮回复后再开启参考过去");
+        }
+        if (session.isCrossRecordMemoryEnabled() != crossRecordMemoryEnabled) {
+            session.setCrossRecordMemoryEnabled(crossRecordMemoryEnabled);
+            session.setUpdatedAt(LocalDateTime.now(clock));
+            if (agentSessionMapper.updateMemoryAuthorization(session) != 1) {
+                throw new BizException(
+                        ErrorCode.BAD_REQUEST,
+                        HttpStatus.CONFLICT,
+                        "会话状态已变化，请刷新后重试");
+            }
         }
         return toSessionVO(session, history, null, statusOfConfig());
     }
@@ -1239,7 +1312,8 @@ public class AgentChatServiceImpl implements AgentChatService {
         vo.setMaxTurns(appAgentProperties.getMaxTurnsPerSession());
         vo.setCanContinue(session.getStatus() == AgentSessionStatus.ACTIVE
                 && session.getTurnCount() < appAgentProperties.getMaxTurnsPerSession());
-        vo.setMessages(toMessageVOs(messages));
+        vo.setCrossRecordMemoryEnabled(session.isCrossRecordMemoryEnabled());
+        vo.setMessages(toMessageVOs(session, messages));
         vo.setMaterialDraft(materialDraft);
         vo.setSource(modelClient.provider());
         vo.setStatus(status);
@@ -1277,10 +1351,11 @@ public class AgentChatServiceImpl implements AgentChatService {
         return vo;
     }
 
-    private List<AgentMessageVO> toMessageVOs(List<AgentMessage> messages) {
+    private List<AgentMessageVO> toMessageVOs(AgentSession session, List<AgentMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             return List.of();
         }
+        Map<Long, List<AgentMemorySource>> sourcesByMessage = sourcesByMessage(session);
         List<AgentMessageVO> result = new ArrayList<>(messages.size());
         for (AgentMessage message : messages) {
             AgentMessageVO vo = new AgentMessageVO();
@@ -1290,9 +1365,127 @@ public class AgentChatServiceImpl implements AgentChatService {
             vo.setStage(message.getStage() == null ? null : message.getStage().name());
             vo.setContent(message.getContent());
             vo.setCreatedAt(message.getCreatedAt());
+            vo.setMemorySources(resolveMemorySources(session, message, sourcesByMessage));
             result.add(vo);
         }
         return result;
+    }
+
+    private Map<Long, List<AgentMemorySource>> sourcesByMessage(AgentSession session) {
+        if (session == null || session.getId() == null || agentMemorySourceMapper == null) {
+            return Map.of();
+        }
+        List<AgentMemorySource> rows = agentMemorySourceMapper.selectBySessionIdAndUserId(
+                session.getId(), session.getUserId());
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<AgentMemorySource>> grouped = new LinkedHashMap<>();
+        for (AgentMemorySource row : rows) {
+            if (row == null || row.getAssistantMessageId() == null) {
+                continue;
+            }
+            grouped.computeIfAbsent(row.getAssistantMessageId(), key -> new ArrayList<>()).add(row);
+        }
+        return grouped;
+    }
+
+    private List<AgentMemorySourceVO> resolveMemorySources(
+            AgentSession session, AgentMessage message, Map<Long, List<AgentMemorySource>> sourcesByMessage) {
+        if (message == null || message.getRole() != AgentMessageRole.ASSISTANT || message.getId() == null) {
+            return List.of();
+        }
+        List<AgentMemorySource> rows = sourcesByMessage.get(message.getId());
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        List<AgentMemorySourceVO> result = new ArrayList<>(rows.size());
+        for (AgentMemorySource row : rows) {
+            result.add(toMemorySourceVO(session, row));
+        }
+        return result;
+    }
+
+    private AgentMemorySourceVO toMemorySourceVO(AgentSession session, AgentMemorySource row) {
+        AgentMemorySourceVO vo = new AgentMemorySourceVO();
+        vo.setSourceKind(row.getSourceKind() == null ? null : row.getSourceKind().name());
+        if (row.getSourceRecordId() == null) {
+            vo.setAvailable(false);
+            return vo;
+        }
+        Record record = recordMapper.selectByIdAndUserId(row.getSourceRecordId(), session.getUserId());
+        if (!isMemorySourceAvailable(record)) {
+            vo.setAvailable(false);
+            return vo;
+        }
+        vo.setAvailable(true);
+        vo.setRecordId(record.getId());
+        vo.setDisplayTitle(blankToNull(record.getTitle()));
+        vo.setOccurredAt(record.getCreatedAt());
+        vo.setContextNote(blankToNull(record.getAgentMemoryContextNote()));
+        return vo;
+    }
+
+    private boolean isMemorySourceAvailable(Record record) {
+        if (record == null || record.getStatus() == RecordStatus.SEALED) {
+            return false;
+        }
+        return record.getStatus() != RecordStatus.DRAFT
+                || record.getDraftExpiresAt() == null
+                || record.getDraftExpiresAt().isAfter(LocalDateTime.now(clock));
+    }
+
+    private int persistMemorySources(
+            AgentSession session, AgentMessage assistant, List<MemoryFragment> injected) {
+        if (agentMemorySourceMapper == null
+                || session == null
+                || assistant == null
+                || assistant.getId() == null
+                || assistant.getRole() != AgentMessageRole.ASSISTANT
+                || injected == null
+                || injected.isEmpty()) {
+            return 0;
+        }
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+        int sourceCount = 0;
+        for (MemoryFragment fragment : injected) {
+            if (fragment == null || fragment.recordId() == null) {
+                continue;
+            }
+            AgentMemorySourceKind kind = sourceKindOf(session, fragment);
+            String key = kind.name() + ":" + fragment.recordId();
+            if (!seen.add(key)) {
+                continue;
+            }
+            AgentMemorySource source = new AgentMemorySource();
+            source.setUserId(session.getUserId());
+            source.setSessionId(session.getId());
+            source.setAssistantMessageId(assistant.getId());
+            source.setSourceRecordId(fragment.recordId());
+            source.setSourceKind(kind);
+            source.setCreatedAt(assistant.getCreatedAt());
+            if (agentMemorySourceMapper.insert(source) != 1) {
+                throw new IllegalStateException("agent memory source persistence failed");
+            }
+            sourceCount++;
+        }
+        return sourceCount;
+    }
+
+    private AgentMemorySourceKind sourceKindOf(AgentSession session, MemoryFragment fragment) {
+        if (session.getPurpose() == AgentSessionPurpose.REVIEW_CHAT
+                && session.getRecordId() != null
+                && session.getRecordId().equals(fragment.recordId())) {
+            return AgentMemorySourceKind.REVIEW_TARGET;
+        }
+        return AgentMemorySourceKind.CROSS_RECORD;
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     /**

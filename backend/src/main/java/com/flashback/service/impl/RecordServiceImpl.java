@@ -24,6 +24,7 @@ import com.flashback.domain.UnlockNoticeLog;
 import com.flashback.domain.User;
 import com.flashback.mapper.RecordReminderMapper;
 import com.flashback.dto.CreateRecordRequest;
+import com.flashback.dto.RecordAgentMemoryPolicyRequest;
 import com.flashback.dto.RecordPageQuery;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
@@ -468,6 +469,31 @@ public class RecordServiceImpl implements RecordService {
         }
 
         return toDetailVO(requireOwnedRecord(id, userId));
+    }
+
+    @Override
+    @Transactional
+    public RecordDetailVO updateAgentMemoryPolicy(Long userId, Long id, RecordAgentMemoryPolicyRequest request) {
+        assertOwnershipWritable(userId);
+        if (request == null || request.getExcluded() == null) {
+            throw badRequest("excluded不能为空");
+        }
+        Record current = requireOwnedRecord(id, userId);
+        String contextNote = normalizeContextNote(request.getContextNote());
+        int affected = recordMapper.updateAgentMemoryPolicyByIdAndUserId(
+                id,
+                userId,
+                request.getExcluded(),
+                contextNote,
+                LocalDateTime.now(clock));
+        if (affected == 0) {
+            throw new NotFoundException("记录不存在");
+        }
+        RecordDetailVO vo = toDetailVO(requireOwnedRecord(id, userId));
+        if (current.getStatus() == RecordStatus.SEALED) {
+            stripSealedContent(vo);
+        }
+        return vo;
     }
 
     @Override
@@ -921,6 +947,34 @@ public class RecordServiceImpl implements RecordService {
         return vo;
     }
 
+    private String normalizeContextNote(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.length() > 255) {
+            throw badRequest("contextNote不能超过255字");
+        }
+        for (int i = 0; i < trimmed.length(); i++) {
+            if (Character.isISOControl(trimmed.charAt(i))) {
+                throw badRequest("contextNote不能包含控制字符");
+            }
+        }
+        return trimmed;
+    }
+
+    private void stripSealedContent(RecordDetailVO vo) {
+        vo.setContent(null);
+        vo.setCoreQuestion(null);
+        vo.setAiSummary(null);
+        vo.setAiPromptResults(List.of());
+        vo.setBeliefThen(null);
+        vo.setRealityLater(null);
+        vo.setLocation(null);
+        vo.setAttachments(List.of());
+        vo.setCover(null);
+    }
+
     private RecordListItemVO toListItemVO(Record record, List<String> tagNames) {
         RecordListItemVO vo = new RecordListItemVO();
         vo.setId(record.getId());
@@ -990,6 +1044,8 @@ public class RecordServiceImpl implements RecordService {
                 && replyMapper.selectByRecordId(record.getId()) != null;
         vo.setHasReply(hasReply);
         vo.setCanReply(record.getStatus() == RecordStatus.UNLOCKED && !hasReply);
+        vo.setAgentMemoryExcluded(record.isAgentMemoryExcluded());
+        vo.setAgentMemoryContextNote(record.getAgentMemoryContextNote());
         vo.setCreatedAt(record.getCreatedAt());
         vo.setUpdatedAt(record.getUpdatedAt());
         return vo;

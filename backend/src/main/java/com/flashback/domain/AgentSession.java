@@ -26,6 +26,8 @@ public class AgentSession {
     private AgentSessionStatus status;
     private int turnCount;
     private int stageReaskCount;
+    /** P4.2：当前会话是否允许跨记录记忆；默认 false，不跨 session 继承。 */
+    private boolean crossRecordMemoryEnabled;
     private LocalDateTime lastActiveAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -101,6 +103,14 @@ public class AgentSession {
 
     public void setStageReaskCount(int stageReaskCount) {
         this.stageReaskCount = stageReaskCount;
+    }
+
+    public boolean isCrossRecordMemoryEnabled() {
+        return crossRecordMemoryEnabled;
+    }
+
+    public void setCrossRecordMemoryEnabled(boolean crossRecordMemoryEnabled) {
+        this.crossRecordMemoryEnabled = crossRecordMemoryEnabled;
     }
 
     public LocalDateTime getLastActiveAt() {

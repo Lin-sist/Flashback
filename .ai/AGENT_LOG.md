@@ -7945,3 +7945,162 @@ Commit: pending
 - **Scope**: 19 files changed / 1236 insertions / 159 deletions；Gate 3b/3c 探针、五份 accepted baseline、closeout、archive、ACTIVE_TASK 与 append-only evidence
 - **Verification**: 提交前 `git diff --cached --check` PASS；backend 104 suites / 728 tests / 0 failures / 0 errors / 13 skipped；frontend type-check、standard/Preview build、微信 Standard/Preview matrix 与真实 MySQL probe PASS
 - **Boundary**: 未 push、PR、deploy、release；P4.1 已归档，下一阶段仍须独立规划
+
+## 2026-08-25｜memory-agency Gate 1 规划｜Type C
+
+- **Scope**: 从 `IDLE` 启动 P4.2 独立规划；只创建 proposal/design/tasks/五域 delta 并更新 active handoff，不改业务代码或 accepted specs
+- **Changes**:
+  - 规划 session 级跨记录授权默认 false，backend config 与用户 consent 同时成立才允许检索
+  - 规划 record 级排除与用户时间语境说明；AI 无写权限
+  - 规划 per-assistant-message 实际 source 结构化关系；不复制 fragment、正文、摘要、关键词、分数、prompt 或 reply
+  - 规划撤销/排除/删除对未来立即生效，删除后历史 source 不可用；不虚假承诺撤回既往 provider 调用
+- **Verification PASS**:
+  - P4.1/C3/C9 依赖、同名 change 不存在、开工 HEAD=`42548ce` 与 clean worktree 已核对
+  - 8 个必需工件存在；五份 delta 均含 ADDED operation、Requirement 与 Scenario；`git diff --check` PASS
+  - 规划范围未修改业务代码、accepted specs、archive、package/lockfile、deployment、monitoring 或 admin
+- **Verification SKIPPED**:
+  - OpenSpec CLI 不在 PATH，采用文件级 validation；不声称 CLI PASS
+  - Gate 1 前不运行实现测试/build；真实 provider/MySQL/微信调用均为 0
+- **Risks**:
+  - exact API/schema/source transaction/delete semantics 仍是 Gate 1 推荐决策，未获批准前不得实现
+  - 真实 MySQL 外键/事务/删除时序必须在单独 Gate 3a 验证；H2 不能替代
+  - dev profile MyBatis DEBUG 参数日志是独立 Type B 隐私风险，不混入 P4.2
+- **Commit**: pending（默认用户手动提交；未 stage/commit/push）
+- **Next**: 等待用户批准或修改 Gate 1；批准规划不等于 Gate 2 实现授权
+
+## 2026-08-27｜memory-agency Gate 2 离线实现审查点｜Type C
+
+- **Scope**:
+  - P4.2 session authorization、record memory policy、actual source evidence、Agent runtime/trace、Mini Program 与 C6/直接测试
+  - active change tasks、ACTIVE_TASK progress 与本条 append-only evidence
+- **Authorization**:
+  - Gate 1 proposal/design/tasks/五域 delta 与 D1–D12 已批准；Gate 2 离线实现已授权
+  - Gate 3a 真实 MySQL、Gate 3b 微信、真实 provider、delta acceptance、archive、stage/commit、push、PR、deploy/release 均未授权
+- **Changes**:
+  - session 授权默认 false；只有 backend config 与用户 consent 同时成立才允许跨记录检索，授权切换 owner/ACTIVE/幂等/pending-retry fail-closed 且不调用 provider
+  - record 排除与用户语境说明支持 owner-scoped 全量保存、blank-to-null、长度/控制字符约束；context note 不参与 cue/排序，只随实际来源以用户说明语义进入 Prompt
+  - assistant message 持久化实际 final injected sources；source 表不复制正文、摘要、片段、关键词、分数、prompt 或 reply；不可用记录不返回 recordId/title/time/note
+  - REVIEW_CHAT 目标与跨记录历史分层；Prompt 与 source row 使用同一 final injected list；撤销后下一轮停止跨记录检索
+  - Mini Program 增加授权、record policy/note 与 source chip；保存失败恢复后端权威状态；修复回看浮层 `scroll-view` 标签闭合
+  - C6 与直接测试增加 config×consent、撤销、排除、回看目标、实际 source、owner/status/隐私等覆盖；合法 snapshot 变化记录 P4.2 baselineNote
+- **Verification PASS**:
+  - backend focused suites PASS；backend full：105 suites / 755 tests / 0 failures / 0 errors / 13 skipped
+  - frontend `vue-tsc --noEmit` PASS；Standard 与 Preview `mp-weixin` build PASS；生成 WXML 的 message-list `scroll-view` 结构正确
+  - C6 baseline compare/checksum/invariants/privacy PASS；MySQL/H2/domain/mapper/DTO/VO/frontend 文件级 contract 检查 PASS
+  - `git diff --check`、路径范围、package/lockfile/pom/deployment/monitoring/admin denylist 与高置信 credential pattern 检查 PASS
+- **Verification PARTIAL / SKIPPED**:
+  - 实现前 baseline SKIPPED：接手本轮时实现改动已经存在，无法倒签实现前 backend/frontend 统计；最终 full regression 独立记录
+  - T-53 PARTIAL：off/on/exclude/review-target/source 已进入 fixed fixtures；revoke/delete/owner/status 有直接测试，transaction 有结构检查，但尚未全部提升为 C6 fixtures
+  - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；只采用 artifacts/delta/Requirement/Scenario 文件级验证，不声称 CLI PASS
+  - Gate 3a 未授权：真实 MySQL migration 幂等、rollback、SET NULL 与 cleanup 未执行；H2/文件检查不替代真实 MySQL
+  - Gate 3b 未授权：Preview 请求计数、微信开发者工具与物理真机交互未执行；build 不替代真实请求/交互
+  - 真实 provider 调用 0；scripted/mock 只证明确定性编排，不冒充真实语言质量
+- **Scope safety**:
+  - 未修改 accepted specs、archive、冻结蓝图、package/lockfile、pom、deployment、monitoring、admin、三个一级 Tab 或 canonical naming
+  - 未新增工具/扩大 allowlist，未实现向量库、全文索引、画像、趋势、评分、诊断、建议清单、关系型 AI、R1/E1/P5 或 major visual reconstruction
+  - tracked evidence 未记录用户日记、对话、context note、provider reply、prompt、source ID 列表、token、账号或 secret
+- **Risks**:
+  - 真实 MySQL 事务回滚、外键 SET NULL 与迁移幂等尚无证据；微信 Preview 请求数和真机交互尚无证据
+  - T-53 fixed fixture matrix 尚未全部完成；离线实现不能写成 Gate 3 或最终验收完成
+- **Commit**: pending（用户明确本轮不 commit；未 stage/commit/push）
+- **Next**: 用户审查 diff；优先补齐 T-53 fixed fixtures，再分别决定是否授权 Gate 3a MySQL 与 Gate 3b 微信；不得直接接受 delta 或归档
+
+## 2026-08-27｜memory-agency Gate 3a/3b 真实验收检查点｜Type C
+
+- **Scope**:
+  - Gate 3a 本机真实 MySQL preflight、migration 幂等、合成数据行为/事务/外键探针与 cleanup
+  - Gate 3b 微信开发者工具 Standard/Preview 矩阵、真实微信登录边界与请求计数
+  - tasks、ACTIVE_TASK progress 与本条 append-only evidence
+- **Authorization**:
+  - 用户明确授权 Gate 3a 与 Gate 3b
+  - 不含真实 provider、delta acceptance、archive、stage/commit、push、PR、deploy/release
+- **Changes**:
+  - 新增默认关闭的 `P42RealMySqlMemoryAgencyProbeTest`，以环境开关隔离真实 MySQL 探针
+  - 新增 Gate 3b Standard/Preview 微信自动化脚本；Standard 使用 scripted API response，Preview 从 app context 统计请求
+  - 更新 P4.2 Gate 3 task 状态与 active handoff；未修改 accepted specs 或 archive
+- **Verification PASS**:
+  - Gate 3a preflight：MySQL 8.0.41 与 3306 可用；migration 连续执行两次 PASS；三项 policy column、source schema 与 FK `SET NULL` exact-match
+  - Gate 3a synthetic probe：authorization default/off/on/revoke、owner scope、status/exclusion/deletion eligibility、future-turn runtime effect、source available/unavailable、同事务 rollback PASS
+  - Gate 3a cleanup：finally 后 synthetic user/record/session/message/source/operation 聚合均为 0
+  - Gate 3b Developer Tools Standard：真实微信登录边界；default off、enable、disable、failure rollback、source available/unavailable、source navigation、policy、note、delete surface PASS；provider calls=0
+  - Gate 3b Developer Tools Preview：entry=true、sheet=false；total requests=0、memory-agency requests=0
+  - backend full：106 suites / 756 tests / 0 failures / 0 errors / 14 skipped；真实 probe 默认 skip
+  - frontend Standard/Preview `mp-weixin` build PASS；验收 backend、微信开发者工具与临时依赖均已停止/清理
+- **Diagnostic corrections**:
+  - 首次增强 MySQL 探针因合成 title 未命中完整 cue 而失败；finally cleanup 已执行，修正 fixture 后同一矩阵 PASS
+  - Standard 初次遇到旧 token 401 与登录导航竞态；清除 token、等待真实登录落到首页后再进入测试页，最终 PASS
+  - Preview 初次断言错误地要求隐藏本地 policy；按既定契约改为允许本地交互但请求必须为 0，最终 PASS
+  - 收口首次直接调用 `vue-tsc.cmd` 因 shell PATH 无 `node` 失败；改用 Codex bundled Node 执行同一 `vue-tsc --noEmit` 后 PASS
+- **Verification PARTIAL / SKIPPED**:
+  - 物理真机 SKIPPED：当前仅有微信开发者工具证据，不声称真机键盘、滚动、触控或尺寸矩阵 PASS
+  - Standard 业务响应为 scripted interception；只证明 UI/状态编排，不冒充真实 backend/provider 或语言质量
+  - 真实 provider 调用 0；未申请语言质量预算/样本/人评
+  - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；采用 artifact/delta/task 文件级检查
+  - T-53 保持 PARTIAL：revoke/delete/owner/status 有直接测试和真实探针，尚未全部提升为 C6 fixed fixtures
+- **Scope safety**:
+  - 仅使用合成数据；tracked evidence 不含用户日记、对话、context note、provider reply、prompt、source ID、token、账号、openid 或 secret
+  - 未修改 package/lockfile、pom、deployment、monitoring、admin、冻结蓝图、三个一级 Tab、canonical naming；未新增 Agent 工具或扩大 allowlist
+  - 未接受 delta、未写 closeout、未归档，未 stage/commit/push/PR/deploy/release
+- **Risks**:
+  - 物理真机交互仍无证据；开发者工具 PASS 不外推为真机 PASS
+  - T-53 fixed fixture matrix 尚未完整；真实探针 PASS 不等于 C6 fixture coverage 完整
+  - 本机合成小样本与 scripted UI PASS 不等于生产并发、容量、长期稳定性或真实语言质量
+- **Commit**: pending（未 stage/commit/push）
+- **Next**: 用户审查 Gate 3a/3b 证据与 remaining risks；delta acceptance/archive、commit 均须另行授权
+
+## 2026-08-28｜memory-agency delta acceptance 与归档｜Type C
+
+- **Scope**:
+  - P4.2 五域 delta acceptance、closeout、archive、叙事与 handoff 收口
+- **Authorization**:
+  - 用户明确授予 Gate 1–3，并要求完成当前阶段收尾；包含 delta acceptance 与 archive
+  - commit/push/PR/deploy/release 仍须独立授权，本轮未执行
+- **Changes**:
+  - 五份全 ADDED delta exact-copy 合入 accepted baseline：agent-collaboration 5/12、agent-runtime 5/14、backend-core 5/16、miniapp-core 4/12、v2-product-scope 4/10
+  - 新增 closeout，归档至 `openspec/changes/archive/2026-08-28-memory-agency/`
+  - 对外技术叙事增加记忆自主权段落；不写用户数据或本机绝对路径
+- **Verification PASS**:
+  - 五域合计 23 Requirements / 64 Scenarios，delta 与 baseline exact-copy；既有 accepted requirements 未删除或改写
+  - Gate 3 既有证据保持：backend 106 suites / 756 tests / 14 skipped；真实 MySQL、微信开发者工具 Standard/Preview PASS；provider=0
+  - `git diff --check` PASS；package/lockfile/pom 未修改
+- **Verification PARTIAL / SKIPPED**:
+  - T-53 C6 fixed fixture matrix 保持 PARTIAL；物理真机、真实语言质量与 OpenSpec CLI 保持 SKIPPED
+- **Scope safety**:
+  - 未扩大记忆范围、工具白名单或产品范围；未修改 deployment/monitoring/admin/冻结蓝图
+  - tracked evidence 不含用户日记、对话、context note、provider reply、prompt、source ID、token、账号或 secret
+- **Risks**:
+  - 物理真机与完整 C6 fixture 覆盖仍是显式后续债务；本地小样本不等于生产 SLA
+- **Commit**: pending（未 stage/commit/push）
+
+## 2026-08-28｜safety-response-minimum Gate 1–3、acceptance 与归档｜Type C
+
+- **Scope**:
+  - R1 官方资源核验、OpenSpec 规划、backend 最小安全分支、测试、真实 provider 边界探针、delta acceptance、closeout 与 archive
+- **Authorization**:
+  - 用户明确授予 Gate 1–3，要求在当前阶段收尾后开始下一阶段规划及实现
+  - 真实外调严格限于固定合成边界；commit/push/PR/deploy/release 未获独立授权
+- **Changes**:
+  - 新增封闭 `NONE` / `IMMEDIATE_SELF_HARM` 决策、规则枚举与高精度 `AgentSafetyPolicy`
+  - 在 USER 持久化后、provider/memory/tool/material 前接入 backend-owned 本地安全响应；命中时 session 保持 ACTIVE
+  - trace 只记录 safety level/ruleId/local；不记录命中文本、不建立永久风险标签
+  - C6 增加安全抢占与普通低落见证路径；直接测试覆盖正例、否定、历史、转述、研究、假设与比喻边界
+  - 五域 delta exact-copy 合入 accepted baseline：合计 9 Requirements / 14 Scenarios；归档至 `openspec/changes/archive/2026-08-28-safety-response-minimum/`
+- **Verification PASS**:
+  - backend focused/C6 PASS；最终 full 108 suites / 782 tests / 0 failures / 0 errors / 15 skipped
+  - frontend `vue-tsc --noEmit`、Standard/Preview `mp-weixin` build PASS
+  - 固定合成 provider boundary PASS：安全正例 provider=0；普通边界 provider=1；R1 总真实 provider 调用 1
+  - 2026-08-28 复核国家卫健委 `12356`、官方 `110`/`120` 与 WHO 紧迫风险原则；固定响应不承诺接通、到场或人工接管
+  - `git diff --check`、package/lockfile/pom、范围与高置信 secret pattern 检查 PASS
+- **Verification PARTIAL / SKIPPED**:
+  - 不对真实危机用户实验；临床有效性、救援结果、跨语言完整覆盖与生产 SLA 均无证据
+  - 物理真机 SKIPPED；本刀无新增前端交互，build 不替代真机证据
+  - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；采用文件级 artifacts/tasks/delta/exact-copy 校验
+- **Scope safety**:
+  - 未新增 API/DTO/DDL/前端页面、报警、通知、人工接管、任务队列、诊断、评分、画像或复杂 AI safety judge
+  - 未修改 package/lockfile、pom、deployment、monitoring、admin、三个一级 Tab、canonical naming 或冻结蓝图
+  - tracked evidence 仅含固定合成测试语句，不含真实用户日记、真实危机文本、provider reply、prompt、token、账号或 secret
+- **Risks**:
+  - 高精度规则刻意偏保守，语言变体与跨语言仍可能漏报；它不能替代专业危机干预
+  - 地区资源具有时效性，发布准备时须重新核验；ACTIVE 会话不等于持续监护
+- **Commit**: pending（未 stage/commit/push/PR/deploy/release）
+- **Next**: `ACTIVE_TASK=IDLE`；冻结序列下一项 E1 必须重新走独立规划与授权，本轮 Gate 1–3 不继承

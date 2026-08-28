@@ -94,7 +94,8 @@ public class MySqlMemoryPort implements MemoryPort {
             }
             LocalDateTime occurredAt = occurredAtOf(record);
             fragments.add(new MemoryFragment(
-                    record.getId(), occurredAt, timeLabelOf(occurredAt), text));
+                    record.getId(), occurredAt, timeLabelOf(occurredAt), text,
+                    blankToNull(record.getAgentMemoryContextNote())));
         }
 
         // 只记结构化指标，不记片段内容（agent-runtime delta 的留痕条款）。
@@ -123,6 +124,13 @@ public class MySqlMemoryPort implements MemoryPort {
         }
         String normalized = text.trim();
         return normalized.length() <= maxChars ? normalized : normalized.substring(0, maxChars);
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private String firstNonBlank(String... values) {

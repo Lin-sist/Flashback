@@ -40,6 +40,8 @@ final class AgentEvalInvariants {
             "providerCalls",
             "reflectionAttempted",
             "reflectionTerminal",
+            "safetyLevel",
+            "safetyLocal",
             "stagePath",
             "stageReasons",
             "stage",
@@ -56,6 +58,8 @@ final class AgentEvalInvariants {
             "maxInjectedChars",
             "injectedCharsExactly",
             "memorySupplementPresent",
+            "authorizationAllowed",
+            "sourceCount",
             "replyWithinLengthCap",
             "clipped",
             "toolRejectedReason",
@@ -128,6 +132,16 @@ final class AgentEvalInvariants {
                     .as("用例 %s 的 reflection 终态", evalCase.caseId())
                     .isEqualTo(String.valueOf(evalCase.expected("reflectionTerminal")));
         }
+        if (evalCase.hasExpectation("safetyLevel")) {
+            assertThat(run.stepValue(trace, "safety-response", "level"))
+                    .as("用例 %s 的 R1 安全判定", evalCase.caseId())
+                    .isEqualTo(String.valueOf(evalCase.expected("safetyLevel")));
+        }
+        if (evalCase.hasExpectation("safetyLocal")) {
+            assertThat(run.stepValue(trace, "safety-response", "local"))
+                    .as("用例 %s 是否走 backend-owned 安全响应", evalCase.caseId())
+                    .isEqualTo(AgentEvalCase.boolOf(evalCase.expected("safetyLocal")));
+        }
 
         verifyStageExpectations(run, trace, evalCase);
         verifyMemoryExpectations(run, trace, evalCase);
@@ -189,11 +203,15 @@ final class AgentEvalInvariants {
             assertThat(maxQuestions)
                     .as("用例 %s：缺少 witness policy 的 0/1 问题上限", caseId)
                     .isIn(0, 1);
-            assertThat(each.steps().stream().anyMatch(step ->
-                    "guardrail".equals(step.get("step"))
-                            && "reply-question-limit".equals(step.get("layer"))))
-                    .as("用例 %s：回复未经过问题数后置检查", caseId)
-                    .isTrue();
+            boolean safetyLocal = Boolean.TRUE.equals(
+                    run.stepValue(each, "safety-response", "local"));
+            if (!safetyLocal) {
+                assertThat(each.steps().stream().anyMatch(step ->
+                        "guardrail".equals(step.get("step"))
+                                && "reply-question-limit".equals(step.get("layer"))))
+                        .as("用例 %s：回复未经过问题数后置检查", caseId)
+                        .isTrue();
+            }
         }
 
         // 6. 一轮一条：轮次序号必须严格不减，且不得凭空跳号。
@@ -325,6 +343,25 @@ final class AgentEvalInvariants {
             assertThat(run.stepValue(trace, "prompt", "memorySupplement"))
                     .as("用例 %s：上下文是否含记忆补充段", evalCase.caseId())
                     .isEqualTo(AgentEvalCase.boolOf(evalCase.expected("memorySupplementPresent")));
+        }
+        if (evalCase.hasExpectation("authorizationAllowed")) {
+            assertThat(run.stepValue(trace, "memory-authorization", "allowed"))
+                    .as("用例 %s：跨记录检索是否被授权", evalCase.caseId())
+                    .isEqualTo(AgentEvalCase.boolOf(evalCase.expected("authorizationAllowed")));
+        }
+        if (evalCase.hasExpectation("sourceCount")) {
+            Object sourceCount = run.stepValue(trace, "memory-sources", "sourceCount");
+            assertThat(sourceCount == null ? 0 : AgentEvalCase.intOf(sourceCount))
+                    .as("用例 %s：实际来源条数须与最终注入同源", evalCase.caseId())
+                    .isEqualTo(AgentEvalCase.intOf(evalCase.expected("sourceCount")));
+        }
+        if (!evalCase.hasExpectation("authorizationAllowed")
+                && Boolean.FALSE.equals(run.stepValue(trace, "memory-authorization", "allowed"))) {
+            Object retrieved = run.stepValue(trace, "memory-retrieval", "retrievedCount");
+            int actual = retrieved == null ? 0 : AgentEvalCase.intOf(retrieved);
+            assertThat(actual)
+                    .as("用例 %s：授权关闭时跨记录检索必须为 0", evalCase.caseId())
+                    .isEqualTo(0);
         }
     }
 

@@ -160,6 +160,7 @@ class AgentEvalHarnessTest {
     @Test
     void harnessMustDriveTheRealMemoryPort() {
         AgentEvalHarness harness = AgentEvalHarness.builder()
+                .crossRecordMemoryEnabled(true)
                 .memoryCandidate(70001L, "那时候在纠结要不要换个方向", LocalDateTime.of(2026, 3, 14, 21, 0))
                 .memoryCandidate(70002L, "写下这些的时候心里挺沉的", LocalDateTime.of(2026, 4, 2, 20, 0))
                 .build();
@@ -196,6 +197,7 @@ class AgentEvalHarnessTest {
     @Test
     void reflectionCallsMustObserveTheSameRequestScopedBudget() {
         AgentEvalHarness harness = AgentEvalHarness.builder()
+                .crossRecordMemoryEnabled(true)
                 .memoryCandidate(70001L, "那阵子一直在纠结要不要换个方向，怕选错了就回不去了",
                         LocalDateTime.of(2026, 3, 14, 21, 0))
                 .build();

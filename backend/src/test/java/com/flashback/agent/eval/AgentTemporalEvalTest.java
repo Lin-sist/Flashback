@@ -19,6 +19,7 @@ class AgentTemporalEvalTest {
         String marker = "紫罗兰色的旧铁皮盒子";
         AgentEvalHarness harness = AgentEvalHarness.builder()
                 .purpose(AgentSessionPurpose.REVIEW_CHAT)
+                .crossRecordMemoryEnabled(true)
                 .recordContent("当时写下了关于方向的犹豫")
                 .memoryCandidate(70001L, marker + "，以前也有过类似的方向犹豫",
                         LocalDateTime.of(2026, 1, 1, 10, 0))

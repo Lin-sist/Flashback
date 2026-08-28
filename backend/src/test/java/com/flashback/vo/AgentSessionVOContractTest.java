@@ -26,6 +26,7 @@ class AgentSessionVOContractTest {
                 "turnCount",
                 "maxTurns",
                 "canContinue",
+                "crossRecordMemoryEnabled",
                 "messages",
                 "materialDraft",
                 "source",

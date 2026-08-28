@@ -4,13 +4,14 @@
 
 `IDLE`
 
-当前无 active Type C change。P4.1 `witness-agent-alignment` 已于 2026-08-25 完成 Gate 3、delta acceptance 与归档；下一阶段不得继承 P4.1 授权，须重新走独立规划闸。
+当前无 active Type C change。P4.2 `memory-agency` 与 R1 `safety-response-minimum` 已于 2026-08-28 完成 Gate 1–3、delta acceptance 与归档。后续 E1 或其他 change 必须重新从 IDLE 走独立规划闸；本轮授权不继承。
 
 - Active change：none
-- 最近归档：`openspec/changes/archive/2026-08-25-witness-agent-alignment/`
-- 验收：Gate 3a provider/人评 PASS；Gate 3b 微信开发者工具 Standard/Preview PASS；Gate 3c 真实 MySQL PASS
-- 提交责任：P4.1 Agent 本地提交已授权；push、PR、部署、发布未授权
-- 真实 Agent provider：8 次（预算已用尽）；P4.1 后续不得沿用该预算继续外调
+- 最近归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
+- 前一归档：`openspec/changes/archive/2026-08-28-memory-agency/`
+- 当前闸门：IDLE；无实现授权向后继承
+- 提交责任：用户明确要求本轮 **不 commit**；实现完成后由用户配合 Codex review
+- 外部调用：P4.2 provider=0；R1 仅 1 次固定合成普通边界 provider 探针；无真实危机实验
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -89,9 +90,9 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：P4.1 已归档，等待下一阶段独立规划**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
-  未选出 A/B/C 胜者；P3.1、P3.2 与 P4.1 已归档。冻结序列下一候选为 P4.2 `memory-agency`，但尚无 active change，
-  不得沿用 P4.1 的规划、实现、外调、提交或发布授权；旧 Optional C0/C10/C11 继续证据触发
+- **当前动作：IDLE**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+  未选出 A/B/C 胜者；P3.1、P3.2、P4.1、P4.2 与 R1 均已归档。冻结序列下一项为
+  E1 `time-chapter-prototype`；开始前必须新建独立规划 change，旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
   1. **以实测值重算类大小论证**：`AgentChatServiceImpl` 实测 **1274 行**，
      蓝图 §3.2 记的 1183 行已过时（C6 登记的勘误，蓝图已冻结未改）
@@ -127,6 +128,8 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
+- `openspec/changes/archive/2026-08-28-safety-response-minimum/`（R1 accepted / archived）
+- `openspec/changes/archive/2026-08-28-memory-agency/`（P4.2 accepted / archived）
 - `openspec/changes/archive/2026-08-25-witness-agent-alignment/`（P4.1 accepted / archived）
 - `openspec/changes/archive/2026-08-12-data-ownership-foundation/`（P3.2 accepted / archived）
 - `openspec/changes/archive/2026-08-12-present-moment-capture/`（P3.1 archived）
@@ -140,6 +143,57 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-28 — **P4.2 与 R1 收口，ACTIVE_TASK 恢复 IDLE**
+  - **Authorization**：用户明确授予 Gate 1–3，允许完成当前 P4.2 收尾，并规划、实现、验证与归档下一阶段 R1；commit/push/PR/deploy/release 未获独立授权
+  - P4.2 ACCEPTED / ARCHIVED：五域 23 Requirements / 64 Scenarios exact-copy 进入 baseline；既有 Gate 3a MySQL 与 Gate 3b 微信开发者工具证据保持原边界
+  - R1 Gate 1：完成官方地区资源复核、proposal/design/tasks 与五域 delta；决策为当前输入、高精度、确定性本地抢占、不诊断、不人工接管
+  - R1 Gate 2：新增封闭 safety policy/decision/rule、本地固定响应、provider/memory/tool/material/source 零调用分支、无文本 trace 与 C6 固定场景
+  - R1 Gate 3：最终 backend 108 suites / 782 tests / 0 failures / 0 errors / 15 skipped；frontend type-check、Standard/Preview build PASS
+  - R1 provider 边界：安全正例本地抢占，普通固定合成边界 provider calls=1；本刀真实 provider 总调用 1，不外推为真实危机效果或生产 SLA
+  - R1 ACCEPTED / ARCHIVED：五域 9 Requirements / 14 Scenarios exact-copy 进入 baseline；`closeout.md` 保留物理真机、临床效果、跨语言漏报与资源时效风险
+  - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；使用 artifacts/tasks/delta/Requirement/Scenario/exact-copy 文件级验证
+  - **Commit**：pending；未 stage/commit/push/PR/deploy/release
+  - **Next step**：当前 IDLE。冻结序列下一项 E1 仍须重新规划与授权，本轮 Gate 1–3 不继承
+
+- **This session**: 2026-08-27 — **P4.2 Gate 3a/3b 真实验收检查点**
+  - **Authorization**：用户明确授权 Gate 3a 与 Gate 3b；范围不含真实 provider、delta acceptance、archive、stage/commit、push、PR、deploy/release
+  - Gate 3a PASS：本机 MySQL 8.0.41 preflight 正常；`p42-memory-agency.sql` 连续执行两次 PASS；schema、default、FK `SET NULL` exact-match
+  - Gate 3a synthetic probe PASS：session authorization default/off/on/revoke、owner scope、status/exclusion/deletion eligibility、runtime future-turn effect、source resolution、删除后 unavailable、assistant/source 同事务 rollback 全部通过
+  - Gate 3a cleanup PASS：finally 后 synthetic user/record/session/message/source/operation 聚合均为 0；首次增强探针因合成 title 未命中完整 cue 而失败，cleanup 仍执行，修正 fixture 后通过
+  - Gate 3b Developer Tools Standard PASS：真实微信登录边界；默认关闭、开启/关闭、失败保持原状态、来源 available/unavailable、来源跳转、record policy/note、删除入口均通过；业务响应为 scripted interception，provider 调用 0
+  - Gate 3b Developer Tools Preview PASS：entry=true、sheet=false；app-context 计数 total requests=0、memory-agency requests=0；首次断言错误地要求 Preview 隐藏本地 policy，按实际契约改为验证交互不发请求后通过
+  - Gate 3b evidence boundary：物理真机 SKIPPED；开发者工具 PASS 不外推为真机 PASS，scripted response 不冒充真实 provider 或真实语言质量
+  - 收口回归：backend 106 suites / 756 tests / 0 failures / 0 errors / 14 skipped；新增真实 MySQL probe 默认关闭；frontend Standard/Preview build PASS
+  - 环境 cleanup：验收 backend 与微信开发者工具均已停止，8080 不再监听；repo 临时 pnpm store 与仓外 automator 临时目录已移除
+  - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；继续采用文件级 artifact/delta/task 检查
+  - **Commit**：pending；未 stage/commit/push/PR/deploy/release
+  - **Blocked on**：无 Gate 3a/3b 阻断；T-53 仍为 PARTIAL，物理真机仍为 SKIPPED
+  - **Next step**：用户审查 Gate 3 证据与 remaining risks；如需继续，须单独授权 delta acceptance/archive，commit 仍需单独授权
+
+- **This session**: 2026-08-27 — **P4.2 Gate 2 离线实现审查点**
+  - backend：完成 session 级默认关闭授权、config/consent 双闸、record 排除与用户语境说明、实际来源关系及 owner/status/delete fail-closed 解析；授权切换与 source 写入均检查受影响行数
+  - runtime：REVIEW_CHAT 目标与跨记录来源分层；Prompt 与 source row 共享同一 final injected list；撤销授权后下一轮不再跨记录检索
+  - frontend：完成 Agent 授权控件、record policy/note、来源 chip 与 Preview fail-closed；修复回看浮层 `scroll-view` 标签闭合错误，并让 policy 保存失败恢复后端权威状态
+  - C6/直接测试：增加 config×consent、撤销、排除、回看目标、实际 source、owner/status/privacy 等覆盖；合法快照变化带 P4.2 baselineNote
+  - backend full：105 suites / 755 tests / 0 failures / 0 errors / 13 skipped；frontend type-check、Standard/Preview `mp-weixin` build PASS；`git diff --check` 与范围检查 PASS
+  - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；采用 8 artifacts/五域 delta/Requirement/Scenario 文件级检查
+  - **Evidence boundary**：接手时实现改动已存在，无法倒签实现前 backend/frontend baseline；真实 MySQL migration/rollback/SET NULL、微信请求计数与物理真机均未执行；真实 provider 调用 0
+  - **Remaining Gate 2 gap**：T-53 的 revoke/delete/owner/status 有直接测试、transaction 有结构检查，但尚未全部提升为 C6 fixed fixtures；T-52 真实 Preview request=0 留待 Gate 3b
+  - **Commit**：pending；用户明确本轮不 commit，未 stage/push/PR/deploy/release
+  - **Blocked on**：无实现阻断；等待用户审查 diff，并决定是否继续补齐 T-53 或分别授权 Gate 3a/Gate 3b
+  - **Next step**：优先补齐 T-53 fixed fixture matrix；之后如需真实验收，Gate 3a MySQL 与 Gate 3b 微信分别授权，不得直接接受 delta 或归档
+
+- **This session**: 2026-08-25 — **P4.2 GATE 1 PLANNING READY**
+  - 微信登录报错已先行排查并恢复：根因为本机 backend 未运行/8080 无监听；启动 ignored 本地脚本后真实微信登录与首页数据链路 PASS，不是登录业务代码缺陷
+  - P4.1 已完成 Gate 3、delta acceptance、归档与本地提交；HEAD=`42548ce`，P4.2 开工时工作树 clean
+  - P4.2 硬依赖 P4.1/C3/C9 已满足；当前事实为 config=true + cue 即自动跨记录检索，session/record 无用户授权/排除字段，trace 无用户可见实际来源
+  - 已创建 proposal、design、tasks 与 agent-runtime/backend-core/miniapp-core/v2-product-scope/agent-collaboration 五份 delta
+  - 推荐决策：session 授权默认 false；config 与 consent 取 AND；回看目标与其他历史分层；record exclusion + 用户 context note；per-assistant-message 结构化 source 关系且不复制内容；删除后 SET NULL/unavailable；message/source 同主事务；旧消息不回填；provider 预算 0
+  - 文件级结构、operation、Requirement/Scenario、link/scope/privacy 与 `git diff --check` PASS；OpenSpec CLI 不在 PATH，CLI validation SKIPPED
+  - **Authorization**：仅 Gate 1 规划；Gate 2/3、真实 MySQL/微信、delta acceptance、archive、commit/push/deploy/release 均未授权
+  - **Blocked on**：用户审查并批准/修改 design D1–D12 与五域 delta
+  - **Next step**：Gate 1 获批后仍须单独取得 Gate 2，才可按 tasks TDD 实现
 
 - **This session**: 2026-08-25 — **P4.1 ACCEPTED / ARCHIVED；ACTIVE_TASK=IDLE**
   - 微信登录报错定位为本机 backend 未运行、8080 无监听；使用 ignored 本地启动脚本恢复后，真实微信登录链路 PASS

@@ -219,11 +219,11 @@ class MySqlMemoryPortTest {
     @Test
     void fragmentToStringMustNotLeakText() {
         MemoryFragment fragment = new MemoryFragment(
-                1L, LocalDateTime.now(), "2026年3月", "很私密的一段话");
+                1L, LocalDateTime.now(), "2026年3月", "很私密的一段话", "很私密的后来说明");
 
         assertThat(fragment.toString())
                 .as("默认 record toString 会把原文拼进字符串，一旦被日志引用即泄露")
-                .doesNotContain("很私密的一段话");
+                .doesNotContain("很私密的一段话", "很私密的后来说明");
     }
 
     @Test

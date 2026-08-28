@@ -35,4 +35,7 @@ public interface AgentSessionMapper {
 
     /** P4.1：仅更新会话意图，不推进阶段或轮次。 */
     int updateConversationIntent(AgentSession session);
+
+    /** P4.2：仅更新跨记录记忆授权，不调用 provider、不推进轮次。 */
+    int updateMemoryAuthorization(AgentSession session);
 }

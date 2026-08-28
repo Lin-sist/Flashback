@@ -148,6 +148,36 @@ class RecordMemoryRetrievalIntegrationTest {
         assertThat(hits).extracting(Record::getId).containsExactly(2601L);
     }
 
+    @Test
+    void mustNotReturnExcludedRecords() {
+        insertUser(USER_A, "user-a");
+        insertRecord(2701L, USER_A, "DRAFT", "项目排期焦虑", null, null, null, NOW.minusMonths(1));
+        insertRecord(2702L, USER_A, "DRAFT", "项目排期压力", null, null, null, NOW.minusMonths(2));
+        jdbcTemplate.update("UPDATE `record` SET agent_memory_excluded = 1 WHERE id = ?", 2701L);
+
+        List<Record> hits = recordMapper.selectMemoryCandidates(
+                USER_A, List.of("项目排期"), List.of(), null, LOOKBACK_FROM, 10);
+
+        assertThat(hits).extracting(Record::getId).containsExactly(2702L);
+    }
+
+    @Test
+    void userContextNoteMustNotBecomeRetrievalCue() {
+        insertUser(USER_A, "user-a");
+        insertRecord(2751L, USER_A, "DRAFT", "无关标题", null, null, "无关正文", NOW.minusMonths(1));
+        jdbcTemplate.update(
+                "UPDATE `record` SET agent_memory_context_note = ? WHERE id = ?",
+                "项目排期只代表当时",
+                2751L);
+
+        List<Record> hits = recordMapper.selectMemoryCandidates(
+                USER_A, List.of("项目排期"), List.of(), null, LOOKBACK_FROM, 10);
+
+        assertThat(hits)
+                .as("用户后来说明只随实际来源进入 prompt，不参与 cue 或排序")
+                .isEmpty();
+    }
+
     /**
      * 无线索时恒不命中，而不是退化成「按时间倒序取最近几条」。
      * 后者不是记忆关联，是随机翻旧账。

@@ -30,6 +30,8 @@ import com.flashback.domain.AgentToolCall;
 import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
 import com.flashback.dto.AgentMessageRequest;
+import com.flashback.domain.AgentMemorySource;
+import com.flashback.mapper.AgentMemorySourceMapper;
 import com.flashback.mapper.AgentMessageMapper;
 import com.flashback.mapper.AgentSessionMapper;
 import com.flashback.mapper.AgentToolCallMapper;
@@ -96,6 +98,7 @@ final class AgentEvalHarness {
     private final AgentSession session;
     private final List<AgentMessage> messages = new ArrayList<>();
     private final List<AgentToolCall> toolCalls = new ArrayList<>();
+    private final List<AgentMemorySource> memorySources = new ArrayList<>();
 
     private AgentEvalHarness(Builder builder) {
         this.properties = builder.properties;
@@ -158,6 +161,7 @@ final class AgentEvalHarness {
                 new AgentReflectionPolicy(),
                 // 真实 MemoryPort：注入预算的截断行为由它负责，评测断言的是它而不是替身。
                 new MySqlMemoryPort(recordMapper, properties, FIXED_CLOCK),
+                memorySourceMapperFake(),
                 new MemoryCueExtractor(properties),
                 recordTagMapper,
                 tagService,
@@ -252,6 +256,19 @@ final class AgentEvalHarness {
         return mapper;
     }
 
+    private AgentMemorySourceMapper memorySourceMapperFake() {
+        AgentMemorySourceMapper mapper = mock(AgentMemorySourceMapper.class);
+        when(mapper.insert(any())).thenAnswer(invocation -> {
+            AgentMemorySource source = invocation.getArgument(0, AgentMemorySource.class);
+            source.setId(300L + memorySources.size());
+            memorySources.add(source);
+            return 1;
+        });
+        when(mapper.selectBySessionIdAndUserId(anyLong(), anyLong()))
+                .thenAnswer(invocation -> List.copyOf(memorySources));
+        return mapper;
+    }
+
     private RecordMapper recordMapperFake(Builder builder) {
         RecordMapper mapper = mock(RecordMapper.class);
         when(mapper.selectByIdAndUserId(eq(RECORD_ID), eq(USER_ID))).thenReturn(builder.record());
@@ -259,7 +276,10 @@ final class AgentEvalHarness {
         // 所以这里给的是**候选记录**，不是成品片段。
         when(mapper.selectMemoryCandidates(
                 anyLong(), anyList(), anyList(), any(), any(), anyInt()))
-                .thenReturn(builder.memoryCandidates);
+                .thenAnswer(invocation -> builder.memoryCandidates.stream()
+                        .filter(record -> record != null && !record.isAgentMemoryExcluded())
+                        .filter(record -> record.getStatus() != RecordStatus.SEALED)
+                        .toList());
         return mapper;
     }
 
@@ -285,6 +305,7 @@ final class AgentEvalHarness {
         private String recordContent = "先记一点";
         private List<Long> tagIds = List.of();
         private List<Record> memoryCandidates = List.of();
+        private boolean crossRecordMemoryEnabled;
 
         private Builder() {
             // 默认值显式写出，使评测不依赖 application.yml——
@@ -342,6 +363,11 @@ final class AgentEvalHarness {
             return this;
         }
 
+        Builder crossRecordMemoryEnabled(boolean value) {
+            this.crossRecordMemoryEnabled = value;
+            return this;
+        }
+
         Builder observabilityEnabled(boolean value) {
             this.observabilityEnabled = value;
             return this;
@@ -378,6 +404,15 @@ final class AgentEvalHarness {
             return this;
         }
 
+        Builder memoryCandidate(
+                long id, String aiSummary, LocalDateTime createdAt, boolean excluded, String contextNote) {
+            memoryCandidate(id, aiSummary, createdAt);
+            Record last = memoryCandidates.get(memoryCandidates.size() - 1);
+            last.setAgentMemoryExcluded(excluded);
+            last.setAgentMemoryContextNote(contextNote);
+            return this;
+        }
+
         AppAgentProperties properties() {
             return properties;
         }
@@ -394,6 +429,7 @@ final class AgentEvalHarness {
             session.setStatus(AgentSessionStatus.ACTIVE);
             session.setTurnCount(turnCount);
             session.setStageReaskCount(stageReaskCount);
+            session.setCrossRecordMemoryEnabled(crossRecordMemoryEnabled);
             return session;
         }
 

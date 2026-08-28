@@ -10,13 +10,15 @@
  * 视觉沿用 record-detail 既有语言与 reply-overlay 的交互范式，不做视觉重建。
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import type { AgentMessage, AgentSession } from '../../../services'
+import type { AgentMemorySource, AgentMessage, AgentSession } from '../../../services'
+import { formatYearMonth } from '../../../utils'
 
 const props = defineProps<{
   visible: boolean
   session: AgentSession | null
   loading: boolean
   sending: boolean
+  switchingMemoryAuthorization: boolean
   errorMessage: string
 }>()
 
@@ -24,6 +26,7 @@ const emit = defineEmits<{
   close: []
   send: [content: string]
   retry: []
+  switchMemoryAuthorization: [enabled: boolean]
 }>()
 
 const input = ref('')
@@ -34,6 +37,39 @@ const isEnded = computed(() => props.session?.sessionStatus === 'ENDED')
 const canSend = computed(() => Boolean(
   input.value.trim() && !props.sending && !isEnded.value && !props.errorMessage,
 ))
+const memoryEnabled = computed(() => props.session?.crossRecordMemoryEnabled === true)
+const awaitingRetry = computed(() => Boolean(
+  props.errorMessage && messages.value[messages.value.length - 1]?.role === 'USER',
+))
+const memoryHint = computed(() => memoryEnabled.value
+  ? '只在这次对话里，另外参考你可见且未排除的其他记录'
+  : '默认只看当前这条记录和这次对话')
+
+const toggleMemoryAuthorization = () => {
+  if (!props.session || props.switchingMemoryAuthorization || isEnded.value) return
+  if (!memoryEnabled.value && awaitingRetry.value) return
+  emit('switchMemoryAuthorization', !memoryEnabled.value)
+}
+
+const assistantSources = (message: AgentMessage): AgentMemorySource[] => {
+  if (message.role !== 'ASSISTANT' || !message.memorySources?.length) return []
+  return message.memorySources
+}
+
+const sourceKicker = (sources: AgentMemorySource[]) => {
+  const hasCross = sources.some(source => source.sourceKind === 'CROSS_RECORD')
+  return hasCross ? '另外参考了其他记录' : '正在回看这条记录'
+}
+
+const sourceLabel = (source: AgentMemorySource) => {
+  if (!source.available) return '来源记录已删除或不可用'
+  return source.displayTitle?.trim() || formatYearMonth(source.occurredAt) || '过去的记录'
+}
+
+const openSource = (source: AgentMemorySource) => {
+  if (!source.available || !source.recordId) return
+  uni.navigateTo({ url: `/pages/record-detail/index?id=${source.recordId}&source=archive` })
+}
 
 const messageKey = (message: AgentMessage, index: number) =>
   `${message.id || 'pending'}-${message.turnNo}-${message.role}-${index}`
@@ -81,6 +117,24 @@ const submit = () => {
       <!-- 明写边界：回看不会动这条已经封存过的记录。 -->
       <view class="privacy-note">这段对话不会改动这条记录，只是陪你重新看看那时候。</view>
 
+      <view
+        v-if="session && !isEnded"
+        class="memory-consent"
+        :class="{ 'memory-consent--disabled': switchingMemoryAuthorization }"
+        @tap="toggleMemoryAuthorization"
+      >
+        <view class="memory-consent-copy">
+          <text class="memory-consent-label">本次可参考过去记录</text>
+          <text class="memory-consent-hint">{{ memoryHint }}</text>
+        </view>
+        <view
+          class="memory-switch"
+          :class="{ 'memory-switch--on': memoryEnabled }"
+        >
+          <view class="memory-switch-knob" />
+        </view>
+      </view>
+
       <scroll-view
         class="message-list"
         scroll-y
@@ -98,6 +152,18 @@ const submit = () => {
         >
           <view class="message-bubble">
             <text class="message-text">{{ message.content }}</text>
+          </view>
+          <view v-if="assistantSources(message).length" class="source-region">
+            <text class="source-kicker">{{ sourceKicker(assistantSources(message)) }}</text>
+            <view class="source-chips">
+              <view
+                v-for="(source, sourceIndex) in assistantSources(message)"
+                :key="`${message.id}-${source.sourceKind}-${source.recordId || 'gone'}-${sourceIndex}`"
+                class="source-chip"
+                :class="{ 'source-chip--unavailable': !source.available }"
+                @tap.stop="openSource(source)"
+              >{{ sourceLabel(source) }}</view>
+            </view>
           </view>
         </view>
 
@@ -218,6 +284,94 @@ const submit = () => {
   font-size: 22rpx;
   line-height: 1.6;
   color: rgba(28, 25, 23, 0.4);
+}
+
+.memory-consent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.memory-consent--disabled {
+  opacity: 0.55;
+}
+
+.memory-consent-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.memory-consent-label {
+  color: #5b4c40;
+  font-size: 24rpx;
+}
+
+.memory-consent-hint {
+  color: rgba(64, 55, 47, 0.5);
+  font-size: 20rpx;
+  line-height: 1.5;
+}
+
+.memory-switch {
+  width: 72rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+  border-radius: 999rpx;
+  background: rgba(102, 85, 65, 0.16);
+  position: relative;
+}
+
+.memory-switch--on {
+  background: #9c6447;
+}
+
+.memory-switch-knob {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background: #fffaf3;
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+}
+
+.memory-switch--on .memory-switch-knob {
+  left: 36rpx;
+}
+
+.source-region {
+  margin: 8rpx 8rpx 4rpx;
+}
+
+.source-kicker {
+  display: block;
+  margin-bottom: 8rpx;
+  color: rgba(64, 55, 47, 0.48);
+  font-size: 20rpx;
+}
+
+.source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.source-chip {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(102, 85, 65, 0.08);
+  color: #744c36;
+  font-size: 20rpx;
+}
+
+.source-chip--unavailable {
+  color: rgba(64, 55, 47, 0.42);
+  background: rgba(102, 85, 65, 0.05);
 }
 
 .message-list {

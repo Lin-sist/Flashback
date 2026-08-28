@@ -38,6 +38,10 @@ public interface AgentChatService {
     AgentSessionVO switchConversationIntent(
             Long userId, Long sessionId, AgentConversationIntent conversationIntent);
 
+    /** P4.2：显式切换当前会话的跨记录记忆授权，不调用 provider。 */
+    AgentSessionVO switchMemoryAuthorization(
+            Long userId, Long sessionId, Boolean crossRecordMemoryEnabled);
+
     /**
      * C2：确认（接受或拒绝）一条工具提议。
      *

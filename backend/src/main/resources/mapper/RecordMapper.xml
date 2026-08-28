@@ -24,6 +24,8 @@
         <result property="lifeNodeType" column="life_node_type" javaType="com.flashback.domain.LifeNodeType"/>
         <result property="lifeNodeCustomLabel" column="life_node_custom_label"/>
         <result property="coverAttachmentId" column="cover_attachment_id"/>
+        <result property="agentMemoryExcluded" column="agent_memory_excluded"/>
+        <result property="agentMemoryContextNote" column="agent_memory_context_note"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -48,6 +50,8 @@
         life_node_type,
         life_node_custom_label,
         cover_attachment_id,
+        agent_memory_excluded,
+        agent_memory_context_note,
         created_at,
         updated_at
     </sql>
@@ -72,6 +76,8 @@
             life_node_type,
             life_node_custom_label,
             cover_attachment_id,
+            agent_memory_excluded,
+            agent_memory_context_note,
             created_at,
             updated_at
         ) VALUES (
@@ -93,6 +99,8 @@
             #{lifeNodeType},
             #{lifeNodeCustomLabel},
             #{coverAttachmentId},
+            #{agentMemoryExcluded},
+            #{agentMemoryContextNote},
             #{createdAt},
             #{updatedAt}
         )
@@ -259,6 +267,16 @@
           AND user_id = #{userId}
           AND status = 'UNLOCKED'
           AND COALESCE(reality_later_submit_count, 0) &lt; 2
+    </update>
+
+    <update id="updateAgentMemoryPolicyByIdAndUserId">
+        UPDATE `record`
+        SET
+            agent_memory_excluded = #{excluded},
+            agent_memory_context_note = #{contextNote},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
     </update>
 
     <update id="updateCoverAttachmentByIdAndUserId">
@@ -484,6 +502,7 @@
         FROM `record` r
         WHERE r.user_id = #{userId}
           AND r.status &lt;&gt; 'SEALED'
+          AND r.agent_memory_excluded = 0
           AND NOT EXISTS (
             SELECT 1 FROM data_operation_record i JOIN data_operation o ON o.id = i.operation_id
             WHERE i.record_id = r.id AND i.user_id = #{userId}

@@ -37,6 +37,8 @@ public class RecordDetailVO {
     private List<RecordTagVO> tags;
     private Boolean canReply;
     private Boolean hasReply;
+    private boolean agentMemoryExcluded;
+    private String agentMemoryContextNote;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -230,6 +232,22 @@ public class RecordDetailVO {
 
     public void setHasReply(Boolean hasReply) {
         this.hasReply = hasReply;
+    }
+
+    public boolean isAgentMemoryExcluded() {
+        return agentMemoryExcluded;
+    }
+
+    public void setAgentMemoryExcluded(boolean agentMemoryExcluded) {
+        this.agentMemoryExcluded = agentMemoryExcluded;
+    }
+
+    public String getAgentMemoryContextNote() {
+        return agentMemoryContextNote;
+    }
+
+    public void setAgentMemoryContextNote(String agentMemoryContextNote) {
+        this.agentMemoryContextNote = agentMemoryContextNote;
     }
 
     public LocalDateTime getCreatedAt() {

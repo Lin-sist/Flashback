@@ -291,8 +291,13 @@ public class AgentPromptBuilder {
                     .append("记录")
                     .append(fragment.recordId())
                     .append("] ")
-                    .append(fragment.text().trim())
-                    .append('\n');
+                    .append(fragment.text().trim());
+            if (fragment.contextNote() != null && !fragment.contextNote().isBlank()) {
+                builder.append("（用户后来说明：")
+                        .append(fragment.contextNote().trim())
+                        .append("；这是后来补充的语境，不是当时写下的原文，也不是模型结论）");
+            }
+            builder.append('\n');
         }
         return builder.toString().trim();
     }

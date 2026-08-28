@@ -17,6 +17,7 @@ import com.flashback.domain.RecordStatus;
 import com.flashback.domain.RecordType;
 import com.flashback.domain.User;
 import com.flashback.dto.RecordPageQuery;
+import com.flashback.dto.RecordAgentMemoryPolicyRequest;
 import com.flashback.dto.RecordTimelineQuery;
 import com.flashback.dto.UpdateLaterReflectionRequest;
 import com.flashback.dto.UpdateRecordCoverRequest;
@@ -51,6 +52,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1091,6 +1093,64 @@ class RecordServiceImplTest {
         record.setCreatedAt(LocalDateTime.of(2026, 3, 26, 10, 0, 0));
         record.setUpdatedAt(LocalDateTime.of(2026, 3, 26, 10, 0, 0));
         return record;
+    }
+
+    @Test
+    void shouldSaveUserAuthoredMemoryPolicyForSealedRecordWithoutDisclosingContent() {
+        Record sealed = mockRecord(RecordStatus.SEALED);
+        sealed.setAiSummary("不可披露摘要");
+        sealed.setBeliefThen("不可披露的当时想法");
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(sealed, sealed);
+        when(recordMapper.updateAgentMemoryPolicyByIdAndUserId(
+                eq(100L), eq(1L), eq(true), eq("只代表当时"), any())).thenAnswer(invocation -> {
+                    sealed.setAgentMemoryExcluded(true);
+                    sealed.setAgentMemoryContextNote("只代表当时");
+                    return 1;
+                });
+        RecordAgentMemoryPolicyRequest request = new RecordAgentMemoryPolicyRequest();
+        request.setExcluded(true);
+        request.setContextNote("  只代表当时  ");
+
+        var result = recordService.updateAgentMemoryPolicy(1L, 100L, request);
+
+        assertThat(result.isAgentMemoryExcluded()).isTrue();
+        assertThat(result.getAgentMemoryContextNote()).isEqualTo("只代表当时");
+        assertThat(result.getContent()).isNull();
+        assertThat(result.getAiSummary()).isNull();
+        assertThat(result.getBeliefThen()).isNull();
+        assertThat(result.getAttachments()).isEmpty();
+    }
+
+    @Test
+    void shouldNormalizeBlankMemoryContextNoteToNull() {
+        Record saved = mockRecord(RecordStatus.SAVED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(saved, saved);
+        when(recordMapper.updateAgentMemoryPolicyByIdAndUserId(
+                eq(100L), eq(1L), eq(false), org.mockito.ArgumentMatchers.isNull(), any()))
+                .thenReturn(1);
+        RecordAgentMemoryPolicyRequest request = new RecordAgentMemoryPolicyRequest();
+        request.setExcluded(false);
+        request.setContextNote("   ");
+
+        recordService.updateAgentMemoryPolicy(1L, 100L, request);
+
+        verify(recordMapper).updateAgentMemoryPolicyByIdAndUserId(
+                eq(100L), eq(1L), eq(false), org.mockito.ArgumentMatchers.isNull(), any());
+    }
+
+    @Test
+    void shouldRejectControlCharactersInMemoryContextNote() {
+        Record saved = mockRecord(RecordStatus.SAVED);
+        when(recordMapper.selectByIdAndUserId(100L, 1L)).thenReturn(saved);
+        RecordAgentMemoryPolicyRequest request = new RecordAgentMemoryPolicyRequest();
+        request.setExcluded(false);
+        request.setContextNote("当时\n现在");
+
+        assertThatThrownBy(() -> recordService.updateAgentMemoryPolicy(1L, 100L, request))
+                .isInstanceOf(BizException.class)
+                .hasMessage("contextNote不能包含控制字符");
+        verify(recordMapper, never()).updateAgentMemoryPolicyByIdAndUserId(
+                anyLong(), anyLong(), anyBoolean(), any(), any());
     }
 
     private RecordAttachment attachment(Long id, RecordAttachmentType type) {

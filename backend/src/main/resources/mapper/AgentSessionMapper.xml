@@ -14,6 +14,7 @@
         <result property="status" column="status" javaType="com.flashback.domain.AgentSessionStatus"/>
         <result property="turnCount" column="turn_count"/>
         <result property="stageReaskCount" column="stage_reask_count"/>
+        <result property="crossRecordMemoryEnabled" column="cross_record_memory_enabled"/>
         <result property="lastActiveAt" column="last_active_at"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
@@ -29,6 +30,7 @@
         status,
         turn_count,
         stage_reask_count,
+        cross_record_memory_enabled,
         last_active_at,
         created_at,
         updated_at
@@ -44,6 +46,7 @@
             status,
             turn_count,
             stage_reask_count,
+            cross_record_memory_enabled,
             last_active_at,
             created_at,
             updated_at
@@ -56,6 +59,7 @@
             #{status},
             #{turnCount},
             #{stageReaskCount},
+            #{crossRecordMemoryEnabled},
             #{lastActiveAt},
             #{createdAt},
             #{updatedAt}
@@ -117,6 +121,15 @@
         WHERE id = #{id}
           AND user_id = #{userId}
           AND purpose = 'WRITING_GUIDANCE'
+          AND status = 'ACTIVE'
+    </update>
+
+    <update id="updateMemoryAuthorization" parameterType="com.flashback.domain.AgentSession">
+        UPDATE agent_session
+        SET cross_record_memory_enabled = #{crossRecordMemoryEnabled},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
           AND status = 'ACTIVE'
     </update>
 

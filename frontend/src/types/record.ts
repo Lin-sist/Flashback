@@ -138,6 +138,8 @@ export interface RecordDetailVO {
   tags: TagVO[]
   canReply: boolean
   hasReply: boolean
+  agentMemoryExcluded?: boolean
+  agentMemoryContextNote?: string | null
   createdAt: DateTimeValue
   updatedAt: DateTimeValue
 }

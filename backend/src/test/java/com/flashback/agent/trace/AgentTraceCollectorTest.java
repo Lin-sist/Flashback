@@ -8,6 +8,8 @@ import com.flashback.agent.reflection.AgentProviderPhase;
 import com.flashback.agent.reflection.AgentReflectionTerminal;
 import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentProviderFailureCategory;
+import com.flashback.agent.safety.AgentSafetyLevel;
+import com.flashback.agent.safety.AgentSafetyRule;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentStage;
 import org.junit.jupiter.api.Test;
@@ -141,6 +143,21 @@ class AgentTraceCollectorTest {
         assertThat(collector.outcome())
                 .as("成功调用不改变 outcome")
                 .isEqualTo(AgentTraceOutcome.SUCCESS);
+    }
+
+    @Test
+    void shouldRecordSafetyDecisionWithoutUserText() {
+        AgentTraceCollector collector = newCollector();
+
+        collector.safetyResponse(
+                AgentSafetyLevel.IMMEDIATE_SELF_HARM,
+                AgentSafetyRule.IMMINENT_PLAN,
+                true);
+
+        assertThat(firstStepOfType(collector, "safety-response"))
+                .containsEntry("level", "immediate-self-harm")
+                .containsEntry("rule", "imminent-plan")
+                .containsEntry("local", true);
     }
 
     @Test

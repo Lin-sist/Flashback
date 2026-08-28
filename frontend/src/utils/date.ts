@@ -40,6 +40,14 @@ export const formatDateTime = (value?: DateInput) => {
   return toDatetimeText(date)
 }
 
+export const formatYearMonth = (value?: DateInput) => {
+  const date = parseDate(value)
+  if (!date) {
+    return ''
+  }
+  return `${date.getFullYear()}年${date.getMonth() + 1}月`
+}
+
 export const formatDayText = (value?: DateInput) => {
   const date = parseDate(value)
   if (!date) {

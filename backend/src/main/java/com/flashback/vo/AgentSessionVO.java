@@ -18,6 +18,8 @@ public class AgentSessionVO {
     private int turnCount;
     private int maxTurns;
     private boolean canContinue;
+    /** P4.2：当前会话跨记录记忆授权；缺省与历史值均为 false。 */
+    private boolean crossRecordMemoryEnabled;
     private List<AgentMessageVO> messages;
     private String materialDraft;
     private String source;
@@ -95,6 +97,14 @@ public class AgentSessionVO {
 
     public void setCanContinue(boolean canContinue) {
         this.canContinue = canContinue;
+    }
+
+    public boolean isCrossRecordMemoryEnabled() {
+        return crossRecordMemoryEnabled;
+    }
+
+    public void setCrossRecordMemoryEnabled(boolean crossRecordMemoryEnabled) {
+        this.crossRecordMemoryEnabled = crossRecordMemoryEnabled;
     }
 
     public List<AgentMessageVO> getMessages() {

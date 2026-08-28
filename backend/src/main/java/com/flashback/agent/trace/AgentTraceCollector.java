@@ -9,6 +9,8 @@ import com.flashback.agent.reflection.AgentProviderPhase;
 import com.flashback.agent.reflection.AgentReflectionTerminal;
 import com.flashback.agent.resilience.AgentCallBudget;
 import com.flashback.agent.resilience.AgentProviderFailureCategory;
+import com.flashback.agent.safety.AgentSafetyLevel;
+import com.flashback.agent.safety.AgentSafetyRule;
 import com.flashback.domain.AgentSessionPurpose;
 import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentStage;
@@ -141,6 +143,20 @@ public final class AgentTraceCollector {
                 "retrievedCount", retrievedCount);
     }
 
+    /** P4.2：配置开关与用户会话授权的结构化结果，不记录来源 ID 或内容。 */
+    public AgentTraceCollector memoryAuthorization(
+            boolean configEnabled, boolean sessionEnabled, boolean allowed) {
+        return step("memory-authorization",
+                "configEnabled", configEnabled,
+                "sessionEnabled", sessionEnabled,
+                "allowed", allowed);
+    }
+
+    /** P4.2：本轮实际落库的用户可见来源条数。 */
+    public AgentTraceCollector memorySources(int sourceCount) {
+        return step("memory-sources", "sourceCount", sourceCount);
+    }
+
     /**
      * 实际注入 prompt 的记忆规模。
      *
@@ -205,6 +221,15 @@ public final class AgentTraceCollector {
     /** C9：最终回复是否实际采用唯一允许的克制复现短语。 */
     public AgentTraceCollector temporalPatternUsed(boolean used) {
         return step("temporal-pattern-used", "used", used);
+    }
+
+    /** R1：只记录封闭判定与本地分支，不记录用户输入或命中片段。 */
+    public AgentTraceCollector safetyResponse(
+            AgentSafetyLevel level, AgentSafetyRule rule, boolean localResponse) {
+        return step("safety-response",
+                "level", level == null ? AgentSafetyLevel.NONE.id() : level.id(),
+                "rule", rule == null ? AgentSafetyRule.NONE.id() : rule.id(),
+                "local", localResponse);
     }
 
     /**

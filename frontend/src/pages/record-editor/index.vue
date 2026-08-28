@@ -610,6 +610,16 @@ const switchAgentIntent = async (intent: AgentConversationIntent) => {
   }
 }
 
+const switchAgentMemoryAuthorization = async (enabled: boolean) => {
+  if (agentChatStore.switchingMemoryAuthorization) return
+  if (Boolean(agentChatStore.session?.crossRecordMemoryEnabled) === enabled) return
+  try {
+    await agentChatStore.switchMemoryAuthorization(enabled)
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  }
+}
+
 const sendAgentMessage = async (content: string) => {
   try {
     await agentChatStore.send(content)
@@ -2050,9 +2060,11 @@ onUnload(() => {
     :finishing="agentChatStore.finishing"
     :confirming-tool-call="agentChatStore.confirmingToolCall"
     :switching-intent="agentChatStore.switchingIntent"
+    :switching-memory-authorization="agentChatStore.switchingMemoryAuthorization"
     :error-message="agentChatStore.errorMessage"
     @confirm-tool-call="confirmAgentToolCall"
     @switch-intent="switchAgentIntent"
+    @switch-memory-authorization="switchAgentMemoryAuthorization"
     @close="showAgentChat = false"
     @send="sendAgentMessage"
     @finish="finishAgentChat"

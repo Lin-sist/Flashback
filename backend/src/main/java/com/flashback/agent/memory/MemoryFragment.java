@@ -19,12 +19,18 @@ import java.time.LocalDateTime;
  * @param occurredAt 该记录的发生时间，用于排序与生成时间标签
  * @param timeLabel  注入 prompt 用的可读时间标签，例如「2026年3月」
  * @param text       片段原文（已按配置截断）
+ * @param contextNote 用户后来补充的时间语境说明；同样不得进入日志或来源关系表
  */
 public record MemoryFragment(
         Long recordId,
         LocalDateTime occurredAt,
         String timeLabel,
-        String text) {
+        String text,
+        String contextNote) {
+
+    public MemoryFragment(Long recordId, LocalDateTime occurredAt, String timeLabel, String text) {
+        this(recordId, occurredAt, timeLabel, text, null);
+    }
 
     /**
      * 刻意屏蔽默认 record toString：默认实现会把 text 原文拼进字符串，

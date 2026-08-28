@@ -30,6 +30,10 @@ const showReplySheet = ref(false)
 const laterReflectionDraft = ref('')
 const submittingLaterReflection = ref(false)
 const deletingRecord = ref(false)
+const memoryExcluded = ref(false)
+const memoryNoteDraft = ref('')
+const savingMemoryPolicy = ref(false)
+const switchingReviewMemory = ref(false)
 
 // C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
 const showReviewChat = ref(false)
@@ -279,6 +283,7 @@ const loadDetail = async (recordId: number) => {
   detailErrorState.value = 'NONE'
   try {
     await refreshUnlockState(recordId)
+    if (detail.value) applyMemoryPolicy(detail.value)
     if (detail.value?.status === RecordStatus.SEALED) {
       startCountdown(detail.value.unlockAt)
     }
@@ -344,6 +349,7 @@ const submitLaterReflection = async () => {
     const updated = await recordService.updateLaterReflection(detail.value.id, content)
     recordStore.detail = updated
     laterReflectionDraft.value = updated.realityLater || ''
+    applyMemoryPolicy(updated)
     uni.showToast({ title: '后来其实已保存', icon: 'success' })
   } catch (error) {
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
@@ -361,6 +367,49 @@ const applyReviewSession = (session: AgentSession) => {
   reviewSession.value = session
   // 显式失败与不可用都告知用户，不伪装成功。
   reviewError.value = session.status === 'SUCCESS' ? '' : (session.message || '现在聊不了，待会儿再试试')
+}
+
+const applyMemoryPolicy = (record: { agentMemoryExcluded?: boolean, agentMemoryContextNote?: string | null }) => {
+  memoryExcluded.value = record.agentMemoryExcluded === true
+  memoryNoteDraft.value = record.agentMemoryContextNote || ''
+}
+
+const saveAgentMemoryPolicy = async () => {
+  if (!detail.value?.id || savingMemoryPolicy.value) return
+  if (!getToken() && hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  savingMemoryPolicy.value = true
+  try {
+    const updated = await recordService.updateAgentMemoryPolicy(
+      detail.value.id,
+      memoryExcluded.value,
+      memoryNoteDraft.value.trim() || null,
+    )
+    recordStore.detail = updated
+    applyMemoryPolicy(updated)
+    uni.showToast({ title: memoryExcluded.value ? '之后不再参考这条记录' : '记忆设置已保存', icon: 'none' })
+  } catch (error) {
+    if (detail.value) applyMemoryPolicy(detail.value)
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    savingMemoryPolicy.value = false
+  }
+}
+
+const switchReviewMemoryAuthorization = async (enabled: boolean) => {
+  const sessionId = reviewSession.value?.sessionId
+  if (!sessionId || switchingReviewMemory.value) return
+  if (Boolean(reviewSession.value?.crossRecordMemoryEnabled) === enabled) return
+  switchingReviewMemory.value = true
+  try {
+    applyReviewSession(await agentService.switchMemoryAuthorization(sessionId, enabled))
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    switchingReviewMemory.value = false
+  }
 }
 
 const openReviewChat = async () => {
@@ -492,6 +541,7 @@ onLoad(async (query) => {
   currentRecordId.value = id
   await loadDetail(id)
   laterReflectionDraft.value = detail.value?.realityLater || ''
+  if (detail.value) applyMemoryPolicy(detail.value)
 })
 </script>
 
@@ -784,6 +834,30 @@ onLoad(async (query) => {
           </view>
         </view>
 
+        <view class="memory-policy">
+          <text class="memory-policy-title">Agent 参考</text>
+          <text class="memory-policy-hint">之后不再参考，不会撤回已经发出去的那一轮。</text>
+          <view class="memory-policy-row" @tap="memoryExcluded = !memoryExcluded">
+            <text class="memory-policy-label">不再供 Agent 参考</text>
+            <view class="memory-switch" :class="{ 'memory-switch--on': memoryExcluded }">
+              <view class="memory-switch-knob" />
+            </view>
+          </view>
+          <textarea
+            v-model="memoryNoteDraft"
+            class="memory-policy-note"
+            auto-height
+            maxlength="255"
+            placeholder="只代表当时，不代表现在"
+            placeholder-class="memory-policy-placeholder"
+          />
+          <view
+            class="memory-policy-save"
+            :class="{ 'memory-policy-save--loading': savingMemoryPolicy }"
+            @tap="saveAgentMemoryPolicy"
+          >{{ savingMemoryPolicy ? '保存中…' : '保存' }}</view>
+        </view>
+
         <view class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
       </view>
 
@@ -804,10 +878,12 @@ onLoad(async (query) => {
       :session="reviewSession"
       :loading="reviewLoading"
       :sending="reviewSending"
+      :switching-memory-authorization="switchingReviewMemory"
       :error-message="reviewError"
       @close="closeReviewChat"
       @send="sendReviewMessage"
       @retry="retryReviewChat"
+      @switch-memory-authorization="switchReviewMemoryAuthorization"
     />
 
     <!-- 回应浮层（UNLOCKED 可回应状态） -->
@@ -1863,5 +1939,18 @@ onLoad(async (query) => {
 .reply-send-corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
 
 .reply-send--disabled { opacity: 0.6; }
+.memory-policy{margin:40rpx 8rpx 0;padding:24rpx;border-radius:18rpx;background:rgba(255,250,242,.78)}
+.memory-policy-title{display:block;color:#5b4c40;font-size:24rpx}
+.memory-policy-hint{display:block;margin-top:8rpx;color:rgba(64,55,47,.5);font-size:20rpx;line-height:1.55}
+.memory-policy-row{display:flex;align-items:center;justify-content:space-between;margin-top:20rpx}
+.memory-policy-label{color:#40372f;font-size:26rpx}
+.memory-switch{width:72rpx;height:40rpx;border-radius:999rpx;background:rgba(102,85,65,.16);position:relative}
+.memory-switch--on{background:#9c6447}
+.memory-switch-knob{width:32rpx;height:32rpx;border-radius:50%;background:#fffaf3;position:absolute;top:4rpx;left:4rpx}
+.memory-switch--on .memory-switch-knob{left:36rpx}
+.memory-policy-note{margin-top:18rpx;width:100%;min-height:88rpx;padding:16rpx;box-sizing:border-box;border-radius:14rpx;background:rgba(255,255,255,.72);color:#40372f;font-size:26rpx}
+.memory-policy-placeholder{color:rgba(64,55,47,.38)}
+.memory-policy-save{margin-top:16rpx;text-align:right;color:#9d6649;font-size:24rpx}
+.memory-policy-save--loading{opacity:.45}
 .ownership-delete{margin:60rpx auto 24rpx;text-align:center;color:#9e4a43;font-size:24rpx;letter-spacing:.08em;padding:24rpx}
 </style>

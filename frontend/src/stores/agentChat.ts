@@ -14,6 +14,7 @@ interface AgentChatState {
     sending: boolean
     finishing: boolean
     switchingIntent: boolean
+    switchingMemoryAuthorization: boolean
     /** C2：工具确认进行中，用于防抖，避免重复点击重复提交。 */
     confirmingToolCall: boolean
     errorMessage: string
@@ -28,6 +29,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         sending: false,
         finishing: false,
         switchingIntent: false,
+        switchingMemoryAuthorization: false,
         confirmingToolCall: false,
         errorMessage: '',
     }),
@@ -49,6 +51,7 @@ export const useAgentChatStore = defineStore('agentChat', {
             this.sending = false
             this.finishing = false
             this.switchingIntent = false
+            this.switchingMemoryAuthorization = false
             this.confirmingToolCall = false
             this.errorMessage = ''
         },
@@ -113,6 +116,23 @@ export const useAgentChatStore = defineStore('agentChat', {
                 throw error
             } finally {
                 this.switchingIntent = false
+            }
+        },
+        async switchMemoryAuthorization(crossRecordMemoryEnabled: boolean) {
+            if (!this.session || this.switchingMemoryAuthorization) return null
+            if (Boolean(this.session.crossRecordMemoryEnabled) === crossRecordMemoryEnabled) {
+                return this.session
+            }
+            this.switchingMemoryAuthorization = true
+            try {
+                return this.applySession(await agentService.switchMemoryAuthorization(
+                    this.session.sessionId,
+                    crossRecordMemoryEnabled,
+                ))
+            } catch (error) {
+                throw error
+            } finally {
+                this.switchingMemoryAuthorization = false
             }
         },
         /**

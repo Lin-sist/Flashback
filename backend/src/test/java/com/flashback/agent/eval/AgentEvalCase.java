@@ -191,6 +191,8 @@ final class AgentEvalCase {
                 case "reviewMaxTurns" -> builder.reviewMaxTurns(intOf(value));
                 case "maxReplyChars" -> builder.maxReplyChars(intOf(value));
                 case "memoryEnabled" -> builder.memoryEnabled(boolOf(value));
+                case "crossRecordMemoryEnabled" -> builder.crossRecordMemoryEnabled(boolOf(value));
+                case "recordContent" -> builder.recordContent(String.valueOf(value));
                 case "tagIds" -> builder.tagIds(longsOf(value));
                 case "memoryCandidates" -> applyMemoryCandidates(builder, value);
                 default -> throw new IllegalStateException(
@@ -208,10 +210,16 @@ final class AgentEvalCase {
         }
         for (Object element : list) {
             Map<String, Object> candidate = (Map<String, Object>) element;
+            boolean excluded = candidate.get("excluded") != null && boolOf(candidate.get("excluded"));
+            String contextNote = candidate.get("contextNote") == null
+                    ? null
+                    : String.valueOf(candidate.get("contextNote"));
             builder.memoryCandidate(
                     Long.parseLong(String.valueOf(candidate.get("id"))),
                     String.valueOf(candidate.get("text")),
-                    dateTimeOf(candidate.get("createdAt")));
+                    dateTimeOf(candidate.get("createdAt")),
+                    excluded,
+                    contextNote);
         }
     }
 

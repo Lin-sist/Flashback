@@ -26,6 +26,10 @@ public class Record {
     private LifeNodeType lifeNodeType;
     private String lifeNodeCustomLabel;
     private Long coverAttachmentId;
+    /** P4.2：用户撤回该记录作为未来跨记录来源的许可。 */
+    private boolean agentMemoryExcluded;
+    /** P4.2：仅用户提交的时间语境说明，AI 不得写入。 */
+    private String agentMemoryContextNote;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -179,6 +183,22 @@ public class Record {
 
     public void setCoverAttachmentId(Long coverAttachmentId) {
         this.coverAttachmentId = coverAttachmentId;
+    }
+
+    public boolean isAgentMemoryExcluded() {
+        return agentMemoryExcluded;
+    }
+
+    public void setAgentMemoryExcluded(boolean agentMemoryExcluded) {
+        this.agentMemoryExcluded = agentMemoryExcluded;
+    }
+
+    public String getAgentMemoryContextNote() {
+        return agentMemoryContextNote;
+    }
+
+    public void setAgentMemoryContextNote(String agentMemoryContextNote) {
+        this.agentMemoryContextNote = agentMemoryContextNote;
     }
 
     public LocalDateTime getCreatedAt() {

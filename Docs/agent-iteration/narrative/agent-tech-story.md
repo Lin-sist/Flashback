@@ -393,6 +393,22 @@ owner/status/focal 排除及时间衰减；真实 provider 固定合成探针 6/
 
 **证据与边界**：H2/离线覆盖 ZIP、owner、状态机与 cascade；真实 MySQL 8.0.41 验证 migration、固定 snapshot、写入冻结和 stale recovery；真实私有对象存储验证 PNG/WAV 的 read/delete/not-found/retry；微信开发者工具验证 `wx.saveFile`、四状态单删、clear-all 与 Preview 只读。最终后端 99 suites / 703 tests 全绿，11 skipped。不可压缩大媒体的内存/磁盘峰值仍未取得，物理真机和生产 SLA 也未因此成立。
 
+### 10.3 P4.2 记忆自主权：能检索，不等于可以擅自使用
+
+**一句话答案**：跨记录记忆只有在 backend 配置与当前会话用户授权同时开启时才工作；用户还能逐条排除记录，并看到这次回答实际用了哪些来源。
+
+**怎么做的**：授权默认关闭，撤销后从下一轮立即停止跨记录检索。回看目标记录与其他历史分层，assistant message 和实际注入来源在同一事务保存；来源表只留结构化关系，记录删除后显示 unavailable，不复制正文、摘要、片段、prompt 或回复。Preview 仍是零请求路径，不以 mock success 冒充真实授权。
+
+**证据与边界**：后端 106 suites / 756 tests 全绿，14 skipped；真实 MySQL 验证 migration 幂等、owner/status/exclusion、撤销、source `SET NULL` 与事务回滚；微信开发者工具验证 Standard 授权/来源矩阵和 Preview 请求为 0。真实 provider 调用 0，物理真机与来源表述的真实语言质量仍为 SKIPPED。
+
+### 10.4 R1 最小安全响应：先抢占生成链，再诚实说明系统做不到什么
+
+**一句话答案**：高置信当前或近时自伤风险由本地确定性规则在 provider、memory、tool 和 material 之前抢占；普通低落与讨论性表达继续走原来的见证路径。
+
+**怎么做的**：规则只看当前输入，返回封闭枚举与 ruleId，不输出概率，也不形成永久风险标签。命中后使用 backend-owned 固定响应，建议远离危险物、寻找可信任陪伴，并按“若在中国大陆”的显式条件提供 `120`、`110`、`12356`；同时明确系统不是专业救援人员，也无法代为报警或通知任何人。
+
+**证据与边界**：最终后端 108 suites / 782 tests 全绿，15 skipped；C6 固定场景与 service 编排证明安全分支的外调、记忆、工具、素材和来源均为 0。真实 provider 只用 1 个固定合成普通边界样本确认未被误拦。该能力是保守的最小安全网，不是诊断、风险评分、临床干预或人工接管，跨语言漏报与地区资源时效性仍需持续管理。
+
 ---
 
 ## §11 踩过的坑

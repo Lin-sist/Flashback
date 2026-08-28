@@ -14,6 +14,7 @@ import com.flashback.agent.guardrail.AgentTimeAttributionChecker;
 import com.flashback.agent.memory.MemoryCueExtractor;
 import com.flashback.agent.reflection.AgentReflectionPolicy;
 import com.flashback.agent.memory.MemoryPort;
+import com.flashback.agent.safety.AgentSafetyPolicy;
 import com.flashback.agent.tool.AgentToolCoordinator;
 import com.flashback.agent.tool.AgentToolRegistry;
 import com.flashback.agent.tool.AgentToolSchemaFactory;
@@ -25,6 +26,8 @@ import com.flashback.common.exception.NotFoundException;
 import com.flashback.config.AppAgentProperties;
 import com.flashback.domain.AgentMessage;
 import com.flashback.domain.AgentMessageRole;
+import com.flashback.domain.AgentMemorySource;
+import com.flashback.domain.AgentMemorySourceKind;
 import com.flashback.domain.AgentConversationIntent;
 import com.flashback.domain.AgentSession;
 import com.flashback.domain.AgentSessionPurpose;
@@ -34,6 +37,8 @@ import com.flashback.domain.Record;
 import com.flashback.domain.RecordStatus;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentSessionStartRequest;
+import com.flashback.agent.memory.MemoryFragment;
+import com.flashback.mapper.AgentMemorySourceMapper;
 import com.flashback.mapper.AgentMessageMapper;
 import com.flashback.mapper.AgentSessionMapper;
 import com.flashback.mapper.RecordMapper;
@@ -61,7 +66,9 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -97,6 +104,9 @@ class AgentChatServiceImplTest {
      */
     @Mock
     private MemoryPort memoryPort;
+
+    @Mock
+    private AgentMemorySourceMapper agentMemorySourceMapper;
 
     @Mock
     private RecordTagMapper recordTagMapper;
@@ -149,6 +159,7 @@ class AgentChatServiceImplTest {
                 new AgentTimeAttributionChecker(properties),
                 new AgentReflectionPolicy(),
                 memoryPort,
+                agentMemorySourceMapper,
                 new MemoryCueExtractor(properties),
                 recordTagMapper,
                 tagService,
@@ -172,6 +183,8 @@ class AgentChatServiceImplTest {
         when(modelClient.provider()).thenReturn("mock");
         when(modelClient.isMockProvider()).thenReturn(true);
         when(modelClient.unavailableReason()).thenReturn(null);
+        when(agentSessionMapper.updateMemoryAuthorization(any())).thenReturn(1);
+        when(agentMemorySourceMapper.insert(any())).thenReturn(1);
     }
 
     // ---------- 会话开启与恢复 ----------
@@ -188,6 +201,7 @@ class AgentChatServiceImplTest {
         assertThat(vo.getMessages().get(0).getContent()).isNotBlank();
         assertThat(vo.getMaxTurns()).isEqualTo(4);
         assertThat(vo.isCanContinue()).isTrue();
+        assertThat(vo.isCrossRecordMemoryEnabled()).isFalse();
     }
 
     @Test
@@ -358,6 +372,209 @@ class AgentChatServiceImplTest {
     }
 
     @Test
+    void shouldNotCallMemoryPortWhenSessionAuthorizationIsOff() {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.WITNESS, 0));
+        trackInserts();
+
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近老是睡不好，压力挺大的"));
+
+        verifyNoInteractions(memoryPort);
+    }
+
+    @Test
+    void shouldNotCallMemoryPortWhenConfigIsOffEvenIfSessionIsAuthorized() {
+        properties.getMemory().setEnabled(false);
+        AgentSession existing = activeSession(AgentStage.WITNESS, 0);
+        existing.setCrossRecordMemoryEnabled(true);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        trackInserts();
+
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近又开始担心方向了"));
+
+        verifyNoInteractions(memoryPort);
+    }
+
+    @Test
+    void shouldSwitchMemoryAuthorizationWithoutCallingProvider() throws Exception {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 0);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of());
+
+        AgentSessionVO vo = service.switchMemoryAuthorization(USER_ID, SESSION_ID, true);
+
+        assertThat(vo.isCrossRecordMemoryEnabled()).isTrue();
+        verify(agentSessionMapper).updateMemoryAuthorization(existing);
+        verify(agentMessageMapper, never()).insert(any());
+        verify(modelClient, never()).completeWithTools(anyList(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    void shouldRejectEnablingMemoryAuthorizationWhileFailedTurnIsPending() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 1);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "我在这里，你可以按自己的节奏说。"),
+                userMessage(1, "工作上有点撑不住")));
+
+        assertThatThrownBy(() -> service.switchMemoryAuthorization(USER_ID, SESSION_ID, true))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("开启参考过去");
+        verify(agentSessionMapper, never()).updateMemoryAuthorization(any());
+        verifyNoInteractions(modelClient);
+    }
+
+    @Test
+    void shouldAllowDisablingMemoryAuthorizationWhileFailedTurnIsPending() throws Exception {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 1);
+        existing.setCrossRecordMemoryEnabled(true);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(
+                assistantMessage(0, "我在这里，你可以按自己的节奏说。"),
+                userMessage(1, "工作上有点撑不住")));
+
+        AgentSessionVO vo = service.switchMemoryAuthorization(USER_ID, SESSION_ID, false);
+
+        assertThat(vo.isCrossRecordMemoryEnabled()).isFalse();
+        verify(agentSessionMapper).updateMemoryAuthorization(existing);
+        verify(modelClient, never()).completeWithTools(anyList(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    void shouldKeepMemoryAuthorizationIdempotentWithoutDatabaseWrite() throws Exception {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 0);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of());
+
+        AgentSessionVO vo = service.switchMemoryAuthorization(USER_ID, SESSION_ID, false);
+
+        assertThat(vo.isCrossRecordMemoryEnabled()).isFalse();
+        verify(agentSessionMapper, never()).updateMemoryAuthorization(any());
+        verify(modelClient, never()).complete(anyList(), any());
+        verify(modelClient, never()).completeWithTools(anyList(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    void shouldFailClosedWhenMemoryAuthorizationUpdateLosesActiveSessionRace() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 0);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of());
+        when(agentSessionMapper.updateMemoryAuthorization(existing)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.switchMemoryAuthorization(USER_ID, SESSION_ID, true))
+                .isInstanceOf(BizException.class)
+                .hasMessage("会话状态已变化，请刷新后重试");
+        verifyNoInteractions(modelClient);
+    }
+
+    @Test
+    void shouldPersistOnlyTheActuallyInjectedMemorySource() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 0);
+        existing.setCrossRecordMemoryEnabled(true);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(memoryPort.retrieve(any())).thenReturn(List.of(new MemoryFragment(
+                701L,
+                LocalDateTime.of(2026, 3, 1, 10, 0),
+                "2026年3月",
+                "那时候也在担心方向")));
+        trackInserts();
+
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近又开始担心方向了"));
+
+        verify(agentMemorySourceMapper).insert(argThat(source ->
+                source.getUserId().equals(USER_ID)
+                        && source.getSessionId().equals(SESSION_ID)
+                        && source.getAssistantMessageId() != null
+                        && source.getSourceRecordId().equals(701L)
+                        && source.getSourceKind() == AgentMemorySourceKind.CROSS_RECORD));
+    }
+
+    @Test
+    void shouldStopCrossRecordRetrievalOnTheTurnAfterRevocation() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 0);
+        existing.setCrossRecordMemoryEnabled(true);
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(memoryPort.retrieve(any())).thenReturn(List.of(new MemoryFragment(
+                703L,
+                LocalDateTime.of(2026, 3, 1, 10, 0),
+                "2026年3月",
+                "那时候也在担心方向")));
+        trackInserts();
+
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("最近又开始担心方向了"));
+        service.switchMemoryAuthorization(USER_ID, SESSION_ID, false);
+        service.sendMessage(USER_ID, SESSION_ID, messageRequest("关掉以后继续说这一刻"));
+
+        verify(memoryPort, times(1)).retrieve(any());
+        assertThat(existing.isCrossRecordMemoryEnabled()).isFalse();
+    }
+
+    @Test
+    void shouldResolveOwnedSourceAndHideSealedSourceMetadata() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 1);
+        AgentMessage assistant = assistantMessage(1, "我记得那时候的担心。 ");
+        assistant.setId(301L);
+        AgentMemorySource source = new AgentMemorySource();
+        source.setAssistantMessageId(301L);
+        source.setSourceRecordId(701L);
+        source.setSourceKind(AgentMemorySourceKind.CROSS_RECORD);
+        Record sealed = new Record();
+        sealed.setId(701L);
+        sealed.setUserId(USER_ID);
+        sealed.setStatus(RecordStatus.SEALED);
+        sealed.setTitle("不可披露标题");
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(assistant));
+        when(agentMemorySourceMapper.selectBySessionIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(List.of(source));
+        when(recordMapper.selectByIdAndUserId(701L, USER_ID)).thenReturn(sealed);
+
+        AgentSessionVO vo = service.getSession(USER_ID, SESSION_ID);
+
+        assertThat(vo.getMessages().get(0).getMemorySources()).singleElement().satisfies(resolved -> {
+            assertThat(resolved.isAvailable()).isFalse();
+            assertThat(resolved.getRecordId()).isNull();
+            assertThat(resolved.getDisplayTitle()).isNull();
+            assertThat(resolved.getOccurredAt()).isNull();
+            assertThat(resolved.getContextNote()).isNull();
+        });
+    }
+
+    @Test
+    void shouldResolveOnlyCurrentOwnedMetadataForAvailableSource() {
+        AgentSession existing = activeSession(AgentStage.WITNESS, 1);
+        AgentMessage assistant = assistantMessage(1, "我记得那时候的担心。");
+        assistant.setId(302L);
+        AgentMemorySource source = new AgentMemorySource();
+        source.setAssistantMessageId(302L);
+        source.setSourceRecordId(702L);
+        source.setSourceKind(AgentMemorySourceKind.CROSS_RECORD);
+        Record available = new Record();
+        available.setId(702L);
+        available.setUserId(USER_ID);
+        available.setStatus(RecordStatus.UNLOCKED);
+        available.setTitle("现在的标题");
+        available.setCreatedAt(LocalDateTime.of(2026, 2, 3, 10, 0));
+        available.setAgentMemoryContextNote("只代表当时");
+        available.setContent("不得进入来源 VO 的正文");
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID)).thenReturn(existing);
+        when(agentMessageMapper.selectBySessionId(SESSION_ID)).thenReturn(List.of(assistant));
+        when(agentMemorySourceMapper.selectBySessionIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(List.of(source));
+        when(recordMapper.selectByIdAndUserId(702L, USER_ID)).thenReturn(available);
+
+        AgentSessionVO vo = service.getSession(USER_ID, SESSION_ID);
+
+        assertThat(vo.getMessages().get(0).getMemorySources()).singleElement().satisfies(resolved -> {
+            assertThat(resolved.isAvailable()).isTrue();
+            assertThat(resolved.getRecordId()).isEqualTo(702L);
+            assertThat(resolved.getDisplayTitle()).isEqualTo("现在的标题");
+            assertThat(resolved.getOccurredAt()).isEqualTo(LocalDateTime.of(2026, 2, 3, 10, 0));
+            assertThat(resolved.getContextNote()).isEqualTo("只代表当时");
+        });
+    }
+
+    @Test
     void shouldRejectUserInputBeyondConfiguredLimit() {
         when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
                 .thenReturn(activeSession(AgentStage.EMOTION, 0));
@@ -383,6 +600,26 @@ class AgentChatServiceImplTest {
         assertThat(stored).hasSize(2);
         assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);
         assertThat(stored.get(1).getRole()).isEqualTo(AgentMessageRole.ASSISTANT);
+    }
+
+    @Test
+    void shouldReturnLocalSafetyResponseBeforeProviderMemoryToolsOrMaterial() throws Exception {
+        when(agentSessionMapper.selectByIdAndUserId(SESSION_ID, USER_ID))
+                .thenReturn(activeSession(AgentStage.EMOTION, 0));
+        List<AgentMessage> stored = trackInserts();
+
+        AgentSessionVO vo = service.sendMessage(USER_ID, SESSION_ID, messageRequest("我现在就要去死"));
+
+        assertThat(vo.getStatus()).isEqualTo("SUCCESS");
+        assertThat(vo.getSessionStatus()).isEqualTo(AgentSessionStatus.ACTIVE.name());
+        assertThat(vo.getMaterialDraft()).isNull();
+        assertThat(stored).hasSize(2);
+        assertThat(stored.get(1).getContent()).isEqualTo(AgentSafetyPolicy.LOCAL_RESPONSE);
+        verify(modelClient, never()).completeWithTools(anyList(), anyList(), anyBoolean(), any());
+        verify(modelClient, never()).complete(anyList(), any());
+        verifyNoInteractions(memoryPort);
+        verifyNoInteractions(toolCoordinator);
+        verify(agentMemorySourceMapper, never()).insert(any());
     }
 
     @Test
@@ -449,6 +686,7 @@ class AgentChatServiceImplTest {
         assertThat(vo.getMessage()).isEqualTo("刚才写下的这句还在，但现在暂时无法继续。");
         assertThat(stored).hasSize(1);
         assertThat(stored.get(0).getRole()).isEqualTo(AgentMessageRole.USER);
+        verify(agentMemorySourceMapper, never()).insert(any());
     }
 
     @Test
@@ -521,7 +759,9 @@ class AgentChatServiceImplTest {
     private List<AgentMessage> trackInserts() {
         List<AgentMessage> stored = new ArrayList<>();
         when(agentMessageMapper.insert(any())).thenAnswer(invocation -> {
-            stored.add(invocation.getArgument(0, AgentMessage.class));
+            AgentMessage message = invocation.getArgument(0, AgentMessage.class);
+            message.setId(200L + stored.size());
+            stored.add(message);
             return 1;
         });
         return stored;

@@ -83,6 +83,13 @@ public interface RecordMapper {
                         @Param("realityLater") String realityLater,
                         @Param("updatedAt") LocalDateTime updatedAt);
 
+        int updateAgentMemoryPolicyByIdAndUserId(
+                        @Param("id") Long id,
+                        @Param("userId") Long userId,
+                        @Param("excluded") boolean excluded,
+                        @Param("contextNote") String contextNote,
+                        @Param("updatedAt") LocalDateTime updatedAt);
+
         int updateCoverAttachmentByIdAndUserId(
                         @Param("id") Long id,
                         @Param("userId") Long userId,

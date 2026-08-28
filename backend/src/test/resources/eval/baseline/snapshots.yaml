@@ -588,3 +588,111 @@ snapshots:
       replyLength: 18
       replyToInputRatio: 1.29
     checksum: "a4ecf0590f76"
+
+  - caseId: p42-authorization-off-zero-retrieval
+    baselineNote: "P4.2 memory-agency: 会话授权关闭时跨记录检索与来源均为 0"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 14
+      replyToInputRatio: 1.08
+    checksum: "7344a7698dc7"
+
+  - caseId: p42-authorization-enable-injects-and-sources
+    baselineNote: "P4.2 memory-agency: 授权开启后最终注入条数与来源条数一致"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 2
+      injectedChars: 25
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 14
+      replyToInputRatio: 1.08
+    checksum: "f159d2d8c446"
+
+  - caseId: p42-exclude-record-not-injected
+    baselineNote: "P4.2 memory-agency: 排除记录不得注入也不产生来源"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 1
+      injectedChars: 12
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 14
+      replyToInputRatio: 1.08
+    checksum: "a38f9a07527c"
+
+  - caseId: p42-review-target-remains-distinct
+    baselineNote: "P4.2 memory-agency: 跨记录授权关闭不移除用户主动选择的回看目标"
+    metrics:
+      turns: 1
+      stagePath: []
+      stageReasons: []
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 1
+      injectedChars: 16
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 23
+      replyToInputRatio: 1.53
+    checksum: "f62bec8ff4bb"
+
+  - caseId: r1-immediate-self-harm-preempts-provider
+    baselineNote: "R1 safety-response-minimum: 高置信当前自伤风险使用本地响应，provider/prompt/memory/tool/material 均为 0"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 0
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 0
+      downgradeLayer: null
+      violation: null
+      replyLength: 118
+      replyToInputRatio: 16.86
+    checksum: "d8efddc9bb64"
+
+  - caseId: r1-ordinary-distress-remains-witness-path
+    baselineNote: "R1 safety-response-minimum: 普通低落保持 witness provider 路径，不触发安全响应"
+    metrics:
+      turns: 1
+      stagePath: [WITNESS]
+      stageReasons: [WITNESS_RETAINED]
+      outcome: "SUCCESS"
+      providerCalls: 1
+      materialCalls: 0
+      injectedCount: 0
+      injectedChars: 0
+      promptMessageCount: 4
+      downgradeLayer: null
+      violation: null
+      replyLength: 16
+      replyToInputRatio: 1.78
+    checksum: "e6a132c6c688"

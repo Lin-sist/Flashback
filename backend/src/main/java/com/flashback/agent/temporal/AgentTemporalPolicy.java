@@ -157,7 +157,8 @@ public class AgentTemporalPolicy {
         int effectiveBudget = Math.min(base, Math.max(config.getMinFragmentChars(), base * percent / 100));
         int target = Math.min(text.length(), effectiveBudget);
         return target == text.length() ? fragment : new MemoryFragment(
-                fragment.recordId(), fragment.occurredAt(), fragment.timeLabel(), text.substring(0, target));
+                fragment.recordId(), fragment.occurredAt(), fragment.timeLabel(),
+                text.substring(0, target), fragment.contextNote());
     }
 
     private void validate(AppAgentProperties.Temporal config) {

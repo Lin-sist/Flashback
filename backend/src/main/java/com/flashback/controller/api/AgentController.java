@@ -3,6 +3,7 @@ package com.flashback.controller.api;
 import com.flashback.common.response.ApiResponse;
 import com.flashback.dto.AgentMessageRequest;
 import com.flashback.dto.AgentConversationIntentRequest;
+import com.flashback.dto.AgentMemoryAuthorizationRequest;
 import com.flashback.dto.AgentSessionStartRequest;
 import com.flashback.dto.AgentToolCallConfirmRequest;
 import com.flashback.security.auth.AuthUser;
@@ -73,6 +74,15 @@ public class AgentController {
             @Valid @RequestBody AgentConversationIntentRequest request) {
         return ApiResponse.success(agentChatService.switchConversationIntent(
                 authUser.getUserId(), sessionId, request.getConversationIntent()));
+    }
+
+    @PutMapping("/sessions/{sessionId}/memory-authorization")
+    public ApiResponse<AgentSessionVO> switchMemoryAuthorization(
+            @CurrentUser AuthUser authUser,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody AgentMemoryAuthorizationRequest request) {
+        return ApiResponse.success(agentChatService.switchMemoryAuthorization(
+                authUser.getUserId(), sessionId, request.getCrossRecordMemoryEnabled()));
     }
 
     /**

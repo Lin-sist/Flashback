@@ -27,6 +27,17 @@ export type AgentSessionPurpose = 'WRITING_GUIDANCE' | 'REVIEW_CHAT'
 export type AgentConversationIntent = 'LISTEN' | 'UNTANGLE'
 export type AgentMessageRole = 'USER' | 'ASSISTANT'
 
+export type AgentMemorySourceKind = 'REVIEW_TARGET' | 'CROSS_RECORD'
+
+export interface AgentMemorySource {
+    recordId?: number | null
+    sourceKind: AgentMemorySourceKind
+    displayTitle?: string | null
+    occurredAt?: string | null
+    contextNote?: string | null
+    available: boolean
+}
+
 export interface AgentMessage {
     id: number
     role: AgentMessageRole
@@ -34,6 +45,7 @@ export interface AgentMessage {
     stage: AgentStage
     content: string
     createdAt: string
+    memorySources?: AgentMemorySource[]
 }
 
 /** C2 工具提议状态。 */
@@ -70,6 +82,8 @@ export interface AgentSession {
     turnCount: number
     maxTurns: number
     canContinue: boolean
+    /** P4.2：缺字段按关闭处理。 */
+    crossRecordMemoryEnabled?: boolean
     messages: AgentMessage[]
     materialDraft?: string | null
     source: string
@@ -145,6 +159,14 @@ export const agentService = {
             method: 'PUT',
             data: { conversationIntent },
             // 只更新会话业务状态，不调用 provider。
+        }))
+    },
+    switchMemoryAuthorization(sessionId: number, crossRecordMemoryEnabled: boolean) {
+        return requireRealSession(() => httpRequest<AgentSession>({
+            url: `/api/agent/sessions/${sessionId}/memory-authorization`,
+            method: 'PUT',
+            data: { crossRecordMemoryEnabled },
+            // 只更新会话授权，不调用 provider。
         }))
     },
     sendMessage(sessionId: number, content: string) {

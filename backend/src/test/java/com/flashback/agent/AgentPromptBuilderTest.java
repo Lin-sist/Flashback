@@ -1,6 +1,7 @@
 package com.flashback.agent;
 
 import com.flashback.agent.guardrail.AgentGuardrailRules;
+import com.flashback.agent.memory.MemoryFragment;
 import com.flashback.agent.temporal.TemporalDistanceBand;
 import com.flashback.agent.temporal.TemporalMemoryContext;
 import com.flashback.agent.temporal.TemporalPatternEvidence;
@@ -181,6 +182,22 @@ class AgentPromptBuilderTest {
 
         assertThat(supplement).contains("2026年7月", "2025年1月", "似乎不止一次", "邀请用户自己判断");
         assertThat(supplement).doesNotContain("RECENT", "LONG_AGO", "30", "180", "%");
+    }
+
+    @Test
+    void shouldLabelUserContextNoteWithoutTurningItIntoModelInference() {
+        String supplement = promptBuilder.buildMemorySupplement(List.of(new MemoryFragment(
+                7L,
+                java.time.LocalDateTime.of(2026, 3, 1, 10, 0),
+                "2026年3月",
+                "那时候很担心一次选择",
+                "只代表当时，不代表现在")));
+
+        assertThat(supplement).contains(
+                "那时候很担心一次选择",
+                "用户后来说明：只代表当时，不代表现在",
+                "不是当时写下的原文",
+                "不是模型结论");
     }
 
     private AgentMessage message(int turnNo, AgentMessageRole role, String content) {
