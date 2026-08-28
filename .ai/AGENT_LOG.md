@@ -8185,3 +8185,10 @@ Commit: pending
   - P5.x 继续被证据门阻断；未来恢复研究时必须从空矩阵开始，不得补造历史观察
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 保持 `ACTIVE_TASK=IDLE`；等待真实参与者条件成立，或由用户另行批准不依赖 E1 正证据的新规划方向
+
+## 2026-08-28｜E1 时间篇章规划材料提交补录｜Type B
+
+- **Commit**: `4e8f79e docs(design): 完成E1时间篇章规划材料`（未 push）
+- **Scope**: E1 决策、A/B/C throwaway 原型、研究手册、空观察矩阵、`INCONCLUSIVE` 结果与 append-only evidence；8 files / 930 insertions / 22 deletions
+- **Verification**: staged `git diff --cached --check` PASS；Edge / Playwright 3 视口 43 项断言 PASS；控制台错误 0、外部请求 0
+- **Boundary**: 目标用户 0，E1-05 `SKIPPED`，P5.x 未创建；未包含业务代码、OpenSpec、依赖或 lockfile
