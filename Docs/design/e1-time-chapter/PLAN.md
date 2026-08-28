@@ -1,6 +1,6 @@
 # E1 `time-chapter-prototype` 原型计划
 
-> 状态：`PLANNING READY`；尚无目标用户证据
+> 状态：`PROTOTYPE + RESEARCH MATERIALS READY / INCONCLUSIVE`；目标用户证据为 0
 > 日期：2026-08-28
 > 类型：E1 Type A；本计划落盘按 Type B 记录
 > 提交责任：Agent 提交（用户已授权整理 Git；不 push）
@@ -73,16 +73,16 @@ E1 不回答数据库表、API、DTO、迁移、页面路由、导出格式、SE
 
 ## 5. 原型形态
 
-若用户后续单独授权执行，制作一个 throwaway、离线、单文件交互原型：
+用户已授权 E1-02～E1-04；现已制作一个 throwaway、离线、单文件交互原型：
 
-- 预定位置：`Docs/design/e1-time-chapter/prototype.html`；
+- 位置：`Docs/design/e1-time-chapter/prototype.html`；
 - 通过 `?variant=A|B|C` 切换三个信息模型；
 - 使用同一组合成记录卡、合成日期和合成媒体占位；
 - 零登录、零 backend、零网络、零 localStorage、零 provider、零真实持久化；
 - 页面常驻标识“E1 研究原型 · 合成材料 · 不会真实保存”；
 - 不接入 `pages.json`、真实小程序路由或 Preview，不直接晋升为生产实现。
 
-本计划不包含原型实现授权。
+原型仅用于信息模型研究，不进入真实路由，也不构成 P5.x 实现授权。
 
 ## 6. 合成任务
 
@@ -167,30 +167,32 @@ E1 的输出只能是 `POSITIVE`、`NEGATIVE` 或 `INCONCLUSIVE`。
 ## 11. 执行任务
 
 - [x] **E1-01**：完成 readiness、当前事实核对与本计划；
-- [ ] **E1-02**：用户单独授权后制作 A/B/C throwaway 原型；
-- [ ] **E1-03**：内部走查三种任务、无网络/无持久化与非引导措辞；
-- [ ] **E1-04**：准备主持手册、观察矩阵与顺序平衡；
-- [ ] **E1-05**：完成 5–8 名有效目标用户观察；
-- [ ] **E1-06**：形成 `POSITIVE / NEGATIVE / INCONCLUSIVE` 结果并登记证据边界；
-- [ ] **E1-07**：仅当结果为 `POSITIVE` 且用户批准时，另开 P5.x Type C 规划闸。
+- [x] **E1-02**：完成 A/B/C throwaway 原型；
+- [x] **E1-03**：完成三种任务、无网络/无持久化与非引导措辞的内部走查；
+- [x] **E1-04**：完成主持手册、空观察矩阵与顺序平衡；
+- [ ] **E1-05**：完成 5–8 名有效目标用户观察；当前 `SKIPPED`（参与者为 0）；
+- [x] **E1-06**：登记当前 `INCONCLUSIVE / NOT_READY` 结果与证据边界；它不是最终用户结论；
+- [ ] **E1-07**：仅当未来结果为 `POSITIVE` 且用户批准时，另开 P5.x Type C 规划闸；当前阻断。
 
-## 12. 明确保留给 P5.x 的问题
+## 12. 已冻结假设与 P5.x 契约边界
 
-E1 不冻结以下事项：
+产品负责人已经确认 39 项第一版假设，记录在 `DECISIONS.md`。这些假设约束 E1 原型，但仍没有用户正证据；其中任何 API、DTO、数据库和并发实现都必须留到未来独立 P5.x Type C 规划。
 
-- chapter 状态枚举、表结构、record 关联与迁移；
-- SEALED / UNLOCKED 片段能否加入、移出或改变归属；
-- 创建入口、命名长度、重名、排序、封面与时间册呈现；
-- 结束、重开、删除、导出和账号清除的真实 API 语义；
-- 多篇章、交叠篇章、自动推荐、AI 命名或自动归入；
-- 订阅、商业化、分享、协作、提醒、进度、评分或人生诊断。
+- 已冻结的产品假设包括：保存后主动组成篇章、第一版每条片段零或一个主篇章、进行中/已结束、明确转移、删除容器不删记录、无 AI 自动归入；
+- 尚未批准的工程契约包括：表结构、关联迁移、API/DTO 字段、鉴权落点、原子批量实现、并发冲突响应、导出结构和真实路由；
+- 明确排除第一版：多篇章、子篇章、自动推荐/命名/归入、目标进度、分享协作、提醒、评分或人生诊断。
 
 任何这些问题都不能由 throwaway 原型倒推成已批准契约。
 
-## 13. 本轮范围
+## 13. 当前产物与范围
 
-- 只新增本计划并追加 `.ai/AGENT_LOG.md`；
+- `DECISIONS.md`：产品负责人已确认假设，不是用户证据；
+- `prototype.html`：A/B/C 单文件离线原型；
+- `SESSION_GUIDE.md`：未来可恢复执行的主持手册；
+- `OBSERVATIONS.md`：零参与者空矩阵；
+- `OUTCOME.md`：`NOT_READY / INCONCLUSIVE` 结果占位；
+- `_d_meta.json`：throwaway 原型元数据；
 - 不修改 `.ai/ACTIVE_TASK.md`、OpenSpec baseline/archive、backend/frontend、依赖或 lockfile；
 - 不创建 active change，不调用 provider、MySQL、对象存储、微信或外部研究服务；
-- 不制作原型、不招募参与者、不伪造用户观察；
-- 本轮完成后提交 Type B 规划文件，保持工作树 clean；不 push、PR、部署或发布。
+- 已完成内部浏览器走查，但不把内部走查或产品负责人确认冒充真实参与者研究；
+- 本轮完成后提交 Type B 研究准备文件，保持工作树 clean；不 push、PR、部署或发布。

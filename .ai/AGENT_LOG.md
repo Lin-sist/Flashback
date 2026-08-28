@@ -8156,3 +8156,32 @@ Commit: pending
 - **Scope**: `Docs/design/e1-time-chapter/PLAN.md` 与 append-only planning evidence；2 files / 221 insertions
 - **Verification**: staged `git diff --cached --check` PASS；未包含业务代码、OpenSpec、依赖或 lockfile
 - **Boundary**: 仅 E1-01 规划完成；E1-02～E1-07、目标用户证据与 P5.x 均未授权或未完成
+
+## 2026-08-28｜E1 时间篇章决策冻结、原型与研究材料｜Type A → Type B（落盘）
+
+- **Scope**:
+  - 根据产品负责人对盘问 1–41 的统一确认，完成 E1-02～E1-04 与当前 E1 结果登记
+  - 只处理 throwaway 研究原型、主持手册、空观察矩阵和证据边界；不进入 P5.x
+- **Changes**:
+  - 新增 `DECISIONS.md`，冻结 39 项产品负责人假设，并明确它们不是目标用户证据
+  - 新增 A/B/C 单文件离线原型：A 标签/时间对照、B 主动组成时间篇章、C 轻量时间视图
+  - 新增 `SESSION_GUIDE.md`、`OBSERVATIONS.md`、`OUTCOME.md` 与设计元数据
+  - 更新 `PLAN.md`：E1-02～E1-04 完成，E1-05 `SKIPPED`，E1 当前为 `INCONCLUSIVE / NOT_READY`
+- **Verification PASS**:
+  - JavaScript `new Function` 语法检查 PASS；`git diff --check` 在提交前执行
+  - Edge / Playwright 在 360、390、1440 px 完成 43 项断言：A/B/C 切换、筛选、选择、创建、结束、重开、删除与记录保留全部 PASS
+  - 控制台错误 0、外部请求 0；原型未使用 fetch、XHR、WebSocket、localStorage 或 sessionStorage
+  - 390 px 实图人工检查 PASS；研究原型、合成材料、不会真实保存和内存状态均可见
+- **Verification SKIPPED**:
+  - 目标用户观察 SKIPPED：当前真实参与者为 0，未填写任何观察矩阵或偏好结论
+  - 微信开发者工具、物理真机和 backend 集成 SKIPPED：原型未接入生产工程、真实路由或 backend
+  - OpenSpec CLI 不在 PATH；本轮不修改 OpenSpec，也不声称 CLI validation PASS
+- **Scope safety**:
+  - 未修改 `.ai/ACTIVE_TASK.md`、OpenSpec、backend/frontend、package/lockfile、deployment、monitoring 或三个一级 Tab
+  - 原型仅含合成片段，零登录、零 provider、零真实持久化、零真实用户内容；未记录名称、自述、日记、账号或 secret
+  - 未创建 P5.x、未实施 API/DTO/DDL/状态机、未 push/PR/deploy/release
+- **Risks**:
+  - 产品负责人确认与内部走查不能替代至少 5 名目标用户证据；篇章是否产生真实增益仍未知
+  - P5.x 继续被证据门阻断；未来恢复研究时必须从空矩阵开始，不得补造历史观察
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 保持 `ACTIVE_TASK=IDLE`；等待真实参与者条件成立，或由用户另行批准不依赖 E1 正证据的新规划方向
