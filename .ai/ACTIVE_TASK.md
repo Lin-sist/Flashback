@@ -10,7 +10,7 @@
 - 最近归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
 - 前一归档：`openspec/changes/archive/2026-08-28-memory-agency/`
 - 当前闸门：IDLE；无实现授权向后继承
-- 提交责任：用户明确要求本轮 **不 commit**；实现完成后由用户配合 Codex review
+- 提交责任：用户已于 2026-08-28 授权整理并保持 Git clean；P4.2/R1 本地提交 `4ed09a7` 已完成，未 push
 - 外部调用：P4.2 provider=0；R1 仅 1 次固定合成普通边界 provider 探针；无真实危机实验
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -153,7 +153,7 @@
   - R1 provider 边界：安全正例本地抢占，普通固定合成边界 provider calls=1；本刀真实 provider 总调用 1，不外推为真实危机效果或生产 SLA
   - R1 ACCEPTED / ARCHIVED：五域 9 Requirements / 14 Scenarios exact-copy 进入 baseline；`closeout.md` 保留物理真机、临床效果、跨语言漏报与资源时效风险
   - OpenSpec CLI 不在 PATH，CLI validation SKIPPED；使用 artifacts/tasks/delta/Requirement/Scenario/exact-copy 文件级验证
-  - **Commit**：pending；未 stage/commit/push/PR/deploy/release
+  - **Commit**：`4ed09a7 feat(agent): 完成P4.2与R1验收归档`；未 push/PR/deploy/release
   - **Next step**：当前 IDLE。冻结序列下一项 E1 仍须重新规划与授权，本轮 Gate 1–3 不继承
 
 - **This session**: 2026-08-27 — **P4.2 Gate 3a/3b 真实验收检查点**

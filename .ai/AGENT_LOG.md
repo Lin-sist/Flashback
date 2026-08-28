@@ -8104,3 +8104,23 @@ Commit: pending
   - 地区资源具有时效性，发布准备时须重新核验；ACTIVE 会话不等于持续监护
 - **Commit**: pending（未 stage/commit/push/PR/deploy/release）
 - **Next**: `ACTIVE_TASK=IDLE`；冻结序列下一项 E1 必须重新走独立规划与授权，本轮 Gate 1–3 不继承
+
+## 2026-08-28｜P4.2 与 R1 本地提交补录｜Type C
+
+- **Scope**:
+  - 将已完成并归档的 P4.2 `memory-agency` 与 R1 `safety-response-minimum` 整理为一个可编译、可回归的本地 Git 检查点
+  - 两刀共享 `AgentChatServiceImpl`、trace、C6 eval 与 accepted specs；未强拆成会制造不可编译中间状态的独立实现提交
+- **Changes**:
+  - 提交实现、测试、真实验收探针、五域 accepted baseline、两个 archive、叙事、ACTIVE_TASK 与既有 append-only evidence
+  - 修正 10 个新增文件 EOF 多余空行，使 `git diff --cached --check` PASS；未改变契约或行为
+- **Verification PASS**:
+  - backend full：108 suites / 782 tests / 0 failures / 0 errors / 15 skipped
+  - frontend：bundled Node 下 `vue-tsc --noEmit`、Standard 与 Preview `mp-weixin` build PASS
+  - staged `git diff --cached --check` PASS；package/lockfile/pom/deployment/monitoring/admin denylist 无变更
+- **Verification SKIPPED**:
+  - 本轮仅复验离线回归，没有重新启用真实 provider、MySQL、微信开发者工具或物理真机
+  - OpenSpec CLI 不在 PATH，`openspec list --json` 实测不可用；不声称 CLI validation PASS
+- **Scope safety**:
+  - 未新增 E1/P5 实现，未 push/PR/deploy/release，未写入用户日记、真实危机文本、provider reply、prompt、token、账号或 secret
+- **Commit**: `4ed09a7 feat(agent): 完成P4.2与R1验收归档`（未 push）
+- **Next**: 保持 `ACTIVE_TASK=IDLE`；从 E1 Type A 探索开始，形成正证据前不进入 P5.x
