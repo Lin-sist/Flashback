@@ -8149,3 +8149,10 @@ Commit: pending
   - A/B/C 目前只是研究设计；P5.x 仍未获规划或实现授权
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 用户审查 E1 计划；若继续，单独授权 E1-02～E1-04 原型与研究材料准备，仍不进入 P5.x
+
+## 2026-08-28｜E1 规划提交补录｜Type B
+
+- **Commit**: `9fad858 docs(design): 启动E1时间篇章规划`（未 push）
+- **Scope**: `Docs/design/e1-time-chapter/PLAN.md` 与 append-only planning evidence；2 files / 221 insertions
+- **Verification**: staged `git diff --cached --check` PASS；未包含业务代码、OpenSpec、依赖或 lockfile
+- **Boundary**: 仅 E1-01 规划完成；E1-02～E1-07、目标用户证据与 P5.x 均未授权或未完成
