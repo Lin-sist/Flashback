@@ -8282,3 +8282,10 @@ Commit: pending
   - 用户价值仍无真实参与者证据；Gate 1 只批准规划，不证明实现或用户价值
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 等待用户另行明确授予 Gate 2，之后才可按 T-14 起执行实现准备
+
+## 2026-08-28｜time-chapter-foundation Gate 1 提交补录｜Type C
+
+- **Commit**: `cb30c04 docs(openspec): 批准P5规划闸`（未 push）
+- **Scope**: Gate 1 状态、T-12、proposal/design、ACTIVE_TASK 与 append-only evidence；5 files / 28 insertions / 8 deletions
+- **Verification**: staged `git diff --cached --check` PASS；T-13 保持未勾选，业务代码与 accepted baseline 零变化
+- **Boundary**: Gate 2/3、真实依赖、delta acceptance、archive、push/PR/deploy/release 均未授权
