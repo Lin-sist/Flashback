@@ -8214,3 +8214,10 @@ Commit: pending
   - 如果产品负责人实际完成了目标用户验证但未提供结构化汇总，当前审核可能低估已有证据；补充最小非隐私汇总后可重新审核
 - **Commit**: pending（Agent commit；不 push）
 - **Next**: 提供至少 5 名有效参与者的非隐私结构化汇总后重新审核；证据门成立前不创建 P5.x
+
+## 2026-08-28｜E1 验证声明审核提交补录｜Type B
+
+- **Commit**: `a15577f docs(design): 登记E1验证声明审核`（未 push）
+- **Scope**: 验证声明审核、`GATE NOT MET` 结果与 append-only evidence；3 files / 72 insertions
+- **Verification**: staged `git diff --cached --check` PASS；未包含 OpenSpec、业务代码、依赖或 lockfile
+- **Boundary**: `.ai/ACTIVE_TASK.md` 保持 `IDLE`；P5.x 未创建，未获得实现授权
