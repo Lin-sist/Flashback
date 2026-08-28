@@ -8221,3 +8221,37 @@ Commit: pending
 - **Scope**: 验证声明审核、`GATE NOT MET` 结果与 append-only evidence；3 files / 72 insertions
 - **Verification**: staged `git diff --cached --check` PASS；未包含 OpenSpec、业务代码、依赖或 lockfile
 - **Boundary**: `.ai/ACTIVE_TASK.md` 保持 `IDLE`；P5.x 未创建，未获得实现授权
+
+## 2026-08-28｜time-chapter-foundation Gate 1 规划｜Type C
+
+- **Scope**:
+  - 登记产品负责人对 E1 正证据进入条件的显式治理豁免，并创建 P5.x `time-chapter-foundation` 完整规划工件
+  - 仅 Gate 1 proposal/design/tasks/delta；不修改 backend/frontend 业务代码
+- **Authorization**:
+  - 用户明确声明当前没有可用真实用户，要求先把最小产品做完整、再考虑真实优化
+  - 本轮按强制三闸分离只完成规划；Gate 2/3、delta acceptance、archive、push/PR/deploy/release 未授权
+- **Changes**:
+  - E1 `DECISIONS/EVIDENCE_REVIEW/OUTCOME` 增加治理豁免，同时保留 `INCONCLUSIVE` 与参与者 0
+  - 冻结蓝图增加 2026-08-28 治理附录；`openspec/project.md` 更新当前事实
+  - 新增 proposal、design、73 项 tasks 与 backend-core/miniapp-core/v2-product-scope 三份 delta
+  - ACTIVE_TASK 从 IDLE 指向 `openspec/changes/time-chapter-foundation/`，Gate 1 `PENDING`
+- **Planning decisions**:
+  - 独立 `time_chapter` / `time_chapter_record`、第一版 record 唯一主篇章、ACTIVE/ENDED、当前 endedAt、查询聚合 coverage
+  - owner/version/稳定锁顺序、批量全有或全无、`recordId + fromChapterId` 显式转移确认、删除容器不删记录
+  - “我的记录”记录/篇章二级切换、记录详情次级归属入口、Preview 固定合成且 mutation fail-closed、Agent 完全解耦
+- **Verification PASS**:
+  - 文件级 6 artifacts；三份 delta 共 12 Requirements / 40 Scenarios；design 决策 1–12
+  - 关键契约检索、artifact 路径、ACTIVE_TASK、范围与证据措辞一致；`git diff --check` PASS
+  - 变更路径不含 backend/frontend 业务代码、accepted baseline specs、package/lockfile、deployment、monitoring 或 admin
+- **Verification SKIPPED**:
+  - OpenSpec CLI 不在 PATH，无法运行 scaffold/status/instructions/validate；采用仓库既有文件级结构，不声称 CLI PASS
+  - backend/frontend tests、MySQL、微信开发者工具与物理真机 SKIPPED：本轮只有规划且无 Gate 2/3
+  - 目标用户价值验证继续 SKIPPED：真实参与者为 0；治理豁免不等于用户正证据
+- **Scope safety**:
+  - 未修改业务代码、数据库、真实数据或外部系统；provider/object storage/research 调用 0
+  - 未记录用户日记、真实生活阶段、name/note、标题、位置、媒体、账号、token 或 secret
+- **Risks**:
+  - 用户价值、分类压力与长期增益仍未知；实现验收只能证明工程能力
+  - 精确 API/DTO/schema、100/1000 字符限制、100 条批量上限与 version 冲突语义须由用户在 Gate 1 明确批准或修改
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 用户审查 proposal/design/tasks、三份 delta 与决策 1–12；Gate 1 批准后仍须另行授予 Gate 2 才能实现

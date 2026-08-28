@@ -4,8 +4,8 @@
 
 - 项目名称： 《时光回序》Flashback。
 - 当前稳定基线： V1.0.1 之上的 **V2.0 M4 已接受能力**（真实 AI / 私有对象存储附件 / 位置 / 封面 / 时光轴筛选分页 / preview 隔离等，见 baseline specs）。
-- 当前工程状态： **Phase 1 / Phase 2 均已完成**；C1–C9 已归档。H0 `truth-surface-cleanup` 已完成，E0 `capture-ritual-prototype` 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口；`.ai/ACTIVE_TASK.md` 当前指向 P3.1 `present-moment-capture` 的规划闸。
-- 当前目标：在 M4 与 C1–C9 能力底座上转向核心体验与信任兑现。长期产品方向见 `Docs/agent-iteration/roadmap/core-product-definition.md` **v0.1**；当前冻结序列见 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v2.0**。P3.1 现阶段只创建 proposal / design / tasks / delta 并等待规划批准；蓝图或规划完成均不构成业务实现、真实外调、push、部署或发布授权。
+- 当前工程状态： **Phase 1 / Phase 2 均已完成**；P3.1/P3.2/P4.1/P4.2/R1 已归档。E1 `time-chapter-prototype` 因没有真实参与者保持 `INCONCLUSIVE`，产品负责人于 2026-08-28 显式豁免正证据进入条件；`.ai/ACTIVE_TASK.md` 当前指向 P5.x `time-chapter-foundation` 的规划闸。
+- 当前目标：在已归档的记录、数据所有权、见证者、记忆自主权与最低安全响应底座上，规划最小时间篇章。长期产品方向见 `Docs/agent-iteration/roadmap/core-product-definition.md` **v0.1**；当前冻结序列及 2026-08-28 治理附录见 `Docs/agent-iteration/roadmap/iteration-blueprint.md` **v2.0**。P5.x 现阶段只创建 proposal / design / tasks / delta 并等待规划批准；规划完成不构成业务实现、真实外调、push、部署或发布授权。
 - V2.0 核心表达： 写下此刻。
 - V2.0 版本性质： 用于展示与评审的 WeChat Mini Program 演示版，不是生产上线版本。
 - 当前验收目标： 仅验收 WeChat Mini Program。
@@ -99,8 +99,8 @@ The glob `Docs/design/home-v2/*.html` is not sufficient by itself for implementa
 - Frontend：Uniapp + Vue 3 + Pinia，目标为 WeChat Mini Program。
 - Frontend package：`frontend`，应用源码位于 `frontend/src`。
 - 当前主要页面包括 login、home、record editor、record list、record detail、timeline 和 user center。
-- 当前记录状态为 `DRAFT`、`SEALED` 和 `UNLOCKED`。
-- 当前记录类型为 `FUTURE_LETTER`、`NODE_RECORD` 和 `EMOTION_NOTE`。
+- 当前记录状态为 `DRAFT`、`SAVED`、`SEALED` 和 `UNLOCKED`。
+- 当前记录类型包含默认 `MOMENT`，并兼容 `FUTURE_LETTER`、`NODE_RECORD` 和 `EMOTION_NOTE`。
 - 现有 V1.0.1 用户侧基线包含 authentication、record draft/seal/list/detail、unlocked records、replies、tags、timeline、unlock task，以及最小 AI fallback ability。
 - V2.0 用户可见命名 SHOULD 使用：我的记录、时光轴、时间回看。
 - M1 视觉方向已确认为 `Docs/design/home-v2/时光回序_设计规范.md` 中的 V2 paper/vermilion direction。
