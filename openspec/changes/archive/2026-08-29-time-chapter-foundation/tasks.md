@@ -1,6 +1,6 @@
 # Tasks：Time Chapter Foundation（P5.x）
 
-> 当前阶段：Gate 1 `APPROVED`（2026-08-28）；Gate 2 `AUTHORIZED`（2026-08-28）。Gate 3、delta acceptance、归档与发布仍未授权。
+> 当前阶段：Gate 1–3 `PASS`；delta 已接受，change 于 2026-08-29 完成归档。物理真机与 OpenSpec CLI 保持 `SKIPPED`，用户价值保持 `INCONCLUSIVE`。
 
 ## 阶段 0：Readiness 与规划闸
 
@@ -100,10 +100,10 @@
 
 ## 阶段 8：验收、接受与归档
 
-- [ ] **T-69** 用户审查实现 diff、自动化/真实/跳过证据与 remaining risks
-- [ ] **T-70** 用户明确接受后，将三份 delta exact-copy 合入 accepted baseline
-- [ ] **T-71** 写 closeout，区分产品负责人豁免、工程 PASS、真实依赖与用户价值未知
-- [ ] **T-72** 用户授权后归档 change，ACTIVE_TASK→IDLE，追加 AGENT_LOG
+- [x] **T-69** 用户于 2026-08-29 要求检查当前项目状况；复核实现提交、自动化/真实/跳过证据、remaining risks 与 clean worktree 后确认本轮工程迭代完成
+- [x] **T-70** 按用户条件授权将三份 delta exact-copy 合入 accepted baseline
+- [x] **T-71** 写 closeout，区分产品负责人豁免、工程 PASS、真实依赖与用户价值未知
+- [x] **T-72** 按用户授权归档 change，ACTIVE_TASK→IDLE，追加 AGENT_LOG
 - [x] **T-73** 已完成本地提交 `f4a088f feat(time-chapter): 完成P5时间篇章基础`；未 push/PR/deploy/release
 
 ## 范围守护自检

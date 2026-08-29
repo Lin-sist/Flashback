@@ -8443,3 +8443,20 @@ Commit: pending
 - **Risks**：本机 MySQL 与开发者工具小样本不等于生产并发/容量/SLA；物理真机交互与目标用户价值仍无正证据
 - **Commit**：`f4a088f feat(time-chapter): 完成P5时间篇章基础`；未 push
 - **Next**：等待用户完成 T-69 review；T-70～T-72 的 delta acceptance、closeout 与 archive 需要另行明确授权
+
+## 2026-08-29｜time-chapter-foundation acceptance 与归档｜Type C
+
+- **Scope**：复核本轮完成状态；接受三份 delta；写 closeout；归档 P5.x change；恢复 `ACTIVE_TASK=IDLE`
+- **Changes**：
+  - 将 backend-core、miniapp-core、v2-product-scope 三份 `ADDED Requirements` exact-copy 合入 accepted baseline
+  - 完成 T-69～T-72，新增 `closeout.md`，归档至 `openspec/changes/archive/2026-08-29-time-chapter-foundation/`
+  - `ACTIVE_TASK.md` 恢复 `IDLE`，后继 change 不继承本轮授权
+- **Verification PASS**：
+  - 归档前工作树 clean，`main...origin/main`；P5 主实现 `f4a088f`、证据补录 `c161ffd`
+  - 三份 delta 与 baseline requirement/scenario body exact-match；合计 12 Requirements / 40 Scenarios
+  - artifacts、tasks、archive target、相对路径、范围与隐私边界文件级检查 PASS；`git diff --check` PASS
+- **Verification SKIPPED**：OpenSpec CLI 不在 PATH，`openspec list/status/validate` 未执行成功；物理真机与目标用户价值证据沿用 closeout 边界，不因归档转为 PASS
+- **Scope safety**：仅修改 accepted specs 与治理/归档文件；未修改业务代码、package/lockfile、deployment、monitoring、admin、Agent runtime/tool/prompt/memory/safety/provider；未写入用户内容或 secret
+- **Risks**：目标用户理解/需要/偏好仍 `INCONCLUSIVE`；物理真机、生产并发/容量/SLA 未验证
+- **Commit**：pending（本轮未获提交授权；不 stage/commit/push）
+- **Next**：后续迭代从 `ACTIVE_TASK=IDLE` 重新走独立规划闸

@@ -2,15 +2,15 @@
 
 ## Status
 
-`ACTIVE`
+`IDLE`
 
-当前 active Type C change 为 P5.x `time-chapter-foundation`。Gate 1 已批准；Gate 2 业务实现已授权；Gate 3a/3b 已通过；delta acceptance 与归档均未授权。
+当前无 active Type C change。P5.x `time-chapter-foundation` 已于 2026-08-29 完成 Gate 1–3、delta acceptance 与归档。后续 change 必须重新从 IDLE 走独立规划闸；本轮授权不继承。
 
-- Active change：`openspec/changes/time-chapter-foundation/`
-- 最近归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
-- 前一归档：`openspec/changes/archive/2026-08-28-memory-agency/`
-- 当前闸门：Gate 1 `APPROVED`；Gate 2 `IMPLEMENTATION AUTHORIZED`；Gate 3a/3b `PASS`
-- 提交责任：Agent 本地提交；不 push
+- Active change：none
+- 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
+- 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
+- 当前闸门：IDLE；无实现授权向后继承
+- 提交责任：P5 主实现本地提交 `f4a088f`、证据补录 `c161ffd` 已完成；本轮归档未获提交授权，不 stage/commit/push
 - 外部调用：P4.2 provider=0；R1 仅 1 次固定合成普通边界 provider 探针；无真实危机实验
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -128,6 +128,7 @@
 - `Docs/agent-iteration/roadmap/iteration-blueprint.md`（**v2.0 已冻结**；核心体验与信任兑现序列）
 - `Docs/agent-iteration/roadmap/iteration-blueprint-v1.2.md`（历史只读；C1–C9 能力叙事）
 - `openspec/project.md`
+- `openspec/changes/archive/2026-08-29-time-chapter-foundation/`（P5.x accepted / archived）
 - `openspec/changes/archive/2026-08-28-safety-response-minimum/`（R1 accepted / archived）
 - `openspec/changes/archive/2026-08-28-memory-agency/`（P4.2 accepted / archived）
 - `openspec/changes/archive/2026-08-25-witness-agent-alignment/`（P4.1 accepted / archived）
@@ -143,6 +144,13 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-29 — **P5.x `time-chapter-foundation` ACCEPTED / ARCHIVED**
+  - 复核唯一 active change、clean `main...origin/main`、实现提交、Gate 3 证据、tasks 与 delta 后，确认本轮工程迭代完成
+  - 三份 delta exact-copy 接受进 `backend-core`、`miniapp-core` 与 `v2-product-scope` baseline
+  - closeout 已写；change 归档至 `openspec/changes/archive/2026-08-29-time-chapter-foundation/`；状态恢复 `IDLE`
+  - 物理真机与 OpenSpec CLI 保持 `SKIPPED`；E1/目标用户价值保持 `INCONCLUSIVE`；本机证据不外推为生产 SLA
+  - 本轮未 `git add`、commit、push、PR、deploy 或 release
 
 - **This session**: 2026-08-29 — **P5.x `time-chapter-foundation` Gate 3a/3b PASS**
   - **Gate 3a MySQL**：用户以管理员权限启动 MySQL80 后，P5 migration 连续两次 PASS；information_schema 验证 2 表/13 字段、预期索引、3 个 CASCADE 复合/owner FK、CHECK、InnoDB/utf8mb4 exact-match
