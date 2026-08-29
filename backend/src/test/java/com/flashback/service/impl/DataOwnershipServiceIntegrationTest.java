@@ -16,6 +16,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -58,6 +64,10 @@ class DataOwnershipServiceIntegrationTest {
                 98201L, userId, 98103L, 1, "append_record_content", "PROPOSED", now, now);
         jdbc.update("INSERT INTO agent_turn_trace(trace_id,session_id,user_id,record_id,turn_no,attempt_no,purpose,stage,outcome,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 "0123456789abcdef0123456789abcdef", 98201L, userId, 98103L, 1, 1, "WRITING_GUIDANCE", "OPENING", "SUCCESS", now);
+        jdbc.update("INSERT INTO time_chapter(id,user_id,name,note,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)",
+                98251L, userId, "合成篇章", "合成自述", "ACTIVE", 0L, now, now);
+        jdbc.update("INSERT INTO time_chapter_record(chapter_id,record_id,user_id,added_at) VALUES (?,?,?,?)",
+                98251L, 98102L, userId, now);
 
         DataOperationVO intent = service.prepareDeletion(userId, DataDeletionScope.ALL_RECORDS, null);
         assertEquals(DataOperationStatus.PREPARED, intent.getStatus());
@@ -79,6 +89,8 @@ class DataOwnershipServiceIntegrationTest {
         assertEquals(0, count("unlock_notice_log", userId));
         assertEquals(0, count("agent_tool_call", userId));
         assertEquals(0, count("agent_turn_trace", userId));
+        assertEquals(0, count("time_chapter", userId));
+        assertEquals(0, count("time_chapter_record", userId));
         verify(provider).deleteObject("synthetic-bucket", "synthetic-key");
         assertEquals(DataOperationStatus.SUCCEEDED, service.confirmDeletion(userId, intent.getId(), intent.getConfirmationText()).getStatus());
     }
@@ -115,6 +127,27 @@ class DataOwnershipServiceIntegrationTest {
         assertEquals(DataOperationStatus.EXPIRED, service.getOperation(userId, intent.getId()).getStatus());
     }
 
+    @Test
+    void exportIncludesChapterMetadataAndMemberIdsWithoutChapterBodyCopy() throws Exception {
+        long userId = 98041L;
+        insertUser(userId, "owner-98041");
+        insertRecord(98141L, userId, "SEALED");
+        LocalDateTime now = LocalDateTime.of(2026, 8, 12, 8, 0);
+        jdbc.update("INSERT INTO time_chapter(id,user_id,name,note,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)",
+                98261L, userId, "导出篇章", "导出自述", "ACTIVE", 0L, now, now);
+        jdbc.update("INSERT INTO time_chapter_record(chapter_id,record_id,user_id,added_at) VALUES (?,?,?,?)",
+                98261L, 98141L, userId, now);
+
+        DataOperationVO completed = service.createExport(userId, com.flashback.domain.SealedContentPolicy.RESPECT_SEAL);
+        assertEquals(DataOperationStatus.SUCCEEDED, completed.getStatus());
+        Map<String, byte[]> entries = unzip(service.downloadExport(userId, completed.getId()));
+        String chapterIndex = new String(entries.get("flashback-export/chapters/index.json"), StandardCharsets.UTF_8);
+        assertTrue(chapterIndex.contains("导出篇章"));
+        assertTrue(chapterIndex.contains("98141"));
+        assertFalse(chapterIndex.contains("封存正文"));
+        assertTrue(entries.containsKey("flashback-export/chapters/README.md"));
+    }
+
     private void insertUser(long id, String username) {
         LocalDateTime now = LocalDateTime.of(2026, 8, 12, 8, 0);
         jdbc.update("INSERT INTO `user`(id,username,password_hash,nickname,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?)", id, username, "hash", username, "ENABLED", now, now);
@@ -126,4 +159,13 @@ class DataOwnershipServiceIntegrationTest {
                 id, userId, "合成记录", "仅测试事务内合成", "MOMENT", status, expiry, now, now);
     }
     private int count(String table, long userId) { return jdbc.queryForObject("SELECT COUNT(1) FROM " + table + " WHERE user_id=?", Integer.class, userId); }
+
+    private Map<String, byte[]> unzip(byte[] bytes) throws Exception {
+        Map<String, byte[]> entries = new HashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) entries.put(entry.getName(), zip.readAllBytes());
+        }
+        return entries;
+    }
 }

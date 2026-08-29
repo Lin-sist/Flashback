@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.TimeChapterMapper">
+
+    <resultMap id="TimeChapterResultMap" type="com.flashback.domain.TimeChapter">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="note" column="note"/>
+        <result property="status" column="status" javaType="com.flashback.domain.TimeChapterStatus"/>
+        <result property="endedAt" column="ended_at"/>
+        <result property="version" column="version"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="memberCount" column="member_count"/>
+        <result property="coverageStartAt" column="coverage_start_at"/>
+        <result property="coverageEndAt" column="coverage_end_at"/>
+    </resultMap>
+
+    <sql id="SummarySelect">
+        SELECT
+            c.id,
+            c.user_id,
+            c.name,
+            c.note,
+            c.status,
+            c.ended_at,
+            c.version,
+            c.created_at,
+            c.updated_at,
+            COUNT(cr.record_id) AS member_count,
+            MIN(r.created_at) AS coverage_start_at,
+            MAX(r.created_at) AS coverage_end_at
+        FROM time_chapter c
+        LEFT JOIN time_chapter_record cr
+          ON cr.chapter_id = c.id
+         AND cr.user_id = c.user_id
+        LEFT JOIN `record` r
+          ON r.id = cr.record_id
+         AND r.user_id = c.user_id
+        WHERE c.user_id = #{userId}
+    </sql>
+
+    <insert id="insert" parameterType="com.flashback.domain.TimeChapter" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO time_chapter (
+            user_id, name, note, status, ended_at, version, created_at, updated_at
+        ) VALUES (
+            #{userId}, #{name}, #{note}, #{status}, #{endedAt}, COALESCE(#{version}, 0), #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <select id="selectByIdAndUserId" resultMap="TimeChapterResultMap">
+        <include refid="SummarySelect"/>
+        AND c.id = #{id}
+        GROUP BY c.id, c.user_id, c.name, c.note, c.status, c.ended_at,
+                 c.version, c.created_at, c.updated_at
+    </select>
+
+    <select id="selectByIdAndUserIdForUpdate" resultMap="TimeChapterResultMap">
+        SELECT id, user_id, name, note, status, ended_at, version, created_at, updated_at
+        FROM time_chapter
+        WHERE id = #{id} AND user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <select id="countByUserAndStatus" resultType="long">
+        SELECT COUNT(1)
+        FROM time_chapter
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="selectPageByUserAndStatus" resultMap="TimeChapterResultMap">
+        <include refid="SummarySelect"/>
+        <if test="status != null">
+            AND c.status = #{status}
+        </if>
+        GROUP BY c.id, c.user_id, c.name, c.note, c.status, c.ended_at,
+                 c.version, c.created_at, c.updated_at
+        ORDER BY CASE WHEN c.status = 'ACTIVE' THEN 0 ELSE 1 END,
+                 c.updated_at DESC, c.id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectAllByUserId" resultMap="TimeChapterResultMap">
+        <include refid="SummarySelect"/>
+        GROUP BY c.id, c.user_id, c.name, c.note, c.status, c.ended_at,
+                 c.version, c.created_at, c.updated_at
+        ORDER BY c.id ASC
+    </select>
+
+    <update id="updateMetadataIfVersion">
+        UPDATE time_chapter
+        SET name = #{name},
+            note = #{note},
+            version = version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND version = #{expectedVersion}
+    </update>
+
+    <update id="updateLifecycleIfVersion">
+        UPDATE time_chapter
+        SET status = #{status},
+            ended_at = #{endedAt},
+            version = version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND version = #{expectedVersion}
+    </update>
+
+    <update id="bumpVersion">
+        UPDATE time_chapter
+        SET version = version + 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByIdAndUserIdAndVersion">
+        DELETE FROM time_chapter
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND version = #{expectedVersion}
+    </delete>
+
+    <delete id="deleteAllByUserId">
+        DELETE FROM time_chapter WHERE user_id = #{userId}
+    </delete>
+</mapper>

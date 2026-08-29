@@ -8289,3 +8289,146 @@ Commit: pending
 - **Scope**: Gate 1 状态、T-12、proposal/design、ACTIVE_TASK 与 append-only evidence；5 files / 28 insertions / 8 deletions
 - **Verification**: staged `git diff --cached --check` PASS；T-13 保持未勾选，业务代码与 accepted baseline 零变化
 - **Boundary**: Gate 2/3、真实依赖、delta acceptance、archive、push/PR/deploy/release 均未授权
+
+## 2026-08-28｜time-chapter-foundation Gate 2 实现授权登记｜Type C
+
+- **Authorization**:
+  - 用户明确批准按 `openspec/changes/time-chapter-foundation/tasks.md` 修改业务代码，进入 Gate 2 实现
+  - Gate 3 真实 MySQL、微信开发者工具、物理真机、delta acceptance、archive、push、PR、deploy、release 均未授权
+- **Scope**:
+  - allowlist：P5.x MySQL/H2 schema；time chapter domain/mapper/service/controller/DTO/VO/tests；record query VO 的 nullable chapter summary；P3.2 export/delete integration；frontend chapter types/service/store/pages/components、record-list/detail 局部入口、pages.json；本 change、ACTIVE_TASK、append-only AGENT_LOG
+  - denylist：真实依赖/外部调用、Agent runtime/tool/prompt/memory/safety/provider、record 内容与既有封存边界、第四一级 Tab、package/lockfile、deployment、monitoring、admin、delta acceptance、archive 与发布动作
+- **Changes**:
+  - `tasks.md` T-13、T-14 标记完成
+  - `ACTIVE_TASK.md` 更新为 Gate 2 implementation authorized，登记 allowlist/denylist 与 Gate 3 边界
+- **Verification PASS**:
+  - 当前 active change、Gate 1 批准状态、实现契约和提交责任已核对；OpenSpec CLI 不在 PATH，继续采用文件级工作流
+- **Verification SKIPPED**:
+  - T-15/T-16 baseline 尚未执行；真实 MySQL、微信开发者工具、物理真机与其他外部调用按授权边界保持 SKIPPED
+- **Scope safety**:
+  - 尚未修改 backend/frontend 业务代码、schema、依赖或 lockfile；未调用真实系统；未记录用户日记、账号或 secret
+- **Risks**:
+  - 本轮后续验证只能证明本地离线/H2 与构建层能力，不能替代 Gate 3 真实依赖或用户价值证据
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 执行 T-15～T-17 baseline/scope 核对，然后按 T-18 起实现
+
+## 2026-08-28｜time-chapter-foundation Gate 2 baseline 与范围核对｜Type C
+
+- **Scope**:
+  - 完成 T-15～T-17；实现前只执行本地 H2/default-gated backend 测试与 frontend type-check/build
+- **Verification PASS**:
+  - backend focused：6 suites / 82 tests / 0 failures / 0 errors / 0 skipped
+  - backend full：108 suites / 782 tests / 0 failures / 0 errors / 15 skipped；未启用真实 MySQL、provider 或外部探针
+  - frontend：`vue-tsc --noEmit`、Standard `mp-weixin` build、Preview `mp-weixin` build 均 PASS
+  - `git diff --check` PASS；denylist diff 为空；aborted pnpm 产生的仓库内 `.pnpm-store/` 已按精确路径清理
+- **Verification SKIPPED**:
+  - bundled pnpm 的 type-check wrapper 会要求删除并重装现有 `node_modules`，因此未执行该 wrapper；使用当前已安装依赖的直接 `.bin` 脚本等价验证
+  - 真实 MySQL、微信开发者工具、物理真机、对象存储、provider、delta acceptance、archive、push、deploy、release 均按授权边界 SKIPPED
+- **Scope safety**:
+  - T-17 PASS；package/lockfile、deployment、monitoring、admin、Agent runtime/prompt/tool/memory/safety/provider 无 diff；未修改冻结蓝图或 accepted baseline
+  - 未记录用户日记、账号、token、密码、secret 或真实内容
+- **Risks**:
+  - backend full 的 15 skipped 仍是环境门控项；本地 H2 与构建通过不替代 Gate 3 真实依赖或真机证据
+- **Commit**: pending（Agent commit；不 push）
+- **Next**: 按 T-18 起进入 schema/domain TDD；Gate 3 及 T-69～T-73 保持未执行
+
+## 2026-08-28｜time-chapter-foundation Gate 2 离线实现与验证完成｜Type C
+
+- **Scope**：按已授权 allowlist 完成 T-18～T-61；未执行 Gate 3、delta acceptance、归档或发布动作
+- **Changes**：
+  - backend：新增 `time_chapter` / `time_chapter_record` schema、幂等增量 DDL、domain/mapper/DTO/VO/service/controller；实现 owner scope、DRAFT 拒绝、唯一主归属、显式来源转移、expectedVersion、ACTIVE/ENDED、空篇章、确定性锁读与事务批量命令
+  - integration：记录列表/详情仅增加 nullable chapter summary；单条删除级联、clear-all、导出 `chapters/index.json`/README 元数据与 member IDs；不复制记录正文或媒体
+  - frontend：新增 chapter types/service/store、我的记录二级“记录/篇章”、局部多选创建、篇章列表/详情、成员排序和生命周期操作；Preview 所有 mutation 在 HTTP 前 fail-closed
+  - tests：新增篇章服务/控制器/H2 schema/export/ownership 覆盖，并补充重复命令幂等与数据库唯一归属约束测试
+- **Verification PASS**：
+  - focused：6 suites / 72 tests / 0 failures / 0 errors / 0 skipped
+  - full Maven：111 suites / 797 tests / 0 failures / 0 errors / 15 skipped；使用本地 H2/default-gated 配置
+  - frontend：bundled Node `vue-tsc --noEmit`、Standard `mp-weixin` build、Preview `mp-weixin` build 均 PASS
+  - schema/domain/API/Preview 静态检查、三一级 Tab 检查、`git diff --check` PASS；变更路径 denylist 与凭据模式扫描无命中
+- **Verification SKIPPED**：
+  - OpenSpec CLI 不在 PATH，继续记录 CLI validation `SKIPPED`，仅完成文件级 artifact/delta/Requirement/Scenario 校验
+  - 真实 MySQL preflight/migration/rollback、InnoDB unique race/死锁边界、微信开发者工具、物理真机、真实对象存储/provider/research、delta acceptance、archive、push、PR、deploy、release 均未执行：本轮未获授权
+  - Preview mutation request=0 仅完成代码级 fail-closed 证明，真实工具计数留 Gate 3b
+- **Scope safety**：
+  - 三个一级 Tab 与 canonical naming 保持不变；未修改 Agent runtime/tool/prompt/memory/safety/provider、accepted baseline、冻结蓝图、package/lockfile、deployment、monitoring 或 admin
+  - 未修改 record 正文、位置、附件、封面、时间及 SEALED/UNLOCKED 规则；未记录用户日记、真实内容、账号、token、密码或 secret
+- **Risks**：
+  - H2 不替代 InnoDB 锁/外键/唯一竞争语义；真实 migration、跨请求并发、开发者工具完整交互与物理真机仍需分别授权
+  - E1/目标用户价值与长期使用结果仍无真实参与者正证据；本轮工程 PASS 不等于产品价值 PASS
+- **Commit**：pending（不 push）
+- **Next**：用户审查实现 diff 与剩余风险；T-62～T-73、delta acceptance、归档与发布继续保持未执行
+
+## 2026-08-28｜time-chapter-foundation Gate 2 代码审查修复｜Type C
+
+- **Scope**：修复用户批准的 Gate 2 实现审查问题；不执行真实 MySQL、微信开发者工具、物理真机、delta acceptance、归档、提交或发布
+- **Changes**：
+  - schema：`record(id,user_id)` 与 `time_chapter(id,user_id)` 增加复合唯一键，relation 改用 chapter/record 复合 owner FK，数据库直接拒绝跨 owner 关系
+  - concurrency：create/transfer 先读取关系快照，按全部 chapter ID 升序加锁，再按 record ID 升序加锁并复核快照；数据库 transient/duplicate race 映射为稳定 409 刷新冲突
+  - frontend：登录 token 与 Preview session 双向互斥，chapter service 在任何 Preview session 下优先 fail-closed；篇章列表与成员详情增加续载，记录详情选择读取完整篇章集合，ENDED 详情显示 endedAt
+  - consistency：陈旧/缺失 source confirmation 统一返回“归属已变更”冲突以触发客户端刷新；DataOwnership 的 chapter mapper 改为必需构造依赖，禁止静默漏导出/漏 clear-all
+  - tests：新增跨 owner 复合 FK、chapter→record 锁调用顺序、数据库并发异常 409 回归，并更新 schema/source-conflict 断言
+- **Verification PASS**：
+  - focused：6 suites / 25 tests / 0 failures / 0 errors / 0 skipped
+  - backend full：112 suites / 800 tests / 0 failures / 0 errors / 15 skipped（本地 H2/default-gated）
+  - frontend bundled Node：`vue-tsc --noEmit`、Standard/Preview `mp-weixin` build PASS
+  - `git diff --check`、denylist、credential pattern、复合 owner FK 与 Preview/分页/endedAt 静态检查 PASS
+- **Verification SKIPPED**：
+  - OpenSpec CLI 不在 PATH，两条 CLI 命令均未执行成功；仅做文件级校验，不声称 CLI PASS
+  - 真实 MySQL migration/双跑/反向转移竞态、微信开发者工具真实 request count、物理真机按 Gate 3 未授权保持 SKIPPED
+- **Scope safety**：未修改 package/lockfile、deployment、monitoring、admin、Agent runtime/tool/prompt/memory/safety/provider、accepted baseline 或冻结蓝图；未记录用户内容、账号或 secret
+- **Risks**：H2 与 Mockito 证明复合约束和锁调用顺序，但不能替代 InnoDB 实际锁等待/死锁与迁移语义；Preview 真实网络计数仍须 Gate 3b
+- **Commit**：pending（不 push）
+- **Next**：用户复审 Gate 2 修复；T-62～T-73 继续等待独立授权
+
+## 2026-08-29｜time-chapter-foundation Gate 3 授权与环境阻塞｜Type C
+
+- **Authorization**：
+  - 用户明确要求通过 Gate 3 并授权 Git；本轮按 Gate 3a 真实 MySQL、Gate 3b 微信开发者工具和 Agent 本地 commit 执行
+  - 不扩展为 delta acceptance、archive、push、PR、deploy 或 release
+- **Changes**：
+  - Gate 3 schema exact-match 预检发现设计要求的 `time_chapter(user_id,created_at,id)` 索引未落入三份 schema；已同步增量 MySQL DDL、完整 MySQL schema、H2 schema 和 `P5SchemaContractTest`
+  - `proposal.md`、`tasks.md`、`ACTIVE_TASK.md` 登记 Gate 3a/3b 授权与实际环境状态；T-62/T-65 授权项完成，T-67 物理真机记 SKIPPED，T-68 外部调用保持 0
+- **Verification PASS**：
+  - 本机已定位 MySQL 8.0.41、`MySQL80` 服务和微信开发者工具安装；Computer Use 只读枚举确认开发者工具可启动入口存在
+  - `P5SchemaContractTest` PASS；首次 PowerShell 参数解析失败、第二次沙箱 Maven 缓存访问失败后，使用本机离线 Maven 缓存成功执行
+  - Agent provider、对象存储、外部研究调用均为 0；未读取或输出本地 secret 值
+- **Verification BLOCKED / SKIPPED**：
+  - `MySQL80` 当前停止；管理员启动请求被 Windows 服务控制器以 `Access is denied` 拒绝，直接运行 `mysqld` 因 Data 目录 `OS errno 13` 退出。真实 migration 双跑、schema 查询、InnoDB owner/unique/FK/rollback、合成链路和 finally 清零均尚未执行
+  - Standard 微信矩阵依赖本机 backend/真实 MySQL，因此尚未执行；只完成工具入口 readiness，不声称 Gate 3b PASS
+  - 物理真机没有已连接的可控设备，明确 `SKIPPED`；不以开发者工具替代
+  - OpenSpec CLI 不在 PATH，CLI validation 继续 `SKIPPED`
+- **Scope safety**：未调用真实 provider、对象存储或外部研究；未修改 package/lockfile、deployment、monitoring、admin、Agent runtime/tool/prompt/memory/safety/provider、accepted baseline 或冻结蓝图；未接受 delta、归档或发布
+- **Risks**：Gate 3 仍为 `AUTHORIZED / ENVIRONMENT BLOCKED`，不是 PASS；H2/schema source 检查不能替代 InnoDB 与真实微信 Standard 交互
+- **Commit**：pending（待 Gate 3 完成后本地提交；不 push）
+- **Next**：用户在管理员 PowerShell 启动 `MySQL80` 并确认 3306 监听后，继续 T-63/T-64/T-66
+
+## 2026-08-29｜time-chapter-foundation Gate 3a/3b 验收完成｜Type C
+
+- **Scope**：执行用户已授权的真实 MySQL Gate 3a、微信开发者工具 Gate 3b 与最终回归；不接受 delta、不归档、不 push/PR/deploy/release
+- **Changes**：
+  - 补齐设计已要求但 schema 遗漏的 `idx_time_chapter_user_created(user_id,created_at,id)`，同步增量 MySQL DDL、完整 schema、H2 schema 与契约测试
+  - 新增默认关闭的 `P5RealMySqlTimeChapterProbeTest`，只使用固定合成 ID/内容，finally 删除 artifact 与 synthetic users
+  - 新增 `p5-gate3b-standard.cjs` 和 `p5-gate3b-preview.cjs`；因开发者工具单连接跨第二个复杂页面会触发 20 秒内部 timeout，分别拆成两个独立 Standard 切片与两个独立 Preview 切片，不降低验收项
+- **Verification PASS — Gate 3a**：
+  - MySQL 8.0.41 migration RUN1/RUN2 PASS；2 张表、13 个字段、预期 8 个 table-qualified indexes、3 个 CASCADE FK、生命周期 CHECK、InnoDB/utf8mb4 exact-match
+  - 真实 probe：schema/owner/unique/FK/rollback、create/add/transfer/end/reopen/delete chapter/delete record/export/clear-all 全部 PASS，externalCalls=0
+  - finally 与独立 SQL 复核：synthetic users/records/chapters/relations/operations/artifacts=0；篇章总 rows=0
+- **Verification PASS — Gate 3b**：
+  - 微信开发者工具 Stable v2.01.2510290；当前 Preview 窗口可见固定合成记录、时间篇章归属面板和只读 notice
+  - Standard chapter slice：create/list/detail/edit/order/end/reopen/delete confirm/delete preserves records PASS；14 次 scripted requests，providerCalls=0
+  - Standard membership slice：add/transfer/remove + authoritative refresh PASS；13 次 scripted requests，providerCalls=0
+  - Preview chapter slice：fixed list/detail 与 create/edit/lifecycle/delete fail-closed；`totalRequests=0`、`timeChapterRequests=0`
+  - Preview membership slice：归属面板可见且 mutation fail-closed；`totalRequests=0`、`timeChapterRequests=0`
+- **Final verification PASS**：
+  - backend full：113 suites / 801 tests / 0 failures / 0 errors / 16 skipped；新增真实 MySQL probe 默认门控跳过
+  - frontend：`vue-tsc --noEmit`、Standard/Preview `mp-weixin` build PASS
+  - `git diff --check`、package/lockfile/deployment/monitoring/admin denylist、Agent runtime/tool/prompt/memory/provider diff、credential pattern scan 均 PASS
+- **Verification SKIPPED**：
+  - 物理真机没有已连接可控设备，明确 `SKIPPED`；开发者工具不冒充真机
+  - OpenSpec CLI 不在 PATH，CLI validation 继续 `SKIPPED`
+  - E1 仍无真实参与者；工程/开发者工具 PASS 不等于目标用户理解、需要、偏好或长期价值 PASS
+- **Cleanup**：临时 automator 目录已删除；9420/9421 无监听；MySQL80 保持用户手动启动后的运行状态；provider、对象存储、外部研究调用均为 0
+- **Scope safety**：未修改 package/lockfile、deployment、monitoring、admin、Agent runtime/tool/prompt/memory/safety/provider、accepted baseline 或冻结蓝图；未记录真实用户内容、token、密码或 secret
+- **Risks**：真实 MySQL 与开发者工具仅为本机小样本，不形成生产并发/容量/SLA；Standard 使用 scripted API，真实 backend 业务语义由独立 MySQL probe 证明；物理真机触控/尺寸/键盘仍无证据
+- **Commit**：pending（Agent 本地提交；不 push）
+- **Next**：精确暂存并提交；等待用户 T-69 review，delta acceptance、closeout 与 archive 仍需另行授权

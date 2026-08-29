@@ -21,6 +21,7 @@ public class RecordListItemVO {
     private RecordAttachmentVO cover;
     private LocalDateTime createdAt;
     private List<String> tagNames;
+    private RecordChapterSummaryVO chapter;
 
     public Long getId() {
         return id;
@@ -100,5 +101,13 @@ public class RecordListItemVO {
 
     public void setTagNames(List<String> tagNames) {
         this.tagNames = tagNames;
+    }
+
+    public RecordChapterSummaryVO getChapter() {
+        return chapter;
+    }
+
+    public void setChapter(RecordChapterSummaryVO chapter) {
+        this.chapter = chapter;
     }
 }

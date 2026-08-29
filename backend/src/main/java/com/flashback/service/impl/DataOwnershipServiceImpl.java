@@ -42,18 +42,22 @@ public class DataOwnershipServiceImpl implements DataOwnershipService {
     private final DataDeletionWorker deletionWorker;
     private final AppDataOwnershipProperties properties;
     private final Clock clock;
+    private final TimeChapterMapper timeChapterMapper;
+    private final TimeChapterRecordMapper timeChapterRecordMapper;
 
     public DataOwnershipServiceImpl(DataOperationMapper operationMapper, DataOperationRecordMapper itemMapper,
             RecordMapper recordMapper, RecordAttachmentMapper attachmentMapper, RecordLocationMapper locationMapper,
             TagMapper tagMapper, ReplyMapper replyMapper, AgentSessionMapper agentSessionMapper,
             AgentMessageMapper agentMessageMapper, PrivateObjectContentReader objectReader,
             DataExportPackageBuilder packageBuilder, DataOwnershipArtifactStore artifactStore,
-            DataDeletionWorker deletionWorker, AppDataOwnershipProperties properties, Clock clock) {
+            DataDeletionWorker deletionWorker, AppDataOwnershipProperties properties, Clock clock,
+            TimeChapterMapper timeChapterMapper, TimeChapterRecordMapper timeChapterRecordMapper) {
         this.operationMapper = operationMapper; this.itemMapper = itemMapper; this.recordMapper = recordMapper;
         this.attachmentMapper = attachmentMapper; this.locationMapper = locationMapper; this.tagMapper = tagMapper;
         this.replyMapper = replyMapper; this.agentSessionMapper = agentSessionMapper; this.agentMessageMapper = agentMessageMapper;
         this.objectReader = objectReader; this.packageBuilder = packageBuilder; this.artifactStore = artifactStore;
         this.deletionWorker = deletionWorker; this.properties = properties; this.clock = clock;
+        this.timeChapterMapper = timeChapterMapper; this.timeChapterRecordMapper = timeChapterRecordMapper;
     }
 
     @Override
@@ -182,7 +186,22 @@ public class DataOwnershipServiceImpl implements DataOwnershipService {
                         hidden ? List.of() : tagMapper.selectTagsByRecordId(record.getId()),
                         hidden ? null : replyMapper.selectByRecordId(record.getId()), attachments, conversations));
             }
-            byte[] zip = packageBuilder.build(snapshots, op.getSealedContentPolicy());
+            List<DataExportChapterSnapshot> chapters = new ArrayList<>();
+            for (TimeChapter chapter : timeChapterMapper.selectAllByUserId(op.getUserId())) {
+                chapters.add(new DataExportChapterSnapshot(
+                        chapter.getId(),
+                        chapter.getName(),
+                        chapter.getNote(),
+                        chapter.getStatus(),
+                        chapter.getMemberCount(),
+                        chapter.getCoverageStartAt(),
+                        chapter.getCoverageEndAt(),
+                        chapter.getEndedAt(),
+                        chapter.getCreatedAt(),
+                        chapter.getUpdatedAt(),
+                        timeChapterRecordMapper.selectRecordIdsByChapterIdAndUserId(chapter.getId(), op.getUserId())));
+            }
+            byte[] zip = packageBuilder.build(snapshots, op.getSealedContentPolicy(), chapters);
             DataOwnershipArtifactStore.StoredArtifact artifact = artifactStore.save(zip);
             DataOperation current = requireOperation(op.getUserId(), op.getId());
             current.setStatus(DataOperationStatus.SUCCEEDED); current.setProcessedItems(current.getTotalItems()); current.setFailedItems(0);
@@ -211,6 +230,9 @@ public class DataOwnershipServiceImpl implements DataOwnershipService {
                 item.setFailureCode(result.failureCode()); item.setUpdatedAt(now()); itemMapper.updateIfStatus(item, DataOperationItemStatus.RUNNING);
                 aggregateFailure = result.failureCode(); failed++; if (!result.retryable()) permanentFailures++;
             }
+        }
+        if (failed == 0 && op.getOperationType() == DataOperationType.CLEAR_ALL_RECORDS) {
+            timeChapterMapper.deleteAllByUserId(op.getUserId());
         }
         DataOperation current = requireOperation(op.getUserId(), op.getId());
         current.setProcessedItems(succeeded); current.setFailedItems(failed); current.setUpdatedAt(now());

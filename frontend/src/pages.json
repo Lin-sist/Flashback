@@ -33,6 +33,12 @@
       }
     },
     {
+      "path": "pages/time-chapter-detail/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/timeline/index",
       "style": {
         "navigationStyle": "custom"

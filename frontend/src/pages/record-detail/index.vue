@@ -9,14 +9,15 @@ import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 import ReadOnlyRecordMedia from './components/ReadOnlyRecordMedia.vue'
 import ReviewChatSheet from './components/ReviewChatSheet.vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
-import { agentService, dataOwnershipService, recordService, replyService, type AgentSession } from '../../services'
-import { useRecordStore } from '../../stores'
-import { RecordReminderStatus, RecordStatus, ReplyType, type ReplyVO } from '../../types'
+import { agentService, dataOwnershipService, recordService, replyService, timeChapterService, type AgentSession } from '../../services'
+import { useRecordStore, useTimeChapterStore } from '../../stores'
+import { RecordReminderStatus, RecordStatus, ReplyType, type ReplyVO, type TimeChapterSummaryVO } from '../../types'
 import { formatDateTime, getToken, hasAuthenticatedSession, toUserMessage } from '../../utils'
 
 type EditorSource = 'home' | 'archive' | 'timeline'
 
 const recordStore = useRecordStore()
+const chapterStore = useTimeChapterStore()
 const replyContent = ref('')
 const submittingReply = ref(false)
 const replyLoading = ref(false)
@@ -34,6 +35,7 @@ const memoryExcluded = ref(false)
 const memoryNoteDraft = ref('')
 const savingMemoryPolicy = ref(false)
 const switchingReviewMemory = ref(false)
+const chapterActionLoading = ref(false)
 
 // C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
 const showReviewChat = ref(false)
@@ -175,6 +177,8 @@ const canSubmitReply   = computed(() => Boolean(detail.value?.canReply && !detai
 const hasSubmittedReply = computed(() => Boolean(detail.value?.hasReply))
 const laterReflectionCount = computed(() => Number(detail.value?.realityLaterSubmitCount || 0))
 const canEditLaterReflection = computed(() => isUnlocked.value && laterReflectionCount.value < 2)
+const currentChapter = computed(() => detail.value?.chapter || null)
+const chapterActionText = computed(() => currentChapter.value ? '转移篇章' : '加入篇章')
 
 const unlockReminderStatusText = computed(() => {
   const status = detail.value?.unlockReminderStatus
@@ -457,6 +461,110 @@ const sendReviewMessage = async (content: string) => {
   }
 }
 
+const refreshAfterChapterConflict = async (recordId: number, error: unknown) => {
+  if (toUserMessage(error).includes('变更')) await loadDetail(recordId)
+}
+
+const chooseChapter = async () => {
+  if (!detail.value?.id || isDraft.value || chapterActionLoading.value) return
+  if (hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  chapterActionLoading.value = true
+  try {
+    const result = await chapterStore.fetchAll()
+    const candidates = result.list.filter((item) =>
+      item.status === 'ACTIVE' && item.id !== currentChapter.value?.id,
+    )
+    if (candidates.length === 0) {
+      uni.showToast({ title: '还没有可加入的进行中篇章', icon: 'none' })
+      return
+    }
+    uni.showActionSheet({
+      itemList: candidates.map((item) => item.name),
+      success: (selection) => {
+        const target = candidates[selection.tapIndex]
+        if (target) confirmChapterChange(target)
+      },
+    })
+  } catch (error) {
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    chapterActionLoading.value = false
+  }
+}
+
+const confirmChapterChange = (target: TimeChapterSummaryVO) => {
+  if (!detail.value?.id || chapterActionLoading.value) return
+  const current = currentChapter.value
+  const message = current
+    ? `从“${current.name}”转移到“${target.name}”？`
+    : `把这条记录加入“${target.name}”？`
+  uni.showModal({
+    title: current ? '确认转移篇章' : '确认加入篇章',
+    content: message,
+    confirmColor: '#b5352a',
+    success: async (result) => {
+      if (!result.confirm || !detail.value?.id) return
+      chapterActionLoading.value = true
+      try {
+        await timeChapterService.addMembers(target.id, {
+          recordIds: [detail.value.id],
+          expectedVersion: target.version,
+          transfers: current ? [{ recordId: detail.value.id, fromChapterId: current.id }] : [],
+        })
+        await loadDetail(detail.value.id)
+      } catch (error) {
+        await refreshAfterChapterConflict(detail.value.id, error)
+        uni.showToast({ title: toUserMessage(error), icon: 'none' })
+      } finally {
+        chapterActionLoading.value = false
+      }
+    },
+  })
+}
+
+const removeFromChapter = async () => {
+  if (!detail.value?.id || !currentChapter.value || chapterActionLoading.value) return
+  if (hasPreviewSession()) {
+    showPreviewReadonlyToast()
+    return
+  }
+  chapterActionLoading.value = true
+  try {
+    const result = await chapterStore.fetchAll()
+    const current = result.list.find((item) => item.id === currentChapter.value?.id)
+    if (!current) throw new Error('篇章不存在或已不可见')
+    uni.showModal({
+      title: '移出当前篇章？',
+      content: `将从“${current.name}”移出，但不会删除这条记录。`,
+      confirmColor: '#b5352a',
+      success: async (confirmed) => {
+        if (!confirmed.confirm || !detail.value?.id) {
+          chapterActionLoading.value = false
+          return
+        }
+        try {
+          await timeChapterService.removeMembers(current.id, {
+            recordIds: [detail.value.id],
+            expectedVersion: current.version,
+          })
+          await loadDetail(detail.value.id)
+        } catch (error) {
+          await refreshAfterChapterConflict(detail.value.id, error)
+          uni.showToast({ title: toUserMessage(error), icon: 'none' })
+        } finally {
+          chapterActionLoading.value = false
+        }
+      },
+    })
+  } catch (error) {
+    chapterActionLoading.value = false
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  }
+}
+
 /** 重试：会话尚未建立时重开，否则重发上一轮由后端按同轮重试语义处理。 */
 const retryReviewChat = async () => {
   reviewError.value = ''
@@ -589,6 +697,22 @@ onLoad(async (query) => {
 
       <!-- 有详情内容 -->
       <view v-else-if="detail" class="archive-stage">
+
+        <view v-if="!isDraft" class="chapter-membership-panel">
+          <view class="chapter-membership-head">
+            <text class="chapter-membership-title">时间篇章</text>
+            <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
+            <text v-else class="chapter-membership-current">尚未归入篇章</text>
+          </view>
+          <view class="chapter-membership-actions">
+            <view class="chapter-membership-action" @tap="chooseChapter">
+              {{ chapterActionLoading ? '处理中…' : chapterActionText }}
+            </view>
+            <view v-if="currentChapter" class="chapter-membership-action chapter-membership-action--quiet" @tap="removeFromChapter">
+              移出篇章
+            </view>
+          </view>
+        </view>
 
         <!-- ══════ DRAFT ══════ -->
         <view v-if="isDraft" class="archive-intro">
@@ -1939,6 +2063,13 @@ onLoad(async (query) => {
 .reply-send-corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
 
 .reply-send--disabled { opacity: 0.6; }
+.chapter-membership-panel{margin:28rpx 8rpx 34rpx;padding:24rpx;border-left:3rpx solid var(--vermilion);background:rgba(255,250,242,.72)}
+.chapter-membership-head{display:flex;align-items:baseline;justify-content:space-between;gap:18rpx}
+.chapter-membership-title{color:var(--ink);font-family:var(--font-reading);font-size:27rpx}
+.chapter-membership-current{max-width:64%;overflow:hidden;color:var(--ink-mid);font-size:21rpx;text-overflow:ellipsis;white-space:nowrap}
+.chapter-membership-actions{display:flex;gap:18rpx;margin-top:18rpx}
+.chapter-membership-action{padding:13rpx 18rpx;border:1rpx solid rgba(181,53,42,.55);color:var(--vermilion);font-size:22rpx}
+.chapter-membership-action--quiet{border-color:rgba(107,101,96,.3);color:var(--ink-mid)}
 .memory-policy{margin:40rpx 8rpx 0;padding:24rpx;border-radius:18rpx;background:rgba(255,250,242,.78)}
 .memory-policy-title{display:block;color:#5b4c40;font-size:24rpx}
 .memory-policy-hint{display:block;margin-top:8rpx;color:rgba(64,55,47,.5);font-size:20rpx;line-height:1.55}

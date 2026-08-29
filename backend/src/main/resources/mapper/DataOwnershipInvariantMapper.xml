@@ -10,6 +10,7 @@
           (SELECT COUNT(1) FROM unlock_notice_log WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
           (SELECT COUNT(1) FROM agent_session WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
           (SELECT COUNT(1) FROM agent_tool_call WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
-          (SELECT COUNT(1) FROM agent_turn_trace WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId})
+          (SELECT COUNT(1) FROM agent_turn_trace WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId}) +
+          (SELECT COUNT(1) FROM time_chapter_record WHERE record_id=#{recordId} AND user_id&lt;&gt;#{userId})
     </select>
 </mapper>

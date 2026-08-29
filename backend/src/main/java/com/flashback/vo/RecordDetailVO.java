@@ -35,6 +35,7 @@ public class RecordDetailVO {
     private RecordAttachmentVO cover;
     private RecordReminderStatus unlockReminderStatus;
     private List<RecordTagVO> tags;
+    private RecordChapterSummaryVO chapter;
     private Boolean canReply;
     private Boolean hasReply;
     private boolean agentMemoryExcluded;
@@ -216,6 +217,14 @@ public class RecordDetailVO {
 
     public void setTags(List<RecordTagVO> tags) {
         this.tags = tags;
+    }
+
+    public RecordChapterSummaryVO getChapter() {
+        return chapter;
+    }
+
+    public void setChapter(RecordChapterSummaryVO chapter) {
+        this.chapter = chapter;
     }
 
     public Boolean getCanReply() {

@@ -18,7 +18,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0
 export const httpRequest = <T>(options: RequestOptions): Promise<T> => {
   const method = options.method ?? 'GET'
   if (method !== 'GET' && isDataOwnershipMutationBlocked()
-      && (options.url.startsWith('/api/records') || options.url.startsWith('/api/agent'))) {
+      && (options.url.startsWith('/api/records')
+        || options.url.startsWith('/api/agent')
+        || options.url.startsWith('/api/time-chapters'))) {
     return Promise.reject(new Error('清除全部记录正在进行，暂时不能新建、编辑或写入 Agent 内容'))
   }
   const token = getToken()

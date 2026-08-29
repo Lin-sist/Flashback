@@ -31,6 +31,11 @@ public class DataExportPackageBuilder {
     }
 
     public byte[] build(List<DataExportRecordSnapshot> snapshots, SealedContentPolicy policy) {
+        return build(snapshots, policy, List.of());
+    }
+
+    public byte[] build(List<DataExportRecordSnapshot> snapshots, SealedContentPolicy policy,
+            List<DataExportChapterSnapshot> chapters) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             List<Map<String, Object>> files = new ArrayList<>();
@@ -39,6 +44,8 @@ public class DataExportPackageBuilder {
             try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
                 addText(zip, files, "index.html", index(snapshots, policy));
                 addText(zip, files, "README.txt", readme(policy));
+                addText(zip, files, "chapters/index.json", chapterIndex(chapters));
+                addText(zip, files, "chapters/README.md", chapterReadme());
                 for (DataExportRecordSnapshot snapshot : snapshots) {
                     Record record = snapshot.record();
                     boolean hidden = policy == SealedContentPolicy.RESPECT_SEAL && record.getStatus() == RecordStatus.SEALED;
@@ -62,6 +69,7 @@ public class DataExportPackageBuilder {
                 manifest.put("generatedAt", LocalDateTime.now(clock).toString());
                 manifest.put("sealedContentPolicy", policy.name());
                 manifest.put("recordCount", snapshots.size());
+                manifest.put("chapterCount", chapters.size());
                 manifest.put("mediaCount", mediaCount);
                 manifest.put("agentConversationCount", agentConversationCount);
                 manifest.put("files", files);
@@ -115,13 +123,40 @@ public class DataExportPackageBuilder {
         }
         return "<!doctype html><meta charset=\"utf-8\"><title>时光回序数据副本</title>"
                 + "<style>body{max-width:760px;margin:48px auto;padding:0 20px;font-family:system-ui;line-height:1.7;color:#2d2926}a{color:#76584b}</style>"
-                + "<h1>时光回序数据副本</h1><p>这是可离线阅读的数据副本。记录正文使用 Markdown 保存。</p><ul>" + links + "</ul>";
+                + "<h1>时光回序数据副本</h1><p>这是可离线阅读的数据副本。记录正文使用 Markdown 保存。</p>"
+                + "<p><a href=\"chapters/index.json\">查看时间篇章元数据</a></p><ul>" + links + "</ul>";
     }
 
     private String readme(SealedContentPolicy policy) {
         return "时光回序数据副本\n\n封存策略：" + policy + "\nDRAFT 表示尚未完成的记录。\n"
                 + "records 保存用户记录，agent 单独保存用户可见的 Agent 会话，media 保存附件原始字节。\n"
                 + "本包不包含账号凭据、内部提示词、provider 原始响应、工具瞬态参数、运行日志或运维数据。\n";
+    }
+
+    private String chapterIndex(List<DataExportChapterSnapshot> chapters) throws Exception {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (DataExportChapterSnapshot chapter : chapters) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", chapter.id());
+            item.put("name", chapter.name());
+            item.put("note", chapter.note());
+            item.put("status", chapter.status());
+            item.put("memberCount", chapter.memberCount());
+            item.put("coverageStartAt", chapter.coverageStartAt());
+            item.put("coverageEndAt", chapter.coverageEndAt());
+            item.put("endedAt", chapter.endedAt());
+            item.put("createdAt", chapter.createdAt());
+            item.put("updatedAt", chapter.updatedAt());
+            item.put("memberRecordIds", chapter.memberRecordIds());
+            items.add(item);
+        }
+        return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(items);
+    }
+
+    private String chapterReadme() {
+        return "# 时间篇章\n\n"
+                + "index.json 保存用户创建的时间篇章元数据及其成员 record ID。\n"
+                + "篇章不会复制记录正文、位置、附件或 Agent 会话内容；记录正文仍位于 records/。\n";
     }
 
     private void addText(ZipOutputStream zip, List<Map<String, Object>> files, String path, String text) throws Exception {

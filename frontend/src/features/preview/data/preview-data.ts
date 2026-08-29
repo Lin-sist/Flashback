@@ -8,9 +8,11 @@ import type {
   TimelineGroupVO,
   TimelinePageVO,
   TimelineQuery,
+  TimeChapterDetailVO,
+  TimeChapterSummaryVO,
   UserInfoVO,
 } from '../../../types'
-import { RecordReminderStatus, RecordStatus, RecordType, ReplyType, TagType } from '../../../types'
+import { RecordReminderStatus, RecordStatus, RecordType, ReplyType, TagType, TimeChapterStatus } from '../../../types'
 
 interface PreviewRecordSeed {
   id: number
@@ -146,6 +148,39 @@ const previewReplies: Record<number, ReplyVO> = {
   },
 }
 
+interface PreviewChapterSeed {
+  id: number
+  name: string
+  note: string
+  status: TimeChapterStatus
+  memberRecordIds: number[]
+  createdAt: string
+  updatedAt: string
+  endedAt?: string
+}
+
+const previewChapters: PreviewChapterSeed[] = [
+  {
+    id: 901,
+    name: '正在学会照顾自己',
+    note: '一些慢慢留下的片段',
+    status: TimeChapterStatus.ACTIVE,
+    memberRecordIds: [101, 301],
+    createdAt: '2026-04-18 23:40:00',
+    updatedAt: '2026-04-20 00:15:00',
+  },
+  {
+    id: 902,
+    name: '那些安静的夜晚',
+    note: '不急着解释的时光',
+    status: TimeChapterStatus.ENDED,
+    memberRecordIds: [201, 202, 302],
+    createdAt: '2025-04-03 22:10:00',
+    updatedAt: '2026-04-16 08:02:00',
+    endedAt: '2026-04-16 08:02:00',
+  },
+]
+
 const deepCopy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 const sortByNewest = <T extends { createdAt: string; id?: number }>(list: T[]) =>
@@ -158,6 +193,14 @@ const sortByNewest = <T extends { createdAt: string; id?: number }>(list: T[]) =
 const resolveTags = (tagIds: number[]) =>
   previewTags.filter((tag) => tagIds.includes(tag.id))
 
+const chapterForRecord = (recordId: number) =>
+  previewChapters.find((chapter) => chapter.memberRecordIds.includes(recordId))
+
+const toRecordChapterSummary = (chapter?: PreviewChapterSeed) =>
+  chapter
+    ? { id: chapter.id, name: chapter.name, status: chapter.status }
+    : null
+
 const toListItem = (record: PreviewRecordSeed): RecordListItemVO => ({
   id: record.id,
   title: record.title,
@@ -167,6 +210,7 @@ const toListItem = (record: PreviewRecordSeed): RecordListItemVO => ({
   unlockAt: record.unlockAt,
   createdAt: record.createdAt,
   tagNames: resolveTags(record.tagIds).map((tag) => tag.name),
+  chapter: toRecordChapterSummary(chapterForRecord(record.id)),
 })
 
 const toDetail = (record: PreviewRecordSeed): RecordDetailVO => ({
@@ -182,6 +226,7 @@ const toDetail = (record: PreviewRecordSeed): RecordDetailVO => ({
   aiSummary: record.aiSummary,
   aiPromptResults: record.aiPromptResults || [],
   tags: resolveTags(record.tagIds),
+  chapter: toRecordChapterSummary(chapterForRecord(record.id)),
   canReply: record.canReply,
   hasReply: record.hasReply,
   createdAt: record.createdAt,
@@ -276,6 +321,58 @@ export const getPreviewTimeline = (query: TimelineQuery = {}): TimelinePageVO =>
 export const getPreviewRecordDetail = (id: string | number) => {
   const record = previewRecords.find((item) => Number(item.id) === Number(id))
   return record ? toDetail(record) : null
+}
+
+const toChapterSummary = (chapter: PreviewChapterSeed): TimeChapterSummaryVO => {
+  const members = chapter.memberRecordIds
+    .map((id) => previewRecords.find((record) => record.id === id))
+    .filter((record): record is PreviewRecordSeed => Boolean(record))
+  const createdTimes = members.map((record) => record.createdAt).sort()
+  return {
+    id: chapter.id,
+    name: chapter.name,
+    note: chapter.note,
+    status: chapter.status,
+    memberCount: members.length,
+    coverageStartAt: members.length ? createdTimes[0] : null,
+    coverageEndAt: members.length ? createdTimes[createdTimes.length - 1] : null,
+    endedAt: chapter.endedAt || null,
+    version: 0,
+    createdAt: chapter.createdAt,
+    updatedAt: chapter.updatedAt,
+  }
+}
+
+export const getPreviewTimeChapterList = (
+  status: TimeChapterStatus | undefined,
+  query: PageQuery,
+) => {
+  const summaries = previewChapters
+    .filter((chapter) => !status || chapter.status === status)
+    .map(toChapterSummary)
+  return paginate(summaries, query)
+}
+
+export const getPreviewTimeChapterDetail = (
+  id: string | number,
+  order: 'ASC' | 'DESC',
+  query: PageQuery,
+): TimeChapterDetailVO | null => {
+  const chapter = previewChapters.find((item) => Number(item.id) === Number(id))
+  if (!chapter) return null
+  const members = chapter.memberRecordIds
+    .map((recordId) => previewRecords.find((record) => record.id === recordId))
+    .filter((record): record is PreviewRecordSeed => Boolean(record))
+    .sort((left, right) => {
+      const createdAtDiff = new Date(left.createdAt.replace(' ', 'T')).getTime() - new Date(right.createdAt.replace(' ', 'T')).getTime()
+      if (createdAtDiff !== 0) return order === 'ASC' ? createdAtDiff : -createdAtDiff
+      const idDiff = left.id - right.id
+      return order === 'ASC' ? idDiff : -idDiff
+    })
+  return {
+    ...toChapterSummary(chapter),
+    members: paginate(members.map(toListItem), query),
+  }
 }
 
 export const getPreviewReply = (recordId: number) => {

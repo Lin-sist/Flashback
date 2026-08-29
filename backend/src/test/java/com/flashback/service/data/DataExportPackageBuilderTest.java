@@ -72,6 +72,28 @@ class DataExportPackageBuilderTest {
     }
 
     @Test
+    void exportsChapterMetadataAndMemberIdsWithoutCopyingRecordContent() throws Exception {
+        Record record = record(4L, RecordStatus.SEALED, "不应从篇章文件复制");
+        DataExportChapterSnapshot chapter = new DataExportChapterSnapshot(
+                41L, "一段时间", "用户自述", com.flashback.domain.TimeChapterStatus.ENDED,
+                1, record.getCreatedAt(), record.getCreatedAt(), LocalDateTime.of(2026, 8, 13, 8, 0),
+                record.getCreatedAt(), record.getCreatedAt(), List.of(record.getId()));
+
+        Map<String, byte[]> entries = unzip(builder.build(
+                List.of(new DataExportRecordSnapshot(record, null, List.of(), null, List.of(), List.of())),
+                SealedContentPolicy.RESPECT_SEAL,
+                List.of(chapter)));
+
+        assertTrue(entries.containsKey("flashback-export/chapters/index.json"));
+        assertTrue(entries.containsKey("flashback-export/chapters/README.md"));
+        String chapterJson = text(entries, "flashback-export/chapters/index.json");
+        assertTrue(chapterJson.contains("一段时间"));
+        assertTrue(chapterJson.contains("41"));
+        assertTrue(chapterJson.contains("4"));
+        assertFalse(chapterJson.contains("不应从篇章文件复制"));
+    }
+
+    @Test
     void buildsSyntheticMaximumCountNearTotalSizeBoundaryWithoutSlaClaim() throws Exception {
         Record record = record(3L, RecordStatus.SAVED, "合成边界记录");
         byte[] sharedSixteenMiB = new byte[16 * 1024 * 1024];

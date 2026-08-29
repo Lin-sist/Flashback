@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flashback.mapper.TimeChapterRecordMapper">
+
+    <resultMap id="TimeChapterRecordResultMap" type="com.flashback.domain.TimeChapterRecord">
+        <id property="chapterId" column="chapter_id"/>
+        <id property="recordId" column="record_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="addedAt" column="added_at"/>
+    </resultMap>
+
+    <resultMap id="MemberRecordResultMap" type="com.flashback.domain.Record">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="recordType" column="record_type" javaType="com.flashback.domain.RecordType"/>
+        <result property="coreQuestion" column="core_question"/>
+        <result property="status" column="status" javaType="com.flashback.domain.RecordStatus"/>
+        <result property="unlockAt" column="unlock_at"/>
+        <result property="sealedAt" column="sealed_at"/>
+        <result property="unlockedAt" column="unlocked_at"/>
+        <result property="draftExpiresAt" column="draft_expires_at"/>
+        <result property="aiSummary" column="ai_summary"/>
+        <result property="aiPromptResult" column="ai_prompt_result"/>
+        <result property="beliefThen" column="belief_then"/>
+        <result property="realityLater" column="reality_later"/>
+        <result property="realityLaterSubmitCount" column="reality_later_submit_count"/>
+        <result property="lifeNodeType" column="life_node_type" javaType="com.flashback.domain.LifeNodeType"/>
+        <result property="lifeNodeCustomLabel" column="life_node_custom_label"/>
+        <result property="coverAttachmentId" column="cover_attachment_id"/>
+        <result property="agentMemoryExcluded" column="agent_memory_excluded"/>
+        <result property="agentMemoryContextNote" column="agent_memory_context_note"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="RecordChapterSummaryRowResultMap" type="com.flashback.domain.RecordChapterSummaryRow">
+        <result property="recordId" column="record_id"/>
+        <result property="chapterId" column="chapter_id"/>
+        <result property="chapterName" column="chapter_name"/>
+        <result property="chapterStatus" column="chapter_status" javaType="com.flashback.domain.TimeChapterStatus"/>
+    </resultMap>
+
+    <select id="selectByRecordIdsAndUserId" resultMap="TimeChapterRecordResultMap">
+        SELECT chapter_id, record_id, user_id, added_at
+        FROM time_chapter_record
+        WHERE user_id = #{userId}
+          AND record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+        ORDER BY record_id ASC
+    </select>
+
+    <select id="selectByRecordIdAndUserIdForUpdate" resultMap="TimeChapterRecordResultMap">
+        SELECT chapter_id, record_id, user_id, added_at
+        FROM time_chapter_record
+        WHERE record_id = #{recordId}
+          AND user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <insert id="insert" parameterType="com.flashback.domain.TimeChapterRecord">
+        INSERT INTO time_chapter_record (chapter_id, record_id, user_id, added_at)
+        VALUES (#{chapterId}, #{recordId}, #{userId}, #{addedAt})
+    </insert>
+
+    <delete id="deleteByChapterIdAndRecordIdAndUserId">
+        DELETE FROM time_chapter_record
+        WHERE chapter_id = #{chapterId}
+          AND record_id = #{recordId}
+          AND user_id = #{userId}
+    </delete>
+
+    <select id="countByChapterIdAndUserId" resultType="long">
+        SELECT COUNT(1)
+        FROM time_chapter_record
+        WHERE chapter_id = #{chapterId} AND user_id = #{userId}
+    </select>
+
+    <select id="selectMemberRecords" resultMap="MemberRecordResultMap">
+        SELECT
+            r.id, r.user_id, r.title, r.content, r.record_type, r.core_question,
+            r.status, r.unlock_at, r.sealed_at, r.unlocked_at, r.draft_expires_at,
+            r.ai_summary, r.ai_prompt_result, r.belief_then, r.reality_later,
+            r.reality_later_submit_count, r.life_node_type, r.life_node_custom_label,
+            r.cover_attachment_id, r.agent_memory_excluded, r.agent_memory_context_note,
+            r.created_at, r.updated_at
+        FROM time_chapter_record cr
+        INNER JOIN `record` r ON r.id = cr.record_id AND r.user_id = cr.user_id
+        WHERE cr.chapter_id = #{chapterId}
+          AND cr.user_id = #{userId}
+          AND r.status &lt;&gt; 'DRAFT'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM data_operation_record i
+            INNER JOIN data_operation o ON o.id = i.operation_id
+            WHERE i.record_id = r.id
+              AND i.user_id = #{userId}
+              AND i.item_status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+              AND o.status IN ('PENDING','RUNNING','RETRY_REQUIRED')
+          )
+        ORDER BY r.created_at
+        <choose>
+            <when test="order == 'ASC'">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+        , r.id
+        <choose>
+            <when test="order == 'ASC'">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectRecordIdsByChapterIdAndUserId" resultType="long">
+        SELECT record_id
+        FROM time_chapter_record
+        WHERE chapter_id = #{chapterId} AND user_id = #{userId}
+        ORDER BY record_id ASC
+    </select>
+
+    <select id="selectSummariesByRecordIds" resultMap="RecordChapterSummaryRowResultMap">
+        SELECT
+            cr.record_id,
+            c.id AS chapter_id,
+            c.name AS chapter_name,
+            c.status AS chapter_status
+        FROM time_chapter_record cr
+        INNER JOIN time_chapter c ON c.id = cr.chapter_id AND c.user_id = cr.user_id
+        WHERE cr.user_id = #{userId}
+          AND cr.record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </select>
+
+    <delete id="deleteAllByUserId">
+        DELETE FROM time_chapter_record WHERE user_id = #{userId}
+    </delete>
+</mapper>

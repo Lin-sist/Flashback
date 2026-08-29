@@ -1,5 +1,6 @@
 import type { LifeNodeType, RecordReminderStatus, RecordStatus, RecordType } from './enums'
 import type { TagVO } from './tag'
+import type { RecordChapterSummaryVO } from './timeChapter'
 
 export type DateTimeValue = string | number
 export type RecordLocationSource = 'CURRENT_LOCATION' | 'MAP_PICKER' | 'MANUAL'
@@ -111,6 +112,7 @@ export interface RecordListItemVO {
   createdAt: DateTimeValue
   tagNames: string[]
   cover?: RecordAttachmentVO | null
+  chapter?: RecordChapterSummaryVO | null
 }
 
 export interface RecordDetailVO {
@@ -136,6 +138,7 @@ export interface RecordDetailVO {
   attachments?: RecordAttachmentVO[]
   cover?: RecordAttachmentVO | null
   tags: TagVO[]
+  chapter?: RecordChapterSummaryVO | null
   canReply: boolean
   hasReply: boolean
   agentMemoryExcluded?: boolean

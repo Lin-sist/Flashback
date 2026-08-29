@@ -126,6 +126,12 @@
         WHERE id = #{id} AND user_id = #{userId} LIMIT 1
     </select>
 
+    <select id="selectByIdAndUserIdForChapterUpdate" resultMap="RecordResultMap">
+        SELECT <include refid="BaseColumnList"/> FROM `record`
+        WHERE id = #{id} AND user_id = #{userId}
+        FOR UPDATE
+    </select>
+
     <select id="selectAllByUserId" resultMap="RecordResultMap">
         SELECT <include refid="BaseColumnList"/> FROM `record`
         WHERE user_id = #{userId} ORDER BY created_at ASC, id ASC

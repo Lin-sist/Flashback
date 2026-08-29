@@ -18,6 +18,7 @@ import com.flashback.domain.RecordLocationSource;
 import com.flashback.domain.RecordReminder;
 import com.flashback.domain.RecordReminderStatus;
 import com.flashback.domain.RecordTagName;
+import com.flashback.domain.RecordChapterSummaryRow;
 import com.flashback.domain.RecordStatus;
 import com.flashback.domain.Tag;
 import com.flashback.domain.UnlockNoticeLog;
@@ -40,6 +41,7 @@ import com.flashback.mapper.ReplyMapper;
 import com.flashback.mapper.TagMapper;
 import com.flashback.mapper.UnlockNoticeLogMapper;
 import com.flashback.mapper.UserMapper;
+import com.flashback.mapper.TimeChapterRecordMapper;
 import com.flashback.service.RecordService;
 import com.flashback.service.RecordSaveEligibility;
 import com.flashback.service.data.DataOwnershipMutationGuard;
@@ -49,6 +51,7 @@ import com.flashback.vo.RecordAttachmentVO;
 import com.flashback.vo.RecordListItemVO;
 import com.flashback.vo.RecordLocationVO;
 import com.flashback.vo.RecordTagVO;
+import com.flashback.vo.RecordChapterSummaryVO;
 import com.flashback.vo.TimelineGroupVO;
 import com.flashback.vo.TimelineItemVO;
 import com.flashback.vo.TimelinePageVO;
@@ -107,11 +110,17 @@ public class RecordServiceImpl implements RecordService {
     private final WechatSubscribeMessageClient wechatSubscribeMessageClient;
     private final Clock clock;
     private final RecordSaveEligibility recordSaveEligibility;
+    private TimeChapterRecordMapper timeChapterRecordMapper;
     private DataOwnershipMutationGuard dataOwnershipMutationGuard;
 
     @Autowired
     void setDataOwnershipMutationGuard(DataOwnershipMutationGuard guard) {
         this.dataOwnershipMutationGuard = guard;
+    }
+
+    @Autowired
+    void setTimeChapterRecordMapper(TimeChapterRecordMapper mapper) {
+        this.timeChapterRecordMapper = mapper;
     }
 
     public RecordServiceImpl(
@@ -519,8 +528,10 @@ public class RecordServiceImpl implements RecordService {
                 pageSize);
 
         Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
+        Map<Long, RecordChapterSummaryVO> chaptersByRecordId = loadChapterSummariesByRecordIds(userId, records);
         List<RecordListItemVO> list = records.stream()
-                .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of())))
+                .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of()),
+                        chaptersByRecordId.get(record.getId())))
                 .toList();
         return PageResult.of(list, total, pageNum, pageSize);
     }
@@ -534,8 +545,10 @@ public class RecordServiceImpl implements RecordService {
         long total = recordMapper.countUnlockedByUser(userId);
         List<Record> records = recordMapper.selectUnlockedPageByUser(userId, offset, pageSize);
         Map<Long, List<String>> tagNamesByRecordId = loadTagNamesByRecordIds(records);
+        Map<Long, RecordChapterSummaryVO> chaptersByRecordId = loadChapterSummariesByRecordIds(userId, records);
         List<RecordListItemVO> list = records.stream()
-                .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of())))
+                .map(record -> toListItemVO(record, tagNamesByRecordId.getOrDefault(record.getId(), List.of()),
+                        chaptersByRecordId.get(record.getId())))
                 .toList();
         return PageResult.of(list, total, pageNum, pageSize);
     }
@@ -930,6 +943,37 @@ public class RecordServiceImpl implements RecordService {
         return result;
     }
 
+    private Map<Long, RecordChapterSummaryVO> loadChapterSummariesByRecordIds(Long userId, List<Record> records) {
+        if (timeChapterRecordMapper == null || records == null || records.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> recordIds = records.stream().map(Record::getId).toList();
+        List<RecordChapterSummaryRow> rows = timeChapterRecordMapper.selectSummariesByRecordIds(recordIds, userId);
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, RecordChapterSummaryVO> result = new LinkedHashMap<>();
+        for (RecordChapterSummaryRow row : rows) {
+            RecordChapterSummaryVO vo = new RecordChapterSummaryVO();
+            vo.setId(row.getChapterId());
+            vo.setName(row.getChapterName());
+            vo.setStatus(row.getChapterStatus());
+            result.put(row.getRecordId(), vo);
+        }
+        return result;
+    }
+
+    private RecordChapterSummaryVO loadChapterSummary(Long userId, Long recordId) {
+        if (timeChapterRecordMapper == null || recordId == null) return null;
+        return loadChapterSummariesByRecordIds(userId, List.of(recordWithId(recordId))).get(recordId);
+    }
+
+    private Record recordWithId(Long recordId) {
+        Record record = new Record();
+        record.setId(recordId);
+        return record;
+    }
+
     private List<RecordTagVO> loadRecordTags(Long recordId) {
         List<Tag> tags = tagMapper.selectTagsByRecordId(recordId);
         if (tags == null || tags.isEmpty()) {
@@ -976,6 +1020,10 @@ public class RecordServiceImpl implements RecordService {
     }
 
     private RecordListItemVO toListItemVO(Record record, List<String> tagNames) {
+        return toListItemVO(record, tagNames, null);
+    }
+
+    private RecordListItemVO toListItemVO(Record record, List<String> tagNames, RecordChapterSummaryVO chapter) {
         RecordListItemVO vo = new RecordListItemVO();
         vo.setId(record.getId());
         vo.setTitle(record.getTitle());
@@ -987,6 +1035,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setCover(toCoverVO(record));
         vo.setCreatedAt(record.getCreatedAt());
         vo.setTagNames(tagNames);
+        vo.setChapter(chapter);
         return vo;
     }
 
@@ -1040,6 +1089,7 @@ public class RecordServiceImpl implements RecordService {
         vo.setCover(toCoverVO(record));
         vo.setUnlockReminderStatus(resolveUnlockReminderStatus(record.getId()));
         vo.setTags(loadRecordTags(record.getId()));
+        vo.setChapter(loadChapterSummary(record.getUserId(), record.getId()));
         boolean hasReply = record.getStatus() == RecordStatus.UNLOCKED
                 && replyMapper.selectByRecordId(record.getId()) != null;
         vo.setHasReply(hasReply);

@@ -3,6 +3,7 @@ import { clearPreviewSession, hasPreviewSession } from '../features/preview/prev
 const TOKEN_KEY = 'flashback:token'
 
 export const setToken = (token: string) => {
+  clearPreviewSession()
   uni.setStorageSync(TOKEN_KEY, token)
 }
 

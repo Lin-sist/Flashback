@@ -12,6 +12,11 @@ export enum RecordType {
   EMOTION_NOTE = 'EMOTION_NOTE',
 }
 
+export enum TimeChapterStatus {
+  ACTIVE = 'ACTIVE',
+  ENDED = 'ENDED',
+}
+
 export enum LifeNodeType {
   GRADUATION = 'GRADUATION',
   WORK = 'WORK',

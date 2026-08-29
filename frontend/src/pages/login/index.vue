@@ -5,7 +5,7 @@ import AppTopSafeBar from '../../components/common/AppTopSafeBar.vue'
 import { isPreviewModeEnabled } from '../../config/app-env'
 import { createPreviewSession } from '../../features/preview/preview-session'
 import { useUserStore } from '../../stores'
-import { toUserMessage, validatePassword, validateUsername } from '../../utils'
+import { clearToken, toUserMessage, validatePassword, validateUsername } from '../../utils'
 
 type Mode = 'login' | 'register'
 
@@ -127,6 +127,7 @@ const onWechatLogin = async () => {
 
 const enterPreview = () => {
   if (loading.value) return
+  clearToken()
   createPreviewSession()
   uni.switchTab({ url: '/pages/home/index' })
 }

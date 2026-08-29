@@ -2,12 +2,14 @@
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
+import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
-import { useRecordStore } from '../../stores'
+import { useRecordStore, useTimeChapterStore } from '../../stores'
 import {
   RecordStatus,
   type DateTimeValue,
   type RecordListItemVO,
+  type TimeChapterSummaryVO,
 } from '../../types'
 import {
   formatDayText,
@@ -17,10 +19,19 @@ import {
 const { statusBarHeight } = useWechatNavMetrics()
 
 const recordStore = useRecordStore()
+const chapterStore = useTimeChapterStore()
 const selectedStatus = ref<RecordStatus | 'ALL'>('ALL')
 const appliedStatus = ref<RecordStatus | 'ALL'>('ALL')
 const keyword = ref('')
 const listLoadFailed = ref(false)
+const chapterLoadFailed = ref(false)
+const viewMode = ref<'records' | 'chapters'>('records')
+const selectingRecords = ref(false)
+const selectedRecordIds = ref<number[]>([])
+const composeOpen = ref(false)
+const chapterName = ref('')
+const chapterNote = ref('')
+const chapterSubmitting = ref(false)
 
 const statusOptions: { label: string; value: RecordStatus | 'ALL' }[] = [
   { label: '全部', value: 'ALL' },
@@ -97,11 +108,41 @@ const topNavPadStyle = computed(() => ({
 }))
 
 const ensureLogin = () => {
-  if (!hasAuthenticatedSession()) {
+  if (!hasAuthenticatedSession() && !hasPreviewSession()) {
     uni.reLaunch({ url: '/pages/login/index' })
     return false
   }
   return true
+}
+
+const loadChapters = async () => {
+  if (!ensureLogin()) return
+  chapterLoadFailed.value = false
+  try {
+    await chapterStore.fetchList(undefined, 1, 50)
+  } catch {
+    chapterLoadFailed.value = true
+    uni.showToast({ title: '篇章目录加载失败，请稍后重试', icon: 'none' })
+  }
+}
+
+const loadMoreChapters = async () => {
+  if (chapterStore.loading || chapterStore.list.length >= chapterStore.total) return
+  const nextPage = chapterStore.pageNum + 1
+  try {
+    await chapterStore.fetchList(undefined, nextPage, 50, true)
+  } catch {
+    uni.showToast({ title: '更多篇章加载失败，请稍后重试', icon: 'none' })
+  }
+}
+
+const setViewMode = (mode: 'records' | 'chapters') => {
+  if (viewMode.value === mode) return
+  viewMode.value = mode
+  selectingRecords.value = false
+  composeOpen.value = false
+  if (mode === 'chapters') loadChapters()
+  else loadList()
 }
 
 const loadList = async (
@@ -116,6 +157,91 @@ const loadList = async (
     listLoadFailed.value = true
     uni.showToast({ title: '网络有点慢，请稍后重试', icon: 'none' })
   }
+}
+
+const startRecordSelection = () => {
+  if (hasPreviewSession()) {
+    showPreviewReadonlyToast('概念预览为只读，不能组成篇章')
+    return
+  }
+  selectingRecords.value = !selectingRecords.value
+  if (!selectingRecords.value) {
+    selectedRecordIds.value = []
+    composeOpen.value = false
+  }
+}
+
+const canSelectRecord = (item: RecordListItemVO) =>
+  item.status !== RecordStatus.DRAFT && !item.chapter
+
+const toggleRecordSelection = (item: RecordListItemVO) => {
+  if (!canSelectRecord(item)) return
+  const current = new Set(selectedRecordIds.value)
+  if (current.has(item.id)) current.delete(item.id)
+  else current.add(item.id)
+  selectedRecordIds.value = [...current]
+}
+
+const openCompose = () => {
+  if (selectedRecordIds.value.length === 0) {
+    uni.showToast({ title: '至少选择一条记录', icon: 'none' })
+    return
+  }
+  composeOpen.value = true
+}
+
+const cancelCompose = () => {
+  composeOpen.value = false
+  chapterName.value = ''
+  chapterNote.value = ''
+}
+
+const submitChapter = async () => {
+  if (hasPreviewSession()) {
+    showPreviewReadonlyToast('概念预览为只读，不能保存篇章')
+    return
+  }
+  const name = chapterName.value.trim()
+  if (!name) {
+    uni.showToast({ title: '请先写下篇章名称', icon: 'none' })
+    return
+  }
+  chapterSubmitting.value = true
+  try {
+    await chapterStore.create({
+      name,
+      note: chapterNote.value.trim() || null,
+      recordIds: [...selectedRecordIds.value],
+    })
+    selectingRecords.value = false
+    selectedRecordIds.value = []
+    cancelCompose()
+    viewMode.value = 'chapters'
+    await loadChapters()
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '篇章保存失败', icon: 'none' })
+  } finally {
+    chapterSubmitting.value = false
+  }
+}
+
+const chapterGroups = computed(() => ({
+  active: chapterStore.list.filter((chapter) => chapter.status === 'ACTIVE'),
+  ended: chapterStore.list.filter((chapter) => chapter.status === 'ENDED'),
+}))
+
+const chapterStatusLabel = (chapter: TimeChapterSummaryVO) =>
+  chapter.status === 'ACTIVE' ? '进行中' : '已结束'
+
+const chapterCoverageText = (chapter: TimeChapterSummaryVO) => {
+  if (!chapter.coverageStartAt || !chapter.coverageEndAt) return '片段覆盖时间待形成'
+  const start = formatDayText(chapter.coverageStartAt)
+  const end = formatDayText(chapter.coverageEndAt)
+  return start === end ? `片段覆盖 ${start}` : `片段覆盖 ${start} — ${end}`
+}
+
+const openChapter = (chapter: TimeChapterSummaryVO) => {
+  uni.navigateTo({ url: `/pages/time-chapter-detail/index?id=${chapter.id}&source=archive` })
 }
 
 const onStatusChange = (value: RecordStatus | 'ALL') => {
@@ -211,7 +337,7 @@ const metaLine = (item: RecordListItemVO) => {
   }
 }
 
-onShow(loadList)
+onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
 </script>
 
 <template>
@@ -234,6 +360,22 @@ onShow(loadList)
     <!-- 滚动内容区 -->
     <scroll-view scroll-y class="scroll-area" enhanced show-scrollbar="false">
       <view class="scroll-inner">
+
+        <!-- 二级切换：仍属于“我的记录”一级入口，不新增 Tab -->
+        <view class="secondary-tabs">
+          <view
+            class="secondary-tab"
+            :class="{ 'secondary-tab--active': viewMode === 'records' }"
+            @tap="setViewMode('records')"
+          >记录</view>
+          <view
+            class="secondary-tab"
+            :class="{ 'secondary-tab--active': viewMode === 'chapters' }"
+            @tap="setViewMode('chapters')"
+          >篇章</view>
+        </view>
+
+        <template v-if="viewMode === 'records'">
 
         <!-- 搜索框 -->
         <view class="search-wrap">
@@ -265,7 +407,12 @@ onShow(loadList)
         <!-- 档案概览标题 -->
         <view class="section-header">
           <text class="section-title">档案概览</text>
-          <text class="section-count">{{ overviewCountText }}</text>
+          <view class="section-actions">
+            <text class="section-count">{{ selectingRecords ? `已选 ${selectedRecordIds.length} 条` : overviewCountText }}</text>
+            <text class="chapter-select-action" @tap="startRecordSelection">
+              {{ selectingRecords ? '取消选择' : '组成篇章' }}
+            </text>
+          </view>
         </view>
         <view class="deco-line-left" />
 
@@ -296,8 +443,8 @@ onShow(loadList)
             v-for="item in filteredList"
             :key="item.id"
             class="card"
-            :class="cardStateClass(item.status)"
-            @tap="openRecord(item)"
+            :class="[cardStateClass(item.status), { 'card--selected': selectedRecordIds.includes(item.id) }]"
+            @tap="selectingRecords ? toggleRecordSelection(item) : openRecord(item)"
           >
             <!-- 左侧朱砂竖线（替代 ::before） -->
             <view class="card-vline" />
@@ -305,6 +452,9 @@ onShow(loadList)
             <view class="card-corner" />
 
             <view class="card-top">
+              <view v-if="selectingRecords" class="record-select-mark" :class="{ 'record-select-mark--on': selectedRecordIds.includes(item.id), 'record-select-mark--disabled': !canSelectRecord(item) }">
+                <text>{{ selectedRecordIds.includes(item.id) ? '✓' : (item.chapter ? '·' : '') }}</text>
+              </view>
               <!-- 图标圆圈 -->
               <view class="card-icon-wrap" :class="iconWrapClass(item.status)">
                 <view class="card-icon" :class="iconWrapClass(item.status) + '__icon'" />
@@ -331,13 +481,96 @@ onShow(loadList)
                 v-if="metaLine(item).right"
                 :class="metaLine(item).isUnlock ? 'card-unlock-date' : 'card-word-count'"
               >{{ metaLine(item).right }}</text>
+              <text v-if="item.chapter" class="card-chapter-name">{{ item.chapter.name }}</text>
             </view>
           </view>
         </view>
 
+        <view v-if="selectingRecords && selectedRecordIds.length > 0" class="chapter-compose">
+          <view class="chapter-compose__heading">把这些片段放在一起</view>
+          <input
+            v-model="chapterName"
+            class="chapter-compose__input"
+            maxlength="100"
+            placeholder="篇章名称（必填）"
+            placeholder-class="chapter-compose__placeholder"
+          />
+          <textarea
+            v-model="chapterNote"
+            class="chapter-compose__note"
+            maxlength="1000"
+            auto-height
+            placeholder="写一句自述（可选）"
+            placeholder-class="chapter-compose__placeholder"
+          />
+          <view class="chapter-compose__actions">
+            <text class="chapter-compose__cancel" @tap="cancelCompose">稍后再写</text>
+            <view class="chapter-compose__submit" :class="{ 'chapter-compose__submit--loading': chapterSubmitting }" @tap="submitChapter">
+              {{ chapterSubmitting ? '保存中…' : '保存篇章' }}
+            </view>
+          </view>
+        </view>
+
+        </template>
+
+        <template v-else>
+          <view class="section-header chapter-section-header">
+            <text class="section-title">时间篇章</text>
+            <text class="section-count">{{ chapterStore.loading ? '整理中' : `共 ${chapterStore.total} 个篇章` }}</text>
+          </view>
+          <view class="deco-line-left" />
+
+          <view v-if="chapterStore.loading && chapterStore.list.length === 0" class="state-row">
+            <text class="state-text">正在摊开篇章目录…</text>
+          </view>
+          <view v-else-if="chapterLoadFailed" class="state-row" @tap="loadChapters">
+            <text class="state-text">篇章目录加载失败，轻触重试</text>
+          </view>
+          <view v-else-if="chapterStore.list.length === 0" class="state-row">
+            <text class="state-text">还没有篇章，可以从记录中组成一段时间</text>
+          </view>
+          <view v-else class="chapters-list">
+            <view v-if="chapterGroups.active.length" class="chapter-group">
+              <text class="chapter-group__label">进行中</text>
+              <view v-for="chapter in chapterGroups.active" :key="chapter.id" class="chapter-card" @tap="openChapter(chapter)">
+                <view class="chapter-card__top">
+                  <text class="chapter-card__name">{{ chapter.name }}</text>
+                  <text class="chapter-card__status">{{ chapterStatusLabel(chapter) }}</text>
+                </view>
+                <text v-if="chapter.note" class="chapter-card__note">{{ chapter.note }}</text>
+                <view class="chapter-card__bottom">
+                  <text>{{ chapter.memberCount }} 个片段</text>
+                  <text>{{ chapterCoverageText(chapter) }}</text>
+                </view>
+              </view>
+            </view>
+            <view v-if="chapterGroups.ended.length" class="chapter-group">
+              <text class="chapter-group__label">已结束</text>
+              <view v-for="chapter in chapterGroups.ended" :key="chapter.id" class="chapter-card chapter-card--ended" @tap="openChapter(chapter)">
+                <view class="chapter-card__top">
+                  <text class="chapter-card__name">{{ chapter.name }}</text>
+                  <text class="chapter-card__status">{{ chapterStatusLabel(chapter) }}</text>
+                </view>
+                <text v-if="chapter.note" class="chapter-card__note">{{ chapter.note }}</text>
+                <view class="chapter-card__bottom">
+                  <text>{{ chapter.memberCount }} 个片段</text>
+                  <text>{{ chapterCoverageText(chapter) }}</text>
+                </view>
+              </view>
+            </view>
+            <view
+              v-if="chapterStore.list.length < chapterStore.total"
+              class="state-row"
+              @tap="loadMoreChapters"
+            >
+              <text class="state-text">{{ chapterStore.loading ? '正在加载…' : '加载更多篇章' }}</text>
+            </view>
+          </view>
+        </template>
+
         <!-- 封存新的记忆 CTA -->
         <view
-          v-if="!showLoadFailureState && !showEmptyState"
+          v-if="viewMode === 'records' && !showLoadFailureState && !showEmptyState"
           class="write-btn-wrap"
         >
           <view class="write-btn" @tap="goWrite">
@@ -974,5 +1207,197 @@ onShow(loadList)
 .footnote-dot--active {
   background: #b5352a;
   opacity: 0.6;
+}
+
+.secondary-tabs {
+  display: flex;
+  gap: 34rpx;
+  margin: 18rpx 0 34rpx;
+  border-bottom: 1rpx solid rgba(157, 145, 131, 0.25);
+}
+
+.secondary-tab {
+  padding: 0 4rpx 14rpx;
+  color: #9e9890;
+  font-size: 27rpx;
+  letter-spacing: 0.12em;
+}
+
+.secondary-tab--active {
+  color: #302e29;
+  border-bottom: 3rpx solid #b5352a;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.chapter-select-action {
+  color: #b5352a;
+  font-size: 22rpx;
+  letter-spacing: 0.08em;
+}
+
+.record-select-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38rpx;
+  height: 38rpx;
+  margin-right: 14rpx;
+  border: 1rpx solid #c8c2b8;
+  border-radius: 50%;
+  color: #b5352a;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.record-select-mark--on {
+  border-color: #b5352a;
+  background: rgba(181, 53, 42, 0.08);
+}
+
+.record-select-mark--disabled {
+  color: #c8c2b8;
+  border-color: #ded8ce;
+}
+
+.card--selected {
+  box-shadow: 0 0 0 2rpx rgba(181, 53, 42, 0.22);
+}
+
+.card-chapter-name {
+  max-width: 220rpx;
+  margin-left: auto;
+  overflow: hidden;
+  color: #9e9890;
+  font-size: 20rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-compose {
+  margin: 28rpx 0 10rpx;
+  padding: 28rpx;
+  border: 1rpx solid rgba(157, 145, 131, 0.35);
+  background: rgba(255, 252, 247, 0.56);
+}
+
+.chapter-compose__heading {
+  margin-bottom: 20rpx;
+  color: #302e29;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 27rpx;
+}
+
+.chapter-compose__input,
+.chapter-compose__note {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 16rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #d8d0c5;
+  background: rgba(255, 255, 255, 0.42);
+  color: #302e29;
+  font-size: 25rpx;
+}
+
+.chapter-compose__note {
+  min-height: 96rpx;
+}
+
+.chapter-compose__placeholder {
+  color: #b7afa5;
+}
+
+.chapter-compose__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24rpx;
+}
+
+.chapter-compose__cancel {
+  color: #9e9890;
+  font-size: 23rpx;
+}
+
+.chapter-compose__submit {
+  padding: 16rpx 28rpx;
+  background: #b5352a;
+  color: #fffaf5;
+  font-size: 23rpx;
+}
+
+.chapter-compose__submit--loading {
+  opacity: 0.55;
+}
+
+.chapter-section-header {
+  margin-top: 16rpx;
+}
+
+.chapter-group {
+  margin-top: 28rpx;
+}
+
+.chapter-group__label {
+  display: block;
+  margin-bottom: 14rpx;
+  color: #9e9890;
+  font-size: 21rpx;
+  letter-spacing: 0.12em;
+}
+
+.chapter-card {
+  margin-bottom: 18rpx;
+  padding: 28rpx;
+  border-left: 4rpx solid #b5352a;
+  background: rgba(255, 252, 247, 0.74);
+  box-shadow: 0 8rpx 24rpx rgba(83, 67, 52, 0.06);
+}
+
+.chapter-card--ended {
+  border-left-color: #aaa197;
+  opacity: 0.88;
+}
+
+.chapter-card__top,
+.chapter-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.chapter-card__name {
+  color: #302e29;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 30rpx;
+}
+
+.chapter-card__status {
+  color: #b5352a;
+  font-size: 20rpx;
+}
+
+.chapter-card--ended .chapter-card__status {
+  color: #8f887f;
+}
+
+.chapter-card__note {
+  display: block;
+  margin-top: 16rpx;
+  color: #6b6560;
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.chapter-card__bottom {
+  margin-top: 22rpx;
+  color: #9e9890;
+  font-size: 20rpx;
 }
 </style>

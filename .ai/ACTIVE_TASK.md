@@ -4,12 +4,12 @@
 
 `ACTIVE`
 
-当前 active Type C change 为 P5.x `time-chapter-foundation`。Gate 1 已批准；业务实现、真实依赖、delta acceptance 与归档均未授权。
+当前 active Type C change 为 P5.x `time-chapter-foundation`。Gate 1 已批准；Gate 2 业务实现已授权；Gate 3a/3b 已通过；delta acceptance 与归档均未授权。
 
 - Active change：`openspec/changes/time-chapter-foundation/`
 - 最近归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
 - 前一归档：`openspec/changes/archive/2026-08-28-memory-agency/`
-- 当前闸门：Gate 1 `APPROVED`；Gate 2/3 `NOT AUTHORIZED`
+- 当前闸门：Gate 1 `APPROVED`；Gate 2 `IMPLEMENTATION AUTHORIZED`；Gate 3a/3b `PASS`
 - 提交责任：Agent 本地提交；不 push
 - 外部调用：P4.2 provider=0；R1 仅 1 次固定合成普通边界 provider 探针；无真实危机实验
 
@@ -90,7 +90,7 @@
   P3.1 `present-moment-capture` → P3.2 `data-ownership-foundation` →
   P4.1 `witness-agent-alignment` → P4.2 `memory-agency` → R1 `safety-response-minimum` →
   E1 `time-chapter-prototype`（有正证据才进入 P5.x）
-- **当前动作：IDLE**。H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
+- **历史方向状态**：H0 已完成；E0 因没有真实参与者以 `INCONCLUSIVE / SKIPPED` 收口，
   未选出 A/B/C 胜者；P3.1、P3.2、P4.1、P4.2 与 R1 均已归档。冻结序列下一项为
   E1 `time-chapter-prototype`；开始前必须新建独立规划 change，旧 Optional C0/C10/C11 继续证据触发
 - **C7 开工前必须注意的三件事**（来自 C6 closeout §9）：
@@ -143,6 +143,38 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-29 — **P5.x `time-chapter-foundation` Gate 3a/3b PASS**
+  - **Gate 3a MySQL**：用户以管理员权限启动 MySQL80 后，P5 migration 连续两次 PASS；information_schema 验证 2 表/13 字段、预期索引、3 个 CASCADE 复合/owner FK、CHECK、InnoDB/utf8mb4 exact-match
+  - **Real probe**：新增默认关闭的 `P5RealMySqlTimeChapterProbeTest`；真实 owner/unique/FK/transaction rollback、创建/加入/显式转移/结束/重开/删篇章、导出、删记录与 clear-all PASS；最终 synthetic users/records/chapters/relations/operations/artifacts 全为 0
+  - **Gate 3b Standard**：微信开发者工具 Stable v2.01.2510290，Standard 以两个独立 automation 会话完成篇章主矩阵和记录归属矩阵；scripted API 只证明 UI 状态机，不冒充真实 backend/provider
+  - **Gate 3b Preview**：固定篇章列表/详情与记录归属面板可见；创建、编辑、加入/转移/移出、结束/重开、删除均 fail-closed；两个独立 app-context 计数切片均 `totalRequests=0`、`timeChapterRequests=0`
+  - **Final regression**：backend 113 suites / 801 tests / 0 failures / 0 errors / 16 skipped；frontend type-check、Standard/Preview build PASS；`git diff --check`、denylist、Agent diff、credential scan PASS
+  - **Cleanup**：临时 `miniprogram-automator` 目录已删除，9420/9421 无监听；MySQL80 保持用户启动后的运行状态；真实 provider、对象存储与外部研究调用为 0
+  - **Evidence boundary**：物理真机 `SKIPPED`；OpenSpec CLI 不在 PATH；E1/目标用户价值仍 `INCONCLUSIVE`；开发者工具与工程 PASS 不外推为真机、用户价值或生产 SLA
+  - **Commit**：pending；用户已授权 Agent 本地提交，不 push
+  - **Next**：精确暂存并本地提交；T-69 等待用户 review，T-70～T-72 仍需 delta acceptance/archive 单独授权
+
+- **This session**: 2026-08-29 — **P5.x `time-chapter-foundation` Gate 3a/3b AUTHORIZED / ENVIRONMENT BLOCKED**
+  - **Authorization**：用户明确授权 Gate 3 与 Git；按既有提交责任解释为 Agent 本地 commit，不含 push/PR/deploy/release，也不包含 delta acceptance 或 archive
+  - **Preflight**：OpenSpec CLI 仍不在 PATH；本机 MySQL 8.0.41 与微信开发者工具均已定位，8080/3306/9420/9421 初始均未监听
+  - **Environment blocker**：`MySQL80` 已安装但停止；`Start-Service` 与 `net start` 均因管理员权限被拒，直接运行 `mysqld` 因 Data 目录 `OS errno 13` 退出，因此真实 migration、InnoDB 探针和依赖 backend 的 Standard 矩阵尚未执行，不能写为 PASS
+  - **Contract fix**：Gate 3 schema exact-match 预检发现并补齐 `time_chapter(user_id,created_at,id)` 索引，MySQL migration、完整 schema、H2 schema 与契约测试已同步；`P5SchemaContractTest` PASS
+  - **Evidence boundary**：真实 MySQL/Standard 仍 pending；物理真机无已连接可控设备，`SKIPPED`；Agent provider、对象存储、外部研究调用均为 0
+  - **Commit**：pending；待 Gate 3 完成后精确暂存并本地提交，不 push
+  - **Next**：由用户在管理员 PowerShell 执行 `Start-Service MySQL80`，确认 3306 已监听后继续 T-63/T-64/T-66；不得以 H2/build/开发者工具 readiness 替代真实结果
+
+- **This session**: 2026-08-28 — **P5.x `time-chapter-foundation` Gate 2 IMPLEMENTATION AUTHORIZED**
+  - **Authorization**：用户明确批准按 `tasks.md` 修改业务代码；Gate 3 真实 MySQL、微信开发者工具、物理真机、delta acceptance、归档、push、PR、deploy、release 均未授权
+  - **Implementation allowlist**：P5.x MySQL/H2 schema；time chapter domain/mapper/service/controller/DTO/VO/tests；record query VO 的 nullable chapter summary；P3.2 export/delete integration；frontend chapter types/service/store/pages/components、record-list/detail 局部入口、pages.json；本 change、ACTIVE_TASK、append-only AGENT_LOG
+  - **Implementation denylist**：真实 MySQL/微信/真机/对象存储/provider/research；delta acceptance、archive、push/PR/deploy/release；package/lockfile、deployment、monitoring、admin；Agent runtime/tool/prompt/memory/safety/provider；record 正文/位置/附件/封面/时间与 SEALED/UNLOCKED 规则；第四一级 Tab、自动归入、AI 命名/摘要/封面、目标/进度/结果/评分
+  - **Baseline**：backend focused 6 suites / 82 tests / 0 failures / 0 errors / 0 skipped；实现后 full 111 suites / 797 tests / 0 failures / 0 errors / 15 skipped（本地 H2/default-gated tests）；frontend `vue-tsc --noEmit`、Standard/Preview `mp-weixin` build PASS
+  - **Scope check**：T-17 PASS；package/lockfile、deployment、monitoring、admin、Agent runtime/prompt/tool/memory 无 diff；前端 bundled `pnpm` 因会删除重装现有 node_modules 未执行，使用已存在 `.bin` 直接验证
+  - **Verification boundary**：仅执行本地离线/H2、编译、构建、静态范围/隐私检查；真实依赖与真实交互按用户授权保持 SKIPPED
+  - **Commit**：pending；沿用 Agent 本地提交责任，不 push
+  - **Current result**：T-18～T-61b 已完成 Gate 2 离线实现、代码审查与修复；复合 owner FK、全局 chapter→record 锁顺序、并发 409、Preview 会话互斥、分页续载、endedAt 与冲突刷新均已补齐；真实 InnoDB race/deadlock、真实 Preview request count 仍待 Gate 3 授权；T-62～T-73 保持未执行
+  - **Final verification**：审查修复 focused 6 suites / 25 tests / 0 failures / 0 errors / 0 skipped；full 112 suites / 800 tests / 0 failures / 0 errors / 15 skipped；frontend type-check、Standard/Preview build 与 `git diff --check` PASS
+  - **Remaining boundary**：OpenSpec CLI、真实 MySQL/微信开发者工具/物理真机、真实工具 request count、delta acceptance、archive、push、PR、deploy、release 均保持 SKIPPED/未执行
 
 - **This session**: 2026-08-28 — **P5.x `time-chapter-foundation` Gate 1 PLANNING READY**
   - **Product governance**：真实参与者仍为 0，E1 保持 `INCONCLUSIVE`；产品负责人显式豁免正证据进入条件，决定先完成最小产品、再以未来真实使用优化
