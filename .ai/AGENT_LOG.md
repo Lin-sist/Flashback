@@ -8432,3 +8432,14 @@ Commit: pending
 - **Risks**：真实 MySQL 与开发者工具仅为本机小样本，不形成生产并发/容量/SLA；Standard 使用 scripted API，真实 backend 业务语义由独立 MySQL probe 证明；物理真机触控/尺寸/键盘仍无证据
 - **Commit**：pending（Agent 本地提交；不 push）
 - **Next**：精确暂存并提交；等待用户 T-69 review，delta acceptance、closeout 与 archive 仍需另行授权
+
+## 2026-08-29｜time-chapter-foundation Gate 3 本地提交补录｜Type C
+
+- **Scope**：P5 时间篇章实现、真实 MySQL/微信开发者工具验收探针、Gate 3 证据与 active handoff；不接受 delta、不归档、不 push/PR/deploy/release
+- **Changes**：按已授权提交责任完成本地实现提交；`tasks.md` 将 T-73 标记完成，`ACTIVE_TASK.md` 补录提交锚点
+- **Verification**：提交前 `git diff --cached --check` PASS；主提交为 62 files changed / 4637 insertions / 87 deletions；最终回归保持 backend 113 suites / 801 tests / 0 failures / 0 errors / 16 skipped，frontend type-check 与 Standard/Preview build PASS
+- **Skipped**：物理真机无可控设备；OpenSpec CLI 不在 PATH；E1 无真实参与者，均不因本地提交改变证据状态
+- **Scope safety**：未修改 package/lockfile、deployment、monitoring、admin、Agent runtime/tool/prompt/memory/safety/provider、accepted baseline 或冻结蓝图
+- **Risks**：本机 MySQL 与开发者工具小样本不等于生产并发/容量/SLA；物理真机交互与目标用户价值仍无正证据
+- **Commit**：`f4a088f feat(time-chapter): 完成P5时间篇章基础`；未 push
+- **Next**：等待用户完成 T-69 review；T-70～T-72 的 delta acceptance、closeout 与 archive 需要另行明确授权

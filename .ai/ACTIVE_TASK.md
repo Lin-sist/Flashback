@@ -152,8 +152,8 @@
   - **Final regression**：backend 113 suites / 801 tests / 0 failures / 0 errors / 16 skipped；frontend type-check、Standard/Preview build PASS；`git diff --check`、denylist、Agent diff、credential scan PASS
   - **Cleanup**：临时 `miniprogram-automator` 目录已删除，9420/9421 无监听；MySQL80 保持用户启动后的运行状态；真实 provider、对象存储与外部研究调用为 0
   - **Evidence boundary**：物理真机 `SKIPPED`；OpenSpec CLI 不在 PATH；E1/目标用户价值仍 `INCONCLUSIVE`；开发者工具与工程 PASS 不外推为真机、用户价值或生产 SLA
-  - **Commit**：pending；用户已授权 Agent 本地提交，不 push
-  - **Next**：精确暂存并本地提交；T-69 等待用户 review，T-70～T-72 仍需 delta acceptance/archive 单独授权
+  - **Commit**：`f4a088f feat(time-chapter): 完成P5时间篇章基础`；未 push
+  - **Next**：T-69 等待用户 review；T-70～T-72 仍需 delta acceptance/archive 单独授权
 
 - **This session**: 2026-08-29 — **P5.x `time-chapter-foundation` Gate 3a/3b AUTHORIZED / ENVIRONMENT BLOCKED**
   - **Authorization**：用户明确授权 Gate 3 与 Git；按既有提交责任解释为 Agent 本地 commit，不含 push/PR/deploy/release，也不包含 delta acceptance 或 archive
