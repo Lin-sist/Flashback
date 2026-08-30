@@ -44,6 +44,19 @@ Next:
 
 - ...
 
+## 2026-08-30｜frontend-visual-language-evolution 分阶段提交补录｜Type B
+
+- **Scope**: 本轮工作树分阶段提交的哈希补录；不修改任何既有日志条目
+- **Changes**: 将 2026-08-30 各会话遗留工作与本轮 brief v2 修订按内容分四个阶段提交，随后本条补录哈希：
+  - `docs(openspec): 规划前端视觉语言演进` → `874a6df`（Gate 1 规划工件：proposal/design/tasks/.openspec.yaml 与 miniapp-core、v2-product-scope 两份 delta，6 文件 +411）
+  - `docs(design): 建立视觉四方向规划与OpenDesign brief v2` → `4190457`（PLAN/STYLE_DIRECTIONS/MOTION_REFERENCE/OPENDESIGN_BRIEF v2，4 文件 +236）
+  - `docs(demo): 添加纸上留白本地原型与品牌规范` → `f05f76f`（合成内容 HTML 原型与 brand-spec，2 文件 +456）
+  - `docs(agent): 补录视觉语言探索会话与brief v2修订` → `b04564f`（ACTIVE_TASK 七条会话进展、AGENT_LOG 九条既有 pending 条目落库）
+- **Verification**: PASS——提交均成功；未 push（未获授权）；提交前已扫描未跟踪目录无 secret、无本机用户路径
+- **Risks**: `demo/` 目录无任何会话日志来历记录（2026-08-30 各会话均登记“未创建 demo 目录”），推断为更早的手工产物，已如实单独入库提请用户知悉；`main` 现领先 `origin/main` 5 个提交（含此前未推送的 `46ca361`），push 须另行授权
+- **Commit**: 上列四哈希即本条补录对象；本条随收尾提交入库
+- **Next**: 用户新开 Open Design 会话，按 brief v2 §0 通读后重新生成四方向可比原型
+
 ## 2026-08-30｜frontend-visual-language-evolution｜Type B
 
 - **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（升版 v2）；`.ai/ACTIVE_TASK.md`（仅追加 Current Progress 一条）；`.ai/AGENT_LOG.md`（仅追加本条）
