@@ -2,16 +2,16 @@
 
 ## Status
 
-`IDLE`
+`ACTIVE`
 
-当前无 active Type C change。P5.x `time-chapter-foundation` 已于 2026-08-29 完成 Gate 1–3、delta acceptance 与归档。后续 change 必须重新从 IDLE 走独立规划闸；本轮授权不继承。
+当前唯一 active Type C change 为 `frontend-visual-language-evolution`。用户已批准 Gate 1 规划工件与 Gate 2 实现授权；业务代码执行仍须等待 Open Design 可比原型和主视觉方向锁定。不继承任何旧 change 的外调、提交、归档或发布授权。
 
-- Active change：none
+- Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
-- 当前闸门：IDLE；无实现授权向后继承
-- 提交责任：P5 主实现本地提交 `f4a088f`、证据补录 `c161ffd` 已完成；本轮归档未获提交授权，不 stage/commit/push
-- 外部调用：P4.2 provider=0；R1 仅 1 次固定合成普通边界 provider 探针；无真实危机实验
+- 当前闸门：Gate 1 规划工件已批准，方向选择子闸仍 pending；Gate 2 已授权但尚未开工
+- 提交责任：默认用户手动提交；本 change 未获 `git add` / commit / push 授权
+- 外部调用：仅公开 Inspora/Awwwards 研究；Open Design Cloud 未启动；`open-design` MCP 已可调用，Local Codex 递归加载该 MCP 导致的桌面接管/EPIPE 冲突已做本地隔离修复；当前任务的旧 MCP transport 已关闭，原型重试仍须新任务；真实用户内容、真实 Agent provider、对象存储调用均为 0
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
 **Phase 2 第一刀 C6 `agent-eval-framework` 已于 2026-07-31 归档。**
@@ -144,6 +144,69 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-08-30 — **OPENDESIGN_BRIEF 升版 v2：并入“位置/房间”气质底线与必读文件**
+  - **Trigger**：用户评审 gpt5.6sol + Open Design 三稿首页，判定杂志/出版物隐喻气质错位（出版物家具、已保存记录占据视觉中心、满页分隔线、纸上留白稿混入馆藏语汇）；经宪章对照讨论后决定新开会话重新设计
+  - **Changes**：`Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md` 升版 v2——新增 §0 必读文件（宪章重点章节、蓝图仅 §9.4、STYLE_DIRECTIONS）与冲突优先级；§2 四方向共同产品气质底线 6 条（首页是位置/房间与 3 秒检验、留下此刻为视觉重心、最近片段“安放不展出”、系统声音最小化、时间只以现在出现、强调色只服务动作）；§3 上一轮失败教训；§9 Avoid 扩展出版物家具等禁项；§10 增加 §2 逐条自检
+  - **Boundary**：Type B 规划文档修订；四方向结构、固定导航命名、动效目标、合成内容边界未变；STYLE_DIRECTIONS.md 与其余规划文件未改；frontend/backend/package/lockfile/accepted baseline 无 diff；真实用户内容、secret、provider/对象存储调用均为 0
+  - **Commit**：pending；默认用户手动提交
+  - **Next step**：用户新开 Open Design 会话，先令其通读 brief §0 三个文件再按 v2 重新生成四方向可比原型；方向选择子闸仍 pending，主方向锁定后才落既有 Gate 2 实现授权
+
+- **This session**: 2026-08-30 — **“纸上留白”Local Codex 重试因 daemon restart 失败**
+  - **Requested scope**：继续现有“纸上留白”方向，只生成首页、记录编辑器、时光轴三个移动端关键帧；固定合成内容；不修改 Flashback 业务代码
+  - **Mode / brief**：保持 Local Codex，不进入 Open Design Cloud 登录或 credits；需求卡再次错误回填“网页应用”，生成 prompt 已以用户明确确认的“移动应用/小程序应用、一个核心流程、精致产品界面”覆盖
+  - **Execution**：新建独立项目 `Flashback 纸上留白移动端原型 2026-08-30 重试`，启动一次新的逻辑生成；未复用上一轮失败 run 或空项目
+  - **Generation result FAILED**：run 在约 6 秒后因 daemon restart 以 `DAEMON_RESTARTED` 终止，`artifactCount=0`；独立复核项目文件 0、`entryFile=null`，无 Preview/Studio 成品链接
+  - **Verification boundary**：未生成首页/编辑器/时光轴、两项动效或静态降级说明；T-17/T-18/T-19 继续 pending，不以空项目、需求确认或失败 run 作为视觉证据
+  - **Scope safety**：未修改 frontend/backend/package/lockfile/accepted baseline；未使用真实日记、真实媒体、账号、位置或 secret；未调用 Open Design Cloud、backend provider 或对象存储
+  - **Commit**：pending；本次失败检查点不提交、不 push
+  - **Next step**：不得自动创建第三次逻辑生成；先稳定 Open Design daemon 生命周期，再由用户确认重试 Local Codex，或由用户明确选择切换到 Open Design Cloud / secure BYOK
+
+- **This session**: 2026-08-30 — **“纸上留白”Local Codex 生成链路已打通，单次 run 因本地运行时关闭而终止**
+  - **Requested scope**：读取现有 `OPENDESIGN_BRIEF.md`、`PLAN.md`、`STYLE_DIRECTIONS.md`；只生成首页、记录编辑器、时光轴三个移动端关键帧；固定合成内容；不修改 Flashback 业务代码
+  - **Mode / brief**：保持 Local Codex，不进入 Open Design Cloud 登录或 credits；用户已确认“移动应用/小程序应用、一个核心流程、精致产品界面”。需求卡 skip 路径错误回填网页默认值，生成 prompt 已按用户明确选择校正为移动端，不重复创建第二份 brief
+  - **MCP verification PASS**：新任务可调用完整 Open Design 工具；Local Codex 可用且已认证；T-15b 完成
+  - **Generation result CANCELED**：新建 `Flashback 纸上留白移动端原型` 项目并启动唯一一次生成；运行约 48 秒后 Open Design 本地运行时关闭，任务以 `daemon_shutdown` 终止，`artifactCount=0`、项目文件 0、无 entry file、无 Preview/Studio 成品链接
+  - **Verification boundary**：Local Codex 已实际启动并产生模型输出，但未写入原型文件；不得把空项目、运行中 Studio 地址或需求确认写成已生成关键帧，T-17/T-18/T-19 保持 pending
+  - **Scope safety**：未调用 Open Design Cloud account/credits；未修改 frontend/backend/package/lockfile/accepted baseline；未使用真实日记、真实媒体、账号、位置或 secret；backend provider 与对象存储调用为 0
+  - **Commit**：pending；用户允许按需中文 commit，本次失败检查点不提交、不 push
+  - **Next step**：由用户明确要求重试后，保持同一人类可读 brief、Local Codex、移动端与合成内容边界，建立新的逻辑生成；不得静默切换 Open Design Cloud 或以手写原型冒充 Open Design 结果
+
+- **This session**: 2026-08-30 — **“纸上留白”Local Codex 原型生成受本地运行时阻断**
+  - **Requested scope**：只生成首页、记录编辑器、时光轴三个移动端关键帧；固定合成内容；不修改 Flashback 业务代码
+  - **Mode**：用户明确选择 Local Codex，不使用 Open Design Cloud；需求卡已确认并校正为“移动应用/小程序应用、一个核心流程、精致产品界面”，未进入 Cloud 登录或 credits 流程
+  - **MCP verification**：当前任务已可调用 `open-design` 的 brief 工具，但 project/agent/run 工具无法连接 `127.0.0.1:7456`，因此 T-15b 仍未完成
+  - **Root cause**：旧条目用系统 Node 24 启动官方 daemon CLI，`better-sqlite3` 的 ABI 145 与 Node ABI 137 不兼容；官方 `--headless --mcp-install codex` 已将单个 MCP 条目改回签名 `Open Design.exe`
+  - **Remaining blocker**：当前任务仍持有旧 MCP 进程快照；桌面实例使用动态本地端口，无法被本任务中的旧代理访问。安全检查拒绝强制结束所有同名进程，避免中断潜在未保存会话
+  - **Verification SKIPPED**：未创建 Open Design project、未调用 `start_run`、未生成关键帧/预览链接、未创建 demo 目录
+  - **Scope safety**：frontend/backend/package/lockfile/accepted baseline 均未修改；真实用户日记、媒体、账号、secret、真实 Agent provider 与对象存储调用均为 0
+  - **Next step**：在新 Codex 任务加载修正后的签名 MCP 入口后，复用本轮已确认的人类可读 brief，重新建立一次 attributed workflow 并生成“纸上留白”三关键帧
+
+- **This session**: 2026-08-30 — **Open Design MCP 全局注册完成，等待新任务热加载**
+  - **User state**：用户确认 Open Design 已登录并完成 Codex 配置，客户端可选择 5.6 Sol
+  - **Installer finding**：Open Design 0.21.0 官方安装器最初写入 `command=od`，但真实用户 PATH 无 `od`，该条目无法启动；未保留这个不可执行配置
+  - **MCP fix**：仅替换 `open-design` 条目，改用 `C:\Program Files\nodejs\node.exe` 启动安装包内 `daemon-cli.mjs mcp`；其它 MCP 条目保持不变
+  - **Verification PASS**：真实用户 `CODEX_HOME=C:\Users\Lin\.codex`、config parse ok、4 个 MCP；`codex mcp get open-design --json` 显示 enabled=true，官方 stdio 启动器帮助可解析
+  - **Hot-load boundary**：当前任务工具快照尚无 `open-design` callable；按插件要求需启动一个新 Codex 任务完成 T-15b
+  - **Scope safety**：未修改 frontend/backend/package/lockfile/accepted baseline；未读取或写入 Open Design/Codex credential，未调用模型生成、对象存储、commit、push 或部署
+
+- **This session**: 2026-08-30 — **Gate 1 / Gate 2 已授权，Open Design 与方向选择前置阻断**
+  - **Authorization**：用户明确批准 Gate 1 规划工件和 Gate 2；实现授权只适用于最终选定方向，不包含 commit、push、PR、deploy、release、delta acceptance 或 archive
+  - **Open Design check**：插件技能包存在，但 `codex mcp get open-design --json` 返回未注册；未检测到 Open Design/`od` 可执行程序，官方下载安装页已再次请求在 Codex 右侧打开
+  - **Gate ordering**：四方向原型、评审与主方向锁定尚未完成；不把 Gate 2 授权解释为 Agent 可以任选四个方向直接实现
+  - **Execution**：本轮没有调用 Open Design Cloud、没有消耗 account/credits、没有修改前端业务代码
+  - **Next step**：安装并注册 Open Design 后启动新任务；确认 brief，生成四方向同切片原型，锁定主方向后按既有 Gate 2 授权开工
+
+- **This session**: 2026-08-30 — **`frontend-visual-language-evolution` Gate 1 规划草案已建立**
+  - **Readiness**：从 `ACTIVE_TASK=IDLE` 建立唯一 active Type C change；既有 M1 固定高保真合同保持只读，本 change 作为多方向视觉语言探索的后继规划
+  - **Research**：以公开页面整理 Awwwards 的编辑索引、时间滚动、文字揭示、卡片堆叠与图像转场；Inspora 动态画廊受 Vercel checkpoint 限制，逐项视觉结论保持未核验
+  - **Artifacts**：完成 proposal/design/tasks、miniapp-core 与 v2-product-scope delta，以及 `Docs/design/frontend-visual-language-evolution/` 下四份规划、方向、动效与 Open Design brief
+  - **Directions**：候选为“纸上留白 / 私人馆藏 / 生命剪贴 / 暮色回声”；使用相同首页、记录编辑器、时光轴切片和合成内容比较，不作为四套生产主题
+  - **Open Design**：官方下载安装页已请求在 Codex 右侧打开；当前任务未发现 `open-design` MCP，Cloud 生成、account/credits 使用与任何正式原型均未启动
+  - **Validation**：9 个必需规划文件、7 Requirements / 11 Scenarios、14 done / 29 pending tasks、尾随空白、credential pattern、`git diff --check` 文件级验证 PASS；OpenSpec CLI 不在 PATH，CLI validation `SKIPPED`
+  - **Boundary**：未修改前端业务代码、package/lockfile、backend、Agent、accepted baseline、部署或冻结蓝图；真实用户内容、真实媒体、secret 与 provider/object storage 外调均为 0
+  - **Blocked on**：当前任务无法调用 Open Design；需安装/注册完成后在新任务确认 brief，再生成四方向可比原型并由用户锁定主方向
+  - **Next step**：完成 T-15b～T-23 并由用户锁定方向；Gate 2 已授权，方向子闸完成后即可按既有授权修改业务代码
 
 - **This session**: 2026-08-29 — **P5.x `time-chapter-foundation` ACCEPTED / ARCHIVED**
   - 复核唯一 active change、clean `main...origin/main`、实现提交、Gate 3 证据、tasks 与 delta 后，确认本轮工程迭代完成
