@@ -44,6 +44,19 @@ Next:
 
 - ...
 
+## 2026-09-06｜frontend-visual-language-evolution 方向转向：锁定「信笺×微液态玻璃」｜Type B
+
+- **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（重写 v3.0）；`.ai/ACTIVE_TASK.md`（闸门状态＋Current Progress）；`.ai/AGENT_LOG.md`（本条）；`.gitignore`（忽略 `/2.0页面效果/`）
+- **Changes**:
+  - 访谈定位：用户评审第四轮原型（仓外 flashback-four-directions4.html）后仍不满意且无法具体化；grill 式逐条访谈判定为"感受层"缺口——参照物不在 A/B/C/D 候选集内，而是现行 2.0 前端的书信质感（折角信卡、红圆印封/阅、存档编号、封存霜模糊卡、竖排侧注、"时间的旅人"语汇）
+  - 用户裁决：停止四方向选择，以 2.0 为基底走"信笺纸×微液态玻璃"融合；四方向原型降级为元素供体；主方向选择子闸就此收口
+  - brief v3.0 承载访谈全部裁决：材质故事三句（纸=世界/玻璃=动作与暂时之物/霜=被封存时间）；玻璃剂量地图（药丸=动作、取景框=位置、Tab/浮层轻玻璃、内容卡禁玻璃、本轮无深色模式、微信 backdrop-filter 须暖纸实色降级）；信笺家具 7 条（红印升格、折角限权、编号统一汉字式、倒计时改静态期待、MEMORY 删、竖排侧注软文案、预计解锁保留）；首页融合结构（2.0 叙事＋取景框空位）；书写页"附言"收敛；已保存页信卡化＋落印；个人中心门厅（保管事实并句、"整理成一封近况"、托管凭证卡＋"守"印）；落印/融霜两枚签名动效；Tab 恢复规范名"个人中心"；时间语法统一为"抵达"
+  - Git：用户本轮明确授权 Agent 本地 commit（不含 push）；v2.1–v2.3 积压按内容分笔补录后提交 v3.0 转向，工作树恢复 clean
+- **Verification**: PASS——tracked 文件无 secret、无本机绝对路径、无真实用户内容；`2.0页面效果/` 截图含疑似真实日记原文，已 gitignore 且其内容未复述进任何 tracked 文件（brief §11 显式禁止）；frontend/backend/package/lockfile/accepted baseline 无 diff
+- **Risks**: `backdrop-filter` 在微信 Skyline/Android WebView 支持不一，玻璃观感须真机验证（本轮 SKIPPED——属后续实现验收）；brief v3.0 未经 Open Design 生成回归，方向成立性待五帧＋材质放大稿验证；v2.1–v2.3 工艺纪律部分被 v3.0 吸收、部分废止，冲突时以 v3.0 为准
+- **Commit**: 分五笔——`d6931d9` docs(design): brief迭代至v2.3；`9b4bc4f` docs(agent): 补录v2.1-v2.3评审会话记录；`7f680ac` chore: 忽略本地页面效果参考目录；D `docs(design): 锁定信笺纸×微玻璃方向并重写brief v3.0`；E 本条所在记录提交（hash 以 git log 为准）
+- **Next**: 用户复核 brief v3.0 文本 → 下一轮 Open Design（Local Codex）按 §10 生成单方向五帧＋三张材质放大稿 → 用户确认后按既有 Gate 2 授权进入实现
+
 ## 2026-08-30｜frontend-visual-language-evolution brief v2.3 Apple 工艺基准｜Type B
 
 - **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（升版 v2.3）；`.ai/ACTIVE_TASK.md`（追加 Current Progress）；`.ai/AGENT_LOG.md`（追加本条）

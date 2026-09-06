@@ -9,8 +9,8 @@
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
-- 当前闸门：Gate 1 规划工件已批准，方向选择子闸仍 pending；Gate 2 已授权但尚未开工
-- 提交责任：默认用户手动提交；本 change 未获 `git add` / commit / push 授权
+- 当前闸门：Gate 1 规划工件已批准；方向选择子闸已收口（2026-09-06 用户访谈裁决锁定「信笺×微液态玻璃」单方向，brief 重写 v3.0）；Gate 2 实现授权维持，仍待 v3.0 执行轮产物经用户确认后开工
+- 提交责任：2026-09-06 用户已授权 Agent 本地 commit（不含 push）；v2.1–v2.3 积压与 v3.0 转向已分五笔按内容提交，工作树 clean
 - 外部调用：仅公开 Inspora/Awwwards 研究；Open Design Cloud 未启动；`open-design` MCP 已可调用，Local Codex 递归加载该 MCP 导致的桌面接管/EPIPE 冲突已做本地隔离修复；当前任务的旧 MCP transport 已关闭，原型重试仍须新任务；真实用户内容、真实 Agent provider、对象存储调用均为 0
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -144,6 +144,14 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-09-06 — **方向转向：锁定「信笺×微液态玻璃」，brief 重写 v3.0；分阶段提交 v2.1–v2.3 积压**
+  - **Trigger**：用户评审第四轮原型（仓外 flashback-four-directions4.html）后仍不满意且无法具体化；经 grill 式访谈定位为"感受层"缺口——参照物不在 A/B/C/D 候选集内，而是现行 2.0 前端的书信质感（折角信卡、红圆印封/阅、存档编号、封存霜卡、竖排侧注、"时间的旅人"语汇）；用户确认以 2.0 为基底、在宣纸极简与液态玻璃之间找平衡，并授权停止四方向选择
+  - **访谈裁决（全部经用户逐条确认）**：玻璃剂量地图（纸=世界材质/玻璃=动作与暂时之物/霜=被封存时间；药丸=动作、取景框=位置；Tab 与浮层轻玻璃；内容卡禁玻璃；本轮无深色模式）；首页融合结构（2.0 叙事＋取景框空位，v4 降级为元素供体）；信笺家具 7 条（红印升格、折角限权、编号统一汉字式、倒计时改静态期待、MEMORY 删、竖排侧注软文案、预计解锁保留）；个人中心门厅（数字并成保管事实句、阶段总结改"整理成一封近况"、托管凭证卡配"守"印）；书写页附言收敛；保存"落印"与抵达"融霜"两枚签名动效；Tab"我的"恢复规范名"个人中心"
+  - **Changes**：`OPENDESIGN_BRIEF.md` 重写 v3.0（单方向精修：材质故事/剂量地图/家具规范/动效规范/九屏要求/材质细则/合规命名/五帧+三张材质放大稿交付定义）；`.gitignore` 忽略 `2.0页面效果/`（该目录含疑似真实日记原文截图，仅限本机参考，永不入库）
+  - **Git**：用户本轮明确授权 commit（不含 push）。分五笔按内容提交：A `d6931d9` brief 迭代至 v2.3；B `9b4bc4f` 补录 v2.1–v2.3 评审记录；C `7f680ac` gitignore 隔离截图目录；D brief v3.0；E 本条与 AGENT_LOG 记录；工作树恢复 clean
+  - **Boundary**：Type B 规划文档修订；frontend/backend/package/lockfile/accepted baseline 无 diff；真实 provider/对象存储调用 0；截图真实文字未复述进任何 tracked 文件
+  - **Next step**：用户复核 brief v3.0 文本 → 下一轮 Open Design（Local Codex）按 §10 生成单方向五帧＋三张材质放大稿 → 用户确认后按既有 Gate 2 授权进入实现
 
 - **This session**: 2026-08-30 — **brief 升版 v2.3：首页头部词语/中部死区/个人中心重设计/Apple 工艺基准**
   - **Trigger**：用户评审第三轮原型（仓外 flashback-four-directions3.html），指出：“我的记录”一词出现在首页头部即是突兀来源（词错非仅字号错）；书写面与最近留下卡片之间死区过大（源码为 `.recent{margin-top:auto}` 撑空）；个人中心形同敷衍（裸列表＋箭头的 iOS 设置皮肤）；决定采用 Open Design 的 Apple 设计系统重做一轮
