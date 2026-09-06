@@ -145,6 +145,30 @@
 
 ## Current Progress
 
+- **This session**: 2026-08-30 — **brief 升版 v2.3：首页头部词语/中部死区/个人中心重设计/Apple 工艺基准**
+  - **Trigger**：用户评审第三轮原型（仓外 flashback-four-directions3.html），指出：“我的记录”一词出现在首页头部即是突兀来源（词错非仅字号错）；书写面与最近留下卡片之间死区过大（源码为 `.recent{margin-top:auto}` 撑空）；个人中心形同敷衍（裸列表＋箭头的 iOS 设置皮肤）；决定采用 Open Design 的 Apple 设计系统重做一轮
+  - **Agent 立场**：借 Apple 工艺（8pt 网格、字阶对比、控件一致性、动效纪律），不借 Apple 身份（#0071E3 蓝、#F5F5F7 冷灰、SF Pro 替宋体、iOS 控件皮肤）——蓝图 §9.4 冻结的纸暖气质与朱砂符号不可让渡
+  - **Changes**：OPENDESIGN_BRIEF.md 升版 v2.3——§11.1 新增第 7 条（“我的记录”退出首页头部，顶部仅小号“时光回序”字标或留空）与第 8 条（中部死区禁令：最近留下紧跟书写面 24–28px，余白留底部）；§12.7 重写为个人中心重新设计（三区结构：身份与保管陈述/记录与时间/数据与信任，数据与所有权为突出信任锚点，禁 iOS 设置皮肤）；新增 §13 Apple 工艺基准映射（§13.1 借工艺三条、§13.2 不借身份四条、§13.3 强制令牌覆盖）；§0 优先级改为附录间以编号大者为准；§11.5 自检范围扩至 §13
+  - **Boundary**：Type B 规划文档修订；仅改 brief 与 .ai 记录；frontend/backend/package/lockfile/accepted baseline 无 diff；真实用户内容、secret、provider/对象存储调用均为 0
+  - **Commit**：pending；v2.1/v2.2/v2.3 三轮 brief 修订均未提交，积压等待用户指示（push 未授权）
+  - **Next step**：用户以 Apple 设计系统运行 v2.3 修订 prompt；本轮应作为收敛轮，完成后按 STYLE_DIRECTIONS 五条标准锁定主方向，避免原型无限迭代
+
+- **This session**: 2026-08-30 — **brief 升版 v2.2：质感工艺清单与个人中心切片补齐**
+  - **Trigger**：用户评审第二轮原型（仓外 flashback-four-directions2.html），认定整体较好了但细节不足、偏朴素；首页“我的记录”与“人”按钮突兀、标语被改得过小（走了另一个极端）；时光轴等页面也有不同程度问题；并确认个人中心页未做
+  - **Diagnosis**：源码核实——头像按钮为汉字“人”冒充图标；标语被并入 11px meta 行（§11.1.2“一行小字”措辞被极端执行，指令责任在 Agent）；色阶差约 1–3%、字阶挤平、Tab 激活态朱砂被改中性、A 方向照片带 saturate(.76) 压灰滤镜、阴影 4–6% 骑墙、间距等距——六笔工艺欠账构成“朴素”观感；时光轴章节处三重重读叠加
+  - **Changes**：OPENDESIGN_BRIEF.md 升版 v2.2——§11.1 第 2 条改为承诺句三档层级（主角/中层 14px 宋体独立行/meta 11px，精确到数值）；§11.1 新增第 6 条页头降噪（线性 SVG 人形图标禁汉字冒充、标题降 12–13px muted）；§11.3 新增第 5 条章节重音收敛；新增 §12 质感工艺（色阶/字阶/朱砂点位含 Tab 激活态恢复/照片还原/阴影定档 10–14%/间距节奏）与 §12.7 个人中心切片（身份区＋安静入口列表，禁设置后台感）；§4 artifact 扩为四张关键界面；§0 优先级补 §12 优于 §11
+  - **Boundary**：Type B 规划文档修订；仅改 brief 与 .ai 记录；frontend/backend/package/lockfile/accepted baseline 无 diff；真实用户内容、secret、provider/对象存储调用均为 0
+  - **Commit**：pending；含上一轮 v2.1 修订仍未提交，等待用户指示（push 未授权）
+  - **Next step**：用户将 v2.2 修订 prompt 交给设计 agent 执行第二轮提质与个人中心补齐；方向选择子闸仍 pending
+
+- **This session**: 2026-08-30 — **brief 升版 v2.1：并入首页/时光轴第一轮迭代附录**
+  - **Trigger**：用户评审第一轮四方向原型（仓外 flashback-four-directions.html），认定整体大进步、编辑器时刻卡片语言成立，但观感未达标：首页书写面层级倒置、图片/声音无可供性、“最近留下”过简；时光轴脊柱日期与节点互相遮挡、条目展示过简
+  - **Diagnosis**：对原型源码核实，theme B 脊柱日期标签（left:-52px、宽 38px）与方块节点（left:-23px）重叠约 8px，属布局缺陷；首页为承诺句 32px 占主角、书写面退化为横线＋灰 placeholder 的层级倒置
+  - **Changes**：OPENDESIGN_BRIEF.md 升版 v2.1——新增 §11 迭代附录：11.0 两句验收标准（首页=被标出的空位、时光轴=节奏跟随内容）；11.1 首页五条（书写面=位置本体、承诺句降级、媒体可供性、最近留下=时刻卡片、空状态）；11.2 时刻卡片全局组件与禁则；11.3 时光轴四条（脊柱重构两方案、节点最多两态、内容形态节奏、分割线退役）；11.4 动效边界（签名动效=时间轴本身，禁视差堆叠/滚动劫持/循环动画）；11.5 逐条自检；§0 优先级补 §11 从属于 §2
+  - **Boundary**：Type B 规划文档修订；仅改 brief 与 .ai 记录；四方向结构与既有边界未变；frontend/backend/package/lockfile/accepted baseline 无 diff；真实用户内容、secret、provider/对象存储调用均为 0
+  - **Commit**：pending；本轮修订尚未提交，等待用户指示（push 未授权）
+  - **Next step**：用户将修订 prompt 交给设计 agent，按 §11 只修订首页与时光轴；方向选择子闸仍 pending
+
 - **This session**: 2026-08-30 — **OPENDESIGN_BRIEF 升版 v2：并入“位置/房间”气质底线与必读文件**
   - **Trigger**：用户评审 gpt5.6sol + Open Design 三稿首页，判定杂志/出版物隐喻气质错位（出版物家具、已保存记录占据视觉中心、满页分隔线、纸上留白稿混入馆藏语汇）；经宪章对照讨论后决定新开会话重新设计
   - **Changes**：`Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md` 升版 v2——新增 §0 必读文件（宪章重点章节、蓝图仅 §9.4、STYLE_DIRECTIONS）与冲突优先级；§2 四方向共同产品气质底线 6 条（首页是位置/房间与 3 秒检验、留下此刻为视觉重心、最近片段“安放不展出”、系统声音最小化、时间只以现在出现、强调色只服务动作）；§3 上一轮失败教训；§9 Avoid 扩展出版物家具等禁项；§10 增加 §2 逐条自检

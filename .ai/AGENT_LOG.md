@@ -44,6 +44,44 @@ Next:
 
 - ...
 
+## 2026-08-30｜frontend-visual-language-evolution brief v2.3 Apple 工艺基准｜Type B
+
+- **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（升版 v2.3）；`.ai/ACTIVE_TASK.md`（追加 Current Progress）；`.ai/AGENT_LOG.md`（追加本条）
+- **Changes**:
+  - 背景：用户评审第三轮原型（仓外 flashback-four-directions3.html），指出“我的记录”出现在首页头部本身即突兀（词错，非字号错）；书写面与最近留下之间死区过大；个人中心敷衍（iOS 设置皮肤）；决定采用 Open Design 的 Apple 设计系统
+  - 诊断入档（源码核实）：首页标题为 `app-title` 文本节点“我的记录”；中部死区来自 `.recent{margin-top:auto}`；个人中心为 `profile-list` 裸行＋箭头
+  - Agent 立场写入 brief：借 Apple 工艺、不借 Apple 身份，冻结的纸暖气质与朱砂不可让渡
+  - brief v2.3：§11.1-7 首页头部词语（“我的记录”退出首页，顶部小号“时光回序”字标或留空）；§11.1-8 中部死区禁令（最近留下紧跟书写面 24–28px，余白留底部）；§12.7 个人中心重新设计（三区结构、数据与所有权为突出信任锚点、禁 iOS 设置皮肤、命名校正为“我的记录”）；新增 §13 Apple 工艺基准映射（借/不借/强制令牌覆盖）；§0 优先级附录间以编号大者为准；§11.5 自检扩至 §13
+- **Verification**: PASS——`git diff --check` PASS；无 secret、无本机绝对路径、无真实用户内容；业务代码与 baseline 无 diff
+- **Risks**: Apple 系统若未按 §13.3 覆盖令牌会输出 iOS 通用观感，评审时须核对配色与字体；v2.1/v2.2/v2.3 三轮修订均未提交，积压待用户指示；原型连续三轮迭代，方向锁定时点渐近
+- **Commit**: pending（用户手动或另行授权）
+- **Next**: 用户以 Apple 设计系统运行 v2.3 prompt；完成后按 STYLE_DIRECTIONS 五条标准锁定主方向
+
+## 2026-08-30｜frontend-visual-language-evolution brief v2.2 质感工艺附录｜Type B
+
+- **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（升版 v2.2）；`.ai/ACTIVE_TASK.md`（追加 Current Progress）；`.ai/AGENT_LOG.md`（追加本条）
+- **Changes**:
+  - 背景：用户评审第二轮原型（仓外 flashback-four-directions2.html），认定细节不足、偏朴素；首页“人”按钮与“我的记录”标题突兀、标语过小；确认个人中心页未做
+  - 诊断入档（对源码核实）：头像按钮为汉字“人”冒充图标；标语并入 11px meta 行（§11.1.2 模糊措辞被极端执行，Agent 承担指令责任）；六笔工艺欠账＝色阶差 1–3%、字阶挤平、Tab 激活态朱砂改中性、A 方向照片 saturate(.76) 压灰、阴影 4–6% 骑墙、间距等距；时光轴章节三重重读
+  - brief v2.2：§11.1-2 承诺句三档层级（数值化：中层 14px 宋体独立行/meta 11px）；§11.1-6 页头降噪（SVG 人形图标、禁汉字/标点冒充、标题 12–13px muted）；§11.3-5 章节重音收敛；§12 质感工艺六项＋§12.7 个人中心切片（身份区＋安静入口列表）；§4 artifact 扩为四张关键界面；§0 优先级 §12 优于 §11
+- **Verification**: PASS——`git diff --check` PASS；无 secret、无本机绝对路径、无真实用户内容；业务代码与 baseline 无 diff
+- **Risks**: 仓外原型不受版本控制，对照依赖用户手工同步；v2.1 与 v2.2 两轮 brief 修订均未提交，积压待用户指示
+- **Commit**: pending（用户手动或另行授权）
+- **Next**: 用户将 v2.2 修订 prompt 交给设计 agent 执行第二轮提质与个人中心补齐
+
+## 2026-08-30｜frontend-visual-language-evolution brief v2.1 迭代附录｜Type B
+
+- **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（升版 v2.1）；`.ai/ACTIVE_TASK.md`（追加 Current Progress）；`.ai/AGENT_LOG.md`（追加本条）
+- **Changes**:
+  - 背景：用户评审第一轮四方向原型（仓外 flashback-four-directions.html），认定编辑器时刻卡片语言成立、整体大进步，但首页与时光轴观感未达标
+  - 诊断入档：首页层级倒置（承诺句 32px 占主角、书写面退化为横线＋灰 placeholder）；theme B 时光轴脊柱日期标签（left:-52px、宽 38px）与方块节点（left:-23px）重叠约 8px 的布局缺陷，已对原型源码核实
+  - brief 新增 §11 迭代附录：11.0 两句验收标准；11.1 首页五条（书写面=位置本体、承诺句降级、媒体图标可供性、最近留下=时刻卡片、空状态）；11.2 时刻卡片全局组件与禁则；11.3 时光轴四条（脊柱重构两方案、节点最多两态、节奏跟随内容形态、分割线退役）；11.4 动效边界（签名动效=时间轴本身；禁视差堆叠/滚动劫持/循环动画；reduced-motion 降级）；11.5 逐条自检
+  - §0 优先级说明补充：§11 是 §2 在首页/时光轴上的执行化，冲突时以 §2 为准
+- **Verification**: PASS——脊柱重叠数据对原型源码核实；`git diff --check` PASS；无 secret、无本机绝对路径、无真实用户内容；业务代码与 baseline 无 diff
+- **Risks**: 仓外原型文件不受版本控制，评审对象与仓内 brief 的对应依赖用户手工同步；本轮修订未提交，等待用户指示
+- **Commit**: pending（用户手动或另行授权）
+- **Next**: 用户将修订 prompt 交给设计 agent，按 §11 只修订首页与时光轴
+
 ## 2026-08-30｜frontend-visual-language-evolution 分阶段提交补录｜Type B
 
 - **Scope**: 本轮工作树分阶段提交的哈希补录；不修改任何既有日志条目
