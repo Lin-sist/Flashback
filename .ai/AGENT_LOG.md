@@ -8693,3 +8693,11 @@ Commit: pending
 - **Risks**: 浮层页背景为压暗静态快照（非真实层级栈），正式前端应由页面本体＋浮层组件实现；records 筛选行在 334px 内较满，真实数据行数增多时需滚动方案；篇章卡/记录卡指向 look.html 属单详情页演示简化（内容为占位合成文）；时间轴「组成篇章」等次级动作未接页；AI 整理标注是否需中文化待产品裁决。
 - **Commit**: pending（本条与既往两条 Type B 的 demo 产物按既有本地 commit 授权分笔提交，不含 push；hash 见下条补录）
 - **Next**: `demo/index.html` 画廊改造并入全部页面导航；五帧＋三材质对照 brief §10 核销；登录页待用户解除暂缓后另行走查。
+
+## 2026-09-13｜demo 原型提交 hash 补录｜Type B
+
+- **Scope**: 仅本条记录；不回改任何旧条目。
+- **Changes**: 既往三条「Commit: pending」的 demo 产物按既有本地 commit 授权（不含 push）分两笔提交：`f5a5f61` demo(base) 首批原型积压——tokens/共享组件/动效层与六页（含指南与后续批次追加）；`3e6b41f` demo(pages) 第二批原型九页与互链接通（登录页暂缓）。文件均为工作区最终态，故 components.css/指南中含后续批次的追加条目，已在提交说明中注明。
+- **Verification**: PASS——`git log` 双笔在案；工作树仅余 `UI_DESIGN_CONTEXT.md` 未跟踪（入库与否仍待用户决定）；frontend/、openspec/、package/lockfile 零改动；未 push。
+- **Risks**: 无新增。
+- **Commit**: `<本条自身>`（docs 收尾提交，hash 以 git log 为准）
