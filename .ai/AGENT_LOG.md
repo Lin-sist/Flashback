@@ -44,6 +44,10 @@ Next:
 
 - ...
 
+## 2026-09-13｜补录：demo 纸张质感提交 hash｜Type B
+
+- **Commit**: `02df503` demo(texture): 落地宣纸三层系统——颗粒/光晕/压凹/霜纹（本地 commit，未 push）
+
 ## 2026-09-13｜frontend-visual-language-evolution demo 纸张质感补齐｜Type B
 
 - **Scope**: `demo/assets/tokens.css`；`demo/assets/components.css`；`demo/IMPLEMENTATION_GUIDE.md`（§2/§3 材质说明同步）；`.ai/AGENT_LOG.md`（本条）。用户本轮授权"直接在 demo 实现、不改 change"；业务前端/后端/OpenSpec/package 均无 diff
