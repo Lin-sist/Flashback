@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashback Demo · 把此刻说给它听</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/components.css">
+<link rel="stylesheet" href="../assets/motion.css">
+<style>
+  /* ---- 页级微调：Agent 对话浮层·书写（蓝本：书写页/Agent对话浮层.png）
+     见证者＝纸上小纸条卡（左），用户＝右侧细线便签；输入栏为浮层内唯一玻璃位。 ---- */
+  .sheet { position: absolute; inset: 0; padding: 0 30px 0 36px; }
+  .close { display: block; margin-top: 54px; width: 24px; height: 24px; color: var(--ink); opacity: .8; }
+  .dogear {
+    position: absolute; top: 8px; right: 0; width: 18px; height: 18px;
+    background: linear-gradient(to bottom left, var(--fold-page) 0 50%, var(--fold-shade) 50.5% 100%);
+    box-shadow: -2px 2px 3px rgba(120, 100, 70, 0.15);
+  }
+  .sheet .side-note { position: absolute; right: 16px; top: 118px; }
+  .margin-line {
+    position: absolute; left: 15px; top: 150px; bottom: 128px; width: 1.5px;
+    background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.42) 12% 88%, transparent);
+  }
+  .lh-date { display: block; margin-top: 20px; font-size: 13px; }
+  .w-title { margin-top: 44px; font-size: 28px; font-weight: 400; letter-spacing: 0.1em; color: var(--ink); }
+  .w-body { margin-top: 20px; max-width: 305px; }
+  .w-photo {
+    margin-top: 30px; width: 216px; height: 164px;
+    box-shadow: 0 3px 10px rgba(120, 100, 70, 0.2);
+    background:
+      radial-gradient(3px 3px at 22% 28%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(2px 2px at 40% 60%, rgba(255,255,255,.45), transparent 60%),
+      radial-gradient(4px 4px at 60% 35%, rgba(255,255,255,.4), transparent 60%),
+      radial-gradient(2.5px 2.5px at 72% 70%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(3px 3px at 33% 80%, rgba(255,255,255,.4), transparent 60%),
+      radial-gradient(2px 2px at 55% 15%, rgba(255,255,255,.45), transparent 60%),
+      linear-gradient(90deg, transparent 0 84%, rgba(42, 46, 52, 0.9) 84%),
+      linear-gradient(180deg, #7E8896 0%, #9AA0AC 40%, #C4AE94 72%, #7A6A58 100%);
+  }
+
+  /* 对话底板 */
+  .talk-sheet { padding-bottom: 26px; }
+  .mode-tabs { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 24px; }
+  .mode-tab { position: relative; font-size: 15px; font-weight: 400; letter-spacing: 0.14em; text-indent: 0.14em; color: var(--ink-light); padding-bottom: 7px; }
+  .mode-tab.active { color: var(--ink); }
+  .mode-tab.active::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: 0; height: 1.5px; background: var(--vermilion); }
+  .mode-div { width: 0.5px; height: 15px; background: var(--ink-faint); }
+
+  .talk-body { margin-top: 4px; }
+  .talk-foot { margin-top: 24px; }
+  .talk-input { margin-top: 9px; }
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="0.8"/><rect x="5" y="5" width="3" height="6" rx="0.8"/><rect x="10" y="3" width="3" height="8" rx="0.8"/><rect x="15" y="0" width="3" height="11" rx="0.8" opacity="0.35"/></svg>
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 4.6a10 10 0 0 1 13 0"/><path d="M4.6 7.4a6.3 6.3 0 0 1 7.8 0"/><circle cx="8.5" cy="10.3" r="1.2" fill="currentColor" stroke="none"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.2" stroke="currentColor" opacity="0.4"/><rect x="2.2" y="2.2" width="17.6" height="7.6" rx="2" fill="currentColor"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <main class="sheet">
+    <span class="dogear"></span>
+    <span class="side-note">只写给自己</span>
+    <span class="margin-line"></span>
+    <button class="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg>
+    </button>
+    <span class="lh-date t-meta-serif">记录于 二零二六年 · 暮秋</span>
+    <h2 class="w-title">雨停之后</h2>
+    <p class="t-body w-body">傍晚下过一阵雨，窗边的风有一点凉。</p>
+    <figure class="w-photo" role="img" aria-label="雨后窗面（合成占位图）"></figure>
+  </main>
+
+  <span class="veil" aria-hidden="true"></span>
+
+  <section class="chat-sheet talk-sheet m-rise">
+    <span class="chat-handle"></span>
+    <a class="chat-close" href="writing.html" aria-label="收起对话">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg>
+    </a>
+    <p class="chat-kicker">时光的见证者</p>
+    <h2 class="chat-title">把此刻说给它听</h2>
+
+    <nav class="mode-tabs">
+      <span class="mode-tab active">倾诉</span>
+      <span class="mode-div"></span>
+      <span class="mode-tab">理一理</span>
+    </nav>
+
+    <div class="talk-body">
+      <p class="chat-note">雨停之后，花比你想的更记得这个阳台。</p>
+      <p class="chat-note">有些傍晚会过去，但被写下来的风会留下。</p>
+      <p class="chat-note-user">谢谢，我记下来了。</p>
+    </div>
+
+    <footer class="talk-foot">
+      <p class="t-meta">供它回看时参考</p>
+      <div class="chat-input-bar talk-input">
+        <span class="ph">写点什么…</span>
+        <span class="send">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.2 1.8L7 9M14.2 1.8L9.6 14.2 7 9 1.8 6.4z"/></svg>
+        </span>
+      </div>
+    </footer>
+  </section>
+
+</div>
+
+</body>
+</html>

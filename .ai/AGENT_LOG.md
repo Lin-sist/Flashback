@@ -8632,3 +8632,64 @@ Commit: pending
 - **Risks**：Local Codex 可用性探测连续返回连接失败；run 的准确终止原因为 daemon restart，说明此前递归 MCP 隔离修复尚未形成稳定的端到端生成证据。空项目、需求卡与失败 run 均不能作为视觉原型证据
 - **Commit**：pending（本次失败检查点不提交；不 push）
 - **Next**：不自动发起第三次逻辑生成；先稳定 Open Design daemon 生命周期，再由用户确认重试 Local Codex，或由用户明确选择切换到 Open Design Cloud / secure BYOK
+
+## 2026-09-13｜frontend-visual-language-evolution｜Type B
+
+- **Scope**: `demo/IMPLEMENTATION_GUIDE.md`（新增）；`.ai/AGENT_LOG.md`（本条追加）。未触碰 frontend/backend 业务代码、package/lockfile、accepted baseline、OpenSpec artifacts。
+- **Changes**: 落盘 Demo 原型实现指南 v1.0——图片定稿基线表（首页 V3/书写页 V2/材质① 已定稿，回看/封存/个人中心过审小修并入代码，时间轴待一轮优化，材质②③待重roll 不阻塞）；画布 390×844 与 demo 文件结构；全局 tokens（纸/墨/朱砂/影/玻璃/字体/节奏）；11 个共享组件实现要点（信卡、折角、圆印、取景框、玻璃药丸及暖纸降级、TabBar、霜遮罩、竖排侧注、时刻卡、排印块、chip）；四枚签名动效与 reduced-motion 降级；七页逐页要点；10 条图片偏差裁决清单；每页验收清单；会话工作流。
+- **Verification**: PASS（文档为静态规划产物，无代码执行；与 UI_DESIGN_CONTEXT.md、OPENDESIGN_BRIEF.md v3.0、AGENT_LOG 既有裁决交叉核对一致：玻璃剂量、折角限权、抵达语法、朱砂 ≤3、三 Tab、信卡 1px）。材质图初审核结论（2026-09-13 会话内完成：4 页过审、时间轴节点语义硬伤、材质②文字乱码/形态跑偏、材质③需补 UI 态）仅存在于会话，未单独落盘，已浓缩进指南 §0/§6。
+- **Risks**: 指南 §0 基线表依赖用户在图片优化会话后手动/授权更新；`UI_DESIGN_CONTEXT.md` 仍为 untracked，入库与否待用户决定；demo/index.html 现状未读取，首个实现会话须先读再定迭代或重构。
+- **Commit**: pending（用户指示后按已授权的本地 commit 执行，不含 push）
+- **Next**: 用户并行推进图片优化（时间轴/材质②/材质③）；实现会话从 §2 tokens + §3 共享组件起步，先做首页。
+
+## 2026-09-13｜frontend-visual-language-evolution（demo 原型层）｜Type B
+
+- **Scope**: `demo/assets/tokens.css`、`demo/assets/components.css`、`demo/pages/home.html`、`demo/pages/writing.html`（均新增）；`demo/IMPLEMENTATION_GUIDE.md`（§0/§1 进度更新）；本条追加。未触碰 miniprogram 业务代码、backend、package/lockfile、accepted baseline、OpenSpec artifacts；现有 `demo/index.html`（V3.0 单文件旧版）未改动。
+- **Changes**: 按指南落地全局 tokens（纸/墨/朱砂/影/玻璃/宋体字阶/8pt 节奏）与共享组件（设备框、状态栏、信卡+朱砂红线、折角、26px 描边圆印、取景框空位、玻璃药丸含 @supports 暖纸降级、纯文字 TabBar+朱砂静点、竖排侧注、霜遮罩、轻玻璃 chip、细线文字链接）；首页与书写页按各自定稿图实现：首页＝字标/双行问候/副句/取景框/待达信卡（红线+折角+「待」印+抵达语法）/最近抵达卡（无红线）/玻璃 TabBar；书写页＝汉字抬头/右上折角/竖排侧注「只写给自己」/左贯穿朱砂格线/无边框标题正文/纯 CSS 雨后窗面合成占位图/细线语音播放键/「附言·可选」折叠行/三细线图标+玻璃药丸。零 JS。
+- **Verification**: PASS——本地静态服务（127.0.0.1:8931）+ ZCode IAB 渲染，两页各上下两段截图对照定稿图与指南 §7 清单逐项核对：朱砂单屏 3 处（首页＝红线/待印/Tab 点；书写页＝侧注/格线/药丸起笔点）、无大圆角/图形图标/英文标签、玻璃仅 TabBar 与药丸、时间语法「即将抵达」、Noto Serif SC 300 加载成功（document.fonts.check=true）、DOM 度量确认 × 键/折角/侧注/格线/药丸几何到位。工具备注：IAB 截图在视口模拟下存在 2×2 平铺缺陷，已改用面板坐标裁剪+CSS 位移分段验证绕过（工具问题，非页面缺陷）。
+- **Risks**: Google Fonts 走网络，离线回退 SimSun/系统宋体（字体栈已兜底）；书写页照片为 CSS 合成占位，后续可替换为真实合成素材；TabBar/药丸玻璃在真机 Skyline/Android WebView 的降级仅在 demo 层验证了 @supports 分支；server 为临时本地进程，随会话结束终止。
+- **Commit**: pending（等待用户指示后按已授权的本地 commit 执行，不含 push）
+- **Next**: 用户在图片线小修定稿回看/封存/个人中心后，按指南 §5 顺序组装三页；时间轴待重roll图；材质③ UI 态到位后写 motion.css（落印/融霜）。
+
+## 2026-09-13｜frontend-visual-language-evolution（demo 动效层＋承接/回看/封存三页）｜Type B
+
+- **Scope**: `demo/assets/motion.css`（新增）；`demo/pages/saved.html`、`demo/pages/look.html`、`demo/pages/sealed.html`（均新增）；`demo/IMPLEMENTATION_GUIDE.md`（§0/§1 进度更新）；`.ai/AGENT_LOG.md`（本条追加）。未触碰 miniprogram 业务代码、backend、package/lockfile、accepted baseline、OpenSpec artifacts、既有 `demo/index.html`、`pages/home.html`、`pages/writing.html`。
+- **Changes**:
+  - `motion.css` 四枚签名动效（全部一次性非循环，含 reduced-motion 静态降级）：落印（`.seal.m-stamp`：scale 1.6→1＋-4°→0 微转 300ms cubic-bezier(.2,.8,.2,1)，落定后一次朱砂晕开 box-shadow 脉冲，`--stamp-delay` 接续入场节奏）；融霜（`.frost.is-thawing`：clip-path 四角塌向右上角 900ms ease 一次性，抵达态加类触发，本轮预留）；脊线生长（`.m-spine` scaleY 0→1 1200ms origin top）＋节点两态（`.m-node` 空心＝纯文字 / `.lit` 实心点亮，IntersectionObserver 接线留给 timeline.html，demo 层零 JS）；卡片轻浮进入（`.m-rise` opacity 0→1＋translateY 12px→0 500ms，`--rise-delay` 排先后）。
+  - `saved.html`（无参考图，按指南 §5.3＋brief §6.3）：正文信卡化（复用书写页合成内容「雨停之后／傍晚下过一阵雨，窗边的风有一点凉。」＋留下时间＋红线＋折角）＋居中「这一刻已经留下」＋落印于卡右下（红印「封」）＋「继续补充」细线链接＋Agent 参考排印安静化收次级（细线开关＋「不再供参考 · 只代表当时，不代表现在」）＋底部朱砂「删除这条记录」。
+  - `look.html`（底稿 回看页/V1.png＋三处修正）：修正①「现在的我 · 后来其实」回信小卡 296px 比主卡窄、负 margin -16px 微叠主卡下缘之上（片段区随之紧随其后，见 Risks）；修正②信题弯引号 U+201C/201D；修正③语音 1px 细线圆圈。其余按 V1：字标＋×、存档第 三〇 号 · 城南旧书店、二〇二六年 · 夏季、阅印＋过去的你 · 写于半年前、正文信卡＋右下淡墨四角星芒（SVG）、两张 CSS 合成占位图（雨夜街灯光斑／城南旧书店暖窗＋竖排招牌）、00:32 原始声音细线语音、「和它聊聊那时候」细下划线链接、底部居中玻璃药丸「· 留下回应」。
+  - `sealed.html`（底稿 封存页/V1.png＋一处修正）：语音占位裸波形（SVG 细线变高）＋细线圆圈播放键（无灰底圆角容器）。其余按 V1：档案抬头（二〇二六年 · 秋季）、霜卡（封印＋过去的你 · 写于去年＋标题隔霜微透＋正文只剩墨影＋边缘凝霜加重；frost 以 mask 渐入带实现「上透下重」，遮罩透明带内封印与标题清晰、34%→44% 后全遮）、「当时留下的片段 · 2 项」在霜外（夕阳树影/屋顶暮色两缩略图＋波形语音）、朱砂点状态行「即将抵达，封印未解」、大号宋体静态期待「即将抵达 · 2027 年夏」、底部极淡「解锁后，过去的你会读到这封信」；全页无倒计时数字与进度条。
+  - 照片全部 CSS 渐变合成（延续 writing.html `.w-photo` 技法），零外部图片资产；三页均引 `motion.css` 并以 `.m-rise` 接接入场。
+- **Verification**: PASS——
+  - 三页分段截图（clip ≤340px）对照参考图与指南 §7 逐项核对。过程修正三处后复验：saved 初版「继续补充」与 Agent 行之间约 290px 中部死区（违反内容紧跟/余白留底），调整垂直节奏消除；look 初版 × 键与状态栏时间重叠（`.page` 绝对定位自 y=0 起，margin 不足）且 chat 链接与药丸重叠 6px，改为字标行＋独立 × 行并收紧间距；sealed 初版正文首行在霜下可读，mask 渐入带前移（20% 起透、44% 全遮）后复验只剩墨影。
+  - 跨页程序化终检：朱砂点位 saved=3（红线/封印/删除红字）、look=3（红线/阅印/药丸起笔点）、sealed=2（封印/状态行点）；两信题 DOM 码点 201C/201D；三页可见文本零英文；TabBar 均缺席（承接/详情页无 Tab）；无倒计时数字与进度条；Noto Serif SC 300 加载成功（document.fonts.check）。
+  - 动效触发（Web Animations API 冻结/驱动＋计算样式）：轻浮进入 t=0 opacity 0/ty 12px → t=300 opacity 0.70/ty 3.6px → 终态 opacity 1/ty 0；落印 t=0 隐 → t=900 scale 1.017＋微转 -0.11°/opacity 0.826（脉冲环 0px 起爆）→ 终态 opacity 0.85＋identity，脉冲环 0→12px 全透明一次性；融霜加 `.is-thawing` 后 t=450 clip-path=polygon(81.45% -2%, 102% -2%, 102% 18.55%, 81.45% 18.55%)（霜收于右上角）→ 终态四角塌至右上角点归零。
+  - reduced-motion：CSSOM 确认 `@media (prefers-reduced-motion: reduce)` 块随 motion.css 加载，选择器覆盖 `.m-rise/.m-stamp/.m-stamp::after/.frost.is-thawing/.m-spine/.m-node`，声明与已验证的静态终态一致（印章直接显示、霜层 display:none、卡片直接可见）。
+  - Verification SKIPPED（工具边界）：IAB 未暴露 CDP emulation，无法强制 prefers-reduced-motion 媒体标志做整页降级实测，以 CSSOM 规则覆盖＋降级声明与终态一致性替代；脊线生长/节点点亮的滚动触发属 timeline.html 接线，本轮无该页。
+  - 工具备注：IAB 截图 clip 高度 >约 340px 触发 2×2 平铺、≤340px 正常（沿用面板坐标 clip＋`marginTop:-380px` 位移分段法）；ZCode 主窗口被遮挡时 Chromium 节流渲染，曾致截图超时与 CSS 动画时间线停走，重开标签/等待恢复绕过（均为工具问题，非页面缺陷）。
+- **Risks**: 三页为 844px 定高静态 demo，未做滚动/长内容态；look 页回信小卡与片段区先后顺序按「微叠主卡下缘」修正重排（V1 原序片段在前、回信卡独立平行），若后续定稿图另有裁决需同步调整；`.m-node.lit` 为朱砂实心，timeline 页须自行控制同屏点亮数 ≤3；Google Fonts 离线回退系统宋体；玻璃/霜的 backdrop-filter 在真机 Skyline/Android WebView 的表现仍未真机验证。
+- **Commit**: pending（等待用户指示后按已授权的本地 commit 执行，不含 push）
+- **Next**: 个人中心与时间轴待对应图片定稿后组装；`demo/index.html` 画廊改造并入五帧导航；五帧＋三材质对照 brief §10 逐项核销后再议正式前端。
+
+## 2026-09-13｜frontend-visual-language-evolution（demo 第二批九页＋互链接通）｜Type B
+
+- **Scope**: `demo/pages/`（新增 timeline/records/chapter/user-center/ownership/summary/agent-choose/agent-writing/agent-review 九页；修改 home/writing/look 三页互链与既有 × 位缺陷）；`demo/assets/components.css`（追加时刻卡/排印块/压暗遮罩/对话浮层套件/来源药丸，不改既有类）；`demo/IMPLEMENTATION_GUIDE.md`（§0/§1 更新）；`.ai/AGENT_LOG.md`（本条）。未触碰 frontend/ 业务代码、openspec/、package/lockfile、accepted baseline；登录页按用户指示暂缓未实现；`2.0页面效果/` 原型图仅本机参考、未复述任何真实文字。
+- **Changes**:
+  - `timeline.html`（Tab 页）：筛选 chip＋双行「时 间 长 廊」＋副句；脊线 `.m-spine` 生长＋节点语义代码层纠正（空心=纯文字排印块、实心墨点=含媒体时刻卡、「此时此刻」朱砂点）；霜卡条目（标题隔霜微透、封印在霜上）→ sealed.html，时刻卡 → saved.html，Tab 三项接通 home/user-center。
+  - `records.html`：< 返回＋「我的记录」＋记录｜篇章二级 Tab（active 朱砂下划线）＋细线搜索框＋状态筛选行＋「共 18 份记录 · 组成篇章」；封存中卡（细线圆锁＋抵达语法「预计 2027 年夏抵达」）→ sealed.html，已抵达卡 → look.html，篇章/组成篇章 → chapter.html。
+  - `chapter.html`：篇章大标题＋「进行中」描边药丸＋纸上自述长文（合成）＋「始于 二〇二六年春 · 汇集 7 篇此刻」＋两张红线折角信卡 → look.html；底部轻玻璃动作条（添加记录→writing/移出/结束篇章）。
+  - `user-center.html`（Tab 页）：抽象墨韵头像（CSS 合成，无真人脸）＋山月＋保管事实句「这里替你保管着 14 封信，还有 0 封在路上。」；三张四角括线入口卡（取景框=入口语法）→ records/timeline/summary；托管凭证卡（守印＋导出/清理）→ ownership.html；关于收尾；红色配额＝守印/Tab点/头像红日恰 3 处。
+  - `ownership.html`：保管事实句＋托管凭证大卡（红线+折角+守印+直角括线「导出离线文件」+朱砂「清理全部数据」+「导出文件 24 小时内有效」）＋构建信息行＋「时光回序 · 只保管，不拥有」收尾。
+  - `summary.html`：个人中心压暗快照（.veil）＋近况信卡浮层（合成诗体正文＋「整理于 二〇二六年 · 夏 · AI 整理」＋重新整理/收起）。
+  - `agent-choose.html`：书写页压暗快照＋底部纸面底板「这次想怎么聊／由你决定它怎么在场」＋两张红线选项卡（就想说说/理一理）→ agent-writing.html。
+  - `agent-writing.html`：压暗书写页＋对话底板「时光的见证者／把此刻说给它听」＋倾诉|理一理分节（朱砂下划线）＋见证者纸上小纸条卡×2＋用户右侧细线便签＋「供它回看时参考」＋玻璃输入栏（纸条/便签无头像无气泡）。
+  - `agent-review.html`：压暗回看页＋「回看对话／和它聊聊那时候」＋带折角小信纸卡×2＋来源小药丸「来源 · 城南旧书店的雨夜」（→ records.html）＋用户纸面便签（折角）＋「它只读取你允许的记录」开关＋玻璃输入栏＋独立玻璃发送圆钮。
+  - 互链改造：home TabBar 三项接通 timeline/user-center；writing「附言 · 可选」→ agent-choose.html；look「和它聊聊那时候」→ agent-review.html；sealed ×→records、look ×→timeline、writing ×→home（消死端）。既有组件类零改动，新增类均按既有 tokens 风格追加。
+- **Verification**: PASS——九页逐页分段截图（clip ≤340px）对照原型图核对结构与气质；跨页程序化审计：14 页全部 href 均可达、三 Tab 页（home/timeline/user-center）有 TabBar 且其余页无、可见文本仅「AI 整理」一处功能性标注（原型自带，非装饰英文标签）、对话页无头像/无气泡由结构保证；朱砂亮态点位逐页清点 home=3/writing=3/saved=3/look=3/sealed=2/timeline=3/records=3/chapter=2/user-center=3/ownership=3/summary=1(+压暗背景不计)/agent-choose=2(+压暗背景不计)/agent-writing=1(+压暗背景不计)/agent-review=1(+压暗背景不计)。
+  - 过程修正六处后复验：timeline 筛选 chip 与状态栏重叠、副句折行、霜卡霜层被标题盖住（DOM 序）、records 返回键重叠与筛选行折行、chapter/ownership 返回键重叠、summary 正文折行、agent 页内嵌书写/回看背景的 × 重叠（同源缺陷）。
+  - **既有缺陷修正（属第一批验收遗漏）**：writing.html 的 ×（以及 home 之外各绝对定位页的顶行元素）与状态栏时间同处 y≈14–35 带发生视觉重叠；本轮将 writing/chapter/ownership/agent 两页的顶行统一下移至状态栏之下（样式值微调，未改风格语言）。
+  - Verification SKIPPED：真机/微信端渲染、backdrop-filter 降级真机表现、reduced-motion 系统开关实测（沿用上轮 CSSOM 覆盖证明）；静态 demo 无 JS，脊线节点点亮为语义静态态，IntersectionObserver 接线留给正式前端。
+  - 工具备注：IAB 截图 clip >约 340px 触发 2×2 平铺（分段法绕过）；ZCode 主窗口被遮挡时 Chromium 节流渲染致截图超时/动画停走，重开标签恢复（工具问题非页面缺陷）。
+- **Risks**: 浮层页背景为压暗静态快照（非真实层级栈），正式前端应由页面本体＋浮层组件实现；records 筛选行在 334px 内较满，真实数据行数增多时需滚动方案；篇章卡/记录卡指向 look.html 属单详情页演示简化（内容为占位合成文）；时间轴「组成篇章」等次级动作未接页；AI 整理标注是否需中文化待产品裁决。
+- **Commit**: pending（本条与既往两条 Type B 的 demo 产物按既有本地 commit 授权分笔提交，不含 push；hash 见下条补录）
+- **Next**: `demo/index.html` 画廊改造并入全部页面导航；五帧＋三材质对照 brief §10 核销；登录页待用户解除暂缓后另行走查。
