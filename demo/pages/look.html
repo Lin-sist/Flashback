@@ -11,82 +11,49 @@
 <link rel="stylesheet" href="../assets/components.css">
 <link rel="stylesheet" href="../assets/motion.css">
 <style>
-  /* ---- 页级微调：回看页（蓝本：概念图/回看页/V1.png，小修并入代码） ----
-     修正三处：① 回信小卡比主卡窄、负 margin 微叠主卡下缘之上（V1 是平行同宽第二张卡）
-              ② 信题引号统一弯引号 " "（V1 用了「」）  ③ 语音播放键细线圆圈 */
-  .page { position: absolute; inset: 0; padding: 0 var(--page-x); }
+  /* ---- 页级微调：回看页（蓝本：概念图/回看页/V3.png） ----
+     页面可滚动；结构＝信卡（含当时所在）→ 片段（照片+语音）→ 回信卡 → 聊聊链接 → 药丸（随文档流）。 */
+  .page {
+    position: absolute; inset: 0; padding: 0 var(--page-x) 40px;
+    overflow-y: auto;
+  }
+  .page::-webkit-scrollbar { display: none; }
 
-  .brand-row { margin-top: 54px; text-align: center; }
-  .close { display: block; margin-top: 10px; width: 26px; height: 26px; color: var(--ink); opacity: .8; }
+  .brand-row { position: relative; margin-top: 54px; text-align: center; }
+  .close { position: absolute; left: 0; top: -5px; width: 26px; height: 26px; color: var(--ink); opacity: .8; }
+  .page .brand-row .t-brand { position: relative; }
 
-  .archive { margin-top: 20px; text-align: center; }
-  .archive .a-line { font-size: 13px; font-weight: 300; letter-spacing: 0.18em; color: var(--ink-mid); }
-  .archive .a-season { margin-top: 9px; }
+  .archive { margin-top: 30px; text-align: center; }
+  .archive .a-line { font-size: 13px; font-weight: 300; letter-spacing: 0.2em; color: var(--ink-mid); }
+  .archive .a-season { margin-top: 13px; }
 
   .look-title {
-    margin-top: 22px; text-align: center;
-    font-size: 27px; font-weight: 400; letter-spacing: 0.1em; color: var(--ink);
+    margin-top: 34px; text-align: center;
+    font-size: 32px; font-weight: 400; letter-spacing: 0.1em; color: var(--ink);
   }
 
-  .reader { margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .reader { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 13px; }
   .reader .reader-text { font-size: 13.5px; font-weight: 300; letter-spacing: 0.1em; color: var(--ink-mid); }
 
-  /* 正文信卡＋卡右下淡墨星芒（星芒抬离下缘，给回信小卡留出叠压带） */
-  .look-card { margin-top: 20px; padding: 24px 24px 30px 28px; }
-  .look-card .look-body { font-size: 15.5px; line-height: 2.0; }
-  .sparkle { position: absolute; right: 18px; bottom: 30px; color: var(--ink-light); opacity: .55; }
+  /* 正文信卡：正文＋卡内底部「当时所在」一行淡墨 */
+  .look-card { margin-top: 26px; padding: 26px 24px 20px 28px; }
+  .look-card .look-body { font-size: 15.5px; line-height: 2.05; }
+  .where { margin-top: 20px; font-size: 10px; font-weight: 300; letter-spacing: 0.12em; color: var(--ink-faint); }
 
-  /* 回信小卡：比主卡窄（296/334），负 margin 微叠在主卡下缘之上 */
-  .reply-card {
-    position: relative; z-index: 2;
-    width: 296px; margin: -16px auto 0;
-    padding: 16px 20px 20px;
-  }
-  .reply-lines { margin-top: 16px; }
-  .reply-lines i { display: block; height: 1px; background: rgba(200, 194, 184, 0.6); }
-  .reply-lines i + i { margin-top: 16px; }
-
-  .fragments { margin-top: 20px; }
-  .frag-grid { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .frag-grid figure { position: relative; height: 94px; box-shadow: 0 3px 10px rgba(120, 100, 70, 0.18); }
-
-  /* 合成占位图一：雨夜街灯（玻璃上的暖色光斑） */
-  .ph-rain {
-    background:
-      radial-gradient(2px 2px at 20% 26%, rgba(255,255,255,.6), transparent 60%),
-      radial-gradient(2.5px 2.5px at 34% 58%, rgba(255,255,255,.5), transparent 60%),
-      radial-gradient(2px 2px at 52% 34%, rgba(255,255,255,.55), transparent 60%),
-      radial-gradient(3px 3px at 64% 72%, rgba(255,255,255,.45), transparent 60%),
-      radial-gradient(2px 2px at 78% 20%, rgba(255,255,255,.5), transparent 60%),
-      radial-gradient(16px 14px at 24% 66%, rgba(232,186,120,.8), transparent 72%),
-      radial-gradient(10px 9px at 42% 30%, rgba(216,154,91,.7), transparent 72%),
-      radial-gradient(18px 16px at 62% 52%, rgba(238,200,140,.75), transparent 72%),
-      radial-gradient(8px 8px at 82% 76%, rgba(216,154,91,.65), transparent 72%),
-      radial-gradient(12px 11px at 90% 24%, rgba(232,186,120,.55), transparent 72%),
-      linear-gradient(180deg, #454E5C 0%, #333A47 50%, #20242E 100%);
-  }
-  /* 合成占位图二：城南旧书店暖窗（深色窗框＋暖色室内＋竖排招牌） */
-  .ph-shop {
-    background:
-      linear-gradient(90deg, transparent 0 16%, rgba(244, 236, 220, 0.92) 16% 34%, transparent 34%),
-      repeating-linear-gradient(90deg, rgba(56, 38, 22, 0.5) 0 2px, transparent 2px 14px) 36% 0 / 62% 100% no-repeat,
-      linear-gradient(180deg, #E9C084 0%, #D8A25E 45%, #8C5F33 100%);
-  }
-  .ph-shop::before {
-    content: ""; position: absolute; inset: 0;
-    background:
-      linear-gradient(180deg, rgba(32, 24, 16, 0.85) 0 9%, transparent 9%),
-      linear-gradient(0deg, rgba(32, 24, 16, 0.85) 0 11%, transparent 11%),
-      linear-gradient(270deg, rgba(32, 24, 16, 0.85) 0 7%, transparent 7%);
-  }
-  .ph-sign {
-    position: absolute; left: 16%; top: 13px; bottom: 13px; width: 18%;
-    writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 400; letter-spacing: 0.3em; color: rgba(56, 38, 22, 0.8);
+  .fragments { margin-top: 34px; }
+  .frag-grid { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .frag-grid figure { position: relative; height: 94px; margin: 0; box-shadow: 0 3px 10px rgba(120, 100, 70, 0.2); }
+  .frag-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* 首图左上角墨色细线小纸签「封面」 */
+  .cover-tag {
+    position: absolute; left: 10px; top: 10px; z-index: 2;
+    padding: 3px 9px;
+    background: rgba(48, 46, 41, 0.85);
+    font-size: 10px; font-weight: 300; letter-spacing: 0.22em; text-indent: 0.22em;
+    color: #F4EFE5;
   }
 
-  /* 语音：细线圆圈＋细线三角（修正③，禁实心面性） */
-  .look-voice { margin-top: 12px; display: flex; align-items: center; gap: 14px; }
+  .look-voice { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
   .v-play {
     width: 30px; height: 30px; border-radius: 50%;
     border: 1px solid rgba(107, 101, 96, 0.5);
@@ -99,9 +66,17 @@
   }
   .v-text { font-size: 13.5px; font-weight: 300; letter-spacing: 0.08em; color: var(--ink-mid); }
 
-  .chat { margin-top: 18px; text-align: center; }
+  /* 回信卡：与主卡同宽、正常 20px 间距；淡占位小字＋两条横线 */
+  .reply-card { margin-top: 20px; padding: 20px 22px 24px; }
+  .reply-ph { margin-top: 16px; padding-bottom: 11px; border-bottom: 0.5px solid rgba(200, 194, 184, 0.65); font-size: 12.5px; font-weight: 300; letter-spacing: 0.08em; color: var(--ink-faint); }
+  .reply-lines { margin-top: 0; }
+  .reply-lines i { display: block; height: 1px; background: rgba(200, 194, 184, 0.6); }
+  .reply-lines i + i { margin-top: 25px; }
 
-  .look-foot { position: absolute; left: 0; right: 0; bottom: 32px; display: flex; justify-content: center; }
+  .chat { margin-top: 30px; text-align: center; }
+
+  /* 底部药丸随文档流，底部留白 40px（.page padding-bottom） */
+  .respond { margin-top: 36px; display: flex; justify-content: center; }
 
   .d-1 { --rise-delay: 120ms; }
   .d-2 { --rise-delay: 260ms; }
@@ -123,10 +98,12 @@
 
   <main class="page">
 
-    <header class="brand-row"><span class="t-brand">时光回序</span></header>
-    <a class="close" href="timeline.html" aria-label="返回时光轴">
-      <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg>
-    </a>
+    <header class="brand-row">
+      <a class="close" href="timeline.html" aria-label="返回时光轴">
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg>
+      </a>
+      <span class="t-brand">时光回序</span>
+    </header>
 
     <section class="archive">
       <p class="a-line">存档第 三〇 号 · 城南旧书店</p>
@@ -143,31 +120,37 @@
     <article class="letter-card fold look-card m-rise d-1">
       <span class="redline"></span>
       <p class="t-body look-body">搬家前夜，雨下得很大。我把阳台的花一棵一棵搬进屋里，想着明年它们会不会还记得这个阳台。</p>
-      <svg class="sparkle" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c.9 7.8 4.2 11.1 12 12-7.8.9-11.1 4.2-12 12-.9-7.8-4.2-11.1-12-12C7.8 11.1 11.1 7.8 12 0z"/></svg>
+      <p class="where">当时所在 · 城南旧书店，雨夜的灯下</p>
     </article>
 
-    <article class="letter-card fold reply-card m-rise d-2">
-      <p class="t-meta-serif">现在的我 · 后来其实</p>
-      <div class="reply-lines"><i></i><i></i></div>
-    </article>
-
-    <section class="fragments m-rise d-3">
+    <section class="fragments m-rise d-2">
       <p class="t-meta-serif">当时留下的片段</p>
       <div class="frag-grid">
-        <figure class="ph-rain" role="img" aria-label="雨夜街灯（合成占位图）"></figure>
-        <figure class="ph-shop" role="img" aria-label="城南旧书店暖窗（合成占位图）"><span class="ph-sign">城南旧书店</span></figure>
+        <figure>
+          <span class="cover-tag">封面</span>
+          <img src="../assets/img/frag-rain.jpg" alt="雨夜窗（合成占位照片）">
+        </figure>
+        <figure>
+          <img src="../assets/img/frag-shop.jpg" alt="城南旧书店暖窗（合成占位照片）">
+        </figure>
       </div>
       <div class="look-voice">
         <span class="v-play"><i></i></span>
-        <span class="v-text">00:32 原始声音</span>
+        <span class="v-text">00:18 原始声音</span>
       </div>
     </section>
 
+    <article class="letter-card fold reply-card m-rise d-3">
+      <p class="t-meta-serif">现在的我 · 后来其实</p>
+      <p class="reply-ph">后来的你，想对当时说些什么</p>
+      <div class="reply-lines"><i></i><i></i></div>
+    </article>
+
     <div class="chat"><a class="tlink" href="agent-review.html">和它聊聊那时候</a></div>
 
-    <footer class="look-foot">
+    <div class="respond">
       <button class="glass-pill"><span class="dot"></span>留下回应</button>
-    </footer>
+    </div>
 
   </main>
 

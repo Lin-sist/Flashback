@@ -8701,3 +8701,17 @@ Commit: pending
 - **Verification**: PASS——`git log` 双笔在案；工作树仅余 `UI_DESIGN_CONTEXT.md` 未跟踪（入库与否仍待用户决定）；frontend/、openspec/、package/lockfile 零改动；未 push。
 - **Risks**: 无新增。
 - **Commit**: `<本条自身>`（docs 收尾提交，hash 以 git log 为准）
+
+## 2026-09-13｜frontend-visual-language-evolution（demo 回看页换蓝 V3＋时光轴五点走样修复）｜Type B
+
+- **Scope**: `demo/pages/look.html`（按 V3 重排）；`demo/pages/timeline.html`（五点修复）；`demo/assets/img/frag-rain.jpg`、`frag-shop.jpg`（新增，按任务指示自概念图 V3 裁出）；`.ai/AGENT_LOG.md`（本条）。未触碰 frontend/、openspec/、package/lockfile、accepted baseline；其余 demo 页面未改动。
+- **Changes**:
+  - look.html 蓝本 V1→V3：`.page` 改 `overflow-y:auto` 可滚动（scrollH 1026/844），「留下回应」玻璃药丸随文档流（删 `.look-foot` absolute），底部留白 40px（padding-bottom）；区序改为 信卡→片段→回信卡→聊聊→药丸；信卡内底部加 10px 淡墨「当时所在 · 城南旧书店，雨夜的灯下」；回信卡与主卡同宽、正常 20px 间距（删 `width:296px` 与 `-16px` 叠压——第二批按 V1 的修正①由 V3 蓝本取代），卡内首行淡占位「后来的你，想对当时说些什么」＋两条横线；标题 27→32px、archive/reader 行距按 V3 放宽；首图左上角墨色细线小纸签「封面」（CSS 元素）；语音 00:32→00:18。
+  - 照片升级：按任务指示从 `2.0页面效果/概念图/回看页/V3.png` 裁出两张照片（雨夜窗／城南旧书店暖窗；PIL 按暗像素行列探测边界 y984–1197、x47–416／x436–805），并用邻近雨珠区修补掉原型自带的「封面」角签，避免与新增 CSS 纸签重复；存 `demo/assets/img/frag-rain.jpg`、`frag-shop.jpg`（365×209 JPG）并引用。裁出物为无人像、无日记原文的氛围图。
+  - timeline.html 五点：① `.tl-frost-card` 补 `display:block`（修复 inline `<a>` 塌缩成白条、封印跑位、标题断行）；② 删除 `.m-photo` 的黑条层 `linear-gradient(90deg, transparent 0 86%, rgba(46,48,54,.85) 86%)`；③ 节点尺寸 此时此刻 10px／媒体实心墨点 12px／空心 14px（并把 media 尺寸类从内层 `<i>` 移到外层槽，原选择器未命中）；④ 标题提到 40/36px、tl-head 顶距 24→40px、副句与脊线区留白加大（30→42px）；⑤ 霜卡标题弯引号（DOM 码点 201C/201D 复验）＋霜下两行模糊占位线；「雨停之后」时刻卡链接 saved.html→look.html。
+  - 连带调整：霜卡块级化＋标题放大使内容超高 109px（scrollH 953），按 8pt 节奏收紧条目间距与照片高（126px），霜卡底回到 755px、TabBar 顶 768px 之上。
+- **Verification**: PASS——两页分段截图（clip ≤340px）对照 回看页/V3.png 与 时间轴/V1.png 逐条自查；程序化复核：look 区序（brand/archive/title/reader/主卡/片段/回信卡/聊聊/respond）、sameWidth=true、titleSize=32px、voiceText=00:18、coverTag=true、where 行与占位文案到位、overflowY=auto；timeline now10/media12/hollow14、黑条移除（backgroundImage 不再含 46,48,54）、霜卡 2 条模糊线、弯引号码点、moment href=look.html、霜卡底 755<768。裁图经 Read 目检无人像无原文、角签已修补。
+  - Verification SKIPPED：真机渲染、reduced-motion 系统开关实测（沿用既有边界）；IAB 截图 clip >340px 平铺与主窗遮挡节流为工具问题（分段＋`animations.finish()` 绕过）。
+- **Risks**: 裁图入库属 gitignore 目录的衍生位图（氛围图、无真实内容），如认为不妥可回退为 CSS 合成占位；timeline 照片仍为 CSS 渐变（任务仅要求去黑条），如需与 look 同级质感可另行裁图；look 滚动态下内容自状态栏下方穿过（demo 无原生状态栏毛玻璃，可接受）。
+- **Commit**: pending（随本条一起本地提交，不含 push）
+- **Next**: 如认可 V3 蓝本，可同步复核 agent-review 背景快照与新 look 结构的一致性；`demo/index.html` 画廊改造仍待做。
