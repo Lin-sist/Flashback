@@ -44,6 +44,10 @@ Next:
 
 - ...
 
+## 2026-09-13｜补录：index 画廊改造提交 hash｜Type B
+
+- **Commit**: `531ec4b` demo(index): 画廊改造——联屏模拟器退役为十四页信笺导航（本地 commit，未 push）
+
 ## 2026-09-13｜frontend-visual-language-evolution index.html 画廊改造｜Type B
 
 - **Scope**: `demo/index.html`（整文件重写）；`demo/IMPLEMENTATION_GUIDE.md`（§1 结构说明＋§3 进度句同步）；`.ai/AGENT_LOG.md`（本条）。业务前端/后端/OpenSpec/package 无 diff
