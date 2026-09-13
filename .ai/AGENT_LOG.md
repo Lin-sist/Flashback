@@ -44,6 +44,15 @@ Next:
 
 - ...
 
+## 2026-09-13｜frontend-visual-language-evolution index.html 画廊改造｜Type B
+
+- **Scope**: `demo/index.html`（整文件重写）；`demo/IMPLEMENTATION_GUIDE.md`（§1 结构说明＋§3 进度句同步）；`.ai/AGENT_LOG.md`（本条）。业务前端/后端/OpenSpec/package 无 diff
+- **Changes**: 用户认可纸张质感后授权开始改造——旧 V3.0 第一版 index.html（2816 行联屏模拟器：侧边控制台＋9 个内联屏幕＋材质演示模态＋验收清单抽屉）整体退役，其屏幕功能已由 pages/*.html 十四页承接、动效由 motion.css 承接、验收清单由指南 §7 承接；重写为挂在共享 tokens/components/motion 上的信笺风导航画廊：三组（主流程·一封信的一生／档案与篇章／见证者在场）共 14 张信卡入口（汉字序号＋页名＋一句说明＋细线箭头），组标签 3 枚朱砂静点（同屏朱砂 ≤3），卡片轻浮进入动效＋reduced-motion 降级；入口卡不加折角/红线（非"信"形态，遵 §3.2 家具限权）
+- **Verification**: PASS——14 个 href 与实际文件逐一比对全部存在；无头 Chrome 渲染桌面（1280×1000）与移动（430×932）两版：纸面颗粒/光晕/信卡阴影正常、三组排布与字阶正确、移动端自适应收窄正常；未复述任何 gitignored 概念图内容
+- **Risks**: 旧模拟器的三枚材质演示模态（玻璃取景框/融霜/落印特写）未单独迁移——同等演示可看 pages/sealed.html、pages/saved.html 与 motion.css；画廊仅在桌面/开发者工具宽度下人工目验，未做无障碍审计（demo 原型层可接受）
+- **Commit**: pending
+- **Next**: 用户浏览器过一遍画廊与十四页；下一步可按指南 §8.5 用五帧＋三材质稿对照 brief §10 逐项核销，再议进入正式前端实现
+
 ## 2026-09-13｜补录：demo 纸张质感提交 hash｜Type B
 
 - **Commit**: `02df503` demo(texture): 落地宣纸三层系统——颗粒/光晕/压凹/霜纹（本地 commit，未 push）

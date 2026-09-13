@@ -38,7 +38,7 @@
 
 ```text
 demo/
-  index.html               ← 原型导航/画廊（现有 V3.0 第一版可改造）
+  index.html               ← 原型导航/画廊（2026-09-13 已改造：旧联屏模拟器退役，为十四页信笺导航）
   brand-spec.md            ← 既有品牌规范（保留）
   IMPLEMENTATION_GUIDE.md  ← 本指南
   assets/
@@ -52,7 +52,7 @@ demo/
 - 基准画布 **390×844**，左右安全边距 `28px`（内容区 334px）；展示用 `.device` 外框居中，不影响页面本体尺寸。
 - 每页独立 HTML，只引 `tokens.css` + `components.css`（+需要动效的页引 `motion.css`），页内只写结构与页级微调。
 - 实现顺序即依赖顺序：**tokens → 首页 → 书写页 → 已保存态 → 回看/封存 → 个人中心 → 时间轴**。
-- 进度（2026-09-13·第二批完成）：`tokens.css`＋`components.css`（含本批追加的时刻卡/排印块/对话浮层套件/遮罩）＋`motion.css` 已落地；14 页全部实现并通过浏览器截图验收——home / writing / saved / look / sealed / timeline / records / chapter / user-center / ownership / summary / agent-choose / agent-writing / agent-review。页面互链接通：三 Tab 页互转，user-center→ownership/summary/records，records↔chapter、records→look/sealed、chapter→look，writing→agent-choose→agent-writing，look→agent-review（来源药丸→records）。**登录页按用户指示暂缓**。剩余：`index.html` 画廊改造。本地预览：在 `demo/` 下起任意静态服务（如 `python -m http.server 8931`）后访问 `/pages/*.html`。
+- 进度（2026-09-13·第二批完成）：`tokens.css`＋`components.css`（含本批追加的时刻卡/排印块/对话浮层套件/遮罩）＋`motion.css` 已落地；14 页全部实现并通过浏览器截图验收——home / writing / saved / look / sealed / timeline / records / chapter / user-center / ownership / summary / agent-choose / agent-writing / agent-review。页面互链接通：三 Tab 页互转，user-center→ownership/summary/records，records↔chapter、records→look/sealed、chapter→look，writing→agent-choose→agent-writing，look→agent-review（来源药丸→records）。**登录页按用户指示暂缓**。`index.html` 画廊已于 2026-09-13 改造为十四页信笺导航（挂在共享 tokens/components 上，自动继承宣纸三层系统；旧 V3.0 联屏模拟器整体退役，功能由 pages/*.html＋motion.css＋本指南 §7 承接）。本地预览：在 `demo/` 下起任意静态服务（如 `python -m http.server 8931`）后访问 `/pages/*.html`。
 
 ## 2. 全局 Tokens（assets/tokens.css）
 
