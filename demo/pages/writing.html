@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashback Demo · 书写页</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/components.css">
+<style>
+  /* ---- 页级微调：书写页（蓝本：概念图/书写页/V2.png） ---- */
+  .sheet { position: absolute; inset: 0; padding: 0 30px 0 36px; }
+
+  .close { display: block; margin-top: 54px; width: 24px; height: 24px; color: var(--ink); opacity: .8; }
+
+  /* 信笺本体装饰：右上折角、竖排侧注、左贯穿朱砂细线 */
+  .dogear {
+    position: absolute; top: 8px; right: 0; width: 18px; height: 18px;
+    background: linear-gradient(to bottom left, var(--fold-page) 0 50%, var(--fold-shade) 50.5% 100%);
+    box-shadow: -2px 2px 3px rgba(120, 100, 70, 0.15);
+  }
+  .sheet .side-note { position: absolute; right: 16px; top: 118px; }
+  .margin-line {
+    position: absolute; left: 15px; top: 150px; bottom: 128px; width: 1.5px;
+    background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.42) 12% 88%, transparent);
+  }
+
+  .lh-date { display: block; margin-top: 20px; font-size: 13px; }
+
+  .w-title { margin-top: 44px; font-size: 28px; font-weight: 400; letter-spacing: 0.1em; color: var(--ink); }
+  .w-body { margin-top: 20px; max-width: 305px; }
+
+  /* 照片：抽象雨后窗面占位（合成内容，无真实图片资产） */
+  .w-photo {
+    margin-top: 30px; width: 216px; height: 164px;
+    box-shadow: 0 3px 10px rgba(120, 100, 70, 0.2);
+    background:
+      radial-gradient(3px 3px at 22% 28%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(2px 2px at 40% 60%, rgba(255,255,255,.45), transparent 60%),
+      radial-gradient(4px 4px at 60% 35%, rgba(255,255,255,.4), transparent 60%),
+      radial-gradient(2.5px 2.5px at 72% 70%, rgba(255,255,255,.5), transparent 60%),
+      radial-gradient(3px 3px at 33% 80%, rgba(255,255,255,.4), transparent 60%),
+      radial-gradient(2px 2px at 55% 15%, rgba(255,255,255,.45), transparent 60%),
+      linear-gradient(90deg, transparent 0 84%, rgba(42, 46, 52, 0.9) 84%),
+      linear-gradient(180deg, #7E8896 0%, #9AA0AC 40%, #C4AE94 72%, #7A6A58 100%);
+  }
+
+  /* 语音：细线圆圈＋细线三角，禁实心面性 */
+  .w-voice { margin-top: 26px; display: flex; align-items: center; gap: 14px; }
+  .v-play {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid rgba(107, 101, 96, 0.5);
+    display: grid; place-items: center;
+  }
+  .v-play i {
+    display: block; margin-left: 2px;
+    border-style: solid; border-width: 4.5px 0 4.5px 7px;
+    border-color: transparent transparent transparent var(--ink-mid);
+  }
+  .v-text { font-size: 13.5px; font-weight: 300; letter-spacing: 0.08em; color: var(--ink-mid); }
+
+  /* 附言折叠行：默认收起，视觉极轻 */
+  .appendix { margin-top: 40px; display: inline-flex; align-items: center; gap: 10px; color: var(--ink-light); }
+  .appendix span { font-size: 12px; font-weight: 300; letter-spacing: 0.28em; }
+  .appendix svg { opacity: .7; }
+
+  /* 底部动作区：三键＋玻璃药丸（书写页底部动作条允许玻璃） */
+  .w-actions {
+    position: absolute; left: 26px; right: 24px; bottom: 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .w-icons { display: flex; align-items: center; gap: 24px; color: var(--ink-mid); }
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="0.8"/><rect x="5" y="5" width="3" height="6" rx="0.8"/><rect x="10" y="3" width="3" height="8" rx="0.8"/><rect x="15" y="0" width="3" height="11" rx="0.8" opacity="0.35"/></svg>
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 4.6a10 10 0 0 1 13 0"/><path d="M4.6 7.4a6.3 6.3 0 0 1 7.8 0"/><circle cx="8.5" cy="10.3" r="1.2" fill="currentColor" stroke="none"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.2" stroke="currentColor" opacity="0.4"/><rect x="2.2" y="2.2" width="17.6" height="7.6" rx="2" fill="currentColor"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <main class="sheet">
+
+    <span class="dogear"></span>
+    <span class="side-note">只写给自己</span>
+    <span class="margin-line"></span>
+
+    <a class="close" href="home.html" aria-label="关闭并回到首页">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg>
+    </a>
+
+    <span class="lh-date t-meta-serif">记录于 二零二六年 · 暮秋</span>
+
+    <h2 class="w-title">雨停之后</h2>
+    <p class="t-body w-body">傍晚下过一阵雨，窗边的风有一点凉。</p>
+
+    <figure class="w-photo" role="img" aria-label="雨后窗面（合成占位图）"></figure>
+
+    <div class="w-voice">
+      <span class="v-play"><i></i></span>
+      <span class="v-text">00:18 原始声音</span>
+    </div>
+
+    <a class="appendix" href="agent-choose.html" aria-label="选择这次怎么聊（Agent 浮层）">
+      <span>附言 · 可选</span>
+      <svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M1 1.2l4.5 4.5L10 1.2"/></svg>
+    </a>
+
+    <footer class="w-actions">
+      <div class="w-icons">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5c-4.2-4.6-6.3-8-6.3-10.8a6.3 6.3 0 1 1 12.6 0c0 2.8-2.1 6.2-6.3 10.8z"/><circle cx="12" cy="10.5" r="2.3"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="9.5" r="1.6"/><path d="M4.5 17.5l5-4.5 3.5 3 3-2.5 4.5 4"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg>
+      </div>
+      <button class="glass-pill"><span class="dot"></span>留下这一刻</button>
+    </footer>
+
+  </main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,85 @@
+/* ==========================================================================
+   Flashback Demo — 签名动效（assets/motion.css）
+   依据 demo/IMPLEMENTATION_GUIDE.md §4 ＋ OPENDESIGN_BRIEF.md §5：
+   仅此四枚签名动效，其余安静；全部一次性、非循环；
+   禁视差 / 滚动劫持 / 循环动画 / 秒级跳动；每枚都有 prefers-reduced-motion 静态降级。
+
+   页面接线（demo 层零 JS）：
+   - 卡片轻浮进入  .m-rise            页面加载即入场，--rise-delay 控制先后
+   - 落印（保存）  .seal.m-stamp      信卡出现后落下，--stamp-delay 接续节奏
+   - 融霜（抵达）  .frost.is-thawing  预留：抵达瞬间加类触发，900ms 向右上角收退
+   - 脊线＋节点    .m-spine / .m-node(.lit)  时光轴用；节点过视口中线加 .lit
+                                      （IntersectionObserver 由 timeline.html 自带，本层零 JS）
+   ========================================================================== */
+
+/* ---- 卡片轻浮进入：opacity 0→1 ＋ translateY 12px→0，500ms，仅一次 ---- */
+.m-rise {
+  animation: m-rise 500ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+@keyframes m-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 落印（保存）：scale 1.6→1 ＋ -4°→0 微转，300ms；落定后一次朱砂晕开脉冲 ----
+   终态 opacity 与 .seal 基准（0.85）一致，动画结束即常态。 */
+.m-stamp {
+  position: relative;
+  animation: m-stamp 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--stamp-delay, 0ms);
+}
+@keyframes m-stamp {
+  from { opacity: 0; transform: scale(1.6) rotate(-4deg); }
+  to   { opacity: 0.85; transform: scale(1) rotate(0deg); }
+}
+.m-stamp::after {
+  content: ""; position: absolute; inset: -1px; border-radius: 50%;
+  animation: m-stamp-pulse 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--stamp-delay, 0ms) + 230ms);
+}
+@keyframes m-stamp-pulse {
+  from { box-shadow: 0 0 0 0 rgba(181, 53, 42, 0.32); }
+  to   { box-shadow: 0 0 0 12px rgba(181, 53, 42, 0); }
+}
+
+/* ---- 融霜（抵达）：霜从全覆盖向右上角收退，~900ms，一次性非循环 ----
+   裁剪面四角同时塌向右上角，霜呈 L 形边缘自左下退向右上；
+   霜退处内容显影，收尾霜层归零。 */
+.frost.is-thawing {
+  animation: m-thaw 900ms ease forwards;
+}
+@keyframes m-thaw {
+  from { clip-path: polygon(-2% -2%, 102% -2%, 102% 102%, -2% 102%); }
+  to   { clip-path: polygon(102% -2%, 102% -2%, 102% -2%, 102% -2%); }
+}
+
+/* ---- 脊线生长（时光轴）：scaleY 0→1，origin top，~1200ms ---- */
+.m-spine {
+  transform-origin: top center;
+  animation: m-spine 1200ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes m-spine {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+/* 节点两态：空心＝纯文字；.lit＝点亮实心（含媒体）。
+   点亮色是朱砂点位之一，timeline 页须自行控制同屏点亮数 ≤3。 */
+.m-node {
+  flex: none;
+  width: 7px; height: 7px; border-radius: 50%;
+  border: 1px solid var(--ink-faint); background: transparent;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+.m-node.lit { background: var(--vermilion); border-color: var(--vermilion); }
+
+/* ---- prefers-reduced-motion：全部静态直达终态 ---- */
+@media (prefers-reduced-motion: reduce) {
+  .m-rise, .m-stamp, .m-stamp::after, .frost.is-thawing, .m-spine { animation: none; }
+  .m-rise  { opacity: 1; transform: none; }
+  .m-stamp { opacity: 0.85; transform: none; }
+  .m-stamp::after { content: none; }
+  .frost.is-thawing { display: none; }  /* 直接显示解锁态 */
+  .m-spine { transform: none; }
+  .m-node  { transition: none; }
+}

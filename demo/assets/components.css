@@ -1,0 +1,257 @@
+/* ==========================================================================
+   Flashback Demo — 共享组件
+   依据 demo/IMPLEMENTATION_GUIDE.md §3。玻璃只允许：药丸、TabBar、筛选/浮层；
+   内容卡全纸；封存霜遮罩是语义性玻璃。
+   ========================================================================== */
+
+/* ---- 展示设备框 390×844 ---- */
+.device {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  margin: 40px auto;
+  border-radius: 44px;
+  background: var(--paper-grad);
+  box-shadow:
+    0 24px 60px rgba(80, 65, 45, 0.28),
+    0 0 0 10px #2E2B27,
+    0 0 0 12px #4A453E;
+  overflow: hidden;
+}
+@media (max-width: 480px) {
+  body { background: var(--paper-grad); }
+  .device { width: 100%; height: 100vh; margin: 0; border-radius: 0; box-shadow: none; }
+}
+
+/* ---- 状态栏 ---- */
+.statusbar {
+  position: relative; z-index: 6;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 44px; padding: 6px 26px 0 34px;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--ink);
+}
+.statusbar .sb-icons { display: flex; align-items: center; gap: 6px; color: var(--ink); }
+
+/* ---- 信笺卡（内容卡全纸，禁玻璃） ---- */
+.letter-card {
+  position: relative;
+  background: var(--paper-card);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card), var(--inset-light);
+}
+/* 左侧朱砂渐变竖线 —— 只用于"信"形态 */
+.redline {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 1.5px;
+  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.5) 15% 85%, transparent);
+}
+
+/* ---- 折角（右上，14–16px；只允许"信"形态使用） ---- */
+.fold { position: relative; }
+.fold::after {
+  content: ""; position: absolute; top: -0.5px; right: -0.5px;
+  width: 16px; height: 16px;
+  background: linear-gradient(to bottom left, var(--fold-page) 0 50%, var(--fold-shade) 50.5% 100%);
+  box-shadow: -2px 2px 3px rgba(120, 100, 70, 0.16);
+}
+
+/* ---- 描边圆印（封/阅/待/守） ---- */
+.seal {
+  flex: none;
+  width: 26px; height: 26px;
+  border: 1px solid rgba(181, 53, 42, 0.75); border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-serif); font-size: 12px; font-weight: 400; color: var(--vermilion);
+  opacity: 0.85;
+}
+
+/* ---- 取景框空位（凹陷面板＋四角括线；placeholder 正文色） ---- */
+.viewfinder {
+  position: relative;
+  background-color: var(--paper-deep);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 3px rgba(120, 100, 70, 0.1), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  --bk: rgba(107, 101, 96, 0.55);
+  background-image:
+    linear-gradient(var(--bk), var(--bk)), linear-gradient(var(--bk), var(--bk)),
+    linear-gradient(var(--bk), var(--bk)), linear-gradient(var(--bk), var(--bk)),
+    linear-gradient(var(--bk), var(--bk)), linear-gradient(var(--bk), var(--bk)),
+    linear-gradient(var(--bk), var(--bk)), linear-gradient(var(--bk), var(--bk));
+  background-repeat: no-repeat;
+  background-size: 16px 1px, 1px 16px, 16px 1px, 1px 16px, 16px 1px, 1px 16px, 16px 1px, 1px 16px;
+  background-position:
+    10px 10px, 10px 10px,
+    calc(100% - 26px) 10px, calc(100% - 10px) 10px,
+    10px calc(100% - 10px), 10px calc(100% - 26px),
+    calc(100% - 26px) calc(100% - 10px), calc(100% - 10px) calc(100% - 26px);
+}
+.viewfinder-ph {
+  position: absolute; inset: 0;
+  display: flex; align-items: center;
+  padding: 0 28px;
+  font-size: 16px; font-weight: 300; letter-spacing: 0.05em; color: var(--ink-mid);
+}
+
+/* ---- 玻璃药丸（全 app 最玻璃之物；含暖纸实色降级） ---- */
+.glass-pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  height: 48px; padding: 0 26px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 8px 22px rgba(125, 105, 75, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -6px 12px rgba(255, 255, 255, 0.25);
+  font-family: var(--font-serif); font-size: 15px; font-weight: 400;
+  letter-spacing: 0.18em; text-indent: 0.18em; color: var(--ink);
+  transition: transform .15s ease, background .2s ease;
+}
+.glass-pill:active { transform: translateY(1px); background: rgba(255, 255, 255, 0.55); }
+.glass-pill .dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--vermilion); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-pill { background: var(--glass-fallback); }
+}
+
+/* ---- 底部 TabBar（三项纯汉字＋3px 朱砂静点，无图标） ---- */
+.tabbar {
+  position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 6;
+  height: 62px; border-radius: var(--radius-sheet);
+  background: rgba(250, 247, 242, 0.72);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 0.5px solid rgba(188, 174, 152, 0.35);
+  box-shadow: 0 -2px 18px rgba(125, 105, 75, 0.1);
+  display: flex; align-items: center; justify-content: space-around;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tabbar { background: #F7F2E9; }
+}
+.tabbar .tab {
+  position: relative;
+  font-size: 13px; font-weight: 300; letter-spacing: 0.2em; padding-left: 0.2em;
+  color: var(--ink-light);
+}
+.tabbar .tab.active { color: var(--ink); font-weight: 400; }
+.tabbar .tab.active::after {
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%); bottom: -12px;
+  width: 3px; height: 3px; border-radius: 50%; background: var(--vermilion);
+}
+
+/* ---- 竖排侧注（低语式文案） ---- */
+.side-note {
+  writing-mode: vertical-rl;
+  font-size: 11px; font-weight: 300; letter-spacing: 0.35em;
+  color: var(--vermilion);
+  border: 0.5px solid rgba(181, 53, 42, 0.55);
+  padding: 9px 3px;
+  opacity: 0.9;
+}
+
+/* ---- 霜遮罩（封存语义玻璃） ---- */
+.frost {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.8));
+  box-shadow: inset 0 0 22px 6px rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+}
+
+/* ---- 轻玻璃小药丸（筛选/状态） ---- */
+.chip {
+  display: inline-flex; align-items: center;
+  height: 30px; padding: 0 15px;
+  border-radius: var(--radius-pill);
+  background: rgba(250, 247, 242, 0.7);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 0.5px solid var(--hairline);
+  font-size: 12px; font-weight: 300; letter-spacing: 0.2em; text-indent: 0.1em; color: var(--ink-mid);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .chip { background: #F6F1E8; }
+}
+
+/* ---- 时刻卡（时光轴/图片条目：上半自然照片＋下半窄纸信息条；不带朱砂竖线） ---- */
+.moment-card { display: block; }
+.moment-card .m-photo { display: block; height: 150px; }
+.moment-card .m-info { padding: 12px 18px 14px; }
+
+/* ---- 排印块（时光轴纯文字条目：日期 meta＋宋体正文直接排在纸上，无卡） ---- */
+.text-block .tb-text {
+  font-size: 17px; font-weight: 300; line-height: 1.9; letter-spacing: 0.05em; color: var(--ink-mid);
+}
+
+/* ---- 压暗遮罩（浮层页背后的页面态，属"暂时之物"的舞台） ---- */
+.veil { position: absolute; inset: 0; z-index: 5; background: rgba(96, 89, 79, 0.42); }
+
+/* ---- 对话浮层（见证者对话：纸上小纸条卡＋用户细线便签；输入栏是玻璃位） ---- */
+.chat-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
+  background: rgba(249, 245, 237, 0.98);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -10px 30px rgba(80, 65, 45, 0.2);
+  padding: 10px 24px 30px;
+}
+.chat-handle { display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--ink-faint); margin: 2px auto 0; }
+.chat-close { position: absolute; top: 20px; right: 18px; width: 26px; height: 26px; color: var(--ink); opacity: .8; }
+.chat-kicker { margin-top: 30px; text-align: center; font-size: 12px; font-weight: 300; letter-spacing: 0.35em; text-indent: 0.35em; color: var(--ink-light); }
+.chat-title { margin-top: 14px; text-align: center; font-size: 24px; font-weight: 400; letter-spacing: 0.12em; text-indent: 0.12em; color: var(--ink); }
+
+/* 见证者＝纸上小纸条卡（左）；用户＝右侧细线便签（透明描边） */
+.chat-note {
+  position: relative; max-width: 288px; margin-top: 22px;
+  padding: 16px 20px;
+  background: #FBF8F1;
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: 0 2px 8px rgba(125, 105, 75, 0.1);
+  font-size: 15px; font-weight: 300; line-height: 1.85; letter-spacing: 0.04em; color: var(--ink-mid);
+}
+.chat-note-user {
+  max-width: 272px; margin: 22px 0 0 auto;
+  padding: 13px 17px;
+  border: 0.5px solid rgba(107, 101, 96, 0.45);
+  border-radius: var(--radius-card);
+  font-size: 14.5px; font-weight: 300; letter-spacing: 0.04em; color: var(--ink-mid);
+}
+/* 用户便签的纸面变体（回看对话用：浅纸底＋折角） */
+.chat-note-user.papered {
+  position: relative;
+  background: #F6F1E6; border-color: var(--hairline);
+  box-shadow: 0 2px 8px rgba(125, 105, 75, 0.1);
+}
+.chat-note-user.papered::after {
+  content: ""; position: absolute; top: -0.5px; right: -0.5px;
+  width: 14px; height: 14px;
+  background: linear-gradient(to bottom left, var(--fold-page) 0 50%, var(--fold-shade) 50.5% 100%);
+  box-shadow: -2px 2px 3px rgba(120, 100, 70, 0.16);
+}
+
+/* 对话输入栏（浮层内全页唯一玻璃位之一；含暖纸实色降级） */
+.chat-input-bar {
+  display: flex; align-items: center; gap: 12px;
+  height: 50px; padding: 0 9px 0 20px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .chat-input-bar { background: var(--glass-fallback); }
+}
+.chat-input-bar .ph { flex: 1; font-size: 14px; font-weight: 300; letter-spacing: 0.06em; color: var(--ink-light); }
+.chat-input-bar .send {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid rgba(107, 101, 96, 0.5);
+  display: grid; place-items: center; color: var(--ink-mid);
+}
+
+/* 来源小药丸（回看对话的检索来源引用；朱砂点为信任符号） */
+.source-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 12px; padding: 5px 13px;
+  border: 0.5px solid rgba(107, 101, 96, 0.4);
+  border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 300; letter-spacing: 0.08em; color: var(--ink-mid);
+}
+.source-chip i { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--vermilion); }

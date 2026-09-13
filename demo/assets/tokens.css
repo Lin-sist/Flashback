@@ -1,0 +1,84 @@
+/* ==========================================================================
+   Flashback Demo — 全局设计 Tokens
+   依据 demo/IMPLEMENTATION_GUIDE.md §2。
+   事实源优先级：产品宪章 > 蓝图 §9.4 > UI_DESIGN_CONTEXT.md > brief v3.0 > 本文件。
+   ========================================================================== */
+
+:root {
+  /* 纸 —— 世界的材质 */
+  --paper-grad: linear-gradient(170deg, #FAF7F2 0%, #F5F0E8 55%, #F0EBE0 100%);
+  --paper-card: rgba(252, 249, 244, 0.92);   /* 信卡体：暖纸白，不用 backdrop-filter（纸禁玻璃） */
+  --paper-deep: #EDE8DF;                     /* 凹陷面（书写空位、取景框）深半档 */
+  --fold-page: #F4EFE5;                      /* 折角切口露出的纸底近似色 */
+  --fold-shade: #E3DBC9;                     /* 折角翻面 */
+
+  /* 墨阶 */
+  --ink: #302E29;
+  --ink-mid: #6B6560;
+  --ink-light: #9E9890;
+  --ink-faint: #C8C2B8;
+
+  /* 朱砂 —— 唯一有彩色，单屏 ≤3 处 */
+  --vermilion: #B5352A;
+  --verm-dim: #8A271F;
+
+  /* 线与霜 */
+  --hairline: rgba(188, 174, 152, 0.28);
+  --frost: rgba(255, 255, 255, 0.65);
+
+  /* 影 —— 信卡 10–14% 柔影，禁 4–6% 脏平中间态 */
+  --shadow-card: 0 6px 20px rgba(125, 105, 75, 0.12);
+  --inset-light: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  /* 玻璃 —— 只属于动作与暂时之物 */
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-blur: blur(14px) saturate(1.15);
+  --glass-fallback: #F3EEE4;                 /* backdrop-filter 不支持时的暖纸实色降级 */
+
+  /* 字 */
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
+  --font-sans: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif; /* 仅 ≤11px 元数据 */
+
+  /* 节奏（8pt 网格，递进留白） */
+  --page-x: 28px;
+  --gap-xs: 6px; --gap-s: 12px; --gap-m: 28px; --gap-l: 48px;
+  --radius-card: 1px;
+  --radius-sheet: 12px;
+  --radius-pill: 999px;
+}
+
+/* ---- 基础 ---- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-serif);
+  color: var(--ink);
+  background: #E7E0D3; /* 展示台底（设备外） */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+/* ---- 排版层级（宋体主角，黑体退居 ≤11px 元数据） ---- */
+.t-brand { font-size: 12px; font-weight: 300; letter-spacing: 0.55em; padding-left: 0.55em; color: var(--ink-light); }
+.t-h1a   { font-size: 32px; font-weight: 300; letter-spacing: 0.06em; color: var(--ink); }
+.t-h1b   { font-size: 28px; font-weight: 300; letter-spacing: 0.06em; color: var(--ink); }
+.t-sub   { font-size: 14px; font-weight: 300; letter-spacing: 0.05em; color: var(--ink-mid); }
+.t-section { font-size: 16px; font-weight: 400; letter-spacing: 0.04em; color: var(--ink); }
+.t-body  { font-size: 15px; font-weight: 300; line-height: 1.85; letter-spacing: 0.03em; color: var(--ink-mid); }
+.t-meta  { font-family: var(--font-sans); font-size: 11px; font-weight: 300; letter-spacing: 0.08em; color: var(--ink-light); }
+.t-meta-serif { font-size: 12px; font-weight: 300; letter-spacing: 0.14em; color: var(--ink-light); }
+
+/* 细下划线文字链接（和它聊聊那时候 / 再次读一读） */
+.tlink {
+  font-size: 12.5px; font-weight: 300; letter-spacing: 0.1em; color: var(--ink-mid);
+  padding-bottom: 3px; border-bottom: 0.5px solid rgba(107, 101, 96, 0.45);
+  transition: opacity .2s ease;
+}
+.tlink:hover { opacity: .65; }
