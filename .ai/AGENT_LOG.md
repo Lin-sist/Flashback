@@ -44,6 +44,22 @@ Next:
 
 - ...
 
+## 2026-09-13｜frontend-visual-language-evolution demo 纸张质感补齐｜Type B
+
+- **Scope**: `demo/assets/tokens.css`；`demo/assets/components.css`；`demo/IMPLEMENTATION_GUIDE.md`（§2/§3 材质说明同步）；`.ai/AGENT_LOG.md`（本条）。用户本轮授权"直接在 demo 实现、不改 change"；业务前端/后端/OpenSpec/package 均无 diff
+- **Changes**: 概念图纸张质感比对结论为"结构与家具已对齐、纸面缺纤维颗粒/光晕/浮雕"，本轮集中补齐——
+  ① tokens 新增 `--paper-grain`（feTurbulence 240px 无缝噪点，alpha 上限 7%）与 `--paper-grain-strong`（霜面 16%）；`--shadow-card` 升级为贴地接触影＋环境柔影双层（总量仍守 10–14% 档）
+  ② `.device` 背景叠 4 层天光/晕影 radial 光晕，`::before` 加全局颗粒层（内容之下）；窄屏 body 同步光晕
+  ③ `.viewfinder` 取景框改 letterpress 压凹：内上缘暗＋内下缘亮＋外唇一线受光，面板自带纸纹
+  ④ `.letter-card` / `.chat-note` / `.chat-note-user.papered` / `.chat-sheet` 以 `isolation:isolate`＋负层级 `::before` 自带纸纹（墨迹压在纹理上）；`.viewfinder` 同法
+  ⑤ `.fold` 折角 16→18px 对齐首页 V3 比例
+  ⑥ `.frost` 叠凝霜颗粒＋边缘凝霜加重（雾状凝霜，遵指南 §6.7"非雪花晶体"裁决）
+  ⑦ `.glass-pill` 外缘发丝线＋顶部高光/内透光微调（CSS 近似，不做实体折射，遵 §6.6）
+- **Verification**: PASS——无头 Chrome 2x 渲染 home / writing / sealed / look / agent-review 五页：颗粒、光晕、压凹、霜纹全部生效，页面结构与改造前一致无回归；放大裁切复核取景框压凹与霜颗粒成立、240px 平铺无可见接缝；与概念图 首页V3 / 书写页V2 / 封存页V1 / 回看页V3 / 回看Agent浮层 并排比对材质同族。look 首帧空白为 `.m-rise` 入场动画被截图截断，加 `--virtual-time-budget` 后渲染完整，非代码缺陷
+- **Risks**: 颗粒层在低端 Android WebView 的性能/观感未真机验证（SKIPPED：无真机环境）；feTurbulence data-URI 在 mp-weixin WXSS 的兼容性属后续 uniapp 迁移验证项；`index.html`（画廊封面）为独立自包含样式，未同步本次材质层；概念图摄影级细节（实体折射、冰晶边）按指南 §6 偏差清单有意不复刻
+- **Commit**: pending
+- **Next**: 用户在浏览器通读 14 页核验纸感；认可后同一材质基底上继续页面级微调与 index.html 画廊改造
+
 ## 2026-09-06｜frontend-visual-language-evolution 方向转向：锁定「信笺×微液态玻璃」｜Type B
 
 - **Scope**: `Docs/design/frontend-visual-language-evolution/OPENDESIGN_BRIEF.md`（重写 v3.0）；`.ai/ACTIVE_TASK.md`（闸门状态＋Current Progress）；`.ai/AGENT_LOG.md`（本条）；`.gitignore`（忽略 `/2.0页面效果/`）

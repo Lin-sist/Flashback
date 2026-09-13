@@ -58,10 +58,12 @@ demo/
 
 ```css
 :root {
-  /* 纸 —— 世界的材质 */
+  /* 纸 —— 世界的材质：宣纸三层系统＝光晕（.device 背景层）＋纤维颗粒（::before）＋暖纸渐变 */
   --paper-grad: linear-gradient(170deg, #FAF7F2 0%, #F5F0E8 55%, #F0EBE0 100%);
   --paper-card: rgba(252, 249, 244, 0.92);   /* 信卡体：高不透明暖纸白，不用 backdrop-filter */
   --paper-deep: #EDE8DF;                      /* 凹陷面（书写空位、取景框）深半档 */
+  --paper-grain: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.07'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");          /* 纤维颗粒：极轻，勿调高 */
+  --paper-grain-strong: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='gs'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.16'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23gs)'/%3E%3C/svg%3E");   /* 霜面凝霜颗粒 */
   /* 墨阶 */
   --ink: #302E29; --ink-mid: #6B6560; --ink-light: #9E9890; --ink-faint: #C8C2B8;
   /* 朱砂 —— 唯一有彩色，单屏 ≤3 处 */
@@ -69,8 +71,8 @@ demo/
   /* 线与霜 */
   --hairline: rgba(188, 174, 152, 0.28);
   --frost: rgba(255, 255, 255, 0.65);
-  /* 影（信卡 10–14% 柔影，禁 4–6% 脏平中间态） */
-  --shadow-card: 0 6px 20px rgba(125, 105, 75, 0.12);
+  /* 影（贴地接触影＋环境柔影双层，总量仍在 10–14% 档；禁 4–6% 脏平中间态） */
+  --shadow-card: 0 1px 2px rgba(125, 105, 75, 0.1), 0 10px 26px rgba(125, 105, 75, 0.13);
   --inset-light: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   /* 玻璃 —— 只属于动作与暂时之物 */
   --glass-bg: rgba(255, 255, 255, 0.42);
@@ -102,13 +104,14 @@ demo/
 
 按依赖序实现，一次写好全局复用：
 
+0. **纸面材质（2026-09-13 补齐）**：`.device` 背景＝天光/晕影 radial 光晕（3–4 层，≤34% 透明度）叠 `--paper-grad`；`.device::before`＝全局纤维颗粒层（`--paper-grain`，z-index 0，内容之下）；`.letter-card` / `.chat-note` / `.chat-note-user.papered` / `.chat-sheet` / `.viewfinder` 自带纸纹——`isolation: isolate` ＋ 负层级 `::before`（z-index:-1，纹理在卡体背景之上、文字之下）。feTurbulence 用 `stitchTiles='stitch'` 保证 240px 无缝平铺。
 1. **信笺卡 `.letter-card`**：`--radius-card` 直角；`--paper-card` 底＋`--hairline` 0.5px 边＋`--inset-light`＋`--shadow-card`；左侧 1.5px 朱砂渐变竖线（`linear-gradient(to bottom, transparent, rgba(181,53,42,.5) 15% 85%, transparent)`），占位在 padding 结构里预留。**禁 backdrop-filter**（纸禁玻璃，浮起感全靠影与内描光）。
-2. **折角 `.fold`**：右上角 14px，`::after` 对角渐变或 clip-path，折痕面比卡面深半档＋1px 内投影。**只允许出现在"信"形态**（信卡、书信页、已保存卡、回信小卡）；面板、表单、入口卡禁用。
+2. **折角 `.fold`**：右上角 18px（2026-09-13 由 14px 上调，对齐首页 V3 比例），`::after` 对角渐变或 clip-path，折痕面比卡面深半档＋1px 内投影。**只允许出现在"信"形态**（信卡、书信页、已保存卡、回信小卡）；面板、表单、入口卡禁用。
 3. **圆印 `.seal`**：26px 圆、1px `rgba(181,53,42,.75)` 描边、透明底、宋体 11px 单字、透明度 ~0.85。字符语义锁定：**封**＝封存与保存（落印），**阅**＝阅读态，**待**＝等待抵达，**守**＝托管凭证。书写页不出现印章。
-4. **取景框空位 `.viewfinder`**：`--paper-deep` 凹陷面、近直角、四角极细墨色括线（两个伪元素＋4 段渐变线，或角标 SVG）；placeholder 用 **`--ink-mid`（正文色，非灰）**，面板内垂直居中。
+4. **取景框空位 `.viewfinder`**：`--paper-deep` 凹陷面、近直角、四角极细墨色括线（两个伪元素＋4 段渐变线，或角标 SVG）；压凹用 letterpress 双边影（内上缘暗 `inset 0 2px 4px rgba(120,100,70,.16)`、内下缘亮 `inset 0 -1px 0 rgba(255,255,255,.65)`、外唇一线受光 `0 1px 0 rgba(255,255,255,.55)`）；placeholder 用 **`--ink-mid`（正文色，非灰）**，面板内垂直居中。
 5. **玻璃药丸 `.glass-pill`**：高 48px、`--radius-pill`；`--glass-bg`＋`--glass-blur`＋1px `--glass-border` 高光描边＋顶部微光泽渐变；左端 5px 朱砂起笔点；按压态 `translateY(1px)`＋底色透明度上调。**硬性降级**：`@supports not (backdrop-filter: blur(1px))` 时改 `background:#F3EEE4` 暖纸实色（brief §3）。
 6. **TabBar `.tabbar`**：底部悬浮轻玻璃片（左右 inset 12px、顶圆角 ≤12px、`--glass-blur`、顶缘 0.5px 发丝线）；三项纯宋体 13px 字距 0.2em，激活项 `--ink`＋正下方 3px 朱砂静点，非激活 `--ink-light`；**无任何图形图标**。降级同药丸。
-7. **霜遮罩 `.frost`**：绝对定位覆盖卡体，白雾渐变（上浅下重）＋边缘凝霜加重（inset 白色 box-shadow）＋`backdrop-filter: blur(7px)`；语义性玻璃，允许使用。两态类：`.is-sealed` / `.is-thawing`。
+7. **霜遮罩 `.frost`**：绝对定位覆盖卡体，白雾渐变（上浅下重）＋凝霜颗粒（`--paper-grain-strong` 叠在渐变上层，雾状非雪花晶体，见 §6.7）＋边缘凝霜加重（inset 白色 box-shadow）＋`backdrop-filter: blur(7px)`；语义性玻璃，允许使用。两态类：`.is-sealed` / `.is-thawing`。
 8. **竖排侧注 `.side-note`**：`writing-mode: vertical-rl`、11px 宋体、字距 0.35em、`--vermilion`、0.5px 细框；文案用低语式（「只写给自己」），禁「严禁翻阅」式硬话。
 9. **时刻卡 `.moment-card`**：上半无裁切自然色彩照片（**禁压灰滤镜**，照片是纸上唯一色彩生命），下半窄纸色信息条（宋体小标题）；不带朱砂竖线（红线是"信"的家具）。
 10. **排印块 `.text-block`**（时光轴纯文字条目）：无卡无底，日期 meta＋宋体正文直接排在纸上。

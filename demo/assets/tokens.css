@@ -12,6 +12,10 @@
   --fold-page: #F4EFE5;                      /* 折角切口露出的纸底近似色 */
   --fold-shade: #E3DBC9;                     /* 折角翻面 */
 
+  /* 宣纸纤维颗粒（feTurbulence 无缝噪点；极轻，勿调高） */
+  --paper-grain: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.07'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+  --paper-grain-strong: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='gs'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.16'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23gs)'/%3E%3C/svg%3E");
+
   /* 墨阶 */
   --ink: #302E29;
   --ink-mid: #6B6560;
@@ -26,8 +30,8 @@
   --hairline: rgba(188, 174, 152, 0.28);
   --frost: rgba(255, 255, 255, 0.65);
 
-  /* 影 —— 信卡 10–14% 柔影，禁 4–6% 脏平中间态 */
-  --shadow-card: 0 6px 20px rgba(125, 105, 75, 0.12);
+  /* 影 —— 贴地接触影＋环境柔影双层（总量仍在 10–14% 档），禁 4–6% 脏平中间态 */
+  --shadow-card: 0 1px 2px rgba(125, 105, 75, 0.1), 0 10px 26px rgba(125, 105, 75, 0.13);
   --inset-light: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
   /* 玻璃 —— 只属于动作与暂时之物 */
