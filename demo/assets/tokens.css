@@ -21,6 +21,10 @@
   --ink-mid: #6B6560;
   --ink-light: #9E9890;
   --ink-faint: #C8C2B8;
+  /* 精修演示的必读辅助信息，不改变旧页淡墨装饰用途。 */
+  --ink-secondary: #6B6560;
+  --demo-body-size: 16px;
+  --demo-body-weight: 400;
 
   /* 朱砂 —— 唯一有彩色，单屏 ≤3 处 */
   --vermilion: #B5352A;

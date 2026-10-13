@@ -54,8 +54,10 @@
   .d-0 { --rise-delay: 0ms; }
   .d-1 { --rise-delay: 140ms; }
 </style>
+<script defer src="../assets/demo-store.js"></script>
+<script defer src="../assets/demo-flow.js"></script>
 </head>
-<body>
+<body class="demo-core" data-page="saved">
 
 <div class="device">
 
@@ -70,24 +72,31 @@
 
   <main class="page">
 
-    <h1 class="done-head m-rise d-0">这一刻已经留下</h1>
+    <p class="demo-note">本地演示 · 仅保存至本标签页，不代表正式账号数据。</p>
+    <p class="demo-status" data-role="status" role="status" aria-live="polite"></p>
+    <section class="demo-empty" data-role="empty-view" hidden><h2>还没有演示记录</h2><a class="tlink" href="writing.html">去写一句测试文字 ›</a></section>
+    <div data-role="record-view">
+    <h1 class="done-head" data-role="confirmation" tabindex="-1">保存承接 · 静态样板</h1>
 
     <article class="letter-card fold saved-card m-rise d-1">
       <span class="redline"></span>
-      <h2 class="s-title">雨停之后</h2>
-      <p class="t-body">傍晚下过一阵雨，窗边的风有一点凉。</p>
-      <p class="t-meta-serif s-time">留下于 二零二六年 · 暮秋</p>
-      <span class="seal m-stamp">封</span>
+      <h2 class="s-title record-title" data-role="record-title">雨停之后</h2>
+      <p class="t-body record-text" data-role="record-body">傍晚下过一阵雨，窗边的风有一点凉。</p>
+      <p class="t-meta-serif s-time" data-role="record-time">合成样本 · 非刚刚保存的记录</p>
+      <span class="seal" data-role="stamp">封</span>
     </article>
 
-    <div class="more"><a class="tlink" href="writing.html">继续补充</a></div>
+    <div class="more demo-links"><a class="tlink" href="writing.html">继续补充</a><a class="tlink" href="look.html?demo=latest">回看演示记录 ›</a><a class="tlink" href="timeline.html">去时光轴 ›</a></div>
 
     <div class="agent-note">
       <span class="agent-switch" aria-hidden="true"><i></i></span>
-      <span class="t-meta">不再供参考 · 只代表当时，不代表现在</span>
+      <span class="t-meta">AI 参考开关仅展示；本轮不调用 AI。</span>
     </div>
 
-    <button class="danger">删除这条记录</button>
+    <button class="danger" data-role="delete-record" type="button" disabled>删除演示记录</button>
+    </div>
+    <noscript><p class="demo-note">脚本未启用，本页仅展示样板，不能确认保存。</p></noscript>
+    <div class="demo-links"><a class="tlink" href="home.html">返回首页</a><a class="tlink" href="../index.html">原型导航</a></div>
 
   </main>
 

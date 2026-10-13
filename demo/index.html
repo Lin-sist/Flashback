@@ -62,7 +62,7 @@
     border-right: 0.5px solid var(--hairline);
   }
   .g-name { font-size: 16px; font-weight: 400; letter-spacing: 0.06em; color: var(--ink); }
-  .g-desc { margin-top: 3px; font-size: 11.5px; font-weight: 300; letter-spacing: 0.06em; color: var(--ink-light); }
+  .g-desc { margin-top: 3px; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: var(--ink-secondary); }
   .g-arrow { margin-left: auto; flex: none; font-size: 16px; color: var(--ink-faint); transition: color .2s ease; }
   .g-item:hover .g-arrow { color: var(--ink-mid); }
 
@@ -72,8 +72,10 @@
     .gallery { padding: 52px 22px 60px; }
   }
 </style>
+<script defer src="assets/demo-store.js"></script>
+<script defer src="assets/demo-flow.js"></script>
 </head>
-<body>
+<body class="demo-gallery" data-page="gallery">
 
 <div class="gallery">
 
@@ -81,8 +83,15 @@
     <span class="t-brand">时光回序</span>
     <h1 class="g-title"><span class="t-h1a">信笺 × 微液态玻璃</span><br><span class="t-h1b">前端原型 · 十四页</span></h1>
     <p class="t-sub g-sub">给想留下的此刻，一个位置</p>
-    <p class="t-meta g-meta">基准画布 390 × 844 · 2026-09-13 批次 · 登录页暂缓</p>
+    <p class="t-meta g-meta">基准画布 390 × 844 · 2026-10-13 精修批次 · 登录页暂缓</p>
   </header>
+
+  <section class="g-group">
+    <p class="demo-note">五核心页可演示输入、保存、回看。数据仅保留在本标签页，不上传；请只输入测试文字。其余页面、照片、声音和 AI 均为静态合成样板。</p>
+    <p class="demo-note">刷新可恢复；关闭通常结束会话，浏览器会话恢复可能保留。需要清除时使用下方入口。</p>
+    <div class="demo-links"><a class="tlink" href="pages/home.html">进入文字演示 ›</a><button class="tlink" type="button" data-role="reset" disabled>清除本轮演示</button></div>
+    <p class="demo-status" data-role="status" role="status" aria-live="polite"></p>
+  </section>
 
   <section class="g-group m-rise">
     <p class="g-label"><i></i>主流程 · 一封信的一生</p>

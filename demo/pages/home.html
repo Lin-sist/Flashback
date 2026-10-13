@@ -31,8 +31,10 @@
   .card-recent { padding: 16px 20px 15px 26px; }
   .card-recent .recent-main { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 10px; }
 </style>
+<script defer src="../assets/demo-store.js"></script>
+<script defer src="../assets/demo-flow.js"></script>
 </head>
-<body>
+<body class="demo-core" data-page="home">
 
 <div class="device">
 
@@ -55,7 +57,7 @@
     </section>
 
     <section class="capture">
-      <div class="viewfinder"><span class="viewfinder-ph">此刻，你想留下什么？</span></div>
+      <a class="viewfinder" href="writing.html" aria-label="开始书写测试文字"><span class="viewfinder-ph">此刻，你想留下什么？</span></a>
     </section>
 
     <section class="cards">
@@ -77,10 +79,16 @@
       </article>
     </section>
 
+    <section class="home-demo" data-role="home-demo" hidden>
+      <p class="t-meta-serif">本标签页留下的文字</p>
+      <a href="look.html?demo=latest"><span class="t-section record-title" data-role="home-demo-title"></span> · 回看 ›</a>
+    </section>
+    <p class="demo-note">本地演示 · 不上传，请只输入测试文字。</p>
+    <p class="demo-status" data-role="status" role="status" aria-live="polite"></p>
   </main>
 
   <nav class="tabbar">
-    <span class="tab active">首页</span>
+    <span class="tab active" aria-current="page">首页</span>
     <a class="tab" href="timeline.html">时光轴</a>
     <a class="tab" href="user-center.html">个人中心</a>
   </nav>

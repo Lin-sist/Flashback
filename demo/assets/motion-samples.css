@@ -1,0 +1,216 @@
+/* 两页动效样本：显式 opt-in；不影响其它 demo 页。
+   固定折线纸面开启与 CSS 玻璃回应，不是软纸引擎或光学折射。 */
+.demo-core.demo-motion {
+  --paper-open-time: 620ms;
+  --glass-return-time: 240ms;
+}
+
+/* 正文始终是一份可读 DOM；翻动的是不含正文的装饰纸面。 */
+.demo-motion .paper-scene {
+  position: relative;
+  isolation: isolate;
+  margin-top: 26px;
+  perspective: 1100px;
+  perspective-origin: 30% 45%;
+}
+.demo-motion .paper-scene .look-card { margin-top: 0; }
+.demo-motion .paper-turn,
+.demo-motion .paper-shadow {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.demo-motion .paper-shadow {
+  z-index: 1;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(92,72,47,.22), rgba(92,72,47,.07) 42%, transparent 86%);
+}
+.demo-motion .paper-turn { z-index: 2; transform-style: preserve-3d; }
+.demo-motion .paper-leaf {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+}
+.demo-motion .paper-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: .5px solid var(--hairline);
+  border-radius: var(--radius-card);
+}
+.demo-motion .paper-face-front {
+  transform-style: preserve-3d;
+  /* 主体与外侧纸边分开，以小角度折动提示纸边被掀起。 */
+  border-right: 0;
+}
+.demo-motion .paper-face-front::before {
+  content: "";
+  position: absolute;
+  inset: 0 24% 0 0;
+  background: var(--paper-grain), linear-gradient(100deg, #F4EFE5, #FCF9F4 26%, #F8F4ED);
+  box-shadow: inset 1px 0 0 rgba(255,255,255,.85);
+}
+.demo-motion .paper-tip {
+  position: absolute;
+  inset: 0 0 0 76%;
+  transform-origin: left center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: var(--paper-grain), linear-gradient(90deg, #F8F4ED, #FFFCF7 65%, #EAE1D2);
+  border-right: .5px solid var(--hairline);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.85);
+}
+.demo-motion .paper-face-back {
+  transform: rotateY(180deg);
+  background: var(--paper-grain), linear-gradient(90deg, #E4D9C6, #F4EEE3 20%, #F7F2E9 85%, #DDD1BE);
+}
+.demo-motion .paper-face-back::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(91,70,42,.24), transparent 26%, rgba(255,255,255,.3));
+  opacity: 0;
+}
+.demo-motion .paper-tools { display: flex; justify-content: flex-end; margin-top: 14px; }
+.demo-core.demo-motion .paper-replay {
+  min-height: 44px;
+  padding: 8px 18px;
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-indent: 0;
+}
+.demo-motion .paper-replay:disabled { color: var(--ink-secondary); }
+
+@supports ((perspective: 1100px) and (transform-style: preserve-3d)) {
+  .demo-motion .paper-scene.is-turning .paper-turn,
+  .demo-motion .paper-scene.is-turning .paper-shadow { display: block; }
+  .demo-motion .is-turning .paper-leaf {
+    animation: sample-paper-open var(--paper-open-time) cubic-bezier(.23,.65,.32,1) both;
+  }
+  .demo-motion .is-turning .paper-tip {
+    animation: sample-paper-edge var(--paper-open-time) ease-in-out both;
+  }
+  .demo-motion .is-turning .paper-shadow {
+    animation: sample-paper-shadow var(--paper-open-time) ease both;
+  }
+  .demo-motion .is-turning .paper-face-back::after {
+    animation: sample-paper-shade var(--paper-open-time) ease both;
+  }
+}
+@keyframes sample-paper-open {
+  0% { transform: rotateY(0deg); }
+  35% { transform: rotateY(-52deg); }
+  72% { transform: rotateY(-128deg); }
+  100% { transform: rotateY(-172deg); }
+}
+@keyframes sample-paper-edge {
+  0%, 100% { transform: rotateY(0deg); }
+  28% { transform: rotateY(16deg); }
+  62% { transform: rotateY(7deg); }
+}
+@keyframes sample-paper-shadow {
+  0% { opacity: .15; transform: scaleX(1); }
+  28% { opacity: .9; transform: scaleX(.72); }
+  68% { opacity: .38; transform: scaleX(.18); }
+  100% { opacity: 0; transform: scaleX(.03); }
+}
+@keyframes sample-paper-shade {
+  0%, 40%, 100% { opacity: 0; }
+  60% { opacity: .7; }
+}
+
+/* 玻璃：字在前景，高光在下层；不扭曲正文或替代真实点击区域。 */
+.demo-core.demo-motion .glass-pill.motion-glass {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  touch-action: manipulation;
+  background: rgba(255,255,255,.32);
+  border-color: rgba(255,255,255,.78);
+  box-shadow: 0 5px 16px rgba(125,105,75,.15), 0 0 0 .5px rgba(157,139,110,.22),
+    inset 0 1px 0 rgba(255,255,255,.95), inset 0 -2px 5px rgba(166,143,105,.12);
+  transform-origin: center;
+  transition: transform 110ms cubic-bezier(.2,.8,.2,1), background-color 160ms ease;
+}
+.demo-motion .motion-glass::before,
+.demo-motion .motion-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+.demo-motion .motion-glass::before {
+  background: radial-gradient(ellipse at var(--glass-x, 30%) var(--glass-y, 15%),
+    rgba(255,255,255,.92), rgba(255,255,255,.1) 45%, transparent 70%);
+  opacity: .38;
+}
+.demo-motion .motion-glass::after {
+  inset: 1px;
+  border: 1px solid rgba(255,255,255,.4);
+  box-shadow: inset 0 -2px 3px rgba(255,255,255,.3);
+  opacity: .5;
+}
+.demo-motion .motion-glass-label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .demo-core.demo-motion .motion-glass:not(:disabled):hover::before { opacity: .65; }
+}
+.demo-motion .motion-glass:focus-visible::before { opacity: .65; }
+.demo-core.demo-motion .motion-glass:not(:disabled):active,
+.demo-core.demo-motion .motion-glass.is-pressed {
+  transform: translateY(1px) scaleX(1.025) scaleY(.95);
+  background-color: rgba(255,255,255,.46);
+}
+.demo-motion .motion-glass.is-pressed::before { opacity: .95; }
+.demo-motion .motion-glass.is-releasing {
+  animation: sample-glass-return var(--glass-return-time) cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes sample-glass-return {
+  0% { transform: translateY(1px) scaleX(1.025) scaleY(.95); }
+  58% { transform: translateY(0) scaleX(.995) scaleY(1.015); }
+  100% { transform: none; }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .demo-core.demo-motion .glass-pill.motion-glass,
+  .demo-core.demo-motion .motion-glass:not(:disabled):active,
+  .demo-core.demo-motion .motion-glass.is-pressed { background: var(--glass-fallback); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .demo-core.demo-motion .glass-pill.motion-glass,
+  .demo-core.demo-motion .motion-glass:not(:disabled):active,
+  .demo-core.demo-motion .motion-glass.is-pressed {
+    background: var(--glass-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .demo-motion .motion-glass::before,
+  .demo-motion .motion-glass::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-motion .paper-scene.is-turning .paper-turn,
+  .demo-motion .paper-scene.is-turning .paper-shadow { display: none; }
+  .demo-core.demo-motion .glass-pill.motion-glass,
+  .demo-core.demo-motion .motion-glass:not(:disabled):active,
+  .demo-core.demo-motion .motion-glass.is-pressed,
+  .demo-motion .motion-glass.is-releasing {
+    animation: none;
+    transform: none;
+    transition: none;
+  }
+  .demo-motion .motion-glass::before,
+  .demo-motion .motion-glass::after { transition: none; }
+}

@@ -4,18 +4,23 @@
    仅此四枚签名动效，其余安静；全部一次性、非循环；
    禁视差 / 滚动劫持 / 循环动画 / 秒级跳动；每枚都有 prefers-reduced-motion 静态降级。
 
-   页面接线（demo 层零 JS）：
+   页面接线（2026-10 文字演示由 demo-flow.js 消费保存回执）：
    - 卡片轻浮进入  .m-rise            页面加载即入场，--rise-delay 控制先后
    - 落印（保存）  .seal.m-stamp      信卡出现后落下，--stamp-delay 接续节奏
    - 融霜（抵达）  .frost.is-thawing  预留：抵达瞬间加类触发，900ms 向右上角收退
-   - 脊线＋节点    .m-spine / .m-node(.lit)  时光轴用；节点过视口中线加 .lit
-                                      （IntersectionObserver 由 timeline.html 自带，本层零 JS）
+   - 脊线          .m-spine 时光轴入场一次；节点按内容语义静态呈现
    ========================================================================== */
 
 /* ---- 卡片轻浮进入：opacity 0→1 ＋ translateY 12px→0，500ms，仅一次 ---- */
 .m-rise {
   animation: m-rise 500ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   animation-delay: var(--rise-delay, 0ms);
+}
+
+/* 精修页的操作反馈在减少动态时即时生效。 */
+@media (prefers-reduced-motion: reduce) {
+  .demo-core .glass-pill, .demo-core .tlink { transition: none; }
+  .demo-core .glass-pill:active { transform: none; }
 }
 @keyframes m-rise {
   from { opacity: 0; transform: translateY(12px); }

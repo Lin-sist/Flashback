@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/tokens.css">
 <link rel="stylesheet" href="../assets/components.css">
+<link rel="stylesheet" href="../assets/motion-samples.css">
 <style>
   /* ---- 页级微调：书写页（蓝本：概念图/书写页/V2.png） ---- */
   .sheet { position: absolute; inset: 0; padding: 0 30px 0 36px; }
@@ -73,8 +74,11 @@
   }
   .w-icons { display: flex; align-items: center; gap: 24px; color: var(--ink-mid); }
 </style>
+<script defer src="../assets/demo-store.js"></script>
+<script defer src="../assets/demo-flow.js"></script>
+<script defer src="../assets/motion-samples.js"></script>
 </head>
-<body>
+<body class="demo-core demo-motion" data-page="writing">
 
 <div class="device">
 
@@ -97,33 +101,39 @@
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg>
     </a>
 
-    <span class="lh-date t-meta-serif">记录于 二零二六年 · 暮秋</span>
+    <span class="lh-date t-meta-serif">记录于此刻 · 本地文字演示</span>
 
-    <h2 class="w-title">雨停之后</h2>
-    <p class="t-body w-body">傍晚下过一阵雨，窗边的风有一点凉。</p>
+    <label class="sr-only" for="demo-title">标题（最多 80 字）</label>
+    <input id="demo-title" data-role="title-input" class="w-title" type="text" value="雨停之后" placeholder="给这一刻起个名字" autocomplete="off" aria-describedby="demo-help">
+    <label class="sr-only" for="demo-body">测试正文（最多 4000 字）</label>
+    <textarea id="demo-body" data-role="body-input" class="t-body w-body" rows="3" placeholder="从一句话开始" aria-describedby="demo-help demo-status">傍晚下过一阵雨，窗边的风有一点凉。</textarea>
+    <p class="demo-note" id="demo-help">本地演示 · 不上传，请只输入测试文字。<br>同一标签页可刷新恢复；可在原型导航清除演示。</p>
+    <p class="demo-status" id="demo-status" data-role="status" role="status" aria-live="polite"></p>
+    <noscript><p class="demo-note">当前未启用脚本，保存不可用；本页仅作静态样板。</p></noscript>
 
-    <figure class="w-photo" role="img" aria-label="雨后窗面（合成占位图）"></figure>
+    <figure class="w-photo"><img src="../assets/img/frag-rain.jpg" alt="雨夜窗，合成氛围样本，不是新文字的附件"></figure>
+    <p class="demo-note">照片与声音仅展示样本，不会随文字保存。</p>
 
     <div class="w-voice">
-      <span class="v-play"><i></i></span>
-      <span class="v-text">00:18 原始声音</span>
+      <button class="v-play" disabled aria-label="声音样本，仅展示"><i></i></button>
+      <span class="v-text">00:18 原始声音 · 仅展示</span>
     </div>
 
     <a class="appendix" href="agent-choose.html" aria-label="选择这次怎么聊（Agent 浮层）">
-      <span>附言 · 可选</span>
+      <span>附言 · 静态样板</span>
       <svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M1 1.2l4.5 4.5L10 1.2"/></svg>
     </a>
 
+  </main>
+
     <footer class="w-actions">
       <div class="w-icons">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5c-4.2-4.6-6.3-8-6.3-10.8a6.3 6.3 0 1 1 12.6 0c0 2.8-2.1 6.2-6.3 10.8z"/><circle cx="12" cy="10.5" r="2.3"/></svg>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="9.5" r="1.6"/><path d="M4.5 17.5l5-4.5 3.5 3 3-2.5 4.5 4"/></svg>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg>
+        <button type="button" disabled aria-label="位置仅展示"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5c-4.2-4.6-6.3-8-6.3-10.8a6.3 6.3 0 1 1 12.6 0c0 2.8-2.1 6.2-6.3 10.8z"/><circle cx="12" cy="10.5" r="2.3"/></svg></button>
+        <button type="button" disabled aria-label="图片仅展示"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="9.5" r="1.6"/><path d="M4.5 17.5l5-4.5 3.5 3 3-2.5 4.5 4"/></svg></button>
+        <button type="button" disabled aria-label="录音仅展示"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></button>
       </div>
-      <button class="glass-pill"><span class="dot"></span>留下这一刻</button>
+      <button class="glass-pill motion-glass" type="button" data-role="save" disabled aria-describedby="demo-help demo-status"><span class="motion-glass-label"><span class="dot"></span>留下这一刻</span></button>
     </footer>
-
-  </main>
 
 </div>
 

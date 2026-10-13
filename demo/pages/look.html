@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="../assets/tokens.css">
 <link rel="stylesheet" href="../assets/components.css">
 <link rel="stylesheet" href="../assets/motion.css">
+<link rel="stylesheet" href="../assets/motion-samples.css">
 <style>
   /* ---- 页级微调：回看页（蓝本：概念图/回看页/V3.png） ----
      页面可滚动；结构＝信卡（含当时所在）→ 片段（照片+语音）→ 回信卡 → 聊聊链接 → 药丸（随文档流）。 */
@@ -82,8 +83,11 @@
   .d-2 { --rise-delay: 260ms; }
   .d-3 { --rise-delay: 420ms; }
 </style>
+<script defer src="../assets/demo-store.js"></script>
+<script defer src="../assets/demo-flow.js"></script>
+<script defer src="../assets/motion-samples.js"></script>
 </head>
-<body>
+<body class="demo-core demo-motion" data-page="look">
 
 <div class="device">
 
@@ -105,25 +109,40 @@
       <span class="t-brand">时光回序</span>
     </header>
 
+    <p class="demo-status" data-role="status" role="status" aria-live="polite">本地演示 · 当前为固定合成样本。</p>
+    <section class="demo-empty" data-role="empty-view" hidden><h2>还没有可回看的演示文字</h2><a class="tlink" href="writing.html">去书写 ›</a></section>
+    <div data-role="record-view">
     <section class="archive">
-      <p class="a-line">存档第 三〇 号 · 城南旧书店</p>
-      <p class="a-line a-season">二〇二六年 · 夏季</p>
+      <p class="a-line" data-role="archive-line">存档第 三〇 号 · 城南旧书店</p>
+      <p class="a-line a-season" data-role="archive-season">二〇二六年 · 夏季</p>
     </section>
 
-    <h2 class="look-title">“那天晚上的风”</h2>
+    <h2 class="look-title record-title" data-role="record-title" tabindex="-1">“那天晚上的风”</h2>
 
     <div class="reader">
       <span class="seal">阅</span>
-      <span class="reader-text">过去的你 · 写于半年前</span>
+      <span class="reader-text" data-role="reader-text">过去的你 · 写于半年前</span>
     </div>
 
-    <article class="letter-card fold look-card m-rise d-1">
-      <span class="redline"></span>
-      <p class="t-body look-body">搬家前夜，雨下得很大。我把阳台的花一棵一棵搬进屋里，想着明年它们会不会还记得这个阳台。</p>
-      <p class="where">当时所在 · 城南旧书店，雨夜的灯下</p>
-    </article>
+    <div class="paper-scene" data-motion="paper">
+      <article class="letter-card fold look-card">
+        <span class="redline"></span>
+        <p class="t-body look-body record-text" data-role="record-body">搬家前夜，雨下得很大。我把阳台的花一棵一棵搬进屋里，想着明年它们会不会还记得这个阳台。</p>
+        <p class="where" data-role="record-where">当时所在 · 城南旧书店，雨夜的灯下</p>
+      </article>
+      <div class="paper-shadow" aria-hidden="true"></div>
+      <div class="paper-turn" aria-hidden="true">
+        <div class="paper-leaf">
+          <div class="paper-face paper-face-front"><span class="paper-tip"></span></div>
+          <div class="paper-face paper-face-back"></div>
+        </div>
+      </div>
+    </div>
+    <div class="paper-tools" data-motion="tools" hidden>
+      <button class="glass-pill motion-glass paper-replay" data-motion="replay" type="button" hidden><span class="motion-glass-label">再翻开一次</span></button>
+    </div>
 
-    <section class="fragments m-rise d-2">
+    <section class="fragments m-rise d-2" data-role="fragments">
       <p class="t-meta-serif">当时留下的片段</p>
       <div class="frag-grid">
         <figure>
@@ -135,23 +154,25 @@
         </figure>
       </div>
       <div class="look-voice">
-        <span class="v-play"><i></i></span>
-        <span class="v-text">00:18 原始声音</span>
+        <button class="v-play" disabled aria-label="声音样本仅展示"><i></i></button>
+        <span class="v-text">00:18 原始声音 · 仅展示</span>
       </div>
     </section>
 
-    <article class="letter-card fold reply-card m-rise d-3">
+    <article class="letter-card fold reply-card m-rise d-3" data-role="reply">
       <p class="t-meta-serif">现在的我 · 后来其实</p>
       <p class="reply-ph">后来的你，想对当时说些什么</p>
       <div class="reply-lines"><i></i><i></i></div>
     </article>
 
-    <div class="chat"><a class="tlink" href="agent-review.html">和它聊聊那时候</a></div>
+    <div class="chat" data-role="chat"><a class="tlink" href="agent-review.html">和它聊聊那时候</a></div>
 
-    <div class="respond">
-      <button class="glass-pill"><span class="dot"></span>留下回应</button>
+    <div class="respond" data-role="respond">
+      <button class="glass-pill" disabled aria-label="留下回应仅展示"><span class="dot"></span>留下回应 · 展示</button>
     </div>
 
+    <div class="demo-links" data-role="edit-link" hidden><a class="tlink" href="writing.html">继续补充这条演示文字 ›</a></div>
+    </div>
   </main>
 
 </div>

@@ -72,8 +72,10 @@
   .d-1 { --rise-delay: 120ms; }
   .d-2 { --rise-delay: 260ms; }
 </style>
+<script defer src="../assets/demo-store.js"></script>
+<script defer src="../assets/demo-flow.js"></script>
 </head>
-<body>
+<body class="demo-core" data-page="timeline">
 
 <div class="device">
 
@@ -89,7 +91,7 @@
   <main class="page">
 
     <header class="top-row">
-      <span class="chip">筛选</span>
+      <span class="chip" aria-label="筛选仅展示">筛选 · 展示</span>
       <span class="t-brand">时光回序</span>
     </header>
 
@@ -98,6 +100,7 @@
       <p class="t-sub">在此处，凝视那些被封存的往昔，与尚未开启的明日。</p>
     </section>
 
+    <p class="demo-status" data-role="status" role="status" aria-live="polite">本地演示 · 以下为固定合成样本。</p>
     <section class="spine-zone">
       <span class="spine m-spine"></span>
 
@@ -106,6 +109,11 @@
         <p class="t-meta-serif" style="margin-top: 1px;">此时此刻</p>
       </div>
 
+      <div class="tl-entry demo-entry" data-role="demo-entry" hidden>
+        <span class="node-line"><i class="tl-node hollow"></i></span>
+        <p class="t-meta-serif" data-role="demo-date"></p>
+        <a href="look.html?demo=latest"><span class="t-section record-title" data-role="demo-title"></span><p class="t-body record-text" data-role="demo-excerpt"></p></a>
+      </div>
       <div class="tl-entry">
         <span class="node-line"><i class="tl-node hollow"></i></span>
         <div class="text-block m-rise d-1">
@@ -117,7 +125,7 @@
       <div class="tl-entry">
         <span class="node-line media"><i class="tl-node media"></i></span>
         <a class="letter-card fold moment-card m-rise d-2" href="look.html" aria-label="雨停之后">
-          <figure class="m-photo" role="img" aria-label="雨后窗面与暮色（合成占位图）"></figure>
+          <figure class="m-photo"><img src="../assets/img/frag-rain.jpg" alt="雨夜窗，固定合成样本"></figure>
           <div class="m-info"><p class="t-section">雨停之后</p></div>
         </a>
       </div>
@@ -138,7 +146,7 @@
 
   <nav class="tabbar">
     <a class="tab" href="home.html">首页</a>
-    <span class="tab active">时光轴</span>
+    <span class="tab active" aria-current="page">时光轴</span>
     <a class="tab" href="user-center.html">个人中心</a>
   </nav>
 
