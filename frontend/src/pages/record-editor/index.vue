@@ -2139,19 +2139,6 @@ onUnload(() => {
   flex-direction: column;
 }
 
-/* 右上折角 */
-.letter-body::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: -36rpx;
-  width: 32rpx;
-  height: 32rpx;
-  background: linear-gradient(225deg, #f4efe5 0%, #f4efe5 49%, #e3dbc9 50%, #e3dbc9 100%);
-  box-shadow: -3rpx 3rpx 5rpx rgba(120, 100, 70, .15);
-  pointer-events: none;
-}
-
 /* 天头朱砂横线 */
 
 /* 信头 */

@@ -143,33 +143,10 @@ const submit = () => {
       <view class="sheet-handle" aria-hidden="true" />
       <view class="sheet-head">
         <view class="head-copy">
-          <text class="head-kicker">和它聊一会儿</text>
-          <text class="head-title">{{ phaseText }}</text>
+          <text class="head-kicker">时光的见证者</text>
+          <text class="head-title">{{ session?.stage === 'CLOSING' || isEnded ? phaseText : '把此刻说给它听' }}</text>
         </view>
         <view class="close-btn" aria-label="关闭对话" @tap="emit('close')">×</view>
-      </view>
-
-      <view class="privacy-note">这里只陪你慢慢说，不会替你改写或做决定。</view>
-
-      <view
-        v-if="session && !isEnded"
-        class="memory-consent"
-        :class="{ 'memory-consent--disabled': switchingMemoryAuthorization }"
-        @tap="toggleMemoryAuthorization"
-      >
-        <view class="memory-consent-copy">
-          <text class="memory-consent-label">本次可参考过去记录</text>
-          <text class="memory-consent-hint">{{ memoryHint }}</text>
-        </view>
-        <view
-          class="memory-switch"
-          :class="{
-            'memory-switch--on': memoryEnabled,
-            'memory-switch--busy': switchingMemoryAuthorization,
-          }"
-        >
-          <view class="memory-switch-knob" />
-        </view>
       </view>
 
       <view v-if="session && !isEnded" class="intent-switch" aria-label="切换对话方式">
@@ -180,7 +157,8 @@ const submit = () => {
             'intent-switch-item--disabled': switchingIntent,
           }"
           @tap="emit('switchIntent', 'LISTEN')"
-        >先听我说</view>
+        >倾诉</view>
+        <view class="intent-divider" aria-hidden="true" />
         <view
           class="intent-switch-item"
           :class="{
@@ -188,7 +166,7 @@ const submit = () => {
             'intent-switch-item--disabled': switchingIntent,
           }"
           @tap="emit('switchIntent', 'UNTANGLE')"
-        >{{ switchingIntent ? '正在切换...' : '帮我理一理' }}</view>
+        >{{ switchingIntent ? '正在切换...' : '理一理' }}</view>
       </view>
 
       <scroll-view
@@ -197,6 +175,8 @@ const submit = () => {
         :scroll-into-view="scrollAnchor"
         :show-scrollbar="false"
       >
+        <view class="privacy-note">这里只陪你慢慢说，不会替你改写或做决定。</view>
+
         <view v-if="loading && !messages.length" class="quiet-state">正在把这段对话取回来...</view>
 
         <view
@@ -279,28 +259,54 @@ const submit = () => {
         <view class="message-bottom-space" />
       </scroll-view>
 
+      <view
+        v-if="session && !isEnded"
+        class="memory-consent"
+        :class="{ 'memory-consent--disabled': switchingMemoryAuthorization }"
+        @tap="toggleMemoryAuthorization"
+      >
+        <view class="memory-consent-copy">
+          <text class="memory-consent-label">本次可参考过去记录</text>
+          <text class="memory-consent-hint">{{ memoryHint }}</text>
+        </view>
+        <view
+          class="memory-switch"
+          :class="{
+            'memory-switch--on': memoryEnabled,
+            'memory-switch--busy': switchingMemoryAuthorization,
+          }"
+        >
+          <view class="memory-switch-knob" />
+        </view>
+      </view>
+
       <view v-if="!isEnded" class="composer">
-        <!--
-          cursor-spacing 让键盘弹起时输入框不被遮住（小程序 textarea 默认贴键盘顶边）。
-          adjust-position 保持默认 true，由小程序自动上推页面。
-        -->
-        <textarea
-          v-model="input"
-          class="composer-input"
-          auto-height
-          :disabled="sending || loading || awaitingRetry"
-          :maxlength="1000"
-          :show-confirm-bar="false"
-          :cursor-spacing="24"
-          :placeholder="awaitingRetry ? '请先重试上一轮回复' : '想说什么都可以...'"
-          placeholder-class="composer-placeholder"
-          @confirm="submit"
-        />
-        <view class="composer-actions">
+        <view class="composer-meta">
+          <text class="composer-kicker">供它回看时参考</text>
           <view class="finish-link" :class="{ 'finish-link--disabled': finishing }" @tap="emit('finish')">
             {{ finishing ? '正在收束...' : '先聊到这里' }}
           </view>
-          <view class="send-btn" :class="{ 'send-btn--disabled': !canSend }" @tap="submit">发送</view>
+        </view>
+        <view class="composer-bar">
+          <!--
+            cursor-spacing 让键盘弹起时输入框不被遮住（小程序 textarea 默认贴键盘顶边）。
+            adjust-position 保持默认 true，由小程序自动上推页面。
+          -->
+          <textarea
+            v-model="input"
+            class="composer-input"
+            auto-height
+            :disabled="sending || loading || awaitingRetry"
+            :maxlength="1000"
+            :show-confirm-bar="false"
+            :cursor-spacing="24"
+            :placeholder="awaitingRetry ? '请先重试上一轮回复' : '写点什么…'"
+            placeholder-class="composer-placeholder"
+            @confirm="submit"
+          />
+          <view class="send-btn" aria-label="发送" :aria-disabled="!canSend" :class="{ 'send-btn--disabled': !canSend }" @tap="submit">
+            <image class="send-icon" aria-hidden="true" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%236b6560' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.2 1.8L7 9M14.2 1.8L9.6 14.2 7 9 1.8 6.4z'/%3E%3C/svg%3E" />
+          </view>
         </view>
       </view>
 
@@ -323,8 +329,7 @@ const submit = () => {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: rgba(25, 22, 18, 0.32);
-  backdrop-filter: blur(3px);
+  background: rgba(96, 89, 79, 0.42);
 }
 
 /*
@@ -335,71 +340,77 @@ const submit = () => {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 78vh;
+  height: 72vh;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 12rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
-  border-radius: 32rpx 32rpx 0 0;
-  background: #f8f4ea;
-  box-shadow: 0 -12rpx 40rpx rgba(45, 38, 29, 0.14);
+  padding: 20rpx 46rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-radius: 28rpx 28rpx 0 0;
+  background: #f9f5ed;
+  box-shadow: 0 -20rpx 60rpx rgba(80, 65, 45, .2);
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
 }
 
 .sheet-handle {
   flex-shrink: 0;
-  width: 64rpx;
-  height: 6rpx;
-  margin: 0 auto 22rpx;
-  border-radius: 999rpx;
-  background: rgba(86, 74, 58, 0.22);
+  width: 70rpx;
+  height: 8rpx;
+  margin: 4rpx auto 0;
+  border-radius: 4rpx;
+  background: #c8c1b7;
 }
 
 /* 头部与底部输入区不参与压缩，只有消息区可伸缩。 */
 .sheet-head {
   flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  margin-top: 56rpx;
+  text-align: center;
 }
 
 .head-copy {
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
+  gap: 26rpx;
 }
 
 .head-kicker {
-  color: #9b7658;
+  color: #aba59d;
   font-size: 22rpx;
-  letter-spacing: 6rpx;
-}
-
-.head-title {
-  color: #322b24;
-  font-family: 'STKaiti', 'KaiTi', serif;
-  font-size: 34rpx;
+  letter-spacing: 8rpx;
+  text-indent: 8rpx;
   line-height: 1.5;
 }
 
+.head-title {
+  color: #403c37;
+  font-size: 44rpx;
+  line-height: 1.5;
+  letter-spacing: 4rpx;
+  text-indent: 4rpx;
+}
+
 .close-btn {
-  width: 56rpx;
-  height: 56rpx;
+  position: absolute;
+  top: 28rpx;
+  right: 24rpx;
+  width: 72rpx;
+  height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(50, 43, 36, 0.56);
-  font-size: 46rpx;
+  color: #6b6560;
+  font-family: sans-serif;
+  font-size: 44rpx;
+  font-weight: 300;
   line-height: 1;
 }
 
 .privacy-note {
-  flex-shrink: 0;
-  margin-top: 14rpx;
-  padding-bottom: 18rpx;
-  border-bottom: 1rpx solid rgba(111, 91, 67, 0.12);
-  color: rgba(68, 58, 48, 0.54);
+  margin: 0 0 20rpx;
+  color: #8a847c;
   font-size: 21rpx;
-  line-height: 1.6;
+  line-height: 1.7;
+  text-align: center;
 }
 
 .memory-consent {
@@ -408,8 +419,8 @@ const submit = () => {
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
-  margin-top: 16rpx;
-  padding: 12rpx 4rpx 4rpx;
+  margin-top: 12rpx;
+  padding: 12rpx 0;
 }
 
 .memory-consent--disabled {
@@ -425,8 +436,8 @@ const submit = () => {
 }
 
 .memory-consent-label {
-  color: #5b4c40;
-  font-size: 24rpx;
+  color: #6b6560;
+  font-size: 22rpx;
 }
 
 .memory-consent-hint {
@@ -445,7 +456,7 @@ const submit = () => {
 }
 
 .memory-switch--on {
-  background: #9c6447;
+  background: #b5352a;
 }
 
 .memory-switch-knob {
@@ -496,26 +507,38 @@ const submit = () => {
 .intent-switch {
   flex-shrink: 0;
   display: flex;
-  gap: 10rpx;
-  margin-top: 16rpx;
-  padding: 6rpx;
-  border-radius: 999rpx;
-  background: rgba(102, 85, 65, 0.07);
+  align-items: center;
+  justify-content: center;
+  gap: 44rpx;
+  margin-top: 36rpx;
 }
 
 .intent-switch-item {
-  flex: 1;
-  padding: 12rpx 14rpx;
-  border-radius: 999rpx;
-  color: rgba(64, 55, 47, 0.58);
-  font-size: 22rpx;
+  position: relative;
+  padding: 12rpx 6rpx 16rpx;
+  color: #aba59d;
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
   text-align: center;
 }
 
 .intent-switch-item--active {
-  color: #744c36;
-  background: rgba(255, 250, 242, 0.94);
-  box-shadow: 0 2rpx 8rpx rgba(63, 52, 39, 0.07);
+  color: #403c37;
+}
+
+.intent-divider {
+  width: 1rpx;
+  height: 28rpx;
+  background: #c8c1b7;
+}
+.intent-switch-item--active::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 0;
+  height: 2rpx;
+  background: #b5352a;
 }
 
 .intent-switch-item--disabled {
@@ -530,13 +553,15 @@ const submit = () => {
   flex: 1 1 auto;
   min-height: 0;
   height: 0;
-  padding: 24rpx 0;
+  padding: 24rpx 2rpx 0;
   box-sizing: border-box;
 }
 
 .message-row {
   display: flex;
-  margin: 0 0 20rpx;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0 0 40rpx;
 }
 
 .message-row--assistant {
@@ -544,31 +569,39 @@ const submit = () => {
 }
 
 .message-row--user {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .message-bubble {
-  max-width: 78%;
-  padding: 20rpx 24rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 4rpx 14rpx rgba(63, 52, 39, 0.05);
+  width: 88%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 30rpx 36rpx;
+  border: 1rpx solid #e3dacc;
+  border-radius: 2rpx;
+  background: #fbf8f1;
+  box-shadow: 0 4rpx 16rpx rgba(125, 105, 75, .1);
 }
 
 .message-row--assistant .message-bubble {
-  border-bottom-left-radius: 6rpx;
+  color: #8a847c;
 }
 
 .message-row--user .message-bubble {
-  border-bottom-right-radius: 6rpx;
-  background: #ede1d2;
+  width: 82%;
+  padding: 24rpx 30rpx;
+  border-color: rgba(107, 101, 96, .45);
+  background: transparent;
+  box-shadow: none;
 }
 
 .message-text {
-  color: #40372f;
+  color: #8a847c;
   font-size: 28rpx;
-  line-height: 1.75;
+  line-height: 1.85;
+  letter-spacing: 1rpx;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .message-bubble--thinking {
@@ -609,7 +642,7 @@ const submit = () => {
   margin: 8rpx 0 20rpx;
   padding: 24rpx;
   border: 1rpx solid rgba(151, 101, 72, 0.16);
-  border-radius: 18rpx;
+  border-radius: 2rpx;
   background: rgba(255, 250, 242, 0.86);
 }
 
@@ -665,7 +698,7 @@ const submit = () => {
   margin: 8rpx 0 20rpx;
   padding: 24rpx;
   border: 1rpx solid rgba(151, 101, 72, 0.16);
-  border-radius: 18rpx;
+  border-radius: 2rpx;
   background: rgba(255, 250, 242, 0.86);
 }
 
@@ -727,39 +760,32 @@ const submit = () => {
 
 .composer {
   flex-shrink: 0;
-  padding-top: 20rpx;
-  border-top: 1rpx solid rgba(111, 91, 67, 0.12);
-  background: #f8f4ea;
+  padding-top: 4rpx;
+  background: #f9f5ed;
 }
 
 .composer-input {
-  width: 100%;
-  min-height: 76rpx;
-  max-height: 190rpx;
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  min-height: 48rpx;
+  max-height: 144rpx;
   box-sizing: border-box;
-  padding: 16rpx 20rpx;
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.7);
-  color: #40372f;
-  font-size: 27rpx;
-  line-height: 1.65;
+  padding: 0;
+  background: transparent;
+  color: #6b6560;
+  font-size: 26rpx;
+  line-height: 1.85;
 }
 
 .composer-placeholder {
   color: rgba(64, 55, 47, 0.36);
 }
 
-.composer-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 14rpx;
-}
-
 .finish-link {
-  padding: 12rpx 0;
-  color: rgba(64, 55, 47, 0.58);
-  font-size: 23rpx;
+  padding: 12rpx 0 12rpx 20rpx;
+  color: #8a847c;
+  font-size: 21rpx;
 }
 
 .finish-link--disabled {
@@ -767,13 +793,43 @@ const submit = () => {
 }
 
 .send-btn {
-  min-width: 112rpx;
-  padding: 14rpx 26rpx;
-  border-radius: 999rpx;
-  background: #9c6447;
-  color: #fffaf3;
-  font-size: 25rpx;
-  text-align: center;
+  flex-shrink: 0;
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.composer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.composer-kicker {
+  color: #aba59d;
+  font-size: 21rpx;
+}
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 96rpx;
+  padding: 6rpx 10rpx 6rpx 36rpx;
+  box-sizing: border-box;
+  border-radius: 50rpx;
+  border: 2rpx solid rgba(255, 255, 255, .86);
+  background: #fcfaf6;
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, .8);
+}
+.send-icon {
+  width: 60rpx;
+  height: 60rpx;
+  padding: 15rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(107, 101, 96, .5);
+  border-radius: 50%;
 }
 
 .send-btn--disabled {

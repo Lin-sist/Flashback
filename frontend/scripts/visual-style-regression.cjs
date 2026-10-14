@@ -151,5 +151,22 @@ for (const width of [320, 360, 375, 390, 430]) {
     titleGeometry(width, true, true, '40rpx', '88rpx')
   })
 }
+check('Agent消息增长只滚动消息区，不挤走输入栏', () => {
+  const file = 'pages/record-editor/components/AgentChatSheet.wxss'
+  assert.match(property(file, '.agent-sheet', 'height'), /^\d+vh$/)
+  assert.equal(property(file, '.message-list', 'height'), '0')
+  assert.equal(property(file, '.message-list', 'min-height'), '0')
+  assert.equal(property(file, '.composer', 'flex-shrink'), '0')
+  assert.equal(property(file, '.sheet-head', 'flex-shrink'), '0')
+  assert.equal(property(file, '.send-btn', 'flex-shrink'), '0')
+})
+check('Agent遮罩与纸底不依赖滤镜，输入区保留底部安全区', () => {
+  for (const name of ['AgentChatSheet', 'AgentIntentChooser']) {
+    const tree = css('pages/record-editor/components/' + name + '.wxss')
+    tree.walkDecls(/backdrop-filter/, () => { throw new Error('native sheet requires blur') })
+  }
+  assert.match(property('pages/record-editor/components/AgentChatSheet.wxss', '.agent-sheet', 'padding'), /safe-area-inset-bottom/)
+  assert.match(property('pages/record-editor/components/AgentIntentChooser.wxss', '.intent-panel', 'padding'), /safe-area-inset-bottom/)
+})
 if (failures) { console.error('STYLE REGRESSION failures=' + failures); process.exitCode = 1 }
 else console.log('STYLE REGRESSION PASS; compiled CSS/geometry only, WeChat drawing still requires manual confirmation')

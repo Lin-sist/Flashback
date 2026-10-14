@@ -8914,3 +8914,14 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 本版实际微信绘制/不同字体/键盘打开时vh与auto-height/附言展开/长文多媒体/真机安全区未直接实测；当前无可控原生UI/自动化会话。尺寸合成检查不是视觉通过，用户当前截图仅证明a2137ab失败。OpenSpec CLI缺失，未改契约不假称validate；旧file拒绝不绕过。真实业务API/provider/对象存储0，不因两张Agent参考图扩展浮层实施。
 - **Commit**: pending（已授简短本地提交继续有效，不push/PR/部署/接受delta/归档）
 - **Next**: 提交局部修订→用户重新编译正式dist复验无媒体输入空间/附言位置/长侧线/红框/底部图标与药丸→继续F-21手验，不将此版当所有状态或真机验收PASS。
+
+
+## 2026-10-14｜frontend-visual-language-evolution：删除书写折角并按demo复刻选择/书写Agent浮层｜Type B（已授权F-32展示切片）
+
+- **Scope**: 用户确认1506ab4书写正常态观感，明确删除折角并启动Agent浮层。clean起点1506ab4；沿新指令提前F-32两书写浮层，不扩大C/D/回看对话；沿用简短本地commit授权，不推导Gate 3、接受/归档。三处展示文件、两份本地回归脚本及当前任务/证据/交接，日志只追加。
+- **Changes**: 删除letter-body折角伪元素，保留红框封条和已确认留白。参照demo实际源码复刻独立暖灰遮罩、暖纸底板/拉手/居中标题/关闭、双纸卡及朱砂侧线、细线意图标签、方形纸条/描边便签、药丸输入/线框纸飞机。真实记忆授权提示移至输入区前，不伪装授权；来源、工具提议确认、素材操作、失败重试与真实收束标题均保留。确定72vh底板、消息区height0/min-height0/flex、输入与头部不收缩；无滤镜依赖、不复制demo消息。
+- **Verification PASS**: 类型检查退出0，14/14原合成状态回归+6/6新浮层实际setup/编译模板事件检查；Preview/Standard build退出0，各19项WXSS/布局PASS，最终Standard产物。新脚本复用现有Vue compiler，处理测试作用域/模块路径错误后复测通过，未安装依赖。3个setup脚本相对1506ab4字节一致，原全部v-model/tap/confirm动作集合一致。
+- **Verification PASS**: 精确allowlist和git diff --check在提交前复核；日志原740742字节SHA256 a322d4e756507f789d72d332bcf4576708d702bd53666a7b5af15812a3b46143只追加后验证。backend/services/stores/types/features/utils/composables、其它页面/公共组件、路由/package/lockfile、demo、accepted specs/archive保护；无secret/截图/真实日记正文入库。工作区写入曾返回EPERM，受控授权只写本轮明确文件，未改ACL。
+- **Verification SKIPPED / Risks**: 用户书写正常态认可仅覆盖1506ab4；本版两浮层的微信绘制/字体/中文键盘/焦点/长消息触摸滚动及真机安全区未实操，当前无可控原生UI。新模板检查不模拟原生v-model，withDirectives离线上下文提示保留；CSS/事件合成不等于微信验收。OpenSpec CLI既有缺失、未改Requirement/Scenario，不假称validate。旧file浏览器拒绝不绕过。真实业务API/provider/对象存储0。
+- **Commit**: pending（已授简短本地提交；不push/PR/部署/接受delta/归档）
+- **Next**: 用户重新编译最终Standard dist，复验选择/书写浮层居中标题/双纸卡/朱砂线/输入栏，手验中文键盘及消息滚动。F-32回看对话与完整E验收、F-21平台矩阵及F-27仍pending。

@@ -4,12 +4,12 @@
 
 `ACTIVE`
 
-当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；不扩大 C–E、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
+当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；2026-10-14 用户本轮明确授权先复刻 E 批意图选择/书写对话两个浮层；不扩大 C/D/回看对话、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
 - 当前闸门：F-10/F-11 通过，F-12—F-14 完成状态映射/基线/环境清单；F-15/F-20—F-22 平台验收 pending，后续按样板/批次验收顺序推进。demo R/M 待验证和 L 暂缓保留，不补勾旧任务；Gate 3 未授权
-- 提交责任：2026-10-14 本次 A 批用户明确允许 Agent 简短本地 add/commit；未授权 push/PR/部署/发布、接受 delta 或归档
+- 提交责任：2026-10-14 本次迁移用户明确允许 Agent 简短本地 add/commit；未授权 push/PR/部署/发布、接受 delta 或归档
 - 外部调用：仅公开 Inspora/Awwwards 研究；Open Design Cloud 未启动；`open-design` MCP 已可调用，Local Codex 递归加载该 MCP 导致的桌面接管/EPIPE 冲突已做本地隔离修复；当前任务的旧 MCP transport 已关闭，原型重试仍须新任务；真实用户内容、真实 Agent provider、对象存储调用均为 0
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -143,6 +143,11 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-10-14 — **书写折角删除与 E 批两个书写 Agent 浮层复刻**
+  - **Authorization / Scope**：用户确认书写新版正常态观感并要求删除折角、开始 Agent 浮层；按用户明确新指令提前实施 F-32 的选择/书写对话展示切片，沿用简短本地提交。clean 起点 1506ab4；不扩大 C/D/回看对话，不把 F-27/F-32 全量验收补勾。
+  - **Changes**：仅删除编辑器折角；选择浮层居中标题/拉手/双纸卡/朱砂侧线；书写对话居中标题/细线意图切换/纸条与便签/药丸输入与纸飞机。保留真实 session、用户记忆许可与来源、工具确认/素材选择、失败重试与收束入口；不移入 demo 消息。
+  - **Verification / Next**：类型检查、14 项已有状态回归、6 项浮层脚本/模板事件回归、两模式构建及 19 项 WXSS/布局检查 PASS；最终 Standard 产物。三份 setup 脚本及原 v-model/事件动作完整；详细结果以最新 AGENT_LOG 为准。新版微信绘制/键盘/真机仍待手验；没有 provider/存储外调，不接受/归档。
 
 - **This session**: 2026-10-14 — **F-21书写空间/长侧线/朱砂方框/底部工具精修**
   - **Scope**：用户a2137ab版手动画面反馈未满意，明确扩大输入区、附言下移、长朱砂线/红框封条及克制底部工具。沿用实现/本地简短提交授权；clean HEAD a2137ab。仅书写页展示、现有样式回归、证据/tasks/交接；Agent参考图不扩展当前E批。
