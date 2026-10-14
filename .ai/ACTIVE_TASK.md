@@ -144,6 +144,12 @@
 
 ## Current Progress
 
+- **This session**: 2026-10-14 — **首页参照还原与方圆导航局部精修（A批内）**
+  - **Authorization / Scope**：用户确认样式恢复，要求补朱砂侧线/圆印、移走中段我的记录、品牌屏幕居中避胶囊、Tab沿用demo方圆形。沿用已授实施/简短本地提交；clean HEAD 0603a75。仅home/timeline、AppTopSafeBar展示、已有样式回归与证据/交接，不改业务底座或扩展C—E。
+  - **Changes**：真实信卡补侧线/朱砂印/折角，取景框四角与凹陷影；中段记录模块改为信卡之后的次级SAVED行，保留加载/失败/空态；两页字标小号淡墨，显式centerTitle使屏幕物理居中并对称避让胶囊/筛选；Tab改24rpx方圆轮廓/静态暖纸底。新居中选项默认关闭，其它页面保持旧布局。
+  - **Verification**：类型/两模式构建、13项状态回归、16项WXSS/几何检查PASS，最终Standard产物；日志前缀、精确范围和两页业务脚本保护见最新AGENT_LOG。无真实业务外调、真实截图/内容入库。
+  - **Next / Risks**：用户已确认之前样式缺失改善；本版视效/实际颜色/小屏与长标题待微信手验，不能从编译/几何推导像素还原。F-20—F-22仍pending；补样板证据后继续原F任务，不绕过核心审阅或归档闸。
+
 - **This session**: 2026-10-14 — **用户手动画面FAIL后的样板样式修复（Type B，当前change内）**
   - **Scope**：用户要求定位并继续修复；延续正式A批实施与本地简短提交授权。开工clean HEAD 8e53127（上一批实际commit补录）；修复三个样板、App默认样式、tokens、AppTopSafeBar/PrimaryButton展示，新增样式回归脚本，更新证据/交接。无API/业务契约/次级页面重设计。
   - **Findings / Changes**：手动画面显示变量依赖材质未呈现；token去除Web :root混合选择器并在样板根view声明，所有受影响样板var补静态备用值，App回到暖纸默认；公共主按钮补底色。顶部按左右slot/胶囊分别预留，空正文最小高度缩短并保留auto-height。实际变量失效的基础库/继承原因未获原生computed-style证据，不过度断言。

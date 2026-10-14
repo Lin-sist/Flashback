@@ -336,7 +336,8 @@ onShow(() => {
 <template>
   <view class="page fb-theme">
     <PreviewModeNotice />
-    <AppTopSafeBar title="时光回序" padding-x="56rpx" side-width="104rpx">
+    <AppTopSafeBar title="时光回序" padding-x="56rpx" side-width="104rpx" center-title>
+      <template #title><text class="brand-mark">时光回序</text></template>
       <template #left>
         <button class="filter-trigger" :class="{ active: hasAppliedFilter }" hover-class="filter-trigger--pressed" @tap="openFilterPanel">筛选</button>
       </template>
@@ -627,6 +628,7 @@ onShow(() => {
   overflow: hidden;
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
 }
+.brand-mark { font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); font-size: 24rpx; font-weight: 400; letter-spacing: 8rpx; text-indent: 8rpx; color: var(--fb-ink-light, #9e9890); white-space: nowrap; }
 
 
 
@@ -1373,18 +1375,18 @@ onShow(() => {
   position: relative;
   flex-shrink: 0;
   z-index: 80;
-  padding: 14rpx 40rpx calc(env(safe-area-inset-bottom) + 16rpx);
+  padding: 14rpx 24rpx calc(env(safe-area-inset-bottom) + 16rpx);
   background: var(--fb-paper, #faf7f2);
 }
 
 .bottom-nav {
-  min-height: 88rpx;
+  min-height: 112rpx;
   display: flex;
   align-items: stretch;
-  border: 1rpx solid var(--fb-letter-glass-edge, rgba(255, 255, 255, 0.85));
-  border-radius: 999rpx;
-  background: var(--fb-letter-glass, #f3eee4);
-  box-shadow: var(--fb-letter-glass-shadow, inset 0 2rpx 0 rgba(255, 255, 255, 0.9), 0 6rpx 18rpx rgba(125, 105, 75, 0.10));
+  border: 1rpx solid rgba(188,174,152,.35);
+  border-radius: 24rpx;
+  background: #f7f2e9;
+  box-shadow: 0 -4rpx 36rpx rgba(125,105,75,.10);
 }
 
 .nav-item {

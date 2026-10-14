@@ -8,16 +8,18 @@ const props = withDefaults(
     transparent?: boolean
     paddingX?: string
     sideWidth?: string
+    centerTitle?: boolean
   }>(),
   {
     title: '',
     transparent: false,
     paddingX: '40rpx',
     sideWidth: '88rpx',
+    centerTitle: false,
   }
 )
 
-const { navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } = useWechatNavMetrics()
+const { navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight, windowWidth } = useWechatNavMetrics()
 const slots = useSlots()
 
 const wrapperStyle = computed(() => ({
@@ -43,6 +45,13 @@ const rightRailStyle = computed(() => ({
 }))
 
 const titleStyle = computed(() => {
+  if (props.centerTitle) {
+    const inPixels = (size: string) => parseFloat(size) * (size.endsWith('rpx') ? windowWidth.value / 750 : 1)
+    const padding = inPixels(props.paddingX)
+    const side = inPixels(props.sideWidth)
+    const reserve = Math.max(padding + (slots.left ? side : 0), padding + rightSafeWidth.value + (slots.right ? side : 0))
+    return { left: `${reserve}px`, right: `${reserve}px`, width: 'auto', transform: 'translateY(-50%)' }
+  }
   // 分别计算左右可用边界；胶囊只在右侧，不能再从左右各扣一遍。
   return {
     left: slots.left ? `calc(${props.paddingX} + ${props.sideWidth})` : props.paddingX,

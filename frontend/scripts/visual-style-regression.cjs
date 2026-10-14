@@ -69,18 +69,18 @@ check('app.wxss 的 token 声明不混入 Web 根选择器', () => {
 for (const [page, selector, prop, expected] of [
   ['home', '.page', 'background', '#faf7f2'],
   ['home', '.capture', 'background', '#f3eee4'],
-  ['home', '.bottom-nav', 'background', '#f3eee4'],
+  ['home', '.bottom-nav', 'background', '#f7f2e9'],
   ['record-editor', '.letter-body', 'background', '#fcf9f4'],
   ['record-editor', '.seal-btn', 'background', '#f3eee4'],
   ['timeline', '.page', 'background', '#faf7f2'],
-  ['timeline', '.bottom-nav', 'background', '#f3eee4'],
+  ['timeline', '.bottom-nav', 'background', '#f7f2e9'],
 ]) {
   check(page + ' ' + selector + ' 变量不可用时保留纸/动作底色', () => {
     assert.equal(withoutTokens(property('pages/' + page + '/index.wxss', selector, prop)), expected)
   })
 }
 check('变量不可用时首页边线/投影/宋体仍有有效备用值', () => {
-  for (const [selector, prop] of [['.capture', 'border'], ['.capture-action', 'box-shadow'], ['.page', 'font-family']]) {
+  for (const [selector, prop] of [['.capture', 'border'], ['.capture', 'box-shadow'], ['.page', 'font-family']]) {
     assert.ok(withoutTokens(property('pages/home/index.wxss', selector, prop)), selector + ' ' + prop + ' lost')
   }
 })
@@ -93,18 +93,18 @@ check('详情公共按钮在变量不可用时仍有可见背景', () => {
   assert.equal(withoutTokens(property('components/common/PrimaryButton.wxss', '.primary-btn', 'background')), '#b5352a')
 })
 const source = parse(sourceFile('components/common/AppTopSafeBar.vue')).descriptor.scriptSetup.content
-function titleGeometry(width, leftSlot, rightSlot, paddingX, sideWidth) {
+function titleGeometry(width, leftSlot, rightSlot, paddingX, sideWidth, centerTitle = false) {
   const script = ts.transpileModule(source + '\nglobalThis.testStyles = {titleStyle, rightRailStyle};', {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText
   const capsuleReserve = 96
   const sandbox = {
     exports: {},
-    defineProps: () => ({ paddingX, sideWidth, title: '时光回序' }),
+    defineProps: () => ({ paddingX, sideWidth, centerTitle, title: '时光回序' }),
     withDefaults: p => p,
     require: spec => spec === 'vue'
       ? { ...vue, useSlots: () => ({ ...(leftSlot ? { left() {} } : {}), ...(rightSlot ? { right() {} } : {}) }) }
-      : { useWechatNavMetrics: () => ({ navBarHeight: vue.ref(44), navBarTotalHeight: vue.ref(64), rightSafeWidth: vue.ref(capsuleReserve), statusBarHeight: vue.ref(20) }) },
+      : { useWechatNavMetrics: () => ({ navBarHeight: vue.ref(44), navBarTotalHeight: vue.ref(64), rightSafeWidth: vue.ref(capsuleReserve), statusBarHeight: vue.ref(20), windowWidth: vue.ref(width) }) },
   }
   vm.runInNewContext(script, sandbox)
   const style = sandbox.testStyles.titleStyle.value
@@ -118,11 +118,15 @@ function titleGeometry(width, leftSlot, rightSlot, paddingX, sideWidth) {
   assert.ok(titleWidth >= required, width + 'px title region ' + titleWidth.toFixed(1) + 'px < ' + required.toFixed(1) + 'px')
   if (style.right) assert.ok(px(style.right) >= capsuleReserve, 'title overlaps capsule')
   if (leftSlot && style.left) assert.ok(px(style.left) >= px(paddingX) + px(sideWidth), 'title overlaps left action')
+  if (centerTitle) {
+    const center = px(style.left) + titleWidth / 2
+    assert.ok(Math.abs(center - width / 2) < 0.1, 'title is not centered in the screen')
+  }
 }
 for (const width of [320, 360, 375, 390, 430]) {
   check(width + 'px 首页/筛选标题可容纳四字且避开操作与胶囊', () => {
-    titleGeometry(width, false, false, '56rpx', '88rpx')
-    titleGeometry(width, true, false, '56rpx', '104rpx')
+    titleGeometry(width, false, false, '56rpx', '88rpx', true)
+    titleGeometry(width, true, false, '56rpx', '104rpx', true)
     titleGeometry(width, true, true, '40rpx', '88rpx')
   })
 }

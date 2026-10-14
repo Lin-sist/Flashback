@@ -8884,3 +8884,13 @@ Commit: pending
 - **Privacy / Risks**: 截图只在会话/本机查看，不复制真实日记/身份/媒体到fixture、源码、日志或仓库。源码差分、WXSS与无token合成几何不是原生绘制；标题在可用区域内居中，公共样式影响其它既有页面仍需实际回归。F-20—F-22保留pending，不扩大B布局或C—E。
 - **Commit**: pending（用户既有简短本地提交授权继续有效；不push/PR/部署/接受delta/归档）
 - **Next**: 本地提交修复→用户重新编译frontend/dist/build/mp-weixin复验暖纸/药丸/完整标题/空正文与长文；取得样板平台证据再继续F任务。上一批8e53127仅代码提交，不等于视觉验收。
+
+## 2026-10-14｜frontend-visual-language-evolution：首页信笺/物理居中字标/方圆Tab精修｜Type B（A批内）
+
+- **Scope**: 用户明确当前样式恢复，并要求首页参照还原、朱砂侧线/圆印、中段我的记录移位、品牌居中避胶囊、底部导航沿demo方圆形。clean HEAD 0603a75，上一批真实修复commit补录；延续已授实现与简短本地提交。仅home/timeline、AppTopSafeBar局部展示、既有visual-style-regression与实施证据/ACTIVE_TASK、本条日志；不改OpenSpec契约。
+- **Changes**: 对照demo原生CSS确认上一版漏侧线/折角、圆印误用灰色，补3rpx朱砂侧线、48rpx圆印、32rpx折角；书写位四角括线/凹陷影，恢复demo副标题。撤掉中段我的记录大块，SAVED继续补充改信卡之后轻量行；保持真实概览loading/empty/error/重试。最近抵达标题/回看动作并排。两页小号淡墨品牌；centerTitle默认关闭，两页显式开启，按最大侧预留对称计算物理中心，避让胶囊/筛选。两页Tab为24rpx圆角长方形、112rpx最小高度、#f7f2e9静态底/淡边线和上投影，三Tab/选中点保留。
+- **Verification PASS**: vue-tsc --noEmit退出0；原13/13实际SFC/service/httpClient固定合成状态回归PASS。Standard/Preview mp-weixin build退出0，更新的16项WXSS/真实computed几何检查均PASS：变量缺失可读、320/360/375/390/430px标题物理居中/筛选与胶囊避让、默认其它页面布局。最终产物为Standard，未入库dist；既有更新/caniuse-lite提示保留，未改依赖。
+- **Verification PASS**: 精确文件范围、diff --check、两页业务script字节与0603a75一致；其它业务服务/store/type/权限/后端/路由/依赖/demo/accepted specs/archive均保护。日志原731873字节SHA256 d999c311c87ab6733aa323be5ea49b6cbcfdbb8f674635d1050c211af1cf14c6保持；提交前执行复核。不将用户真实截图/原文写入夹具、日志或仓库。
+- **Verification SKIPPED / Risks**: 用户反馈确认前版样式恢复，但不构成完整F20—F22验收；本次新版颜色/字体/信卡/小屏长标题/真实触摸/真机未实测，几何和编译不代替实际微信绘制。当前无可控原生UI/自动化会话；OpenSpec CLI不在PATH，未改契约不假称CLI validate。没有真实业务API/provider/存储调用，不绕过既有file拒绝。未知模拟器色偏不作断言，不扩大C—E。
+- **Commit**: pending（本地简短提交授权继续有效；不push/PR/部署/接受delta/归档）
+- **Next**: 提交局部精修→用户重新编译正式dist观察卡片侧线/朱砂圆印/折角、信卡直连书写位、字标中心和方圆Tab→取得样板证据后继续原F任务。
