@@ -84,10 +84,20 @@ check('变量不可用时首页边线/投影/宋体仍有有效备用值', () =>
     assert.ok(withoutTokens(property('pages/home/index.wxss', selector, prop)), selector + ' ' + prop + ' lost')
   }
 })
-check('空正文区域不会用多个最小高度叠出死区', () => {
-  const contentMin = parseFloat(property('pages/record-editor/index.wxss', '.letter-content', 'min-height'))
-  const fieldMin = parseFloat(property('pages/record-editor/index.wxss', '.editor-field', 'min-height'))
-  assert.ok(contentMin <= 300 && fieldMin <= 240, 'content=' + contentMin + 'rpx field=' + fieldMin + 'rpx')
+check('无媒体仍有可输入书写空间，真实媒体可占用纸面且不叠加虚构占位', () => {
+  const file = 'pages/record-editor/index.wxss'
+  const pixels = (value, width, height) => {
+    const expression = value.replace(/calc\(/g, '(').replace(/([\d.]+)vh/g, (_, n) => String(Number(n) * height / 100)).replace(/([\d.]+)rpx/g, (_, n) => String(Number(n) * width / 750)).replace(/px/g, '')
+    assert.ok(/^[\d\s().+*/-]+$/.test(expression))
+    return Function('return ' + expression)()
+  }
+  for (const [width, height] of [[320,568], [375,812], [390,844], [430,932]]) {
+    const field = pixels(property(file, '.editor-field', 'min-height'), width, height)
+    const mediaField = pixels(property(file, '.editor-field--with-media', 'min-height'), width, height)
+    assert.ok(field >= height * .3 && field <= height * .48, 'editable space outside usable range')
+    assert.ok(mediaField < field && mediaField >= 75, 'real media layout has no readable text area')
+    assert.equal(property(file, '.letter-content', 'min-height'), '0')
+  }
 })
 check('详情公共按钮在变量不可用时仍有可见背景', () => {
   assert.equal(withoutTokens(property('components/common/PrimaryButton.wxss', '.primary-btn', 'background')), '#b5352a')

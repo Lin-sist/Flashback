@@ -1717,6 +1717,7 @@ onUnload(() => {
         <!-- 信笺主体 -->
         <view class="letter-wrap">
           <view class="letter-body">
+            <view class="side-rule" aria-hidden="true" />
             <!-- 信头 -->
             <view class="letter-head">
               <view class="head-left">
@@ -1730,8 +1731,7 @@ onUnload(() => {
 
             <!-- 正文区：左侧朱砂竖线 + 编辑区 -->
             <view class="letter-content">
-              <view class="side-rule" aria-hidden="true" />
-              <view class="editor-zone">
+                <view class="editor-zone">
                 <input
                   v-model="form.title"
                   class="title-input"
@@ -1742,6 +1742,7 @@ onUnload(() => {
                 <textarea
                   v-model="form.content"
                   class="editor-field"
+                  :class="{ 'editor-field--with-media': imageAttachments.length || pendingImageUploads.length || voiceAttachments.length || pendingVoiceUploads.length }"
                   aria-label="此刻的正文"
                   :cursor-spacing="24"
                   auto-height
@@ -1922,7 +1923,7 @@ onUnload(() => {
 
             <view class="appendix-wrap">
               <button class="appendix-toggle" :aria-expanded="appendixOpen" @tap="appendixOpen = !appendixOpen">
-                <text>附言（可选）</text><text class="appendix-toggle-action">{{ appendixOpen ? '收起' : '展开' }} ›</text>
+                <text>附言 · 可选</text><view class="appendix-chevron" :class="{ 'appendix-chevron--open': appendixOpen }" aria-hidden="true" />
               </button>
               <view v-if="appendixOpen" class="m3-panel">
                 <view class="m3-panel-label">更多记录方式（可选）</view>
@@ -1994,15 +1995,19 @@ onUnload(() => {
         <view class="bottom-area">
           <text class="word-count">{{ wordCount }} 字</text>
 
+          <text v-if="voiceStarting || voiceRecording || voiceStopping || voiceUploading || imageUploading || pendingImageUploads.length || pendingVoiceUploads.length" class="toolbar-status" aria-live="polite">
+            {{ voiceRecording ? '录音中 · ' + formatVoiceDuration(recordingSeconds) + ' · 点击麦克风停止' : voiceStarting ? '正在启动录音' : voiceStopping ? '正在结束录音' : imageUploading || voiceUploading ? '媒体处理中，请稍候' : '有未完成的媒体，请在纸面中重试或移除' }}
+          </text>
           <view class="editor-toolbar">
             <view class="attach-bar">
-              <view class="attach-item" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
+              <view class="attach-item" aria-label="选择地点" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
                 <view class="attach-icon attach-icon--map" aria-hidden="true" />
                 <text class="attach-label">{{ location ? '已选地点' : '地点' }}</text>
               </view>
               <view class="attach-sep" aria-hidden="true" />
               <view
                 class="attach-item"
+                aria-label="添加图片"
                 :class="{ 'attach-item--active': occupiedImageCount > 0, 'attach-item--disabled': imageUploading }"
                 @tap="onAuxTap('图片')"
               >
@@ -2012,6 +2017,7 @@ onUnload(() => {
               <view class="attach-sep" aria-hidden="true" />
               <view
                 class="attach-item"
+                aria-label="录音，点击开始或停止"
                 :class="{
                   'attach-item--active': occupiedVoiceCount > 0 || voiceStarting || voiceRecording,
                   'attach-item--disabled': imageUploading || voiceUploading || voiceStarting || voiceStopping,
@@ -2111,7 +2117,7 @@ onUnload(() => {
   position: relative;
   flex: 1;
   z-index: 1;
-  padding: 24rpx 64rpx calc(env(safe-area-inset-bottom) + 40rpx);
+  padding: 24rpx 64rpx calc(env(safe-area-inset-bottom) + 12rpx);
   display: flex;
   flex-direction: column;
 }
@@ -2125,6 +2131,7 @@ onUnload(() => {
 
 .letter-body {
   position: relative;
+  min-height: calc(76vh - 180rpx);
   background: var(--fb-paper, #faf7f2);
   border: none;
   box-shadow: none;
@@ -2176,26 +2183,26 @@ onUnload(() => {
 /* 竖排档案标签 */
 .archive-tag {
   position: absolute;
-  top: 96rpx;
-  right: -28rpx;
-  padding: 0;
-  border: none;
+  top: 32rpx;
+  right: -36rpx;
+  padding: 16rpx 10rpx;
+  border: 2rpx solid rgba(181,53,42,.55);
   pointer-events: none;
 }
 
 .archive-tag-text {
   font-size: 22rpx;
-  color: var(--fb-ink-mid, #6b6560);
+  color: var(--fb-vermilion, #b5352a);
   writing-mode: vertical-rl;
-  line-height: 1.8;
-  letter-spacing: 4rpx;
+  line-height: 1.4;
+  letter-spacing: 6rpx;
 }
 
 /* 正文区 */
 .letter-content {
   position: relative;
   display: flex;
-  min-height: 260rpx;
+  min-height: 0;
   margin-top: 54rpx;
 }
 
@@ -2203,7 +2210,7 @@ onUnload(() => {
 .side-rule {
   position: absolute;
   left: -30rpx;
-  top: 0;
+  top: 96rpx;
   bottom: 0;
   width: 3rpx;
   pointer-events: none;
@@ -2220,7 +2227,7 @@ onUnload(() => {
 .editor-zone {
   flex: 1;
   min-width: 0;
-  padding: 0;
+  padding: 0 24rpx 0 0;
   display: flex;
   flex-direction: column;
   gap: 28rpx;
@@ -2875,7 +2882,7 @@ onUnload(() => {
 /* 正文 textarea */
 .editor-field {
   width: 100%;
-  min-height: 184rpx;
+  min-height: calc(40vh - 80rpx);
   background: transparent;
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
   font-size: 32rpx;
@@ -2892,24 +2899,24 @@ onUnload(() => {
 
 /* 附件栏 */
 .attach-bar {
-  flex: 1;
-  min-width: 220rpx;
+  flex: 0 0 auto;
+  width: 264rpx;
+  min-width: 264rpx;
   padding: 0;
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 0;
   border: none;
 }
 
 .attach-item {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 88rpx;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
 }
 
 .attach-item--active .attach-label {
@@ -2933,7 +2940,7 @@ onUnload(() => {
 }
 
 .attach-icon--image {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239e9890' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='14' rx='1'/><circle cx='12' cy='12' r='3.2'/><circle cx='17.5' cy='8.5' r='0.9' fill='%239e9890' stroke='none'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6560' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='4.5' width='17' height='15' rx='1.5'/><circle cx='9' cy='9.5' r='1.6'/><path d='M4.5 17.5l5-4.5 3.5 3 3-2.5 4.5 4'/></svg>");
 }
 
 .attach-icon--voice {
@@ -2941,10 +2948,13 @@ onUnload(() => {
 }
 
 .attach-label {
-  font-size: 20rpx;
-  color: var(--fb-ink-mid, #6b6560);
-  line-height: 1.5;
-  text-align: center;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
 }
 
 .attach-sep {
@@ -2960,10 +2970,13 @@ onUnload(() => {
 }
 
 .word-count {
-  align-self: flex-end;
-  margin-bottom: 14rpx;
-  font-size: 22rpx;
-  color: var(--fb-ink-mid, #6b6560);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
 }
 
 /* 保存按钮：静态玻璃，成功由服务响应确认。 */
@@ -3101,10 +3114,13 @@ onUnload(() => {
 .editor-close-line--a { transform: rotate(45deg); }
 .editor-close-line--b { transform: rotate(-45deg); }
 .appendix-wrap { margin-top: 36rpx; }
-.appendix-toggle { min-height: 88rpx; width: 100%; margin: 0; padding: 0; display: flex; align-items: center; justify-content: space-between; gap: 20rpx; border: none; background: transparent; font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); font-size: 24rpx; color: #6b6560; text-align: left; }
+.appendix-toggle { min-height: 88rpx; width: auto; margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: flex-start; gap: 16rpx; border: none; background: transparent; font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); font-size: 24rpx; color: #6b6560; text-align: left; }
 .appendix-toggle::after { border: none; }
-.appendix-toggle-action { font-size: 22rpx; }
-.editor-toolbar { display: flex; align-items: center; gap: 24rpx; flex-wrap: wrap; }
+.appendix-chevron { width: 12rpx; height: 12rpx; border-right: 1rpx solid #9e9890; border-bottom: 1rpx solid #9e9890; transform: rotate(45deg); margin-top: -6rpx; }
+.appendix-chevron--open { transform: rotate(225deg); margin-top: 6rpx; }
+.editor-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; flex-wrap: wrap; }
 .image-grid--single { grid-template-columns: minmax(0, 416rpx); }
 .image-grid--single .image-tile { aspect-ratio: 4 / 3; box-shadow: 0 6rpx 20rpx rgba(120,100,70,.16); }
+.editor-field--with-media { min-height: 184rpx; }
+.toolbar-status { display: block; margin-bottom: 16rpx; font-size: 22rpx; line-height: 1.7; color: var(--fb-ink-mid, #6b6560); }
 </style>

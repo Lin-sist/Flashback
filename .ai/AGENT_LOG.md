@@ -8904,3 +8904,13 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 首页用户正常態视觉确认PASS，不代表全部长标题/小屏/空错/真机矩阵。本版书写绘制、中文输入法/键盘、展开附言时焦点/auto-height、长文末项与真实多媒体/小屏/真机未实操；当前无可控微信UI/自动化会话。17项编译几何及14项合成payload不能替代原生渲染/持久化。OpenSpec CLI不在PATH，未改Requirement/Scenario；不绕过旧file拒绝，真实业务API/provider/对象存储0。
 - **Commit**: pending（用户既有简短本地提交授权继续有效，不push/PR/部署/接受delta/归档）
 - **Next**: 本地提交书写页→用户重新编译正式dist审纸面/附言/工具行并手验键盘/长文→按F顺序继续时光轴；F-20—F-22完整验收与F-27仍分级保留，不自动扩大其它页面。
+
+## 2026-10-14｜frontend-visual-language-evolution：书写空间/长侧线/朱砂方框/克制工具精修｜Type B（F-21内）
+
+- **Scope**: 用户a2137ab版手动书写画面反馈仍不理想，明确扩大无媒体书写空白、附言下移、侧线延长、朱砂方框竖封条、原demo文字节奏和底部工具间距。clean HEAD a2137ab，补录上批commit；延续已授实现/简短本地提交。仅record-editor模板/样式、现有visual-style-regression、实施证据/tasks/ACTIVE_TASK与本条只追加；未进入Agent浮层E批或改契约。
+- **Changes**: textarea无媒体最低calc(40vh - 80rpx)，有真实/待处理媒体时184rpx，保留auto-height和正文原字号/行距；去掉letter-content额外最小高度，不造假图片/声音占位。整纸最低calc(76vh - 180rpx)，将朱砂线移到letter-body贯穿纸面，补2rpx朱砂方框/朱砂竖字。附言正常流下移、小箭头紧邻文字。常态工具纯图标，保留可访问名称/原标签文本；录音/上传/未完成媒体保留必要状态行。工具宽264rpx（三个88rpx触摸区）+300rpx药丸+至少24rpx间距、space-between余量与窄屏换行；底部安全区+12rpx。字数常态视觉隐藏但辅助文本保留。
+- **Verification PASS**: vue-tsc --noEmit退出0；14/14真实SFC/service/httpClient合成状态回归PASS；Standard/Preview mp-weixin build退出0，17项WXSS/几何回归PASS。更新之前只约束空输入上限的旧检查，按用户本轮要求覆盖320×568/375×812/390×844/430×932无媒体可输入区域及真实媒体条件，保留工具宽度/正常流/缺变量回退/标题几何检查。最终Standard正式产物。既有更新/caniuse-lite提示保留，无依赖修改。
+- **Verification PASS**: 精确范围、git diff --check、业务script字节与a2137ab一致、原v-model/事件动作完整，数据及状态语义未改；日志原737732字节SHA256 4433f3837cb9e71916db58a503517e167b256ab10f3fb009c67b1739e3ea9d17在提交前复核。后端/services/stores/types/features/utils/composables、公共组件、首页/时光轴/详情/其它页面、依赖/路由、demo、accepted specs/archive保护。截图及真实内容未复制到源码/测试/日志。
+- **Verification SKIPPED / Risks**: 本版实际微信绘制/不同字体/键盘打开时vh与auto-height/附言展开/长文多媒体/真机安全区未直接实测；当前无可控原生UI/自动化会话。尺寸合成检查不是视觉通过，用户当前截图仅证明a2137ab失败。OpenSpec CLI缺失，未改契约不假称validate；旧file拒绝不绕过。真实业务API/provider/对象存储0，不因两张Agent参考图扩展浮层实施。
+- **Commit**: pending（已授简短本地提交继续有效，不push/PR/部署/接受delta/归档）
+- **Next**: 提交局部修订→用户重新编译正式dist复验无媒体输入空间/附言位置/长侧线/红框/底部图标与药丸→继续F-21手验，不将此版当所有状态或真机验收PASS。
