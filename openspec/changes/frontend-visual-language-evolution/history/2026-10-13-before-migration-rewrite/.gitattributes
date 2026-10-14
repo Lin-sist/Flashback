@@ -1,0 +1,5 @@
+# Frozen source documents retain their original final blank lines.
+# Keep trailing-space and space-before-tab checks; scope this EOF exception to snapshots.
+/proposal.md whitespace=-blank-at-eof,blank-at-eol,space-before-tab
+/design.md whitespace=-blank-at-eof,blank-at-eol,space-before-tab
+/specs/miniapp-core/spec.md whitespace=-blank-at-eof,blank-at-eol,space-before-tab

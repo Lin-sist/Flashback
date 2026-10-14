@@ -4,13 +4,12 @@
 
 `ACTIVE`
 
-当前唯一 active Type C change 为 `frontend-visual-language-evolution`。用户已批准 Gate 1 规划工件与 Gate 2 实现授权；业务代码执行仍须等待 Open Design 可比原型和主视觉方向锁定。不继承任何旧 change 的外调、提交、归档或发布授权。
-
+当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-13 用户确认按当前 demo 状态收口：登录 HTML 暂缓、翻页暂停推广、玻璃回弹仅候选；授权在同一 change 重写正式迁移阶段并按历史修改本地分组提交。新 proposal/design/tasks/delta 已形成，正式迁移完整规划 Gate 1 待审，Gate 2 未启动；历史授权/未完成证据保留，不接受 delta、不归档、不启动业务实现。
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
-- 当前闸门：Gate 1 规划工件已批准；方向选择子闸已收口（2026-09-06 用户访谈裁决锁定「信笺×微液态玻璃」单方向，brief 重写 v3.0）；Gate 2 实现授权维持，仍待 v3.0 执行轮产物经用户确认后开工
-- 提交责任：2026-09-06 用户已授权 Agent 本地 commit（不含 push）；v2.1–v2.3 积压与 v3.0 转向已分五笔按内容提交，工作树 clean
+- 当前闸门：本轮收口决定与文档/本地提交已授权；当前正式迁移以 F 系列为唯一入口，完整规划 Gate 1 与新任务 Gate 2 分列待办；demo R/M 待验证和 L 暂缓保留，不补勾旧四方向任务
+- 提交责任：2026-10-13 本轮用户明确授权 Agent 按历史修改分组本地 add/commit；未授权 push/PR/部署/发布。后续正式实施提交责任另行登记
 - 外部调用：仅公开 Inspora/Awwwards 研究；Open Design Cloud 未启动；`open-design` MCP 已可调用，Local Codex 递归加载该 MCP 导致的桌面接管/EPIPE 冲突已做本地隔离修复；当前任务的旧 MCP transport 已关闭，原型重试仍须新任务；真实用户内容、真实 Agent provider、对象存储调用均为 0
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -144,6 +143,46 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-10-13 — **demo 阶段按现状收口；正式迁移规划重写与历史成果入库**
+  - **Type / Authorization**：Type C 规划收口，同一 active change。用户确认单方向/登录 HTML 暂缓/翻页暂停推广/回弹候选，并授权文档重写与 Agent 本地分组提交；无正式业务实现、真实外调、push、delta 接受或归档授权。
+  - **Progress**：F-01—F-03完成；保存重写前四工件到history/2026-10-13-before-migration-rewrite，重写完整proposal/design/tasks/miniapp delta与A–E映射/文件范围/验收/回退。F-04提交与核对进行中；F-10完整规划批准、F-11实现授权pending。旧T/R/M/L状态不补勾。
+  - **Current scope**：十四页 demo 保留现状；新登录HTML不存在，线稿/薄雾仅历史草案；look/writing翻页只保留局部研究代码，不推广；玻璃回弹仍待目标平台验证。正式登录沿用现有代码，本轮无frontend/backend修改。
+  - **Verification**：现状type-check已通过（可用Node直接运行项目vue-tsc --noEmit）；最终工件/日志只追加/范围/静态/提交检查待记录结果。Git本轮开工b6afb01、16 tracked修改+8 untracked，暂存空。
+  - **SKIPPED / Risks**：OpenSpec CLI不在PATH；Standard/Preview构建、微信/真机、最新demo实际渲染/IME/动效性能与真实服务联调均未补验。原本地浏览器拒绝不绕过；源码/合成证据不冒充设备/后端PASS。
+  - **Next**：先完成F-04并留下clean HEAD；后续从F-10审阅当前完整正式迁移规划开始，经F-11才启动代码。历史报告只作时点快照，不重宣称其测试数值已复验。
+
+
+- **This session**: 2026-10-13 — **登录页修订图与薄雾入场规划，未实施**
+  - **User direction**：用户解除此前登录暂缓，偏向第二构图并要求收敛艳色/笔触/按钮颜色；提出淡粉雾扩散→留白→首页。当前翻页反馈不流畅，停止推广；玻璃回弹反馈尚可，保留候选，不将其当全平台验收。
+  - **Scope / Progress**：Type C规划，沿用唯一active change；新增demo/LOGIN_PLAN.md、增补proposal/design/tasks/miniapp delta；生成单张修订图exec-2bb5ebea-f3d5-431a-b384-32e5e477e9ed.png。L-01完成，L-02规划批准与L-03实施授权分别pending；未新增login HTML或改首页/index/样式/脚本。R/M进度与待补证据不变。
+  - **Plan**：拟新增登录视觉demo，真实认证/注册/微信/SMS预算0；测试输入只在DOM，不写凭证；进入明确预览后一次薄雾/暖纸白/首页接续。减动态、无脚本、素材失败、重复操作、中断/BFCache均需可用终态；D16—D18记录取舍。
+  - **Verification**：修订图直接查看并展示；规划工件与范围检查见最新日志。实际HTML/转场/小屏/键盘/性能尚未实现或验证；旧file访问拒绝不绕过，OpenSpec CLI验证待补。
+  - **Next**：先由用户确认修订视觉与完整新增规划（L-02）；实施授权（L-03）独立登记后按L-04—L-10推进。不是重新申请已获R/M实施权限，不自动提交/迁移/发布。
+
+- **This session**: 2026-10-13 — **回看/书写两页动效样本实施，观感待用户复核**
+  - **Authorization**：用户在完整翻页/玻璃调研后明确「可以先尝试落地几页看看落实效果」。M-01记录具体切片接受；M-02记录两页demo实施授权。仅demo动效，提交默认用户手动。
+  - **Progress**：M-01—M-06/M-08共7/8完成；M-07保留SKIPPED/pending；既有R批13/20与7项实际验证待补保持不变。
+  - **Changes**：look/writing显式加载motion-samples CSS/JS；620ms双面纸页开启/纸边微折/移动阴影/主动重播；药丸轻压、240ms恢复与触点光；长文/减动态/无3D静态降级，离页/后台/滚动/字体/resize/BFCache/偏好切换清理。存储/保存接线、其它页与图片未改；规划/miniapp delta只增补两页动效范围，D13—D15记录取舍。
+  - **Verification PASS**：21项事件/计时器/既有flow接线合成用例；当前HTML重建fixtures后的26项Storage/简化DOM回归；15HTML/128本地链接、CSS解析、JS语法、23个保护文件哈希不变、git diff --check。无真实用户原文/日志/网络/provider/对象存储/新依赖。
+  - **SKIPPED**：旧file访问策略拒绝仍有效，未用替代地址/工具/服务绕过；没有新实际页面截图、连续动作、系统偏好、触控、性能、微信或真机证据。OpenSpec CLI未执行，仅工件结构检查；不称真实软纸卷曲、实体折射或视觉定稿。
+  - **Next**：用户刷新demo查看look「再翻开一次」及writing保存按钮；在获准环境补M-07与R的旧视觉验证，再依据观感调整参数。无需重新申请本批实施许可；不自动推广其它页、提交或迁移生产。
+
+- **This session**: 2026-10-13 — **五核心页 demo 实施第一版，视觉验收待补**
+  - **Authorization**：用户在完整规划交付后明确「可以开始在demo实现了，我已经备份了demo」；分别登记 R-02 规划接受、R-03 demo 实施授权。无需再次申请实施；不含 git add/commit/push/生产迁移/真实外调。
+  - **Progress**：R-01—R-04、R-07/R-08、R-10—R-14、R-18/R-20 共13项完成（实现/静态或合成证据）；R-05/R-06/R-09/R-15—R-17/R-19 共7项保留 pending，未声明20/20。
+  - **Changes**：五页+index、共享tokens/components/motion、新demo-store/demo-flow；16px/400正文/必读辅助墨、核心页纸纹与玻璃影微调、可滚壳层/独立动作区、本地输入/保存/回看/草稿恢复/清除。除无滤镜霜卡保护性共享CSS降级，九页HTML未动；照片未改。
+  - **Verification PASS**：26项Storage/简化DOM合成用例；15个HTML、124个本地资源链接结构检查；JS语法；9页HTML/2张图片/2份既有untracked文档哈希一致；正文/辅助色对代表性实色纸底4.708—5.376:1；无真实业务请求、长期存储或正文日志；git diff --check。
+  - **SKIPPED**：既有浏览器连接/file://策略拒绝仍未解除，本轮未用替代地址/工具/服务绕过；无实际渲染、参数并排、软键盘、字体回退、玻璃/减少动态运行、微信/真机证据；OpenSpec CLI不可用。原型为可审阅实现草稿，未视觉定稿。
+  - **Next**：在访问被明确允许的环境中补实际五页/九页回归与参数选择、动效/输入手验，然后用户验收；不再次索取已授实施许可，不扩写九页功能或自动提交。
+
+- **This session**: 2026-10-13 — **五核心页 demo 精修与 sessionStorage 文字演示规划增补（未实现）**
+  - **Type / Scope**：Type C 规划，沿用唯一 active change；只修改规划/任务/delta/进度/日志。详细规划：`demo/REFINEMENT_PLAN.md` v1.0。
+  - **用户已确认**：home/writing/saved/timeline/look 首轮精修，其余九页回归；同时接通输入/保存/回看；sessionStorage 同标签页跨页与刷新。参数、单条演示模型、容量与完整验收仍待规划批准。
+  - **Progress**：R-01 完成；R-02 规划批准、R-03 独立实现授权待确认；R-04—R-20 尚未开始。proposal/design/tasks/miniapp delta 新增附录，历史 T-* 不回改；accepted specs 未动。
+  - **研究**：Apple 材质层次、MDN 背景模糊/动态视口/安全区/键盘/存储/字体、W3C 中文排版/对比/点击区/重排与 web.dev 动画；证据与采用方案写入规划。
+  - **验证边界**：本地页面捕获仍受既有浏览器安全策略拒绝，禁止换地址/服务/工具绕过；无本轮视觉/存储运行/微信/真机证据。OpenSpec CLI 未发现，采用工件结构与范围检查；SKIPPED 不视为通过。
+  - **Next**：用户分别批准增补规划（R-02）与授权实现（R-03）后，先做 R-04 文件锚点、R-05 获准环境稳定截图；不能获得图则保留视觉验收阻塞，再按规划限制推进。
 
 - **This session**: 2026-09-06 — **方向转向：锁定「信笺×微液态玻璃」，brief 重写 v3.0；分阶段提交 v2.1–v2.3 积压**
   - **Trigger**：用户评审第四轮原型（仓外 flashback-four-directions4.html）后仍不满意且无法具体化；经 grill 式访谈定位为"感受层"缺口——参照物不在 A/B/C/D 候选集内，而是现行 2.0 前端的书信质感（折角信卡、红圆印封/阅、存档编号、封存霜卡、竖排侧注、"时间的旅人"语汇）；用户确认以 2.0 为基底、在宣纸极简与液态玻璃之间找平衡，并授权停止四方向选择

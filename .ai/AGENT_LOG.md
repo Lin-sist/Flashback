@@ -8748,3 +8748,104 @@ Commit: pending
 - **Risks**: 裁图入库属 gitignore 目录的衍生位图（氛围图、无真实内容），如认为不妥可回退为 CSS 合成占位；timeline 照片仍为 CSS 渐变（任务仅要求去黑条），如需与 look 同级质感可另行裁图；look 滚动态下内容自状态栏下方穿过（demo 无原生状态栏毛玻璃，可接受）。
 - **Commit**: pending（随本条一起本地提交，不含 push）
 - **Next**: 如认可 V3 蓝本，可同步复核 agent-review 背景快照与新 look 结构的一致性；`demo/index.html` 画廊改造仍待做。
+
+## 2026-10-13｜frontend-visual-language-evolution：demo 精修规划增补｜Type C（仅规划）
+
+- **Scope**: 新增 `demo/REFINEMENT_PLAN.md`；增补 active change 的 proposal/design/tasks 与 miniapp-core delta；更新 `.ai/ACTIVE_TASK.md` Current Progress 与顶部当前闸门；本条追加。未改 demo HTML/CSS/JS/图片、正式前端、backend、package/lockfile、accepted specs、archive 或既有未跟踪文档。
+- **Changes**: 完成五核心页精修、九页回归、本地文字输入/保存/回看的可执行规划。用户问答确认首轮页面范围、接通演示与 sessionStorage；具体参数、单条演示模型、容量和完整验收仍待规划批准。规划列出文件 allowlist/denylist、候选参数、分批任务、Storage 异常/空态/文本安全、布局与字体降级、实际与合成验证矩阵及停止条件；设计取舍只写 design.md 决策记录，不写本日志。沿用唯一 active change，历史任务不伪勾；R-01 完成，R-02/R-03 两闸 pending，R-04—R-20 未开始。
+- **Verification PASS**: 官方公开资料检索与当前源码/指南对照；文件级检查确认 R-01—R-20 共20项且唯一、仅 R-01 勾选、规划/实现闸分别 pending、规划13节与来源链接/回归页齐备；Markdown围栏成对，无工具引用标记；`git diff --check` 无错误。开工锚点 `b6afb01`；本轮仅规划文档 diff，已有 PROJECT_REPORT.md/UI_DESIGN_CONTEXT.md 未修改；没有 git add/commit/push。PASS 仅指规划结构与范围检查，不是 OpenSpec CLI 或实现验收。
+- **Verification SKIPPED**: OpenSpec CLI 未发现，使用工件结构/Requirement-Scenario/任务关联检查；实际本地浏览器渲染因既有 browser-client 连接失败和 file:// 安全策略拒绝不可访问，明确禁止换地址/服务/工具绕过；未实施故未执行真实 sessionStorage、输入、视觉/动效/键盘/字体回退测试。微信开发者工具、物理真机、真实业务API/provider/对象存储均不在本轮范围，调用0。
+- **Risks**: 候选参数未经实际画面选择；sessionStorage 可能被限制或被浏览器会话恢复，不能承诺关闭后不可恢复擦除；共享样式影响九页需逐页回归；旧四方向任务/文档历史与最新单方向描述并存，生产迁移前须另行收口。
+- **Commit**: pending（本轮默认用户手动提交；不继承旧会话提交授权）
+- **Next**: 用户先批准完整增补规划（R-02），再独立授权 demo 实现（R-03）；从文件锚点与允许环境的稳定截图开始。无截图则保留视觉未验收边界。
+
+## 2026-10-13｜frontend-visual-language-evolution：五核心页 demo 实施第一版｜Type C
+
+- **Scope**: `demo/index.html`；五核心页 home/writing/saved/timeline/look；共享 tokens/components/motion；新增 demo-store/demo-flow；实施指南/精修规划；active change 授权状态与 tasks；ACTIVE_TASK；本条追加。既有未提交规划保留。用户明确「可以开始在demo实现了，我已经备份了demo」；分别登记规划接受与 demo 实施授权，提交仍默认用户手动。
+- **Changes**: 16px/400宋体正文、必读辅助墨、核心页限定纸纹/影/药丸微调；核心页内容可滚动与独立动作区；原生标题/正文输入；sessionStorage 最新演示记录/草稿/一次保存回执；写入读回确认后跳保存页；动态时光轴与回看；空态、存储异常、Unicode容量校验、防重复与BFCache恢复；删除/清除仅自身key；样本媒体/AI明确展示，动态记录不自动关联附件；无滤镜霜层补实色降级。实现13/20项；7项实际画面/比较/动效/浏览器验证及验收仍pending。决策记录在design，日志只记事实。
+- **Verification PASS**: HEAD b6afb01；26项Storage/简化DOM合成用例（读取实际HTML角色/链接，但不绘制）：存储写入/读回、Unicode80/81与4000/4001边界、错误/配额/损坏/旧版本、一次回执、只删自身key、跨页一致、防重复、组合输入期间阻止保存、失败保留原文、缺记录空态、BFCache清除与干净编辑页不复活已删除记录。15页HTML结构/唯一id与role/124个本地资源链接检查无问题。JS syntax与git diff --check通过。9个非核心HTML、2张原图、PROJECT_REPORT/UI_DESIGN_CONTEXT哈希一致。代表性实色纸底必读字色对比4.708—5.376:1（非实际叠层）。JS扫描无业务请求、长期存储、正文日志/URL拼接或innerHTML。实际数值与完整用例名单存本地验证目录，不含用户输入。
+- **Verification SKIPPED**: OpenSpec CLI未发现；实际本地浏览器画面/存储/交互、字体回退、200%放大、软键盘、降玻璃/减少动态未验证。既有file://安全拒绝仍有效，本轮未换地址/服务/工具绕过；也未启动替代预览服务。微信开发者工具、物理真机、正式API/provider/对象存储不在范围，调用0。合成DOM不代表浏览器或真实输入法，源码布局不代表末行可达实测。
+- **Risks**: 暂行视觉参数需用户画面复核；共享霜层fallback缺实际渲染证据；sessionStorage环境限制及浏览器会话恢复仍需说明；融霜保留预留样板，不实现真实解锁。未宣称视觉定稿、全量任务完成或生产能力验收。
+- **Commit**: pending（无git add/commit/push/部署/归档）
+- **Next**: 在访问被明确允许的环境补五页与九页渲染、参数比较/键盘/字体/玻璃/动效验证，再用户验收；无需再次申请已授实施授权。
+
+## 2026-10-13｜frontend-visual-language-evolution：回看/书写两页动效样本｜Type C
+
+- **Scope**: look/writing两页；新增motion-samples.css/js；精修规划§14、实施指南§10；唯一active change的proposal/design/tasks/miniapp delta增补；ACTIVE_TASK；本条追加。保留本轮前所有未提交差异与既有未跟踪文档。用户在完整动效调研后明确「可以先尝试落地几页看看落实效果」；M-01记录切片接受、M-02记录明确实施授权，不继承生产/副作用/提交权限。
+- **Changes**: 620ms固定折线双面信纸开启、纸边微折、移动阴影与主动重播；两页药丸轻压、240ms恢复和触点边缘光。正文保留单一DOM自然滚动；纸装饰aria-hidden/pointer-events:none、不镜像正文。布局高超过620px/无脚本/无3D/減动态直接可读；实色玻璃降级；重播不排队、离页/后台/滚动/选择/字体/resize/BFCache/偏好切换清理计时器与瞬时类。未改store/flow或引入翻页库、SVG折射、持续渲染、新依赖。取舍记录只在design D13—D15。
+- **Verification PASS**: 21项事件/计时器/flow合成测试：缺animationend超时恢复、重复重播、错误animationend、减动态/无3D、长信/空态、阅读中断、触点、非主指针、取消/移出/失焦、键盘、禁用、偏好切换、离页/后台/BFCache、尺寸/字体变化、非opt-in；并与现有flow联跑即时保存、失败保留及组合输入。26项既有Storage/简化DOM回归以当前HTML重建fixtures后通过。15HTML/128本地资源链接与标签/id检查、tinycss2 CSS解析、JS语法、23个非目标文件哈希保护、git diff --check通过。两图、其它12页/index、共享tokens/components/motion、store/flow、brand-spec及两份既有未跟踪用户文档哈希一致。无正文URL/文件/日志/网络行为；真实provider/对象存储/API调用0。
+- **Verification SKIPPED**: 本地file访问旧安全策略拒绝保持有效；未改地址/启动替代服务/换工具绕过。没有两页实际绘制、连续动作、玻璃光学、减动态/减透明度系统实测、真实IME/触摸、性能trace或帧率证据；合成事件不替代实际浏览器。OpenSpec CLI未执行，采用文件级工件/范围检查；微信开发者工具和物理真机未验证。
+- **Risks**: 固定折线近似开启而非真实连续软纸卷曲；玻璃为CSS模糊/高光与形变而非实体折射。纸色、纸边/阴影/回弹幅度及新重播控件布局尚需人工观感与实际小屏验证；成功保存立即导航，恢复动画未必播放完整。M-07与R旧待补验证未完成，不宣称视觉定稿或跨平台通过。
+- **Commit**: pending（用户手动提交；无git add/commit/push/部署/归档）
+- **Next**: 用户刷新demo查看look重播与writing按压；获准环境补视觉/手势/降级/性能证据，再决定微调或软页/折射的后续范围，不自动推广其它页或生产。
+
+## 2026-10-13｜frontend-visual-language-evolution：登录页修订与薄雾入场规划｜Type C（仅规划）
+
+- **Scope**: 新增demo/LOGIN_PLAN.md；active change proposal/design/tasks/miniapp delta增补；ACTIVE_TASK Current Progress；本条仅追加。单张修订视觉图与说明在仓库外。未新增login HTML、未改既有demo代码/素材、正式前端/backend/依赖/accepted specs/archive或用户未跟踪文档。
+- **Changes**: 用户偏向原第二图并要求收敛艳色/油墨笔触/按钮填色，提出淡粉雾扩散→留白→首页。已用原第二图作为实际图像目标生成浅暖灰柔焦修订图（exec-2bb5ebea-f3d5-431a-b384-32e5e477e9ed.png），保留构图与背影/门灯关系，近无色药丸。规划限定独立登录demo/index入口/home一次接续；测试输入不存储或外发、注册/微信仅展示；进入条件成立后一次薄雾/暖纸白/首页，降级与中断验收列明。取舍写design D16—D18。L-01完成；修订图与完整规划L-02、独立实施授权L-03均pending，不默认从原图偏好或R/M授权放行。
+- **Verification PASS**: 修订PNG存在并直接查看/原生展示；10个唯一L任务，仅L-01勾选，L-02/L-03分开；proposal/design/delta新增附录唯一；29个保护文件SHA256与本轮前一致（全部既有demo HTML/CSS/JS/图片/指南/精修规划/brand与两份用户文档）；git diff --check。历史日志前缀在追加后再次检查。图像外观只代表图稿，不是浏览器证据。
+- **Verification SKIPPED**: 未实现故无登录HTML/转场/跨页/输入/密码清理/系统偏好/真机/性能验收；OpenSpec CLI当前未在PATH，采用工件结构与范围检查。旧本地file访问策略拒绝仍有效，未换地址/服务/工具绕过。真实认证/注册/微信/SMS/API/provider/对象存储调用0，不在范围。
+- **Risks**: 修订图/约1秒动效时长仅候选；独立文档导航可能闪帧，需实际验证；没有保证认证耗时或60fps。用户反馈现有翻页不流畅，暂停推广；玻璃回弹尚可仅为用户观感，不升级为全平台PASS。
+- **Commit**: pending（默认用户手动；无git add/commit/push/部署/归档）
+- **Next**: 用户先确认修订图与完整新增规划L-02；L-03独立实施授权取得后按L-04—L-10执行，不再次索取已获R/M范围权限。
+
+## 2026-10-13｜登录图稿卡通化与视觉锚点更新｜Type B
+
+- **Scope**: demo/LOGIN_PLAN.md视觉候选与v1.1版本；本条仅追加。生成图在仓库外。未改OpenSpec/ACTIVE_TASK、demo页面代码/素材、正式前端/backend、依赖/accepted specs/archive或用户未跟踪文档。
+- **Changes**: 用户要求最后将背景改为偏卡通，取消写实风。以已查看的降色修订图为实际编辑目标，生成exec-96bef31a-0658-4ce9-a1aa-6500116ebc47.png：轻淡二维线条/柔色块，简化背影与建筑，保留伞/门灯/湿路关系及低饱和纸面；文字/布局/近无色按钮沿用。LOGIN_PLAN保留旧候选历史并指向新图稿；文件范围、薄雾方案与认证事实不变，不放行L-02/L-03。
+- **Verification PASS**: 生成图已实际查看并原生展示，PNG存在；规划视觉锚点唯一，文案/状态范围无扩张；其余本轮前文件哈希与日志历史前缀在最终检查中保护，git diff --check。图稿只支持视觉比较，不能证明CSS或真实登录动作。
+- **Verification SKIPPED**: 本轮无页面实现；未执行浏览器绘制、连续薄雾、输入/键盘/跨页、系统偏好、真机或性能测试。旧本地file策略拒绝未绕过。无真实认证/API/provider/对象存储调用，不重复运行无代码变更的Storage测试。
+- **Risks**: 插画比例与细节仍需用户观感及后续实际尺寸验证；页面与转场尚为规划，不能把新图称为已实现登录页；原ACTIVE_TASK旧图仅历史候选，以LOGIN_PLAN最新修订和本条为准。
+- **Commit**: pending（无git add/commit/push/部署/归档）
+- **Next**: 后续视觉与资产生成使用二维插画候选；完整规划/实施授权按现有L-02/L-03分别登记，不再次申请本轮已授权图稿修订。
+
+## 2026-10-13｜登录背景改为稀疏线稿｜Type B
+
+- **Scope**: demo/LOGIN_PLAN.md v1.2视觉候选与旧画风否决说明；本条只追加。两张生成图在仓库外。未改OpenSpec/ACTIVE_TASK、页面代码/素材、正式frontend/backend、依赖/accepted specs/archive或用户文档。
+- **Changes**: 用户再次明确旧候选仍写实，要求换思路、简洁线条、人物身份/性别不明、建筑仅轮廓。先不引用旧画作，从空纸生成纯线稿exec-c935a3fe-a9f1-4ac1-ad15-f0de00391742.png，再仅以新线稿作为绘画图像参考生成整页exec-1dfbb740-69fa-439e-9cd0-f53198f107aa.png。少量细线勾勒人形/伞/门框/灯/断地面线，无场景色块或体积明暗。旧候选在规划中标为用户否决；文字/表单/淡玻璃布局关系与转场方案沿用，实际字号仍待tokens收口。范围、认证事实及L-02/L-03状态未改变。
+- **Verification PASS**: 两张图均已实际查看/原生展示，PNG存在；当前整页视觉锚点唯一；其它文件与日志历史前缀在最终检查中按本轮前SHA256保护；git diff --check。仅图稿与范围证据，不等于CSS/浏览器/登录动效验收。
+- **Verification SKIPPED**: 本轮无页面实现，不运行无代码变更的Storage回归；没有实际浏览器/输入/键盘/跨页/薄雾/系统偏好/真机/性能证据。旧file访问拒绝未绕过。真实认证/API/provider/对象存储调用0。
+- **Risks**: 线稿人物因省略细节而抽象，辨识程度需用户观感判断；图中字号/玻璃表现为候选，后续真实DOM按现有token收口；新图不是已实现登录页。历史ACTIVE_TASK/D16描述不作为当前画风依据，以LOGIN_PLAN最新方向和本条为准。
+- **Commit**: pending（无git add/commit/push/部署/归档）
+- **Next**: 资产制作沿用新线稿，禁止回到旧写实场景参考；按现有L-02/L-03分别登记完整规划/实施授权，不重问本轮已经明确的线稿要求。
+
+
+## 2026-10-13｜frontend-visual-language-evolution：现状收口与正式迁移规划重写｜Type C（仅规划/历史成果提交）
+
+- **Scope**: 当前change的proposal/design/tasks/miniapp delta与重写前四工件history快照；ACTIVE_TASK顶部/Current Progress；demo指南/精修/登录规划顶部追加当前状态；AGENT_LOG仅追加。既有demo代码与PROJECT_REPORT/UI_DESIGN_CONTEXT原文按用户授权准备分组入库，不作新实现。
+- **Changes**: 用户确认登录HTML暂缓、翻页暂停推广、回弹候选；同一change重写正式迁移F任务，明确十四页到既有页面/状态/浮层映射、A–E批次、文件边界、静态降级、分级验收/回退及独立闸门。旧T/R/M/L保持原状态；新完整规划Gate 1/实现Gate 2仍待审，未改正式业务。提交责任本轮改为Agent本地分组提交，无push/PR/部署/发布/接受/归档。
+- **Verification PASS**: 前轮现状扫描确认main/b6afb01、16 tracked修改+8 untracked、暂存空，frontend/backend/package无当前改动；可用Node运行项目vue-tsc --noEmit成功，git diff --check成功。本轮最终工件/历史字节/日志前缀/denylist/凭证模式与提交范围检查尚待完成，结果另条追加，不冒充CLI/视觉验收。
+- **Verification SKIPPED**: OpenSpec CLI未在PATH发现；本轮文档收口不安装依赖/运行新构建、不启动微信/真机或浏览器。不绕过既有本地file拒绝。新动态demo观感/键盘/性能、Standard/Preview构建与真实服务/provider/对象存储均未复验，真实外调0。
+- **Risks**: 最新demo仍有实际渲染/交互验证债务；翻页不认可、玻璃跨平台unknown；历史报告测试数量/能力描述只作当时快照，本轮不复核整个后端。完整新规划未获批准不能开始正式迁移。
+- **Commit**: pending（用户已明确授权按历史修改分组本地提交；各hash另条补录，不回改历史）
+- **Next**: 工件与范围核对→历史报告/demo/正式规划分组提交→补录真实hash并保持clean工作区；下一工程任务为F-10完整规划审阅。
+
+
+## 2026-10-13｜frontend-visual-language-evolution：收口工件与提交前检查｜Type C
+
+- **Scope**: 本条仅追加提交前证据；当前工件与历史/demo成果分组提交范围不扩大。
+- **Changes**: 正式迁移当前30项F任务、9个Requirement均已写入；历史R/M/L勾选状态逐项保留，F-10/F-11/F-43/F-46保持pending；根目录报告与设计说明原文纳入历史提交范围，未重审其后端测试声明。
+- **Verification PASS**: 18/18工件/范围检查：四份history快照SHA256与开工原文一致；两份根目录报告字节未改；AGENT_LOG开工前缀SHA256一致；R/M/L任务状态一致；F编号唯一与独立闸门；每Requirement含Scenario及MUST/SHALL；旧四方向前置已替换、翻页推广/登录HTML暂停；唯一active指针；login HTML不存在；frontend/backend/accepted specs/archive/package零改动；所有待提交路径属于已授权范围；明显凭证格式扫描无命中（非完整内容审计）；git diff --check；15个HTML本地链接无缺失。demo-store/demo-flow/motion-samples三个JS语法检查退出0。详细结果在本机外部验证目录，不包含正文/凭证。
+- **Verification SKIPPED**: OpenSpec CLI不在PATH，以上为文件级检查，不称CLI验证；未新增正式代码，沿用本轮现状type-check成功，不重复运行无改动的业务测试/构建。未复验微信/真机/浏览器/真实服务/provider/对象存储；原file拒绝未绕过，外调0。
+- **Risks**: 实际视觉/交互/性能未验收；玻璃回弹仅候选；历史报告和旧文档只描述当时状态。新完整规划与业务实现待独立闸门。
+- **Commit**: pending（以下分组提交与最终clean状态完成后另条补录hash）
+- **Next**: 分组本地提交历史报告、demo成果与正式规划；F-04在提交核对完成后勾选，最终日志收尾提交的自身hash由git log查证。
+
+## 2026-10-13｜历史快照暂存格式例外｜Type B
+
+- **Scope**: 当前change历史快照目录的README与局部.gitattributes；本条只追加。
+- **Changes**: 暂存新文件后的完整diff检查发现三份冻结快照原文已有末尾空行。为保持开工字节不变，仅这三份快照配置EOF空行例外，保留行尾空格/制表缩进检查；当前规划及其它路径仍按默认规则检查。
+- **Verification**: 历史快照SHA256保持一致；完整暂存检查将在重新暂存局部属性后复核。前条git diff --check只覆盖当时tracked改动，新文件暂存后补检结果如实追加。
+- **Risks**: 该例外仅保存原始文档格式，不允许当前规划或业务代码引入空白错误。
+- **Commit**: pending（并入正式规划/历史收口提交；不回改旧日志）
+
+## 2026-10-14｜frontend-visual-language-evolution：恢复中断并完成规划提交前复核｜Type C
+
+- **Scope**: 恢复昨天未完成的F-04；本条仅追加执行证据。现有规划/快照继续使用，不重跑生成脚本、不新开change、不修改业务代码。
+- **Changes**: 核实已完成历史报告daa8ba8、demo成果78eb150两笔本地提交；当前12个规划/历史/日志文件已暂存，无暂存外用户改动。完整正式迁移仍停在F-10/F-11待审，本次继续指令用于完成原先已授权的规划收口与本地提交。
+- **Verification PASS**: 2026-10-14再次验证四快照原始字节、两份报告原文、日志历史前缀、R/M/L旧状态、F任务唯一/闸门、Requirement/Scenario、范围/凭证模式、HTML本地链接；当前规划git diff --cached --check与unstaged检查退出0；三份冻结快照的局部EOF空行例外生效，其它当前文件检查规则未放宽。相对b6afb01的frontend/backend/accepted specs/project.md无差异，新增登录HTML仍不存在。
+- **Verification 限定**: 跨全部历史提交的git diff --check b6afb01发现两份原样入库报告有6处既有行尾空白（含Markdown换行空格）；如实保留原文，不将累计历史格式检查称为全PASS。当前规划的暂存/工作区检查与这项历史格式问题分开记录。
+- **Verification SKIPPED**: OpenSpec CLI仍不在PATH；文档提交不重复无代码变更的类型/业务测试或新构建。昨日2026-10-13类型检查成功是历史证据，今日未复跑。微信/真机/实际demo动效与服务/provider/对象存储未验收，外调0；不绕过旧file访问拒绝。
+- **Risks**: 当前新完整规划尚待用户审阅；实际玻璃/材质/动效/键盘与目标平台证据仍unknown或partial，不能从本地提交推导业务实现、接受delta、归档或发布。
+- **Commit**: pending（将补录第三笔正式规划提交hash；最后日志收尾提交的自身hash以git log为准）
+- **Next**: 提交当前正式规划→核对clean HEAD→完成F-04并补录前三笔hash→提交日志/进度收尾→最终检查工作区。
