@@ -144,6 +144,13 @@
 
 ## Current Progress
 
+- **This session**: 2026-10-14 — **恢复并完成昨天的F-04：正式迁移规划/历史提交收口**
+  - **Authorization / Scope**：用户要求继续昨天未完成任务；延续已明确的同一change文档收口与Agent本地分组提交授权。正式代码、外调、push、delta接受/归档权限不扩大。
+  - **Progress**：F-01—F-04完成。已核对历史报告daa8ba8、demo成果78eb150、正式规划1180946；1180946提交后工作区clean，记录为内容规划基线；本条与tasks/log的收尾提交自身hash由git log查证。旧T/R/M/L状态保持，不将收口当实际验收。
+  - **Verification PASS**：18/18当前工件/范围复核，历史快照字节/原报告/日志历史前缀一致；当前暂存/工作区diff检查通过；相对b6afb01的frontend/backend/package/accepted specs/archive无修改；15个HTML链接检查无缺失；新增登录HTML不存在。原报告6处既有行尾空白保留，累计历史格式检查不宣称全PASS。
+  - **SKIPPED / Risks**：OpenSpec CLI仍不在PATH；今日未复跑昨日已通过的前端type-check，未做Standard/Preview构建、微信/真机、实际demo动效或真实服务联调。玻璃回弹候选、翻页不推广、登录HTML暂缓；原浏览器file拒绝不绕过。
+  - **Next**：当前完整proposal/design/tasks/miniapp delta交付审阅，下一项F-10（Gate 1）；F-11（Gate 2）须另行明确后才修改正式前端。唯一active不变，不恢复IDLE或启动历史Optional。
+
 - **This session**: 2026-10-13 — **demo 阶段按现状收口；正式迁移规划重写与历史成果入库**
   - **Type / Authorization**：Type C 规划收口，同一 active change。用户确认单方向/登录 HTML 暂缓/翻页暂停推广/回弹候选，并授权文档重写与 Agent 本地分组提交；无正式业务实现、真实外调、push、delta 接受或归档授权。
   - **Progress**：F-01—F-03完成；保存重写前四工件到history/2026-10-13-before-migration-rewrite，重写完整proposal/design/tasks/miniapp delta与A–E映射/文件范围/验收/回退。F-04提交与核对进行中；F-10完整规划批准、F-11实现授权pending。旧T/R/M/L状态不补勾。
