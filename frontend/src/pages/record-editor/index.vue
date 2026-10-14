@@ -3,7 +3,7 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { computed, reactive, ref } from 'vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
 import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
-import ImmersiveEditorTopBar from './components/ImmersiveEditorTopBar.vue'
+import AppTopSafeBar from '../../components/common/AppTopSafeBar.vue'
 import AgentChatSheet from './components/AgentChatSheet.vue'
 import AgentIntentChooser from './components/AgentIntentChooser.vue'
 import DateTimeWheelPicker from '../../components/common/DateTimeWheelPicker.vue'
@@ -59,6 +59,7 @@ const selectedAgentIntent = ref<AgentConversationIntent>('LISTEN')
 const showUnlockPicker = ref(false)
 const showLocationPanel = ref(false)
 const showCoverPicker = ref(false)
+const appendixOpen = ref(false) // 仅附言展开，不参与保存数据。
 const locationSaving = ref(false)
 const coverSaving = ref(false)
 const location = ref<RecordLocationVO | null>(null)
@@ -1685,8 +1686,15 @@ onUnload(() => {
     <!-- 宣纸底色光晕 -->
     <view class="page-bg" aria-hidden="true" />
 
-    <!-- 顶部栏：Vol. N + 关闭 -->
-    <ImmersiveEditorTopBar :vol-no="form.volNo" @close="handleCloseWithAutoSave" />
+    <!-- 真实安全区/胶囊测量，保留原关闭与恢复逻辑。 -->
+    <AppTopSafeBar padding-x="56rpx">
+      <template #left>
+        <button class="editor-close" aria-label="关闭书写页" @tap="handleCloseWithAutoSave">
+          <view class="editor-close-line editor-close-line--a" aria-hidden="true" />
+          <view class="editor-close-line editor-close-line--b" aria-hidden="true" />
+        </button>
+      </template>
+    </AppTopSafeBar>
 
     <view class="page-body">
       <!-- 初始化中 -->
@@ -1709,9 +1717,6 @@ onUnload(() => {
         <!-- 信笺主体 -->
         <view class="letter-wrap">
           <view class="letter-body">
-            <!-- 天头朱砂横线 -->
-            <view class="letter-topline" aria-hidden="true" />
-
             <!-- 信头 -->
             <view class="letter-head">
               <view class="head-left">
@@ -1742,69 +1747,6 @@ onUnload(() => {
                   auto-height
                   maxlength="5000"
                   placeholder="写下一句话，也可以只留图片或声音..."
-                  placeholder-class="editor-placeholder"
-                />
-              </view>
-            </view>
-
-            <view class="m3-panel">
-              <view class="m3-panel-label">更多记录方式（可选）</view>
-              <view class="type-row">
-                <view
-                  v-for="option in recordTypeOptions"
-                  :key="option.value"
-                  class="type-chip"
-                  :class="{ 'type-chip--active': form.recordType === option.value }"
-                  @tap="selectRecordType(option.value)"
-                >
-                  <text>{{ option.label }}</text>
-                </view>
-              </view>
-
-              <view v-if="isLifeNodeRecord" class="life-node-block">
-                <view class="m3-panel-label">人生节点</view>
-                <view class="life-node-grid">
-                  <view
-                    v-for="option in lifeNodeOptions"
-                    :key="option.value"
-                    class="life-node-chip"
-                    :class="{ 'life-node-chip--active': form.lifeNodeType === option.value }"
-                    @tap="selectLifeNodeType(option.value)"
-                  >
-                    <text>{{ option.label }}</text>
-                  </view>
-                </view>
-                <input
-                  v-if="form.lifeNodeType === LifeNodeType.OTHER"
-                  v-model="form.lifeNodeCustomLabel"
-                  class="life-node-input"
-                  placeholder="写下这个节点的名字"
-                  placeholder-class="unlock-placeholder"
-                  maxlength="50"
-                />
-              </view>
-
-              <view class="agent-entry" @tap="openAgentChat">
-                <view class="agent-entry-copy">
-                  <text class="agent-entry-kicker">不知道从哪里写起时</text>
-                  <text class="agent-entry-title">选择这次想怎么聊</text>
-                </view>
-                <text class="agent-entry-arrow">›</text>
-              </view>
-
-              <view class="belief-block">
-                <view class="belief-head">
-                  <text class="m3-panel-label">你当时以为</text>
-                  <view class="belief-action" :class="{ 'belief-action--loading': aiOrganizing }" @tap="organizeBeliefThen">
-                    {{ aiOrganizing ? '整理中' : 'AI整理' }}
-                  </view>
-                </view>
-                <textarea
-                  v-model="form.beliefThen"
-                  class="belief-textarea"
-                  auto-height
-                  maxlength="1000"
-                  placeholder="可由 AI 帮你整理，也可以自己微调"
                   placeholder-class="editor-placeholder"
                 />
               </view>
@@ -1860,7 +1802,7 @@ onUnload(() => {
                 <text class="image-panel-title">图片附件</text>
                 <text class="image-panel-count">{{ occupiedImageCount }}/{{ MAX_IMAGE_COUNT }}</text>
               </view>
-              <view class="image-grid">
+              <view class="image-grid" :class="{ 'image-grid--single': imageAttachments.length + pendingImageUploads.length === 1 }">
                 <view v-for="attachment in imageAttachments" :key="attachment.id" class="image-tile">
                   <image
                     v-if="imageAccessUrls[attachment.id]"
@@ -1901,6 +1843,7 @@ onUnload(() => {
             </view>
 
             <view
+              v-if="imageAttachments.length || cover || showCoverPicker"
               class="cover-bar"
               :class="{ 'cover-bar--active': cover || showCoverPicker, 'cover-bar--disabled': coverSaving }"
               @tap="toggleCoverPicker"
@@ -1977,7 +1920,81 @@ onUnload(() => {
               <text v-if="firstVoiceUploadError" class="voice-upload-error">{{ firstVoiceUploadError }}</text>
             </view>
 
-            <!-- 附件栏 MAP / IMAGE / VOICE -->
+            <view class="appendix-wrap">
+              <button class="appendix-toggle" :aria-expanded="appendixOpen" @tap="appendixOpen = !appendixOpen">
+                <text>附言（可选）</text><text class="appendix-toggle-action">{{ appendixOpen ? '收起' : '展开' }} ›</text>
+              </button>
+              <view v-if="appendixOpen" class="m3-panel">
+                <view class="m3-panel-label">更多记录方式（可选）</view>
+                <view class="type-row">
+                  <view
+                    v-for="option in recordTypeOptions"
+                    :key="option.value"
+                    class="type-chip"
+                    :class="{ 'type-chip--active': form.recordType === option.value }"
+                    @tap="selectRecordType(option.value)"
+                  >
+                    <text>{{ option.label }}</text>
+                  </view>
+                </view>
+
+                <view v-if="isLifeNodeRecord" class="life-node-block">
+                  <view class="m3-panel-label">人生节点</view>
+                  <view class="life-node-grid">
+                    <view
+                      v-for="option in lifeNodeOptions"
+                      :key="option.value"
+                      class="life-node-chip"
+                      :class="{ 'life-node-chip--active': form.lifeNodeType === option.value }"
+                      @tap="selectLifeNodeType(option.value)"
+                    >
+                      <text>{{ option.label }}</text>
+                    </view>
+                  </view>
+                  <input
+                    v-if="form.lifeNodeType === LifeNodeType.OTHER"
+                    v-model="form.lifeNodeCustomLabel"
+                    class="life-node-input"
+                    placeholder="写下这个节点的名字"
+                    placeholder-class="unlock-placeholder"
+                    maxlength="50"
+                  />
+                </view>
+
+                <view class="agent-entry" @tap="openAgentChat">
+                  <view class="agent-entry-copy">
+                    <text class="agent-entry-kicker">不知道从哪里写起时</text>
+                    <text class="agent-entry-title">选择这次想怎么聊</text>
+                  </view>
+                  <text class="agent-entry-arrow">›</text>
+                </view>
+
+                <view class="belief-block">
+                  <view class="belief-head">
+                    <text class="m3-panel-label">你当时以为</text>
+                    <view class="belief-action" :class="{ 'belief-action--loading': aiOrganizing }" @tap="organizeBeliefThen">
+                      {{ aiOrganizing ? '整理中' : 'AI整理' }}
+                    </view>
+                  </view>
+                  <textarea
+                    v-model="form.beliefThen"
+                    class="belief-textarea"
+                    auto-height
+                    maxlength="1000"
+                    placeholder="可由 AI 帮你整理，也可以自己微调"
+                    placeholder-class="editor-placeholder"
+                  />
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 底部操作区 -->
+        <view class="bottom-area">
+          <text class="word-count">{{ wordCount }} 字</text>
+
+          <view class="editor-toolbar">
             <view class="attach-bar">
               <view class="attach-item" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
                 <view class="attach-icon attach-icon--map" aria-hidden="true" />
@@ -2015,17 +2032,11 @@ onUnload(() => {
                 </text>
               </view>
             </view>
+            <button class="seal-btn" :disabled="loading" hover-class="seal-btn--pressed" @tap="saveDraft">
+              <view class="btn-dot" aria-hidden="true" />
+              <text class="seal-btn-text">{{ loading ? '正在留下...' : '留下这一刻' }}</text>
+            </button>
           </view>
-        </view>
-
-        <!-- 底部操作区 -->
-        <view class="bottom-area">
-          <text class="word-count">{{ wordCount }} 字</text>
-
-          <button class="seal-btn" :disabled="loading" hover-class="seal-btn--pressed" @tap="saveDraft">
-            <view class="btn-dot" aria-hidden="true" />
-            <text class="seal-btn-text">{{ loading ? '正在留下...' : '留下这一刻' }}</text>
-          </button>
 
           <view v-if="savedFeedback && !hasDirtyChanges()" class="seal-hint" aria-live="polite">
             <view class="hint-line" aria-hidden="true" />
@@ -2085,6 +2096,8 @@ onUnload(() => {
 .page {
   position: relative;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--fb-paper, #faf7f2);
   color: var(--fb-ink, #302e29);
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
@@ -2096,24 +2109,25 @@ onUnload(() => {
 
 .page-body {
   position: relative;
+  flex: 1;
   z-index: 1;
-  padding: 8rpx 56rpx calc(env(safe-area-inset-bottom) + 68rpx);
+  padding: 24rpx 64rpx calc(env(safe-area-inset-bottom) + 40rpx);
   display: flex;
   flex-direction: column;
 }
 
 /* ── 信笺容器 ── */
 .letter-wrap {
-  flex: 1;
-  margin-top: 20rpx;
   position: relative;
+  flex: 0 0 auto;
+  margin-top: 0;
 }
 
 .letter-body {
   position: relative;
-  background: var(--fb-letter-paper, #fcf9f4);
-  border: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
-  box-shadow: var(--fb-letter-shadow, 0 2rpx 4rpx rgba(125, 105, 75, 0.10), 0 16rpx 40rpx rgba(125, 105, 75, 0.10));
+  background: var(--fb-paper, #faf7f2);
+  border: none;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
 }
@@ -2123,140 +2137,119 @@ onUnload(() => {
   content: '';
   position: absolute;
   top: 0;
-  right: 0;
+  right: -36rpx;
   width: 32rpx;
   height: 32rpx;
-  background: linear-gradient(225deg, #ede8dc 0%, #ede8dc 48%, #fdfbf7 50%);
-  border-left: 1rpx solid rgba(180, 168, 148, 0.35);
-  border-bottom: 1rpx solid rgba(180, 168, 148, 0.35);
-  z-index: 4;
+  background: linear-gradient(225deg, #f4efe5 0%, #f4efe5 49%, #e3dbc9 50%, #e3dbc9 100%);
+  box-shadow: -3rpx 3rpx 5rpx rgba(120, 100, 70, .15);
+  pointer-events: none;
 }
 
 /* 天头朱砂横线 */
-.letter-topline {
-  height: 2rpx;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    rgba(181, 53, 42, 0.22) 8%,
-    rgba(181, 53, 42, 0.28) 50%,
-    rgba(181, 53, 42, 0.22) 92%,
-    transparent 100%
-  );
-  flex-shrink: 0;
-}
 
 /* 信头 */
 .letter-head {
-  padding: 36rpx 32rpx 24rpx;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16rpx;
-  border-bottom: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
+  padding: 0;
+  margin: 12rpx 0 0;
+  border: none;
 }
 
 .head-left {
-  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12rpx;
 }
 
 .captured-label {
-  display: block;
   font-size: 24rpx;
   color: var(--fb-ink-mid, #6b6560);
-  margin-bottom: 8rpx;
 }
 
 .letter-date {
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 32rpx;
-  font-weight: 400;
-  color: var(--fb-ink, #302e29);
-  line-height: 1.6;
+  font-size: 26rpx;
+  color: var(--fb-ink-mid, #6b6560);
+  line-height: 1.8;
 }
 
 /* 竖排档案标签 */
 .archive-tag {
-  margin-top: 4rpx;
-  padding: 10rpx 8rpx;
-  border: 1rpx solid rgba(192, 182, 165, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 96rpx;
+  right: -28rpx;
+  padding: 0;
+  border: none;
+  pointer-events: none;
 }
 
 .archive-tag-text {
   font-size: 22rpx;
   color: var(--fb-ink-mid, #6b6560);
   writing-mode: vertical-rl;
-  line-height: 1.6;
+  line-height: 1.8;
+  letter-spacing: 4rpx;
 }
 
 /* 正文区 */
 .letter-content {
-  flex: 1;
   position: relative;
   display: flex;
   min-height: 260rpx;
+  margin-top: 54rpx;
 }
 
 /* 左侧朱砂竖格线 */
 .side-rule {
-  width: 30rpx;
-  flex-shrink: 0;
-  position: relative;
+  position: absolute;
+  left: -30rpx;
+  top: 0;
+  bottom: 0;
+  width: 3rpx;
+  pointer-events: none;
 }
 
 .side-rule::after {
   content: '';
   position: absolute;
-  right: 0;
-  top: 32rpx;
-  bottom: 32rpx;
-  width: 2rpx;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(181, 53, 42, 0.2) 15%,
-    rgba(181, 53, 42, 0.25) 50%,
-    rgba(181, 53, 42, 0.2) 85%,
-    transparent
-  );
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, rgba(181,53,42,.42) 12%, rgba(181,53,42,.42) 88%, transparent);
 }
 
 /* 编辑区 */
 .editor-zone {
   flex: 1;
   min-width: 0;
-  padding: 28rpx 28rpx 32rpx 24rpx;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 28rpx;
 }
 
 /* 标题输入框 */
 .title-input {
   width: 100%;
-  min-height: 64rpx;
+  height: 84rpx;
   background: transparent;
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 36rpx;
+  font-size: 52rpx;
   font-weight: 400;
   color: var(--fb-ink, #302e29);
-  margin-bottom: 8rpx;
+  line-height: 1.6;
+  letter-spacing: 2rpx;
 }
 
 :deep(.title-placeholder) {
-  color: rgba(180, 170, 155, 0.7);
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 32rpx;
-  font-weight: 500;
+  color: var(--fb-ink-mid, #6b6560);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
+  font-size: 52rpx;
+  font-weight: 400;
 }
 
 .m3-panel {
-  margin: 0 28rpx 28rpx;
-  padding: 28rpx 0 0;
-  border-top: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
+  margin: 0;
+  padding: 12rpx 0 20rpx;
+  border: none;
   background: transparent;
 }
 
@@ -2518,8 +2511,8 @@ onUnload(() => {
 }
 
 .image-panel {
-  padding: 22rpx 40rpx 26rpx;
-  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+  padding: 36rpx 0 16rpx;
+  border: none;
 }
 
 .image-panel-head {
@@ -2671,11 +2664,11 @@ onUnload(() => {
 
 .cover-bar {
   min-height: 82rpx;
-  padding: 16rpx 40rpx;
+  padding: 16rpx 0;
   display: flex;
   align-items: center;
   gap: 18rpx;
-  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+  border-bottom: 1rpx solid rgba(192,182,165,.2);
 }
 
 .cover-bar--active .cover-bar-title,
@@ -2733,8 +2726,8 @@ onUnload(() => {
 }
 
 .voice-panel {
-  padding: 22rpx 40rpx 26rpx;
-  border-top: 1rpx solid rgba(192, 182, 165, 0.2);
+  padding: 28rpx 0 16rpx;
+  border: none;
 }
 
 .voice-panel-head {
@@ -2788,16 +2781,16 @@ onUnload(() => {
 }
 
 .voice-play {
-  width: 52rpx;
-  height: 52rpx;
+  width: 56rpx;
+  height: 56rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(154, 51, 42, 0.42);
+  border: 1rpx solid rgba(107,101,96,.5);
   border-radius: 50%;
   font-size: 20rpx;
-  color: #9a332a;
+  color: #6b6560;
 }
 
 .voice-play--active {
@@ -2882,37 +2875,41 @@ onUnload(() => {
 /* 正文 textarea */
 .editor-field {
   width: 100%;
-  min-height: 200rpx;
+  min-height: 184rpx;
   background: transparent;
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
   font-size: 32rpx;
   font-weight: 400;
-  color: var(--fb-ink, #302e29);
+  color: var(--fb-ink-mid, #6b6560);
   line-height: 1.85;
 }
 
 :deep(.editor-placeholder) {
-  color: rgba(180, 170, 155, 0.7);
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 28rpx;
+  color: var(--fb-ink-mid, #6b6560);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
+  font-size: 32rpx;
 }
 
 /* 附件栏 */
 .attach-bar {
-  flex-shrink: 0;
-  border-top: 1rpx solid rgba(192, 182, 165, 0.28);
-  padding: 24rpx 40rpx;
+  flex: 1;
+  min-width: 220rpx;
+  padding: 0;
   display: flex;
   align-items: center;
+  gap: 12rpx;
+  border: none;
 }
 
 .attach-item {
   flex: 1;
+  min-width: 0;
+  min-height: 88rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10rpx;
-  padding: 6rpx 0;
+  justify-content: center;
+  gap: 8rpx;
 }
 
 .attach-item--active .attach-label {
@@ -2944,52 +2941,51 @@ onUnload(() => {
 }
 
 .attach-label {
-  font-size: 24rpx;
+  font-size: 20rpx;
   color: var(--fb-ink-mid, #6b6560);
-  line-height: 1.6;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .attach-sep {
-  width: 1rpx;
-  height: 48rpx;
-  background: rgba(192, 182, 165, 0.4);
+  display: none;
 }
 
 /* ── 底部操作区 ── */
 .bottom-area {
-  padding: 36rpx 0 0;
+  margin-top: auto;
+  padding-top: 44rpx;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0;
 }
 
 .word-count {
-  font-size: 24rpx;
+  align-self: flex-end;
+  margin-bottom: 14rpx;
+  font-size: 22rpx;
   color: var(--fb-ink-mid, #6b6560);
-  margin-bottom: 24rpx;
 }
 
 /* 保存按钮：静态玻璃，成功由服务响应确认。 */
 .seal-btn {
   position: relative;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  max-width: 480rpx;
+  width: 300rpx;
   min-height: 96rpx;
   margin: 0;
-  padding: 20rpx 28rpx;
+  padding: 16rpx 24rpx;
   box-sizing: border-box;
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 30rpx;
+  font-size: 28rpx;
   color: var(--fb-ink, #302e29);
   background: var(--fb-letter-glass, #f3eee4);
-  border: 1rpx solid var(--fb-letter-glass-edge, rgba(255, 255, 255, 0.85));
+  border: 1rpx solid var(--fb-letter-glass-edge, rgba(255,255,255,.85));
   border-radius: 999rpx;
-  box-shadow: var(--fb-letter-glass-shadow, inset 0 2rpx 0 rgba(255, 255, 255, 0.9), 0 6rpx 18rpx rgba(125, 105, 75, 0.10));
-  gap: 16rpx;
+  box-shadow: var(--fb-letter-glass-shadow, inset 0 2rpx 0 rgba(255,255,255,.9), 0 6rpx 18rpx rgba(125,105,75,.10));
+  gap: 12rpx;
 }
 
 .seal-btn::after { border: none; }
@@ -3008,11 +3004,10 @@ onUnload(() => {
 }
 
 .seal-btn-text {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 30rpx;
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
+  font-size: 28rpx;
   font-weight: 400;
-  letter-spacing: 0.18em;
-  color: #302e29;
+  color: var(--fb-ink, #302e29);
 }
 
 /* 提示文字 */
@@ -3020,6 +3015,7 @@ onUnload(() => {
   margin-top: 24rpx;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 16rpx;
 }
 
@@ -3099,4 +3095,16 @@ onUnload(() => {
   text-align: center;
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
 }
+.editor-close { position: relative; width: 88rpx; height: 88rpx; margin: 0; padding: 0; background: transparent; border: none; border-radius: 0; }
+.editor-close::after { border: none; }
+.editor-close-line { position: absolute; top: 50%; left: 20rpx; width: 38rpx; height: 2rpx; background: #6b6560; }
+.editor-close-line--a { transform: rotate(45deg); }
+.editor-close-line--b { transform: rotate(-45deg); }
+.appendix-wrap { margin-top: 36rpx; }
+.appendix-toggle { min-height: 88rpx; width: 100%; margin: 0; padding: 0; display: flex; align-items: center; justify-content: space-between; gap: 20rpx; border: none; background: transparent; font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); font-size: 24rpx; color: #6b6560; text-align: left; }
+.appendix-toggle::after { border: none; }
+.appendix-toggle-action { font-size: 22rpx; }
+.editor-toolbar { display: flex; align-items: center; gap: 24rpx; flex-wrap: wrap; }
+.image-grid--single { grid-template-columns: minmax(0, 416rpx); }
+.image-grid--single .image-tile { aspect-ratio: 4 / 3; box-shadow: 0 6rpx 20rpx rgba(120,100,70,.16); }
 </style>

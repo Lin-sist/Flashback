@@ -70,7 +70,7 @@ for (const [page, selector, prop, expected] of [
   ['home', '.page', 'background', '#faf7f2'],
   ['home', '.capture', 'background', '#f3eee4'],
   ['home', '.bottom-nav', 'background', '#f7f2e9'],
-  ['record-editor', '.letter-body', 'background', '#fcf9f4'],
+  ['record-editor', '.letter-body', 'background', '#faf7f2'],
   ['record-editor', '.seal-btn', 'background', '#f3eee4'],
   ['timeline', '.page', 'background', '#faf7f2'],
   ['timeline', '.bottom-nav', 'background', '#f7f2e9'],
@@ -91,6 +91,17 @@ check('空正文区域不会用多个最小高度叠出死区', () => {
 })
 check('详情公共按钮在变量不可用时仍有可见背景', () => {
   assert.equal(withoutTokens(property('components/common/PrimaryButton.wxss', '.primary-btn', 'background')), '#b5352a')
+})
+check('书写工具与保存按钮可在窄屏并排，且底部操作仍在正常流中', () => {
+  const file = 'pages/record-editor/index.wxss'
+  const padding = property(file, '.page-body', 'padding').split(/\s+/)
+  const available = 750 - 2 * parseFloat(padding[1])
+  const tools = parseFloat(property(file, '.attach-bar', 'min-width'))
+  const save = parseFloat(property(file, '.seal-btn', 'width'))
+  const gap = parseFloat(property(file, '.editor-toolbar', 'gap'))
+  assert.ok(tools + save + gap <= available, 'toolbar exceeds content width')
+  assert.equal(property(file, '.editor-toolbar', 'flex-wrap'), 'wrap')
+  assert.ok(!/\.(?:bottom-area|editor-toolbar)[^{]*\{[^}]*position:(?:fixed|absolute)/.test(fs.readFileSync(path.join(dist, file), 'utf8')))
 })
 const source = parse(sourceFile('components/common/AppTopSafeBar.vue')).descriptor.scriptSetup.content
 function titleGeometry(width, leftSlot, rightSlot, paddingX, sideWidth, centerTitle = false) {

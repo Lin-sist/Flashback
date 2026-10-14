@@ -8894,3 +8894,13 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 用户反馈确认前版样式恢复，但不构成完整F20—F22验收；本次新版颜色/字体/信卡/小屏长标题/真实触摸/真机未实测，几何和编译不代替实际微信绘制。当前无可控原生UI/自动化会话；OpenSpec CLI不在PATH，未改契约不假称CLI validate。没有真实业务API/provider/存储调用，不绕过既有file拒绝。未知模拟器色偏不作断言，不扩大C—E。
 - **Commit**: pending（本地简短提交授权继续有效；不push/PR/部署/接受delta/归档）
 - **Next**: 提交局部精修→用户重新编译正式dist观察卡片侧线/朱砂圆印/折角、信卡直连书写位、字标中心和方圆Tab→取得样板证据后继续原F任务。
+
+## 2026-10-14｜frontend-visual-language-evolution：首页确认后复刻书写页F-21｜Type C当前任务展示实施
+
+- **Scope**: 用户提供首页画面并明确「这次对了，就是要这样复刻demo」，确认首页正常态视觉且授权下一页。按F顺序进入书写；clean HEAD 0fae3b1，补录上一批真实精修commit。延续已授实现/简短本地提交，仅record-editor模板/样式/必要展示ref/import、两份既有离线脚本、当前tasks/证据/ACTIVE_TASK与本条只追加；不改契约或C—E。
+- **Changes**: 读取demo writing及demo-core覆盖规则后，去掉书写外框/大卡片与横线，复刻整张纸面、折角/朱砂侧线/轻量侧注、小号日期、52rpx标题/32rpx正文。关闭栏复用未改写的AppTopSafeBar，保持原关闭函数。真实媒体置于正文后，单图4:3大照片、多图保留网格；上传/失败/重试/删除/封面/播放/重录不改。附言默认收起，展开保留所有类型/节点/当时以为/见证者字段；只新增appendixOpen，不进payload或存储。三工具/保存药丸并排，正常页面流和真实安全区，窄屏可换行；原SAVED解封/封存/忙碌/成功反馈与Preview拒绝保持。
+- **Verification PASS**: 类型检查退出0；14/14实际SFC/service/httpClient固定合成回归PASS，新增收起附言后NODE_RECORD/OTHER/自定义节点/当时以为/标签仍完整进入原保存payload，不连接后端。两模式mp-weixin build退出0；17项真实WXSS/组件几何PASS，新增工具+保存最小宽度不超内容区、可换行/非固定底栏检查。最终Standard正式产物，dist不入库；构建现有更新/caniuse-lite提示保留，不改依赖。
+- **Verification PASS**: 对照0fae3b1全部v-model字段与事件动作一致；业务script仅替换展示组件import、增加展示ref，payload/服务调用/状态机/录音/保存/恢复/生命周期原代码字节一致。精确范围/diff --check/隐私及日志原734626字节SHA256 df353adce58f29b1d5e2ac0a47420aa424960e3ba2715df64d7958efa3a75ccc在提交前复核；首页/时光轴/公共组件/底座/后端/路由/依赖/demo/accepted specs/archive零改动。未把截图真实原文或demo静态照片/声音移入正式数据。
+- **Verification SKIPPED / Risks**: 首页用户正常態视觉确认PASS，不代表全部长标题/小屏/空错/真机矩阵。本版书写绘制、中文输入法/键盘、展开附言时焦点/auto-height、长文末项与真实多媒体/小屏/真机未实操；当前无可控微信UI/自动化会话。17项编译几何及14项合成payload不能替代原生渲染/持久化。OpenSpec CLI不在PATH，未改Requirement/Scenario；不绕过旧file拒绝，真实业务API/provider/对象存储0。
+- **Commit**: pending（用户既有简短本地提交授权继续有效，不push/PR/部署/接受delta/归档）
+- **Next**: 本地提交书写页→用户重新编译正式dist审纸面/附言/工具行并手验键盘/长文→按F顺序继续时光轴；F-20—F-22完整验收与F-27仍分级保留，不自动扩大其它页面。

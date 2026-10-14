@@ -144,6 +144,12 @@
 
 ## Current Progress
 
+- **This session**: 2026-10-14 — **首页视觉确认后进入F-21书写页复刻**
+  - **Authorization / Scope**：用户提供首页画面并明确认可复刻方向，要求开始下一页；首页正常态视觉确认PASS，按已批准F顺序进入书写页。clean HEAD 0fae3b1。沿用本地简短提交；仅record-editor展示、两份既有离线脚本与当前证据/tasks/交接，不扩大C—E。
+  - **Changes**：整张无外框纸面、折角/朱砂侧线/轻侧注、小号日期与demo字号/正文节奏；附言默认收起，所有既有字段/见证者入口可展开；真实媒体在正文后，封面控制按现有图像状态显示；媒体工具和保存药丸并排、正常流/窄屏可换行，保留恢复/忙碌/保存反馈/封存/Preview接线。
+  - **Verification**：type-check/Standard/Preview build、14项真实SFC/service/httpClient合成回归与17项WXSS/几何检查PASS，最终Standard产物；v-model/动作完整，业务脚本仅展示import/ref不同；精确范围与日志前缀见最新AGENT_LOG。无真实业务外调/真实用户内容入库。
+  - **Next / Risks**：书写页新版微信画面/中文键盘/附言焦点/长文多媒体/小屏待手验；首页确认只覆盖正常态观感，不补勾全矩阵或F-27。先用户审书写，再继续F-22时光轴；单active不变，不接受/归档。
+
 - **This session**: 2026-10-14 — **首页参照还原与方圆导航局部精修（A批内）**
   - **Authorization / Scope**：用户确认样式恢复，要求补朱砂侧线/圆印、移走中段我的记录、品牌屏幕居中避胶囊、Tab沿用demo方圆形。沿用已授实施/简短本地提交；clean HEAD 0603a75。仅home/timeline、AppTopSafeBar展示、已有样式回归与证据/交接，不改业务底座或扩展C—E。
   - **Changes**：真实信卡补侧线/朱砂印/折角，取景框四角与凹陷影；中段记录模块改为信卡之后的次级SAVED行，保留加载/失败/空态；两页字标小号淡墨，显式centerTitle使屏幕物理居中并对称避让胶囊/筛选；Tab改24rpx方圆轮廓/静态暖纸底。新居中选项默认关闭，其它页面保持旧布局。

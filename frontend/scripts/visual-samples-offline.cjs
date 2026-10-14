@@ -60,7 +60,7 @@ function harness() {
       ? 'loadHomeSummary, draftState, sealedState, unlockedState, latestDraft, draftCount, latestSealed, showArrivalCard, goDraftEntry, goEditor'
       : name === 'timeline'
         ? 'loadTimeline, timelineGroups, timelineLoadFailed, loadMoreFailed, currentPage, loading, loadingMore, appliedFilters, hasMore, decoratedGroups, applyFilters, draftTagId, availableTags, filterPanelVisible, filterApplyFailed, openNode'
-        : 'form, saveDraft, savedFeedback, recordStatus, loading, recordId, pendingImageUploads, pendingVoiceUploads, attachments, hasDirtyChanges, markSnapshot'
+        : 'form, saveDraft, savedFeedback, recordStatus, loading, recordId, pendingImageUploads, pendingVoiceUploads, attachments, hasDirtyChanges, markSnapshot, appendixOpen'
     const source = descriptor.scriptSetup.content.replaceAll('import.meta.env', '__env') + '\nglobalThis.surface = {' + exports + '}\n'
     const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
     const deps = spec => {
@@ -198,6 +198,25 @@ async function main() {
       else { assert.equal(p.recordStatus.value, 'SAVED'); assert.equal(p.hasDirtyChanges(), false) }
     })
   }
+  await check('收起附言后保存仍保留节点与已有附言数据', async () => {
+    const h = harness()
+    let payload
+    const p = h.page('record-editor', {}, {
+      async createDraft(value) { payload = JSON.parse(JSON.stringify(value)); return { id: 99, status: 'DRAFT' } },
+      async saveRecord() { return { id: 99, status: 'SAVED' } },
+    })
+    Object.assign(p.form, { content: '固定合成正文', recordType: 'NODE_RECORD', lifeNodeType: 'OTHER', lifeNodeCustomLabel: '固定合成节点', beliefThen: '固定合成附言', tagIds: [7] })
+    p.appendixOpen.value = true
+    p.appendixOpen.value = false
+    await p.saveDraft()
+    assert.equal(payload.recordType, 'NODE_RECORD')
+    assert.equal(payload.lifeNodeType, 'OTHER')
+    assert.equal(payload.lifeNodeCustomLabel, '固定合成节点')
+    assert.equal(payload.beliefThen, '固定合成附言')
+    assert.deepEqual(payload.tagIds, [7])
+    assert.equal(p.form.beliefThen, '固定合成附言')
+    assert.equal(p.savedFeedback.value, true)
+  })
   await check('编辑器空内容、未完成媒体与Preview均不保存', async () => {
     const h = harness()
     const p = h.page('record-editor', {}, { createDraft() { throw new Error('must not persist') } })
