@@ -8860,3 +8860,15 @@ Commit: pending
 - **Risks**: 新规划完整审阅与正式实施授权待明确；最新demo和目标平台观感仍有验证债务，翻页停止推广、登录HTML暂停、玻璃回弹仅候选。
 - **Commit**: daa8ba8 / 78eb150 / 1180946（本条自身为日志/进度收尾提交，其真实hash由git log查证，避免循环改写日志）
 - **Next**: F-10审阅当前完整正式迁移工件；获得F-11明确实现授权后再从映射矩阵/构建基线/目标平台样本推进，不自动启动正式前端。
+
+## 2026-10-14｜frontend-visual-language-evolution：A批正式展示样板实施｜Type C
+
+- **Scope**: 用户明确已完整阅读规划并批准后续实现，F-10规划批准/F-11实现授权分别通过；用户允许简短commit，本次Agent本地提交责任登记F-47。clean开工HEAD 4a5acfb。仅home/record-editor/timeline、追加式tokens、聚焦离线脚本、当前change工件/证据与ACTIVE_TASK；本条只追加。
+- **Changes**: 首页纸面主动作与既有SAVED概览入口；编辑器纸面输入、原生loading禁用保存按钮及已有成功提示排版；时光轴canonical标题、无封面排印/有封面卡片、静态封存层次、原生滚动筛选面板。首页/时光轴复用未改写的AppTopSafeBar，三个Tab/原路由保留。完整状态矩阵与微信手验清单写入implementation-evidence.md；F-12—F-14完成，F-20—F-22代码完成但平台验收pending，F-15/23及B—E不提前勾选。静态候选取舍见design D26。
+- **Verification PASS**: 改前type-check、Standard/Preview mp-weixin build退出0；最终再次执行type-check、两模式build退出0。visual-samples-offline.cjs 13/13固定合成回归PASS：首页独立成功/空/失败与等待、分页去重/失败保留/重试、筛选失败与过时响应隔离、节点状态/导航、草稿创建/保存失败留输入、响应后成功/防重、空/媒体/Preview拦截、真实recordService 10种Preview写入拒绝、认证优先与真实API入口、真实httpClient所有权清除冻结。uni.request被同步合成响应替代，真实网络/provider/对象存储0；不等于真实持久化或渲染。
+- **Verification PASS**: 精确allowlist与protected路径diff；三页业务脚本相对4a5acfb仅home/timeline增加展示组件import及home删除按压展示ref，editor业务脚本完全一致；旧tokens声明完整保留；R/M/L历史状态一致；delta Requirement/Scenario正文未改，仅更新授权说明；AGENT_LOG前724379字节SHA256 d0d2ef621dce585648f0ab474dcc5ad0c2df170ba38eed718d5cd337eccb4853保持一致；git diff --check与明显凭证模式检查PASS。业务services/stores/types/features/utils/composables、backend、登录/其它页、公共组件、路由、App、依赖、demo、history、accepted specs/archive零改动。
+- **Verification 限定**: 初次离线脚本直接require @vue/compiler-sfc不可解析，改用项目现有vue/compiler-sfc出口后13/13通过，未安装/更新依赖。微信工具2.01.2510290受限CLI --help初始EEXIST；获准本地配置访问后--help/auto --help退出0，仅确认工具库存，不启动IDE项目/真实登录。构建既有caniuse-lite过期提示保留，未更新lockfile。
+- **Verification SKIPPED**: OpenSpec CLI不在PATH，按文件级工件检查，不称CLI validate通过。无可连接微信自动化会话、直接可用automator依赖或可控原生UI；画面/小屏安全区/中文软键盘/触摸取消/后台/长文末项/字体fallback未实测。物理真机与性能无环境。Gate 3未授权，真实业务API/provider/对象存储不运行；旧file捕获拒绝不绕过。
+- **Risks**: 三个样板是可审阅代码，未达到页级微信验收；实色玻璃/静态封存与系统字体参数暂行。无封面样式不推断无声音/无其它媒体。本批不称完整demo正式接入完成；F-23公共抽取、B详情与C—E、用户核心/最终审阅仍待后续。
+- **Commit**: pending（本次用户明确允许Agent简短本地提交；不push/PR/部署/接受delta/归档）
+- **Next**: 提交前复核精确暂存范围/日志前缀→简短本地commit→确认clean。补F-15/F-20—F-22平台证据后继续F-23及B；F-27核心审阅通过前不扩展C—E，保持唯一active。

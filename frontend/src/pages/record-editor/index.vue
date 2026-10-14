@@ -1691,14 +1691,14 @@ onUnload(() => {
     <view class="page-body">
       <!-- 初始化中 -->
       <view v-if="initializing" class="state-paper">
-        <text class="state-kicker">Preparing the archive page</text>
+        <text class="state-kicker">留下此刻</text>
         <text class="state-title">正在初始化写作页...</text>
         <text class="state-desc">我们正在取回当前草稿与类型信息，稍候就能继续落笔。</text>
       </view>
 
       <!-- 初始化失败 -->
       <view v-else-if="initFailed" class="state-paper">
-        <text class="state-kicker">Initialization interrupted</text>
+        <text class="state-kicker">留下此刻</text>
         <text class="state-title">写作页暂时没有打开</text>
         <text class="state-desc">{{ initErrorMessage || '初始化失败，请检查网络后重试' }}</text>
         <view class="retry-btn" @tap="retryInitialization">重试初始化</view>
@@ -1719,7 +1719,7 @@ onUnload(() => {
                 <text class="letter-date">{{ writingDateText }}</text>
               </view>
               <view class="archive-tag">
-                <text class="archive-tag-text">私有档案·严禁翻阅</text>
+                <text class="archive-tag-text">只写给自己</text>
               </view>
             </view>
 
@@ -1730,12 +1730,15 @@ onUnload(() => {
                 <input
                   v-model="form.title"
                   class="title-input"
+                  aria-label="标题，可选"
                   placeholder="标题（可选）"
                   placeholder-class="title-placeholder"
                 />
                 <textarea
                   v-model="form.content"
                   class="editor-field"
+                  aria-label="此刻的正文"
+                  :cursor-spacing="24"
                   auto-height
                   maxlength="5000"
                   placeholder="写下一句话，也可以只留图片或声音..."
@@ -2019,12 +2022,10 @@ onUnload(() => {
         <view class="bottom-area">
           <text class="word-count">{{ wordCount }} 字</text>
 
-          <view class="seal-btn" :class="{ 'seal-btn--disabled': loading }" @tap="saveDraft">
-            <view class="seal-btn-corner seal-btn-corner--tl" aria-hidden="true" />
-            <view class="seal-btn-corner seal-btn-corner--br" aria-hidden="true" />
+          <button class="seal-btn" :disabled="loading" hover-class="seal-btn--pressed" @tap="saveDraft">
             <view class="btn-dot" aria-hidden="true" />
             <text class="seal-btn-text">{{ loading ? '正在留下...' : '留下这一刻' }}</text>
-          </view>
+          </button>
 
           <view v-if="savedFeedback && !hasDirtyChanges()" class="seal-hint" aria-live="polite">
             <view class="hint-line" aria-hidden="true" />
@@ -2084,19 +2085,13 @@ onUnload(() => {
 .page {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
-  background: linear-gradient(160deg, #f5f0e8 0%, #ede8dc 45%, #e8e0d2 100%);
+  background: var(--fb-paper);
+  color: var(--fb-ink);
+  font-family: var(--fb-letter-font);
 }
 
 .page-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 70% 55% at 20% 8%, rgba(255, 248, 235, 0.22) 0%, transparent 65%),
-    radial-gradient(ellipse 55% 40% at 80% 20%, rgba(220, 208, 185, 0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 50% 55%, rgba(255, 250, 240, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 45% 35% at 75% 80%, rgba(200, 188, 165, 0.08) 0%, transparent 60%);
+  display: none;
 }
 
 .page-body {
@@ -2116,15 +2111,11 @@ onUnload(() => {
 
 .letter-body {
   position: relative;
-  background: #fdfbf7;
-  border: 1rpx solid rgba(180, 168, 148, 0.45);
-  box-shadow:
-    0 0 0 1rpx rgba(255, 253, 248, 0.8) inset,
-    4rpx 12rpx 48rpx rgba(120, 100, 70, 0.12),
-    -2rpx 4rpx 16rpx rgba(120, 100, 70, 0.06);
+  background: var(--fb-letter-paper);
+  border: 1rpx solid var(--fb-letter-line);
+  box-shadow: var(--fb-letter-shadow);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 /* 右上折角 */
@@ -2157,12 +2148,12 @@ onUnload(() => {
 
 /* 信头 */
 .letter-head {
-  padding: 36rpx 40rpx 28rpx 48rpx;
+  padding: 36rpx 32rpx 24rpx;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  flex-shrink: 0;
-  border-bottom: 1rpx solid rgba(192, 182, 165, 0.3);
+  gap: 16rpx;
+  border-bottom: 1rpx solid var(--fb-letter-line);
 }
 
 .head-left {
@@ -2171,21 +2162,17 @@ onUnload(() => {
 
 .captured-label {
   display: block;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 20rpx;
-  color: #9e9890;
-  letter-spacing: 0.06em;
-  margin-bottom: 10rpx;
-  opacity: 0.8;
+  font-size: 24rpx;
+  color: var(--fb-ink-mid);
+  margin-bottom: 8rpx;
 }
 
 .letter-date {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 40rpx;
-  font-weight: 300;
-  color: #302e29;
-  letter-spacing: 0.06em;
-  line-height: 1.3;
+  font-family: var(--fb-letter-font);
+  font-size: 32rpx;
+  font-weight: 400;
+  color: var(--fb-ink);
+  line-height: 1.6;
 }
 
 /* 竖排档案标签 */
@@ -2199,15 +2186,10 @@ onUnload(() => {
 }
 
 .archive-tag-text {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 17rpx;
-  font-weight: 300;
-  color: #9e9890;
+  font-size: 22rpx;
+  color: var(--fb-ink-mid);
   writing-mode: vertical-rl;
-  -webkit-writing-mode: vertical-rl;
-  letter-spacing: 0.14em;
-  line-height: 1;
-  opacity: 0.85;
+  line-height: 1.6;
 }
 
 /* 正文区 */
@@ -2220,7 +2202,7 @@ onUnload(() => {
 
 /* 左侧朱砂竖格线 */
 .side-rule {
-  width: 72rpx;
+  width: 30rpx;
   flex-shrink: 0;
   position: relative;
 }
@@ -2245,22 +2227,22 @@ onUnload(() => {
 /* 编辑区 */
 .editor-zone {
   flex: 1;
-  padding: 24rpx 36rpx 24rpx 28rpx;
+  min-width: 0;
+  padding: 28rpx 28rpx 32rpx 24rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 /* 标题输入框 */
 .title-input {
   width: 100%;
-  min-height: 48rpx;
+  min-height: 64rpx;
   background: transparent;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 32rpx;
-  font-weight: 500;
-  color: #302e29;
-  letter-spacing: 0.04em;
+  font-family: var(--fb-letter-font);
+  font-size: 36rpx;
+  font-weight: 400;
+  color: var(--fb-ink);
   margin-bottom: 8rpx;
 }
 
@@ -2272,10 +2254,10 @@ onUnload(() => {
 }
 
 .m3-panel {
-  margin: 0 40rpx 28rpx 48rpx;
-  padding: 24rpx;
-  border: 1rpx solid rgba(192, 182, 165, 0.32);
-  background: rgba(253, 251, 247, 0.74);
+  margin: 0 28rpx 28rpx;
+  padding: 28rpx 0 0;
+  border-top: 1rpx solid var(--fb-letter-line);
+  background: transparent;
 }
 
 .m3-panel-label {
@@ -2902,12 +2884,11 @@ onUnload(() => {
   width: 100%;
   min-height: 400rpx;
   background: transparent;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 28rpx;
-  font-weight: 300;
-  color: #6b6560;
-  line-height: 2.0;
-  letter-spacing: 0.04em;
+  font-family: var(--fb-letter-font);
+  font-size: 32rpx;
+  font-weight: 400;
+  color: var(--fb-ink);
+  line-height: 1.85;
 }
 
 :deep(.editor-placeholder) {
@@ -2935,7 +2916,7 @@ onUnload(() => {
 }
 
 .attach-item--active .attach-label {
-  color: #9a332a;
+  color: var(--fb-vermilion);
 }
 
 .attach-item--disabled {
@@ -2963,11 +2944,9 @@ onUnload(() => {
 }
 
 .attach-label {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 18rpx;
-  font-weight: 300;
-  color: #9e9890;
-  letter-spacing: 0.12em;
+  font-size: 24rpx;
+  color: var(--fb-ink-mid);
+  line-height: 1.6;
 }
 
 .attach-sep {
@@ -2986,55 +2965,37 @@ onUnload(() => {
 }
 
 .word-count {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
-  font-size: 20rpx;
-  font-weight: 300;
-  color: #c8c2b8;
-  letter-spacing: 0.08em;
-  margin-bottom: 28rpx;
+  font-size: 24rpx;
+  color: var(--fb-ink-mid);
+  margin-bottom: 24rpx;
 }
 
-/* 封存按钮 */
+/* 保存按钮：静态玻璃，成功由服务响应确认。 */
 .seal-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 480rpx;
-  height: 96rpx;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  width: 100%;
+  max-width: 480rpx;
+  min-height: 96rpx;
+  margin: 0;
+  padding: 20rpx 28rpx;
+  box-sizing: border-box;
+  font-family: var(--fb-letter-font);
   font-size: 30rpx;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  color: #302e29;
-  background: transparent;
-  border: 1rpx solid #c8c2b8;
-  border-radius: 4rpx;
-  gap: 20rpx;
+  color: var(--fb-ink);
+  background: var(--fb-letter-glass);
+  border: 1rpx solid var(--fb-letter-glass-edge);
+  border-radius: 999rpx;
+  box-shadow: var(--fb-letter-glass-shadow);
+  gap: 16rpx;
 }
 
-.seal-btn--disabled {
+.seal-btn::after { border: none; }
+.seal-btn--pressed { background: #ede7dc; }
+.seal-btn[disabled] {
   opacity: 0.6;
-}
-
-.seal-btn-corner {
-  position: absolute;
-  width: 14rpx;
-  height: 14rpx;
-  border-color: #9e9890;
-  border-style: solid;
-}
-
-.seal-btn-corner--tl {
-  top: -2rpx;
-  left: -2rpx;
-  border-width: 2rpx 0 0 2rpx;
-}
-
-.seal-btn-corner--br {
-  bottom: -2rpx;
-  right: -2rpx;
-  border-width: 0 2rpx 2rpx 0;
 }
 
 .btn-dot {
@@ -3069,12 +3030,9 @@ onUnload(() => {
 }
 
 .hint-text {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
-  font-size: 20rpx;
-  font-weight: 300;
-  color: #9e9890;
-  letter-spacing: 0.06em;
-  opacity: 0.8;
+  font-size: 26rpx;
+  color: var(--fb-ink);
+  line-height: 1.8;
 }
 
 /* 草稿按钮 */
@@ -3088,11 +3046,9 @@ onUnload(() => {
 }
 
 .draft-btn-text {
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
-  font-size: 22rpx;
-  font-weight: 300;
-  color: #9e9890;
-  letter-spacing: 0.06em;
+  font-size: 26rpx;
+  color: var(--fb-ink-mid);
+  line-height: 1.8;
 }
 
 /* ── 状态页（初始化中 / 失败） ── */
@@ -3127,10 +3083,9 @@ onUnload(() => {
 
 .state-desc {
   margin-top: 18rpx;
-  color: #9e9890;
+  color: var(--fb-ink-mid);
   font-size: 26rpx;
   line-height: 1.8;
-  font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
 }
 
 .retry-btn {

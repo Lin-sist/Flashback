@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import AppTopSafeBar from '../../components/common/AppTopSafeBar.vue'
 import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import { recordService, tagService } from '../../services'
 import { useRecordCoverUrls } from '../../composables/useRecordCoverUrls'
@@ -335,12 +336,15 @@ onShow(() => {
 <template>
   <view class="page">
     <PreviewModeNotice />
-    <view class="paper-texture" />
-    <view class="paper-glow" />
+    <AppTopSafeBar title="时光回序" padding-x="56rpx" side-width="104rpx">
+      <template #left>
+        <button class="filter-trigger" :class="{ active: hasAppliedFilter }" hover-class="filter-trigger--pressed" @tap="openFilterPanel">筛选</button>
+      </template>
+    </AppTopSafeBar>
 
     <!-- filter overlay -->
     <view v-if="filterPanelVisible" class="filter-layer" @tap="closeFilterPanel">
-      <view class="filter-sheet" @tap.stop>
+      <scroll-view class="filter-sheet" scroll-y :show-scrollbar="false" @tap.stop>
         <view class="filter-sheet-head">
           <text class="filter-sheet-title">筛选时光</text>
           <text class="filter-sheet-close" @tap="closeFilterPanel">收起</text>
@@ -410,7 +414,7 @@ onShow(() => {
             @tap="applyFilters"
           >{{ filterApplying ? '正在展开...' : '应用筛选' }}</view>
         </view>
-      </view>
+      </scroll-view>
     </view>
 
     <scroll-view
@@ -422,22 +426,10 @@ onShow(() => {
       @scrolltolower="loadMoreTimeline"
     >
 
-      <!-- topbar -->
-      <view class="topbar">
-        <view
-          class="filter-trigger"
-          :class="{ active: hasAppliedFilter }"
-          hover-class="filter-trigger--pressed"
-          @tap="openFilterPanel"
-        >筛选</view>
-        <text class="logo">时 光 回 序</text>
-        <view class="topbar-placeholder" />
-      </view>
-
       <!-- page header -->
       <view class="page-header">
-        <text class="page-title">时 间 长 廊</text>
-        <text class="page-subtitle">在此处，凝视那些被封存的往昔<text>\n</text>与尚未开启的明日。</text>
+        <text class="page-title">时光轴</text>
+        <text class="page-subtitle">沿着时间，读一读曾经留下的此刻。</text>
         <view class="deco-line" />
         <view v-if="showStaleNotice" class="stale-notice">
           <text>同步稍慢，当前仍显示 {{ appliedFilterText }}</text>
@@ -486,7 +478,7 @@ onShow(() => {
           </view>
 
           <view v-for="group in decoratedGroups" :key="group.yearMonth">
-            <view v-for="item in group.items" :key="item.id" class="tl-item" @tap="openNode(item.raw)">
+            <view v-for="item in group.items" :key="item.id" class="tl-item" :class="{ 'tl-item--text': !item.hasImage && (item.kind === 'saved' || item.kind === 'unlocked') }" @tap="openNode(item.raw)">
 
               <!-- sealed / arriving card -->
               <template v-if="item.kind === 'sealed'">
@@ -527,7 +519,7 @@ onShow(() => {
                 </view>
                 <text class="tl-date">{{ item.dateText }}</text>
                 <view class="card">
-                  <view class="card-img-placeholder">
+                  <view v-if="item.hasImage" class="card-img-placeholder">
                     <image
                       v-if="item.hasImage && coverUrls[item.id]"
                       class="card-cover-image"
@@ -541,14 +533,14 @@ onShow(() => {
                     </view>
                   </view>
                   <view class="card-meta">
-                    <view class="seal seal-open"><text class="seal-char seal-char-open">封</text></view>
+                    <view class="seal seal-open"><text class="seal-char seal-char-open">{{ item.kind === 'saved' ? '留' : '阅' }}</text></view>
                     <text class="card-tag">{{ item.kind === 'saved'
                       ? (item.hasImage ? '已留下 · 图文记录' : '已留下 · 当下记录')
-                      : (item.hasImage ? '已解封 · 图文记忆' : '已解封 · 时间回看') }}</text>
+                      : (item.hasImage ? '已抵达 · 图文记录' : '已抵达 · 时间回看') }}</text>
                   </view>
                   <text class="card-title">{{ item.title }}</text>
                   <view class="card-footer">
-                    <text class="card-footer-tag">{{ item.kind === 'saved' ? 'SAVED' : 'MEMORY' }}</text>
+                    <text class="card-footer-tag">{{ item.kind === 'saved' ? '读一读 ›' : '时间回看 ›' }}</text>
                   </view>
                 </view>
               </template>
@@ -611,14 +603,14 @@ onShow(() => {
     <view class="bottom-nav-shell">
       <view class="bottom-nav">
         <view class="nav-item" @tap="goHome">
-          <text class="nav-label">首 页</text>
+          <text class="nav-label">首页</text>
         </view>
         <view class="nav-item active" @tap="() => {}">
           <text class="nav-label">时光轴</text>
           <view class="nav-dot" />
         </view>
         <view class="nav-item" @tap="goUserCenter">
-          <text class="nav-label">我 的</text>
+          <text class="nav-label">个人中心</text>
         </view>
       </view>
     </view>
@@ -631,30 +623,14 @@ onShow(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 55%, #f0ebe0 100%);
+  background: var(--fb-paper);
   overflow: hidden;
+  font-family: var(--fb-letter-font);
 }
 
-.paper-texture {
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='6' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.15'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23f)' opacity='0.055'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-}
 
-.paper-glow {
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 18% 10%, rgba(200, 185, 158, 0.09) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 82% 25%, rgba(185, 168, 140, 0.06) 0%, transparent 65%),
-    radial-gradient(ellipse 45% 55% at 70% 78%, rgba(178, 162, 135, 0.07) 0%, transparent 65%),
-    radial-gradient(ellipse 65% 40% at 30% 85%, rgba(170, 155, 128, 0.05) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 35% at 50% 45%, rgba(250, 245, 238, 0.18) 0%, transparent 75%);
-  pointer-events: none;
-  z-index: 0;
-}
+
+
 
 .scroll-body {
   position: relative;
@@ -671,17 +647,18 @@ onShow(() => {
   z-index: 40;
   background: rgba(48, 46, 41, 0.18);
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: calc(env(safe-area-inset-top) + 120px) 32rpx 0;
+  align-items: flex-end;
 }
 
 .filter-sheet {
   width: 100%;
-  padding: 30rpx;
-  border-radius: 4rpx;
-  background: rgba(250, 247, 242, 0.96);
-  box-shadow: 0 24rpx 60rpx rgba(48, 46, 41, 0.14);
+  height: 72vh;
+  box-sizing: border-box;
+  padding: 36rpx 32rpx calc(env(safe-area-inset-bottom) + 36rpx);
+  border-radius: 24rpx 24rpx 0 0;
+  border-top: 1rpx solid var(--fb-letter-glass-edge);
+  background: var(--fb-letter-glass);
+  box-shadow: var(--fb-letter-glass-shadow);
 }
 
 .filter-sheet-head {
@@ -828,33 +805,24 @@ onShow(() => {
 }
 
 /* ── topbar ── */
-.topbar {
-  padding-top: calc(env(safe-area-inset-top) + 52px);
-  padding-left: 56rpx;
-  padding-right: 56rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
-.logo {
-  font-family: var(--fb-font-serif);
-  font-size: 24rpx;
-  font-weight: 300;
-  letter-spacing: 0.55em;
-  color: var(--fb-ink-light);
-}
+
+
 
 .filter-trigger {
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
   width: 104rpx;
   min-height: 60rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(107, 101, 96, 0.28);
+  border: 1rpx solid var(--fb-letter-glass-edge);
   border-radius: 999rpx;
-  background: rgba(250, 247, 242, 0.78);
+  background: var(--fb-letter-glass);
+  box-shadow: var(--fb-letter-glass-shadow);
   color: var(--fb-ink-mid);
   font-size: 22rpx;
   letter-spacing: 0.12em;
@@ -870,35 +838,26 @@ onShow(() => {
   opacity: 0.68;
 }
 
-.topbar-placeholder {
-  width: 104rpx;
-  height: 60rpx;
-  flex-shrink: 0;
-}
+
 
 /* ── page header ── */
 .page-header {
-  padding: 56rpx 56rpx 0;
+  padding: 52rpx 56rpx 0;
 }
 
 .page-title {
   display: block;
-  font-family: var(--fb-font-serif);
-  font-size: 56rpx;
-  font-weight: 300;
+  font-size: 60rpx;
+  font-weight: 400;
   color: var(--fb-ink);
-  letter-spacing: 0.04em;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .page-subtitle {
   display: block;
   margin-top: 16rpx;
-  font-family: var(--fb-font-serif);
-  font-size: 24rpx;
-  font-weight: 300;
-  color: var(--fb-ink-light);
-  letter-spacing: 0.06em;
+  font-size: 26rpx;
+  color: var(--fb-ink-mid);
   line-height: 1.8;
 }
 
@@ -925,7 +884,7 @@ onShow(() => {
 .timeline-wrap {
   position: relative;
   margin-top: 48rpx;
-  padding: 0 56rpx 0 80rpx;
+  padding: 0 56rpx 0 112rpx;
 }
 
 .timeline-track {
@@ -934,13 +893,7 @@ onShow(() => {
   top: 0;
   bottom: 0;
   width: 1rpx;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(181, 53, 42, 0.12) 6%,
-    rgba(181, 53, 42, 0.12) 94%,
-    transparent
-  );
+  background: var(--fb-ink-faint);
 }
 
 .tl-content {
@@ -958,13 +911,13 @@ onShow(() => {
 /* ── dots ── */
 .tl-dot {
   position: absolute;
-  left: -26rpx;
+  left: -44rpx;
   top: 8rpx;
-  width: 26rpx;
-  height: 26rpx;
+  width: 24rpx;
+  height: 24rpx;
   border-radius: 50%;
-  border: 2rpx solid var(--fb-ink-faint);
-  background: #faf7f2;
+  border: 2rpx solid var(--fb-ink-mid);
+  background: var(--fb-paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -974,13 +927,11 @@ onShow(() => {
 .tl-dot-now {
   border-color: rgba(181, 53, 42, 0.65);
   background: rgba(181, 53, 42, 0.09);
-  animation: breathe-now 3s ease-in-out infinite;
 }
 
 .tl-dot-sealed {
   border-color: rgba(181, 53, 42, 0.5);
   background: rgba(181, 53, 42, 0.07);
-  animation: breathe-sealed 3.6s ease-in-out infinite 0.4s;
 }
 
 .tl-dot-open {
@@ -1002,19 +953,16 @@ onShow(() => {
 .tl-dot-inner-now {
   background: var(--fb-vermilion);
   opacity: 1;
-  animation: pulse-inner 2.4s ease-in-out infinite;
 }
 
 .tl-dot-inner-sealed {
   background: var(--fb-vermilion);
   opacity: 0.8;
-  animation: pulse-inner 3s ease-in-out infinite 0.6s;
 }
 
 .tl-dot-inner-open {
   background: var(--fb-ink-mid);
   opacity: 0.8;
-  animation: breathe-open 4s ease-in-out infinite 1s;
 }
 
 .tl-dot-inner-locked {
@@ -1044,31 +992,24 @@ onShow(() => {
   border-radius: 50%;
   background: var(--fb-vermilion);
   flex-shrink: 0;
-  animation: pulse-inner 2.4s ease-in-out infinite;
 }
 
 /* date label */
 .tl-date {
   display: block;
-  font-family: var(--fb-font-sans);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--fb-ink-light);
-  letter-spacing: 0.08em;
+  font-size: 24rpx;
+  color: var(--fb-ink-mid);
   margin-bottom: 16rpx;
 }
 
 /* ── regular card (unlocked) ── */
 .card {
   position: relative;
-  background: rgba(252, 249, 244, 0.72);
+  background: var(--fb-letter-paper);
   border: 1rpx solid rgba(188, 174, 152, 0.28);
   border-radius: 2rpx;
   overflow: hidden;
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
-    0 4rpx 24rpx rgba(140, 120, 90, 0.06),
-    0 2rpx 6rpx rgba(140, 120, 90, 0.04);
+  box-shadow: var(--fb-letter-shadow);
 }
 
 .card::before {
@@ -1186,6 +1127,8 @@ onShow(() => {
 }
 
 .card-title {
+  overflow-wrap: anywhere;
+  word-break: break-all;
   display: block;
   font-family: var(--fb-font-serif);
   font-size: 30rpx;
@@ -1211,9 +1154,9 @@ onShow(() => {
 
 .card-footer-tag {
   font-family: var(--fb-font-sans);
-  font-size: 18rpx;
+  font-size: 24rpx;
   font-weight: 300;
-  color: var(--fb-ink-light);
+  color: var(--fb-ink-mid);
   letter-spacing: 0.12em;
   border: 1rpx solid var(--fb-ink-faint);
   padding: 4rpx 16rpx;
@@ -1223,7 +1166,8 @@ onShow(() => {
 /* ── locked / sealed card ── */
 .card-locked {
   position: relative;
-  background: rgba(250, 247, 242, 0.45);
+  background: var(--fb-letter-paper);
+  box-shadow: var(--fb-letter-shadow);
   border: 1rpx solid rgba(188, 174, 152, 0.18);
   border-radius: 2rpx;
   padding: 28rpx 40rpx 28rpx 44rpx;
@@ -1241,9 +1185,8 @@ onShow(() => {
 }
 
 .card-arriving {
-  opacity: 0.8;
-  background: rgba(252, 249, 244, 0.6);
-  border-color: rgba(181, 53, 42, 0.18);
+  background: linear-gradient(145deg, #fffdf9, #efede7);
+  border-color: var(--fb-letter-line);
 }
 
 .card-arriving::before {
@@ -1261,6 +1204,8 @@ onShow(() => {
 }
 
 .card-locked-title {
+  overflow-wrap: anywhere;
+  word-break: break-all;
   display: flex;
   align-items: center;
   gap: 16rpx;
@@ -1328,9 +1273,9 @@ onShow(() => {
 
 .countdown-text {
   font-family: var(--fb-font-serif);
-  font-size: 20rpx;
+  font-size: 24rpx;
   font-weight: 300;
-  color: var(--fb-ink-light);
+  color: var(--fb-ink-mid);
   letter-spacing: 0.06em;
 }
 
@@ -1426,36 +1371,39 @@ onShow(() => {
 /* ── bottom navigation ── */
 .bottom-nav-shell {
   position: relative;
+  flex-shrink: 0;
   z-index: 80;
-  padding: 0 0 env(safe-area-inset-bottom);
-  background: transparent;
-  border-top: 1rpx solid rgba(200, 194, 184, 0.3);
+  padding: 14rpx 40rpx calc(env(safe-area-inset-bottom) + 16rpx);
+  background: var(--fb-paper);
 }
 
 .bottom-nav {
-  height: auto;
-  padding: 32rpx 0 68rpx;
+  min-height: 88rpx;
   display: flex;
-  align-items: center;
-  justify-content: space-around;
+  align-items: stretch;
+  border: 1rpx solid var(--fb-letter-glass-edge);
+  border-radius: 999rpx;
+  background: var(--fb-letter-glass);
+  box-shadow: var(--fb-letter-glass-shadow);
 }
 
 .nav-item {
+  flex: 1;
+  min-width: 0;
+  min-height: 88rpx;
+  padding: 14rpx 8rpx;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
-  padding: 8rpx 32rpx;
+  gap: 6rpx;
 }
 
 .nav-label {
-  font-family: var(--fb-font-serif);
-  font-size: 24rpx;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  color: var(--fb-ink-light);
-  transition: color 0.2s;
+  font-size: 26rpx;
+  color: var(--fb-ink-mid);
+  text-align: center;
 }
 
 .nav-item.active .nav-label {
@@ -1471,23 +1419,10 @@ onShow(() => {
   margin-top: 4rpx;
 }
 
-@keyframes pulse-inner {
-  0%, 100% { opacity: 0.3; transform: scale(0.75); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-
-@keyframes breathe-now {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(181, 53, 42, 0); }
-  50% { box-shadow: 0 0 0 3rpx rgba(181, 53, 42, 0.1); }
-}
-
-@keyframes breathe-sealed {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.75; }
-}
-
-@keyframes breathe-open {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 0.45; }
-}
+/* 无平台动效证据时使用完整静态终态；封存只表达已有状态。 */
+.tl-item--text .card { background: transparent; border: 0; box-shadow: none; }
+.tl-item--text .card::before, .tl-item--text .card::after, .tl-item--text .seal { display: none; }
+.tl-item--text .card-meta, .tl-item--text .card-title, .tl-item--text .card-footer { padding-left: 0; padding-right: 0; }
+.tl-item--text .card-meta { padding-top: 0; }
+.filter-trigger::after { border: none; }
 </style>

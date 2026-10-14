@@ -1,6 +1,6 @@
 # Miniapp Core Delta：正式前端渐进迁移
 
-> 2026-10-13 当前规划：用户确认收口方向；新增正式迁移完整 delta 待 Gate 1 审阅，未接受进 baseline。重写前四方向要求见 history/2026-10-13-before-migration-rewrite/specs/miniapp-core/spec.md；以下 demo 契约保留原批准范围，不表示新视觉/设备验收已通过。
+> 2026-10-14：用户已完整阅读并批准当前正式迁移规划，分别授权 F 任务实现与 Agent 本地提交；delta 仍未接受进 baseline。重写前四方向要求见 history/2026-10-13-before-migration-rewrite/specs/miniapp-core/spec.md；以下 demo 契约保留原批准范围，不表示新视觉/设备验收已通过。
 
 ## ADDED Requirements
 

@@ -4,12 +4,12 @@
 
 `ACTIVE`
 
-当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-13 用户确认按当前 demo 状态收口：登录 HTML 暂缓、翻页暂停推广、玻璃回弹仅候选；授权在同一 change 重写正式迁移阶段并按历史修改本地分组提交。新 proposal/design/tasks/delta 已形成，正式迁移完整规划 Gate 1 待审，Gate 2 未启动；历史授权/未完成证据保留，不接受 delta、不归档、不启动业务实现。
+当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；不扩大 C–E、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
-- 当前闸门：本轮收口决定与文档/本地提交已授权；当前正式迁移以 F 系列为唯一入口，完整规划 Gate 1 与新任务 Gate 2 分列待办；demo R/M 待验证和 L 暂缓保留，不补勾旧四方向任务
-- 提交责任：2026-10-13 本轮用户明确授权 Agent 按历史修改分组本地 add/commit；未授权 push/PR/部署/发布。后续正式实施提交责任另行登记
+- 当前闸门：F-10/F-11 通过，F-12—F-14 完成状态映射/基线/环境清单；F-15/F-20—F-22 平台验收 pending，后续按样板/批次验收顺序推进。demo R/M 待验证和 L 暂缓保留，不补勾旧任务；Gate 3 未授权
+- 提交责任：2026-10-14 本次 A 批用户明确允许 Agent 简短本地 add/commit；未授权 push/PR/部署/发布、接受 delta 或归档
 - 外部调用：仅公开 Inspora/Awwwards 研究；Open Design Cloud 未启动；`open-design` MCP 已可调用，Local Codex 递归加载该 MCP 导致的桌面接管/EPIPE 冲突已做本地隔离修复；当前任务的旧 MCP transport 已关闭，原型重试仍须新任务；真实用户内容、真实 Agent provider、对象存储调用均为 0
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -143,6 +143,13 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-10-14 — **正式前端 A 批样板实施与离线验证**
+  - **Authorization / Scope**：当前完整规划 Gate 1、按 F 任务实现 Gate 2 分别通过；Agent 简短本地提交已授权。clean 开工 HEAD 4a5acfb。仅 home/record-editor/timeline、追加式样板 tokens、聚焦离线脚本和当前工件/日志；业务服务/store/types、backend、依赖、accepted specs、demo 与历史快照保护。
+  - **Progress**：F-10/F-11/F-12/F-13/F-14/F-47 完成。三个样板展示代码完成；首页突出留下此刻并显示真实 SAVED 入口，编辑器纸面正文/原生保存按钮，时光轴无封面排印/有封面卡片与静态封存层次。未抽取全站公共壳层；未开启回弹/翻页/模糊。F-20—F-22 保留 pending，不把代码交付当页级平台验收。
+  - **Verification PASS**：改前 type-check/Standard/Preview build；改后 type-check/两模式构建与 13/13 零网络合成脚本回归。原编辑器业务脚本保持字节一致；日志前缀与最终 allowlist/denylist/diff 检查见最新 AGENT_LOG。完整矩阵/手验清单见 implementation-evidence.md。
+  - **SKIPPED / Risks**：CLI 库存 2.01.2510290 与配置访问确认，初始 EEXIST 在获准访问后解除；无可连接微信自动化会话/直接可用 automator/可控原生 UI，实际画面/中文键盘/末项可达/触摸及真机性能未验收。OpenSpec CLI 不在 PATH。真实业务 API/provider/对象存储调用 0；旧 file 拒绝不绕过。
+  - **Next**：补 F-15/F-20—F-22 微信材质/交互证据后收口 F-23，再推进 B 批保存/详情与 F-26；F-27 用户核心审阅通过前不扩大 C–E。当前实现 commit 仅可审阅点，非验收点；继续同一 active，不恢复 IDLE。
 
 - **This session**: 2026-10-14 — **恢复并完成昨天的F-04：正式迁移规划/历史提交收口**
   - **Authorization / Scope**：用户要求继续昨天未完成任务；延续已明确的同一change文档收口与Agent本地分组提交授权。正式代码、外调、push、delta接受/归档权限不扩大。
