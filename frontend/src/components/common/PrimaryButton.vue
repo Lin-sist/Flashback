@@ -41,8 +41,8 @@ const onTap = () => {
 .primary-btn {
   width: 100%;
   border: none;
-  border-radius: var(--fb-radius-pill);
-  background: var(--fb-vermilion);
+  border-radius: var(--fb-radius-pill, 999rpx);
+  background: var(--fb-vermilion, #b5352a);
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 400;
@@ -51,7 +51,7 @@ const onTap = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--fb-font-serif);
+  font-family: var(--fb-font-serif, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
 }
 
 .primary-btn::after {
@@ -60,8 +60,8 @@ const onTap = () => {
 
 .primary-btn.ghost {
   background: transparent;
-  color: var(--fb-vermilion);
-  border: 1rpx solid var(--fb-vermilion);
+  color: var(--fb-vermilion, #b5352a);
+  border: 1rpx solid var(--fb-vermilion, #b5352a);
 }
 </style>
 

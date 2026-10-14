@@ -144,6 +144,12 @@
 
 ## Current Progress
 
+- **This session**: 2026-10-14 — **用户手动画面FAIL后的样板样式修复（Type B，当前change内）**
+  - **Scope**：用户要求定位并继续修复；延续正式A批实施与本地简短提交授权。开工clean HEAD 8e53127（上一批实际commit补录）；修复三个样板、App默认样式、tokens、AppTopSafeBar/PrimaryButton展示，新增样式回归脚本，更新证据/交接。无API/业务契约/次级页面重设计。
+  - **Findings / Changes**：手动画面显示变量依赖材质未呈现；token去除Web :root混合选择器并在样板根view声明，所有受影响样板var补静态备用值，App回到暖纸默认；公共主按钮补底色。顶部按左右slot/胶囊分别预留，空正文最小高度缩短并保留auto-height。实际变量失效的基础库/继承原因未获原生computed-style证据，不过度断言。
+  - **Verification**：新增旧HEAD源码差分16项检出，修复后两模式WXSS/标题几何16项PASS；type-check/13项状态回归/两模式构建PASS，最终保留Standard产物。业务脚本与保护目录未动，日志只追加；完整结果见最新AGENT_LOG。
+  - **SKIPPED / Next**：用户八张截图证明修复前存在FAIL，不证明完整平台/真机验收；真实内容不复制入库。修复后微信实际画面、中文键盘/长文/触摸/后台/真机待复验，F-20—F-22继续pending；未扩大C—E，真实业务外调0。重新编译正式dist后检查纸面/药丸/标题/输入，确认平台证据再按F任务推进。
+
 - **This session**: 2026-10-14 — **正式前端 A 批样板实施与离线验证**
   - **Authorization / Scope**：当前完整规划 Gate 1、按 F 任务实现 Gate 2 分别通过；Agent 简短本地提交已授权。clean 开工 HEAD 4a5acfb。仅 home/record-editor/timeline、追加式样板 tokens、聚焦离线脚本和当前工件/日志；业务服务/store/types、backend、依赖、accepted specs、demo 与历史快照保护。
   - **Progress**：F-10/F-11/F-12/F-13/F-14/F-47 完成。三个样板展示代码完成；首页突出留下此刻并显示真实 SAVED 入口，编辑器纸面正文/原生保存按钮，时光轴无封面排印/有封面卡片与静态封存层次。未抽取全站公共壳层；未开启回弹/翻页/模糊。F-20—F-22 保留 pending，不把代码交付当页级平台验收。

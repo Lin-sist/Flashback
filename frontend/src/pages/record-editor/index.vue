@@ -1680,7 +1680,7 @@ onUnload(() => {
 </script>
 
 <template>
-  <view class="page">
+  <view class="page fb-theme">
     <PreviewModeNotice />
     <!-- 宣纸底色光晕 -->
     <view class="page-bg" aria-hidden="true" />
@@ -2085,9 +2085,9 @@ onUnload(() => {
 .page {
   position: relative;
   min-height: 100vh;
-  background: var(--fb-paper);
-  color: var(--fb-ink);
-  font-family: var(--fb-letter-font);
+  background: var(--fb-paper, #faf7f2);
+  color: var(--fb-ink, #302e29);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
 }
 
 .page-bg {
@@ -2111,9 +2111,9 @@ onUnload(() => {
 
 .letter-body {
   position: relative;
-  background: var(--fb-letter-paper);
-  border: 1rpx solid var(--fb-letter-line);
-  box-shadow: var(--fb-letter-shadow);
+  background: var(--fb-letter-paper, #fcf9f4);
+  border: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
+  box-shadow: var(--fb-letter-shadow, 0 2rpx 4rpx rgba(125, 105, 75, 0.10), 0 16rpx 40rpx rgba(125, 105, 75, 0.10));
   display: flex;
   flex-direction: column;
 }
@@ -2153,7 +2153,7 @@ onUnload(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16rpx;
-  border-bottom: 1rpx solid var(--fb-letter-line);
+  border-bottom: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
 }
 
 .head-left {
@@ -2163,15 +2163,15 @@ onUnload(() => {
 .captured-label {
   display: block;
   font-size: 24rpx;
-  color: var(--fb-ink-mid);
+  color: var(--fb-ink-mid, #6b6560);
   margin-bottom: 8rpx;
 }
 
 .letter-date {
-  font-family: var(--fb-letter-font);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
   font-size: 32rpx;
   font-weight: 400;
-  color: var(--fb-ink);
+  color: var(--fb-ink, #302e29);
   line-height: 1.6;
 }
 
@@ -2187,7 +2187,7 @@ onUnload(() => {
 
 .archive-tag-text {
   font-size: 22rpx;
-  color: var(--fb-ink-mid);
+  color: var(--fb-ink-mid, #6b6560);
   writing-mode: vertical-rl;
   line-height: 1.6;
 }
@@ -2197,7 +2197,7 @@ onUnload(() => {
   flex: 1;
   position: relative;
   display: flex;
-  min-height: 480rpx;
+  min-height: 260rpx;
 }
 
 /* 左侧朱砂竖格线 */
@@ -2239,10 +2239,10 @@ onUnload(() => {
   width: 100%;
   min-height: 64rpx;
   background: transparent;
-  font-family: var(--fb-letter-font);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
   font-size: 36rpx;
   font-weight: 400;
-  color: var(--fb-ink);
+  color: var(--fb-ink, #302e29);
   margin-bottom: 8rpx;
 }
 
@@ -2256,7 +2256,7 @@ onUnload(() => {
 .m3-panel {
   margin: 0 28rpx 28rpx;
   padding: 28rpx 0 0;
-  border-top: 1rpx solid var(--fb-letter-line);
+  border-top: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
   background: transparent;
 }
 
@@ -2882,12 +2882,12 @@ onUnload(() => {
 /* 正文 textarea */
 .editor-field {
   width: 100%;
-  min-height: 400rpx;
+  min-height: 200rpx;
   background: transparent;
-  font-family: var(--fb-letter-font);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
   font-size: 32rpx;
   font-weight: 400;
-  color: var(--fb-ink);
+  color: var(--fb-ink, #302e29);
   line-height: 1.85;
 }
 
@@ -2916,7 +2916,7 @@ onUnload(() => {
 }
 
 .attach-item--active .attach-label {
-  color: var(--fb-vermilion);
+  color: var(--fb-vermilion, #b5352a);
 }
 
 .attach-item--disabled {
@@ -2945,7 +2945,7 @@ onUnload(() => {
 
 .attach-label {
   font-size: 24rpx;
-  color: var(--fb-ink-mid);
+  color: var(--fb-ink-mid, #6b6560);
   line-height: 1.6;
 }
 
@@ -2966,7 +2966,7 @@ onUnload(() => {
 
 .word-count {
   font-size: 24rpx;
-  color: var(--fb-ink-mid);
+  color: var(--fb-ink-mid, #6b6560);
   margin-bottom: 24rpx;
 }
 
@@ -2982,13 +2982,13 @@ onUnload(() => {
   margin: 0;
   padding: 20rpx 28rpx;
   box-sizing: border-box;
-  font-family: var(--fb-letter-font);
+  font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
   font-size: 30rpx;
-  color: var(--fb-ink);
-  background: var(--fb-letter-glass);
-  border: 1rpx solid var(--fb-letter-glass-edge);
+  color: var(--fb-ink, #302e29);
+  background: var(--fb-letter-glass, #f3eee4);
+  border: 1rpx solid var(--fb-letter-glass-edge, rgba(255, 255, 255, 0.85));
   border-radius: 999rpx;
-  box-shadow: var(--fb-letter-glass-shadow);
+  box-shadow: var(--fb-letter-glass-shadow, inset 0 2rpx 0 rgba(255, 255, 255, 0.9), 0 6rpx 18rpx rgba(125, 105, 75, 0.10));
   gap: 16rpx;
 }
 
@@ -3031,7 +3031,7 @@ onUnload(() => {
 
 .hint-text {
   font-size: 26rpx;
-  color: var(--fb-ink);
+  color: var(--fb-ink, #302e29);
   line-height: 1.8;
 }
 
@@ -3047,7 +3047,7 @@ onUnload(() => {
 
 .draft-btn-text {
   font-size: 26rpx;
-  color: var(--fb-ink-mid);
+  color: var(--fb-ink-mid, #6b6560);
   line-height: 1.8;
 }
 
@@ -3083,7 +3083,7 @@ onUnload(() => {
 
 .state-desc {
   margin-top: 18rpx;
-  color: var(--fb-ink-mid);
+  color: var(--fb-ink-mid, #6b6560);
   font-size: 26rpx;
   line-height: 1.8;
 }

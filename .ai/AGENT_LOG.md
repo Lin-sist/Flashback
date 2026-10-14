@@ -8872,3 +8872,15 @@ Commit: pending
 - **Risks**: 三个样板是可审阅代码，未达到页级微信验收；实色玻璃/静态封存与系统字体参数暂行。无封面样式不推断无声音/无其它媒体。本批不称完整demo正式接入完成；F-23公共抽取、B详情与C—E、用户核心/最终审阅仍待后续。
 - **Commit**: pending（本次用户明确允许Agent简短本地提交；不push/PR/部署/接受delta/归档）
 - **Next**: 提交前复核精确暂存范围/日志前缀→简短本地commit→确认clean。补F-15/F-20—F-22平台证据后继续F-23及B；F-27核心审阅通过前不扩展C—E，保持唯一active。
+
+## 2026-10-14｜frontend-visual-language-evolution：手动画面FAIL后修复变量材质/标题/空正文｜Type B
+
+- **Scope**: 用户提供8张手动小程序画面并明确要求定位、继续修复；延续同一change正式A批实施与Agent简短本地提交授权。开工clean HEAD 8e53127，补录上一批实际提交。仅三个样板、tokens/App全局展示、AppTopSafeBar与PrimaryButton展示、新增visual-style-regression.cjs，以及实施证据/tasks状态说明/ACTIVE_TASK与本条只追加；无OpenSpec契约变化，不接受/归档。
+- **Findings**: 用户画面为修复前手动FAIL：新样板间距/文字生效但变量依赖纸面/动作背景/边线缺失；顶部标题截断，编辑器空正文死区，详情公共按钮白字缺底。token混合page/:root且样板var无fallback；App默认冷灰。官方uni-app样式规则仅在Web使用html/:root；具体基础库/继承/选择器导致变量丢失尚无原生computed-style证据，未宣称已区分全部原因。顶部原公式两侧重复扣胶囊+操作区，375px/96px合成几何标题区39px不足四字约76px；编辑区/textarea两个最小高度480/400rpx过大。
+- **Changes**: token采用page/.fb-theme并在三页根view声明；样板变量补等值纸色/边线/投影/字体备用值，App默认暖纸墨色与系统衬线；PrimaryButton补背景/字体/ghost备用值。顶部按实际左右slot分别算安全边界，胶囊只右侧预留。letter-content/textarea改260/200rpx且保留auto-height。业务脚本/输入模型/保存/媒体/权限均未动，无新依赖或动态效果。
+- **Verification PASS**: 新样式回归对旧8e53127源码执行16项全部检出（预期exit1），修复后Standard/Preview真实编译WXSS与真实组件computed几何16项PASS（exit0）；覆盖无token场景的纸/动作/按钮/边线/投影/宋体、根选择器、空正文高度、320/360/375/390/430px四字标题避让。初始测试误将伪元素匹配为主体选择器，已收紧匹配并用旧HEAD再次差分验证，未将测试假失败当产品证据。
+- **Verification PASS**: type-check退出0；既有13/13实际SFC脚本/recordService/httpClient合成回归PASS；Standard/Preview mp-weixin构建退出0。最终构建为Standard正式模式，dist不入库。diff --check、精确范围、三页业务脚本/PrimaryButton事件/生命周期保护与日志原728137字节SHA256 98d0c7641f0f038916bc64da897c8774e50f32d8bfc82e9bec0eeaba6cc65bc7一致，最终检查另随提交执行。构建更新/旧caniuse-lite提示保留，不更新package/lockfile。
+- **Verification SKIPPED**: 当前无可控微信原生UI/自动化会话，修复后画面、中文键盘/触摸/后台/真机性能未直接复验；用户截图环境/基础库/真机属性unknown，不冒充完整微信矩阵。OpenSpec CLI不在PATH，不改Requirement/Scenario故不伪称CLI validate。浏览器file拒绝不绕过；真实业务API/provider/对象存储0，公开官方资料检索仅技术问题，无真实内容外发。
+- **Privacy / Risks**: 截图只在会话/本机查看，不复制真实日记/身份/媒体到fixture、源码、日志或仓库。源码差分、WXSS与无token合成几何不是原生绘制；标题在可用区域内居中，公共样式影响其它既有页面仍需实际回归。F-20—F-22保留pending，不扩大B布局或C—E。
+- **Commit**: pending（用户既有简短本地提交授权继续有效；不push/PR/部署/接受delta/归档）
+- **Next**: 本地提交修复→用户重新编译frontend/dist/build/mp-weixin复验暖纸/药丸/完整标题/空正文与长文；取得样板平台证据再继续F任务。上一批8e53127仅代码提交，不等于视觉验收。

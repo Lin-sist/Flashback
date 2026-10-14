@@ -17,10 +17,10 @@ export default {
 @import './styles/tokens.css';
 
 page {
-  background: #f8fafb;
-  color: #1a1a1a;
+  background: #faf7f2;
+  color: #302e29;
   font-size: 28rpx;
-  font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-family: 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
 }
 
 view,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useSlots } from 'vue'
 import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
 
 const props = withDefaults(
@@ -18,6 +18,7 @@ const props = withDefaults(
 )
 
 const { navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } = useWechatNavMetrics()
+const slots = useSlots()
 
 const wrapperStyle = computed(() => ({
   minHeight: `${navBarTotalHeight.value}px`,
@@ -42,10 +43,12 @@ const rightRailStyle = computed(() => ({
 }))
 
 const titleStyle = computed(() => {
-  const titleSafeReserve = `calc(${props.paddingX} + ${props.sideWidth} + ${rightSafeWidth.value}px)`
-
+  // 分别计算左右可用边界；胶囊只在右侧，不能再从左右各扣一遍。
   return {
-    width: `calc(100% - (${titleSafeReserve}) - (${titleSafeReserve}))`,
+    left: slots.left ? `calc(${props.paddingX} + ${props.sideWidth})` : props.paddingX,
+    right: `calc(${props.paddingX} + ${rightSafeWidth.value}px${slots.right ? ` + ${props.sideWidth}` : ''})`,
+    width: 'auto',
+    transform: 'translateY(-50%)',
   }
 })
 </script>
@@ -137,7 +140,7 @@ const titleStyle = computed(() => {
   font-size: 34rpx;
   font-weight: 500;
   letter-spacing: 4rpx;
-  color: var(--fb-color-primary);
+  color: var(--fb-color-primary, #b5352a);
   font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
 }
 </style>
