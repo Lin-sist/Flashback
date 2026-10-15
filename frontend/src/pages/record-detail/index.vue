@@ -421,7 +421,7 @@ const saveAgentMemoryPolicy = async () => {
 
 // 备注只在确认保存时交给原接口，取消和失败都不丢失已确认的参考设置。
 const openMemoryNoteSheet = () => {
-  if (!isUnlocked.value || !detail.value || savingMemoryPolicy.value) return
+  if ((!isUnlocked.value && !isSealed.value) || !detail.value || savingMemoryPolicy.value) return
   memorySheetNote.value = detail.value.agentMemoryContextNote || ''
   memorySheetExcluded.value = detail.value.agentMemoryExcluded === true
   showMemoryNoteSheet.value = true
@@ -432,18 +432,11 @@ const closeMemoryNoteSheet = () => {
 }
 
 const saveMemoryNoteSheet = async () => {
-  if (!showMemoryNoteSheet.value || !isUnlocked.value || !detail.value || savingMemoryPolicy.value) return
+  if (!showMemoryNoteSheet.value || (!isUnlocked.value && !isSealed.value) || !detail.value || savingMemoryPolicy.value) return
   if (!getToken() && hasPreviewSession()) { showPreviewReadonlyToast(); return }
   memoryNoteDraft.value = memorySheetNote.value
   memoryExcluded.value = memorySheetExcluded.value
   if (await saveAgentMemoryPolicy()) showMemoryNoteSheet.value = false
-}
-
-const toggleSealedMemoryPolicy = async () => {
-  if (!detail.value?.id || savingMemoryPolicy.value) return
-  if (!getToken() && hasPreviewSession()) { showPreviewReadonlyToast(); return }
-  memoryExcluded.value = !memoryExcluded.value
-  await saveAgentMemoryPolicy()
 }
 
 const switchReviewMemoryAuthorization = async (enabled: boolean) => {
@@ -919,7 +912,7 @@ onLoad(async (query) => {
         </view>
 
         <view v-if="isSealed" class="sealed-reference">
-          <view class="sealed-reference-toggle" role="switch" :aria-checked="memoryExcluded" :aria-disabled="savingMemoryPolicy" :class="{ 'sealed-reference-toggle--busy': savingMemoryPolicy }" @tap="toggleSealedMemoryPolicy">
+          <view class="sealed-reference-toggle" role="button" aria-label="编辑 Agent 参考设置与备注" aria-haspopup="dialog" :aria-disabled="savingMemoryPolicy" :class="{ 'sealed-reference-toggle--busy': savingMemoryPolicy }" @tap="openMemoryNoteSheet">
             <view class="sealed-reference-switch" :class="{ 'sealed-reference-switch--on': memoryExcluded }"><view /></view>
             <text>{{ savingMemoryPolicy ? '保存中…' : '不再供参考' }} · {{ memoryNoteDraft.trim() || '只代表当时，不代表现在' }}</text>
           </view>
@@ -944,9 +937,6 @@ onLoad(async (query) => {
                 </view>
               </view>
             </view>
-            <textarea v-model="memoryNoteDraft" class="memory-policy-note" auto-height maxlength="255" placeholder="只代表当时，不代表现在" placeholder-class="memory-policy-placeholder" />
-            <view class="memory-policy-save" :class="{ 'memory-policy-save--loading': savingMemoryPolicy }" @tap="saveAgentMemoryPolicy">{{ savingMemoryPolicy ? '保存中…' : '保存附言' }}</view>
-            <text class="sealed-reference-note">之后不再参考，不会撤回已经发出去的那一轮。</text>
           </view>
         </view>
         <view v-else-if="isUnlocked" class="review-more">
@@ -1028,7 +1018,7 @@ onLoad(async (query) => {
     </view>
 
     <!-- 备注小浮层：遮罩与纸面为兄弟节点，原生输入点击不触发关闭。 -->
-    <view v-if="isUnlocked && showMemoryNoteSheet" class="memory-note-layer">
+    <view v-if="(isUnlocked || isSealed) && showMemoryNoteSheet" class="memory-note-layer">
       <view class="memory-note-mask" @tap="closeMemoryNoteSheet" />
       <view class="memory-note-panel" role="dialog" aria-modal="true" aria-label="Agent 参考备注">
         <view class="memory-note-handle" />

@@ -8995,3 +8995,14 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，小浮层真实观感/字体/长备注、原生textarea键盘与焦点、小屏/真机及后端真实持久化未实操。源码/合成/构建不称平台或视觉验收，不绕过旧file拒绝。业务API/provider/对象存储真实调用0；完整F-25/F-32保持pending。
 - **Commit**: pending（已有本地简短提交授权；不push/PR/部署/接受delta/归档）
 - **Next**: 用户加载最终Standard产物，点击回看页参考入口，手验输入/关闭/保存及键盘避让；其它页面与回看对话浮层不扩展。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：封存页复用参考备注浮层｜Type B（F-25内）
+
+- **Scope**: 用户认可回看参考浮层后明确要求封存页也适配。clean HEAD c40335c（补录上一轮真实commit），沿用本地简短提交授权。仅SEALED参考入口/共享浮层可见与提交状态条件、现有详情合成和本轮交接/证据/日志，不改契约或任务范围。
+- **Changes**: 参考行原居中样式保留，角色由即时开关改为打开备注对话框的按钮；SEALED复用原暖纸小浮层、参考开关及255字备注，移除更多内重复输入/保存/说明和无入口的toggleSealedMemoryPolicy方法。地点/篇章保留，取消不写、失败保输入、服务确认才关闭、忙碌防重和Preview拒绝沿用。
+- **Verification PASS**: vue-tsc；15/15详情+14/14原状态+7/7浮层合成；Preview/Standard build退出0及各23项WXSS检查PASS，最终Standard。新封存用例涵盖点击仅开层/取消零请求、失败重试/忙碌防重、成功响应字段确认、Preview隔离、响应剥离封存正文后不回填不补请求。仅固定合成数据，不模拟真实持久化；既有Vue离线上下文及uni/caniuse更新提示保留。
+- **Verification PASS**: SEALED卡片/标题/霜态/媒体/倒计时主分支、UNLOCKED阅读主分支和完整既有CSS逐字一致。精确5文件allowlist/git diff --check提交前复核；日志原760380字节SHA256 87e28f2a6dda5d80bf992fc542a27e4c5e935caad6d25e0094127f0d9788e49f只追加前缀校验。后端/services/stores/types/features、package/lockfile、其它页面/媒体组件/ReviewChatSheet、demo/accepted specs/archive零修改，无真实日记/备注/位置/secret入库。
+- **Verification SKIPPED / Risks**: 无可控微信UI/自动化会话，原生中文键盘避让/焦点、实际浮层观感/触摸、小屏/真机和后端真实持久化未实操。源码/合成/构建不称平台验收，不绕过旧file拒绝。真实业务API/provider/对象存储调用0，F-25/F-32完整验收pending。
+- **Commit**: pending（已有简短本地提交授权，不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载Standard产物点击封存参考行，手验备注输入/关闭/保存及键盘避让；其它状态与对话行为不扩展。

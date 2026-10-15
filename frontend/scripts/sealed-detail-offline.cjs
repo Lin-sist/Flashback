@@ -49,13 +49,13 @@ async function main(){
   h.clock.now+=3723000;h.timers.values().next().value();assert.equal(h.scope.countdownH.value,'00');assert.equal(h.scope.isSealed.value,true)
   assert.equal(h.scope.canEditLaterReflection.value,false);h.cleanups.forEach(fn=>fn());assert.equal(h.timers.size,0);assert.equal(h.calls.length,0)
  })
- await check('封存部分正文复用霜层，默认简洁开关、更多保留备注/篇章',()=>{
+ await check('封存部分正文复用霜层，默认简洁入口、更多保留篇章',()=>{
   const h=setup('pages/record-detail/index.vue');assert.equal(h.select('sealed-card').length,1);assert.equal(h.select('sealed-expect').length,0);assert.equal(h.select('sealed-sub-hint').length,0);assert.equal(h.select('ownership-delete').length,0)
   assert.equal(h.select('sealed-body-excerpt')[0].children,h.scope.sealedExcerpt.value)
   assert.equal(h.select('memory-policy').length,0);assert.equal(h.select('chapter-membership-panel').length,0)
   const locationName='synthetic long location '.repeat(4);h.store.detail.location={name:locationName,address:'synthetic complete address'}
   assert.equal(h.select('sealed-meta__location')[0].props['aria-label'],locationName.trim());assert.equal(h.select('sealed-meta__address').length,0)
-  h.select('sealed-options-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy-note').length,1);assert.equal(h.select('sealed-location-details').length,1);assert.equal(h.store.detail.location.name,locationName)
+  h.select('sealed-options-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy-note').length,0);assert.equal(h.select('sealed-location-details').length,1);assert.equal(h.store.detail.location.name,locationName)
  })
  await check('正文只读截取72个字符且不拆emoji，空响应不补正文或发请求',()=>{
   const h=setup('pages/record-detail/index.vue'),content='synthetic-🙂'.repeat(20)+'synthetic-tail-never-show'
@@ -69,16 +69,30 @@ async function main(){
   h.store.detail.content=null;assert.equal(h.scope.sealedExcerpt.value,'');assert.equal(h.select('sealed-body-excerpt').length,0)
   assert.equal(h.select('sealed-body-ink').length,1);assert.equal(h.calls.length,0)
  })
- await check('简洁开关保存真实字段、忙碌防重、失败回滚且不清空原备注',async()=>{
-  const h=setup('pages/record-detail/index.vue');let release;h.setUpdate(()=>new Promise(r=>{release=r}))
-  const pending=h.scope.toggleSealedMemoryPolicy();await h.scope.toggleSealedMemoryPolicy();assert.equal(h.calls.length,1)
-  assert.equal(JSON.stringify(h.calls[0]),JSON.stringify(['memory',30,true,'synthetic existing note']))
-  release({...h.store.detail,agentMemoryExcluded:true});await pending;assert.equal(h.scope.memoryExcluded.value,true)
-  h.setUpdate(async()=>{throw Error('synthetic failure')});await h.scope.toggleSealedMemoryPolicy();assert.equal(h.scope.memoryExcluded.value,true);assert.equal(h.scope.memoryNoteDraft.value,'synthetic existing note');assert.equal(h.scope.savingMemoryPolicy.value,false)
+ await check('封存参考入口只打开浮层，取消不修改策略或正文',()=>{
+  const h=setup('pages/record-detail/index.vue'),original=h.store.detail.content
+  h.select('sealed-reference-toggle')[0].props.onTap();assert.equal(h.select('memory-note-panel').length,1);assert.equal(h.calls.length,0)
+  assert.equal(h.scope.memorySheetNote.value,'synthetic existing note');assert.equal(h.scope.memorySheetExcluded.value,false)
+  h.scope.memorySheetNote.value='synthetic cancelled note';h.select('memory-note-toggle')[0].props.onTap();h.select('memory-note-close')[0].props.onTap()
+  assert.equal(h.select('memory-note-panel').length,0);assert.equal(h.scope.memoryExcluded.value,false);assert.equal(h.scope.memoryNoteDraft.value,'synthetic existing note')
+  assert.equal(h.store.detail.content,original);assert.equal(h.calls.length,0)
  })
- await check('Preview拒绝开关写入；删除仍先走确认且取消零删除',async()=>{
-  const h=setup('pages/record-detail/index.vue');h.state.auth=false;h.state.preview=true;await h.scope.toggleSealedMemoryPolicy();assert.equal(h.calls.length,0);assert.equal(h.scope.memoryExcluded.value,false)
-  h.state.auth=true;h.store.detail.status='SAVED';assert.equal(h.select('ownership-delete').length,1);h.select('ownership-delete')[0].props.onTap();assert.equal(h.modals.length,1);await h.modals[0].success({confirm:false});assert.equal(h.calls.length,0)
+ await check('封存备注失败保留输入、忙碌防重，成功沿用响应且不补回被剥离正文',async()=>{
+  const h=setup('pages/record-detail/index.vue');h.scope.openMemoryNoteSheet();h.scope.memorySheetNote.value='synthetic sealed note';h.scope.memorySheetExcluded.value=true
+  h.setUpdate(async()=>{throw Error('synthetic failure')});await h.scope.saveMemoryNoteSheet()
+  assert.equal(h.scope.showMemoryNoteSheet.value,true);assert.equal(h.scope.memorySheetNote.value,'synthetic sealed note');assert.equal(h.scope.memorySheetExcluded.value,true)
+  assert.equal(h.scope.memoryExcluded.value,false);assert.equal(h.scope.memoryNoteDraft.value,'synthetic existing note')
+  let release;h.setUpdate(()=>new Promise(r=>{release=r}));const count=h.calls.length,pending=h.scope.saveMemoryNoteSheet()
+  await h.scope.saveMemoryNoteSheet();h.scope.closeMemoryNoteSheet();assert.equal(h.calls.length,count+1);assert.equal(h.scope.showMemoryNoteSheet.value,true)
+  assert.equal(h.select('memory-note-input')[0].props.disabled,true);assert.equal(JSON.stringify(h.calls.at(-1)),JSON.stringify(['memory',30,true,'synthetic sealed note']))
+  release({...h.store.detail,agentMemoryExcluded:true,agentMemoryContextNote:'synthetic confirmed note',content:null});await pending
+  assert.equal(h.scope.showMemoryNoteSheet.value,false);assert.equal(h.scope.memoryExcluded.value,true);assert.equal(h.scope.memoryNoteDraft.value,'synthetic confirmed note')
+  assert.equal(h.scope.sealedExcerpt.value,'');assert.equal(h.select('sealed-body-excerpt').length,0);assert.equal(h.scope.isSealed.value,true);assert.equal(h.calls.length,count+1)
+ })
+ await check('封存Preview备注拒绝写入；删除仍先走确认且取消零删除',async()=>{
+  const h=setup('pages/record-detail/index.vue');h.state.auth=false;h.state.preview=true;h.scope.openMemoryNoteSheet();h.scope.memorySheetNote.value='synthetic preview note';h.scope.memorySheetExcluded.value=true
+  await h.scope.saveMemoryNoteSheet();assert.equal(h.calls.length,0);assert.equal(h.scope.memoryExcluded.value,false);assert.equal(h.scope.showMemoryNoteSheet.value,true);assert.equal(h.scope.memorySheetNote.value,'synthetic preview note')
+  h.scope.closeMemoryNoteSheet();h.state.auth=true;h.store.detail.status='SAVED';assert.equal(h.select('ownership-delete').length,1);h.select('ownership-delete')[0].props.onTap();assert.equal(h.modals.length,1);await h.modals[0].success({confirm:false});assert.equal(h.calls.length,0)
  })
  await check('只读媒体过滤非AVAILABLE、图片签名失败重试与封存无媒体空态',async()=>{
   const h=setup('pages/record-detail/components/ReadOnlyRecordMedia.vue',{recordId:30,variant:'sealed',attachments:[{id:1,type:'IMAGE',status:'AVAILABLE'},{id:2,type:'VOICE',status:'AVAILABLE',durationSeconds:7},{id:3,type:'IMAGE',status:'FAILED'}]})
@@ -102,7 +116,7 @@ async function main(){
   h.select('memory-note-mask')[0].props.onTap();assert.equal(h.scope.showMemoryNoteSheet.value,false)
   assert.equal(h.scope.memoryNoteDraft.value,'synthetic existing note');assert.equal(h.scope.memoryExcluded.value,false);assert.equal(h.calls.length,0)
   h.scope.openMemoryNoteSheet();assert.equal(h.scope.memorySheetNote.value,'synthetic existing note');h.select('memory-note-close')[0].props.onTap()
-  for(const status of ['SEALED','SAVED','DRAFT']){h.store.detail.status=status;h.scope.openMemoryNoteSheet();assert.equal(h.select('memory-note-entry').length,0);assert.equal(h.select('memory-note-panel').length,0)}
+  for(const status of ['SAVED','DRAFT']){h.store.detail.status=status;h.scope.openMemoryNoteSheet();assert.equal(h.select('memory-note-entry').length,0);assert.equal(h.select('memory-note-panel').length,0)}
  })
  await check('备注保存失败保留输入可重试，忙碌防重且响应成功才关闭',async()=>{
   const h=setup('pages/record-detail/index.vue');h.store.detail.status='UNLOCKED';h.scope.openMemoryNoteSheet()
