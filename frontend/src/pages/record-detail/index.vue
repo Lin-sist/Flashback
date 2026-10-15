@@ -141,14 +141,6 @@ const unlockQuote = computed(() => {
 // 封存纸面只展示已返回的标题；正文不以可读文本置于霜层下。
 const sealedTitle = computed(() => detail.value?.title?.trim()
   ? '“' + detail.value.title.trim() + '”' : '未命名片段')
-const sealedArrivalText = computed(() => {
-  const raw = detail.value?.unlockAt
-  if (!raw) return '等待约定的时间'
-  const date = new Date(raw)
-  if (!Number.isFinite(date.getTime())) return '等待约定的时间'
-  const season = ['冬','冬','春','春','春','夏','夏','夏','秋','秋','秋','冬'][date.getMonth()]
-  return '即将抵达 · ' + date.getFullYear() + ' 年' + season
-})
 
 const { cssVars, navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } =
   useWechatNavMetrics()
@@ -766,8 +758,10 @@ onLoad(async (query) => {
         <!-- SEALED：demo信笺布局，保留真实倒计时与只读媒体。 -->
         <view v-else-if="isSealed" class="sealed-hero">
           <view class="sealed-meta">
-            <text class="sealed-meta__no">{{ archiveNoCN }}<text v-if="archiveLocationPrimary"> · {{ archiveLocationPrimary }}</text></text>
-            <text v-if="archiveLocationAddress" class="sealed-meta__address">{{ archiveLocationAddress }}</text>
+            <view class="sealed-meta__line">
+              <text class="sealed-meta__no">{{ archiveNoCN }}</text>
+              <text v-if="archiveLocationPrimary" class="sealed-meta__location" :aria-label="archiveLocationPrimary">· {{ archiveLocationPrimary }}</text>
+            </view>
             <text class="sealed-meta__season">{{ archiveSeasonCN }}</text>
           </view>
           <view class="sealed-card">
@@ -792,7 +786,6 @@ onLoad(async (query) => {
               <view class="sealed-lock__pulse" aria-hidden="true" />
               <text class="sealed-lock__live-text">即将抵达，封印未解</text>
             </view>
-            <text class="sealed-expect">{{ sealedArrivalText }}</text>
             <view class="sealed-countdown">
               <text class="sealed-countdown__label">还 有</text>
               <view class="sealed-countdown__digits">
@@ -813,7 +806,6 @@ onLoad(async (query) => {
               </view>
             </view>
           </view>
-          <text class="sealed-sub-hint">解锁后，过去的你会读到这封信</text>
         </view>
 
         <!-- ══════ UNLOCKED：时间回看（回看.html 结构） ══════ -->
@@ -954,6 +946,10 @@ onLoad(async (query) => {
           </view>
           <button class="sealed-options-toggle" :aria-expanded="sealedOptionsOpen" @tap="sealedOptionsOpen = !sealedOptionsOpen">{{ sealedOptionsOpen ? '收起更多' : '更多 · 篇章与附言' }}</button>
           <view v-if="sealedOptionsOpen" class="sealed-options">
+            <view v-if="archiveLocationPrimary" class="sealed-location-details">
+              <text>地点：{{ archiveLocationPrimary }}</text>
+              <text v-if="archiveLocationAddress">{{ archiveLocationAddress }}</text>
+            </view>
             <view class="chapter-membership-panel">
               <view class="chapter-membership-head">
                 <text class="chapter-membership-title">时间篇章</text>
@@ -998,7 +994,7 @@ onLoad(async (query) => {
           >{{ savingMemoryPolicy ? '保存中…' : '保存' }}</view>
         </view>
 
-        <view class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
+        <view v-if="!isSealed" class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
       </view>
 
       <!-- 无 detail 兜底 -->
@@ -1285,7 +1281,7 @@ onLoad(async (query) => {
   text-align: center;
   margin: 0 0 48rpx;
 }
-.sealed-meta__no, .sealed-meta__season {
+.sealed-meta__line, .sealed-meta__season {
   display: block;
   color: #6b6560;
   font-size: 24rpx;
@@ -1293,21 +1289,33 @@ onLoad(async (query) => {
   line-height: 1.8;
   overflow-wrap: anywhere;
 }
+.sealed-meta__line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+}
+.sealed-meta__no {
+  flex-shrink: 0;
+  max-width: 58%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sealed-meta__location {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 .sealed-meta__season {
   margin-top: 14rpx;
-}
-.sealed-meta__address {
-  display: block;
-  margin-top: 8rpx;
-  color: #9e9890;
-  font-size: 21rpx;
-  line-height: 1.6;
 }
 .sealed-card {
   position: relative;
   width: 100%;
   min-height: 500rpx;
-  padding: 52rpx 48rpx 68rpx 52rpx;
+  padding: 52rpx 48rpx 68rpx;
   box-sizing: border-box;
   border: 1rpx solid #e3dacc;
   border-radius: 2rpx;
@@ -1356,20 +1364,25 @@ onLoad(async (query) => {
   position: relative;
   z-index: 2;
   display: block;
-  margin: 28rpx 0 0 74rpx;
+  margin: 28rpx 0 0;
+  text-align: center;
   font-size: 38rpx;
   line-height: 1.8;
   letter-spacing: 3rpx;
-  color: #9e9890;
+  color: rgba(107,101,96,.56);
+  text-shadow: 0 0 4rpx rgba(107,101,96,.2);
+  filter: blur(1.2rpx);
   overflow-wrap: anywhere;
 }
 .sealed-body-ink {
   margin-top: 40rpx;
+  opacity: .5;
+  filter: blur(7rpx);
 }
 .sealed-body-ink view {
-  height: 16rpx;
+  height: 18rpx;
   margin-bottom: 28rpx;
-  background: rgba(107,101,96,.06);
+  background: linear-gradient(180deg, transparent, rgba(107,101,96,.12), transparent);
 }
 .sealed-body-ink view:nth-child(2n) {
   width: 85%;
@@ -1378,11 +1391,11 @@ onLoad(async (query) => {
   position: absolute;
   left: 0;
   right: 0;
-  top: 140rpx;
+  top: 0;
   bottom: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,.65), #fff 85%);
-  box-shadow: inset 0 0 52rpx 20rpx rgba(255,255,255,.95);
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.08) 18%, rgba(255,255,255,.7) 42%, rgba(255,255,255,.94) 76%, #fff 100%);
+  box-shadow: inset 0 0 52rpx 16rpx rgba(255,255,255,.85), inset 0 0 10rpx 2rpx rgba(255,255,255,.8);
 }
 .sealed-media {
   display: block;
@@ -1412,13 +1425,6 @@ onLoad(async (query) => {
   font-size: 24rpx;
   line-height: 1.7;
   letter-spacing: 2rpx;
-}
-.sealed-expect {
-  color: #403c37;
-  font-size: 46rpx;
-  text-align: center;
-  line-height: 1.65;
-  letter-spacing: 3rpx;
 }
 .sealed-countdown {
   text-align: center;
@@ -1457,28 +1463,33 @@ onLoad(async (query) => {
   font-size: 42rpx;
   margin: 0 4rpx;
 }
-.sealed-sub-hint {
-  display: block;
-  margin: 84rpx 0 0;
-  text-align: center;
-  font-size: 22rpx;
-  line-height: 1.8;
-  letter-spacing: 2rpx;
-  color: #9e9890;
-}
 .sealed-reference {
   margin: 80rpx 0 0;
 }
 .sealed-reference-toggle {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  justify-content: center;
+  gap: 16rpx;
   min-height: 88rpx;
   color: #9e9890;
   font-size: 24rpx;
   line-height: 1.8;
   letter-spacing: 1rpx;
+  text-align: center;
 }
+.sealed-reference-toggle text {
+  min-width: 0;
+  max-width: calc(100% - 80rpx);
+  text-align: center;
+}
+.sealed-location-details {
+  margin: 16rpx 0 24rpx;
+  color: #9e9890;
+  font-size: 22rpx;
+  line-height: 1.8;
+}
+.sealed-location-details text { display: block; overflow-wrap: anywhere; }
 .sealed-reference-toggle--busy {
   opacity: .6;
 }
@@ -1513,7 +1524,7 @@ onLoad(async (query) => {
   min-height: 72rpx;
   color: #9e9890;
   background: transparent;
-  text-align: left;
+  text-align: center;
   font-family: inherit;
   font-size: 21rpx;
   line-height: 2;
@@ -1531,14 +1542,6 @@ onLoad(async (query) => {
   color: #9e9890;
   font-size: 21rpx;
   line-height: 1.7;
-}
-.archive-page--sealed .ownership-delete {
-  margin: 24rpx 0 0;
-  color: #b5352a;
-  font-family: inherit;
-  font-size: 28rpx;
-  font-weight: 300;
-  letter-spacing: 3rpx;
 }
 
 /* ═══════════════════════════════════════

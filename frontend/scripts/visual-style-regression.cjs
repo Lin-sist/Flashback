@@ -168,13 +168,19 @@ check('Agent遮罩与纸底不依赖滤镜，输入区保留底部安全区', ()
   assert.match(property('pages/record-editor/components/AgentChatSheet.wxss', '.agent-sheet', 'padding'), /safe-area-inset-bottom/)
   assert.match(property('pages/record-editor/components/AgentIntentChooser.wxss', '.intent-panel', 'padding'), /safe-area-inset-bottom/)
 })
-check('封存霜卡与媒体为整宽正常布局，静态遮盖不依赖filter', () => {
+check('封存霜卡整宽渐进遮盖、标题和参考居中且仅装饰可柔化', () => {
   const file = 'pages/record-detail/index.wxss'
   assert.equal(property(file, '.sealed-card', 'width'), '100%')
   assert.equal(property(file, '.sealed-card', 'box-sizing'), 'border-box')
   assert.equal(property(file, '.sealed-media', 'width'), '100%')
+  assert.equal(property(file, '.sealed-quote__text', 'text-align'), 'center')
+  assert.equal(property(file, '.sealed-reference-toggle', 'justify-content'), 'center')
+  assert.match(property(file, '.sealed-frost', 'background'), /gradient/)
+  assert.equal(property(file, '.sealed-frost', 'top'), '0')
+  assert.equal(property(file, '.sealed-meta__location', 'white-space'), 'nowrap')
+  assert.equal(property(file, '.sealed-meta__location', 'text-overflow'), 'ellipsis')
   css(file).walkRules(rule => {
-    if (rule.selector.includes('.sealed-')) rule.walkDecls(/filter/, () => { throw new Error('sealed layout requires filter') })
+    if (rule.selector.includes('.sealed-')) rule.walkDecls(/filter/, () => { assert.ok(rule.selector.includes('.sealed-quote__text') || rule.selector.includes('.sealed-body-ink'), 'blur outside title/decorative ink') })
   })
 })
 check('封存媒体可横排且窄屏换行，不因组件host缩成窄列', () => {

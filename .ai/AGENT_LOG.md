@@ -8948,3 +8948,14 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，实际绘制、字色、霜层/长标题/长地点、多图多声音真实播放/URL过期/更多编辑、小屏/真机安全区仍须手验。合成模板不模拟原生v-model，Vue withDirectives离线上下文提示保留，不称平台验收。OpenSpec CLI不在PATH，不改Requirement/Scenario且未假称validate；旧file拒绝不绕过。真实业务API/provider/对象存储0。F-25/SAVED/UNLOCKED及全矩阵不补勾。
 - **Commit**: pending（既有本地简短提交授权；不push/PR/部署/接受delta/归档）
 - **Next**: 用户加载Standard产物审封存霜卡/媒体横排/倒计时/轻参考开关，并手验媒体与更多/失败回滚；其它页面/完整F-25验收待后续指令。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：封存页霜态/居中/地点收口与删繁｜Type B（F-25内）
+
+- **Scope**: 用户d60f415版实际画面反馈FAIL，并明确霜态/标题居中/地点简洁、去大号抵达季节说明、参考居中、删解锁脚注和SEALED删除入口。clean HEAD d60f415（补录上一批真实commit），沿用简短本地提交。仅record-detail SEALED展示、两份既有离线回归脚本、当前ACTIVE/证据及本条只追加，不修改OpenSpec范围/契约。
+- **Changes**: 固定top140rpx硬切白块→整卡透明到浓白渐进霜与边缘凝霜；对称内边距、标题居中，标题/通用装饰墨影可选轻模糊并有静态颜色/渐变/投影，无backdrop/mask依赖、无真实正文进入模板。顶部存档/地点单行省略，完整地点地址移入更多且原数据保留。删除大号年份抵达文本/unused computed/样式及解锁脚注；只SEALED不渲染删除入口，其它状态原动作保留。参考开关/说明/更多居中，原真实倒计时与小号红点封存状态保留。
+- **Verification PASS**: 新UI断言先FAIL（旧抵达说明1!=0），修复后5/5封存+14/14已有状态+7/7浮层合成PASS。长地点用例按既有trim展示修正预期后通过，同时检查原值不改及更多完整展示。vue-tsc、Preview/Standard build退出0，各21项WXSS/布局PASS；更新旧完全禁止filter的断言为仅标题/装饰可柔化、霜层渐变独立存在，检查标题/参考居中/地点单行省略。最终Standard产物。
+- **Verification PASS**: startCountdown/saveAgentMemoryPolicy/toggleSealedMemoryPolicy/deleteOwnedRecord/openEditor/submitReply/submitLaterReflection方法与d60f415字节一致。精确6文件范围/git diff --check及隐私提交前复核；日志原749382字节SHA256 6a3d05e5802ae44229d65c8c688830d116f821e55a33451e7d04195f749b4dfc只追加前缀校验PASS。ReadOnlyRecordMedia/其它页面/后端/services/stores/types/features/权限、package/lockfile、demo/accepted specs/archive保护；没有截图真实地点/日记正文/secret入库。
+- **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新霜态filter实效/静态回退、字体、长标题地址/底部对齐、小屏/真机仍待实操；当前用户画面只代表d60f415反馈FAIL。合成模板不模拟原生v-model，Vue离线withDirectives提示保留；不称视觉过审、不绕过旧file拒绝。真实业务API/provider/对象存储0，完整F-25 pending不补勾。
+- **Commit**: pending（已授本地简短提交；不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载Standard产物，复验柔霜/标题中心/地点省略/倒计时/参考中心以及删繁；其它页与完整状态矩阵不扩展。

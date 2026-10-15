@@ -50,10 +50,12 @@ async function main(){
   assert.equal(h.scope.canEditLaterReflection.value,false);h.cleanups.forEach(fn=>fn());assert.equal(h.timers.size,0);assert.equal(h.calls.length,0)
  })
  await check('封存正文不进入模板，默认简洁开关、更多仍可编辑旧备注/篇章',()=>{
-  const h=setup('pages/record-detail/index.vue');assert.equal(h.select('sealed-card').length,1)
+  const h=setup('pages/record-detail/index.vue');assert.equal(h.select('sealed-card').length,1);assert.equal(h.select('sealed-expect').length,0);assert.equal(h.select('sealed-sub-hint').length,0);assert.equal(h.select('ownership-delete').length,0)
   assert.ok(!h.nodes().some(n=>typeof n.children==='string'&&n.children.includes('synthetic sealed body')))
   assert.equal(h.select('memory-policy').length,0);assert.equal(h.select('chapter-membership-panel').length,0)
-  h.select('sealed-options-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy-note').length,1)
+  const locationName='synthetic long location '.repeat(4);h.store.detail.location={name:locationName,address:'synthetic complete address'}
+  assert.equal(h.select('sealed-meta__location')[0].props['aria-label'],locationName.trim());assert.equal(h.select('sealed-meta__address').length,0)
+  h.select('sealed-options-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy-note').length,1);assert.equal(h.select('sealed-location-details').length,1);assert.equal(h.store.detail.location.name,locationName)
  })
  await check('简洁开关保存真实字段、忙碌防重、失败回滚且不清空原备注',async()=>{
   const h=setup('pages/record-detail/index.vue');let release;h.setUpdate(()=>new Promise(r=>{release=r}))
@@ -64,7 +66,7 @@ async function main(){
  })
  await check('Preview拒绝开关写入；删除仍先走确认且取消零删除',async()=>{
   const h=setup('pages/record-detail/index.vue');h.state.auth=false;h.state.preview=true;await h.scope.toggleSealedMemoryPolicy();assert.equal(h.calls.length,0);assert.equal(h.scope.memoryExcluded.value,false)
-  h.state.auth=true;h.scope.deleteOwnedRecord();assert.equal(h.modals.length,1);await h.modals[0].success({confirm:false});assert.equal(h.calls.length,0)
+  h.state.auth=true;h.store.detail.status='SAVED';assert.equal(h.select('ownership-delete').length,1);h.select('ownership-delete')[0].props.onTap();assert.equal(h.modals.length,1);await h.modals[0].success({confirm:false});assert.equal(h.calls.length,0)
  })
  await check('只读媒体过滤非AVAILABLE、图片签名失败重试与封存无媒体空态',async()=>{
   const h=setup('pages/record-detail/components/ReadOnlyRecordMedia.vue',{recordId:30,variant:'sealed',attachments:[{id:1,type:'IMAGE',status:'AVAILABLE'},{id:2,type:'VOICE',status:'AVAILABLE',durationSeconds:7},{id:3,type:'IMAGE',status:'FAILED'}]})
