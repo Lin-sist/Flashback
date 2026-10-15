@@ -12,6 +12,7 @@ import { formatYearMonth } from '../../../utils'
 const props = defineProps<{
   visible: boolean
   session: AgentSession | null
+  selectedIntent?: AgentConversationIntent
   loading: boolean
   sending: boolean
   finishing: boolean
@@ -53,8 +54,18 @@ const phaseText = computed(() => {
 })
 
 const currentIntent = computed<AgentConversationIntent>(() =>
-  props.session?.conversationIntent === 'UNTANGLE' ? 'UNTANGLE' : 'LISTEN'
+  (props.session?.conversationIntent || props.selectedIntent) === 'UNTANGLE' ? 'UNTANGLE' : 'LISTEN'
 )
+
+// 先显示选择，待真实会话就绪后才允许切换；不在加载中启动额外请求。
+const canSwitchIntent = computed(() => Boolean(props.session)
+  && !props.loading
+  && !props.switchingIntent
+  && !isEnded.value)
+const switchIntent = (intent: AgentConversationIntent) => {
+  if (!canSwitchIntent.value) return
+  emit('switchIntent', intent)
+}
 
 const memoryEnabled = computed(() => props.session?.crossRecordMemoryEnabled === true)
 
@@ -149,23 +160,25 @@ const submit = () => {
         <view class="close-btn" aria-label="关闭对话" @tap="emit('close')">×</view>
       </view>
 
-      <view v-if="session && !isEnded" class="intent-switch" aria-label="切换对话方式">
+      <view v-if="!isEnded" class="intent-switch" aria-label="切换对话方式">
         <view
           class="intent-switch-item"
+          :aria-disabled="!canSwitchIntent"
           :class="{
             'intent-switch-item--active': currentIntent === 'LISTEN',
-            'intent-switch-item--disabled': switchingIntent,
+            'intent-switch-item--disabled': !canSwitchIntent,
           }"
-          @tap="emit('switchIntent', 'LISTEN')"
+          @tap="switchIntent('LISTEN')"
         >倾诉</view>
         <view class="intent-divider" aria-hidden="true" />
         <view
           class="intent-switch-item"
+          :aria-disabled="!canSwitchIntent"
           :class="{
             'intent-switch-item--active': currentIntent === 'UNTANGLE',
-            'intent-switch-item--disabled': switchingIntent,
+            'intent-switch-item--disabled': !canSwitchIntent,
           }"
-          @tap="emit('switchIntent', 'UNTANGLE')"
+          @tap="switchIntent('UNTANGLE')"
         >{{ switchingIntent ? '正在切换...' : '理一理' }}</view>
       </view>
 
@@ -305,7 +318,15 @@ const submit = () => {
             @confirm="submit"
           />
           <view class="send-btn" aria-label="发送" :aria-disabled="!canSend" :class="{ 'send-btn--disabled': !canSend }" @tap="submit">
-            <image class="send-icon" aria-hidden="true" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%236b6560' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.2 1.8L7 9M14.2 1.8L9.6 14.2 7 9 1.8 6.4z'/%3E%3C/svg%3E" />
+            <view class="send-icon" aria-hidden="true">
+              <view class="send-plane">
+                <view class="plane-line plane-line--top" />
+                <view class="plane-line plane-line--right" />
+                <view class="plane-line plane-line--tail" />
+                <view class="plane-line plane-line--left" />
+                <view class="plane-line plane-line--fold" />
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -826,13 +847,29 @@ const submit = () => {
 .send-icon {
   width: 60rpx;
   height: 60rpx;
-  padding: 15rpx;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1rpx solid rgba(107, 101, 96, .5);
   border-radius: 50%;
 }
 
+/* 原生 view 细线纸飞机：避免小程序 image 的内联 SVG 只显示外圈。 */
+.send-plane { position: relative; width: 32rpx; height: 32rpx; }
+.plane-line {
+  position: absolute;
+  height: 0;
+  border-top: 2rpx solid #6b6560;
+  transform-origin: 0 0;
+}
+.plane-line--top { left: 3.6rpx; top: 12.8rpx; width: 26.45rpx; transform: rotate(-20.35deg); }
+.plane-line--right { left: 28.4rpx; top: 3.6rpx; width: 26.45rpx; transform: rotate(110.35deg); }
+.plane-line--tail { left: 19.2rpx; top: 28.4rpx; width: 11.63rpx; transform: rotate(-116.57deg); }
+.plane-line--left { left: 14rpx; top: 18rpx; width: 11.63rpx; transform: rotate(-153.43deg); }
+.plane-line--fold { left: 14rpx; top: 18rpx; width: 20.36rpx; transform: rotate(-45deg); }
+
 .send-btn--disabled {
-  opacity: 0.36;
+  opacity: 0.6;
 }
 </style>

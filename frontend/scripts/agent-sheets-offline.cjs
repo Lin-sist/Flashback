@@ -7,7 +7,7 @@ function mount(name, initial = {}) {
   const { descriptor } = parse(fs.readFileSync(path.join(root, 'src/pages/record-editor/components', name + '.vue'), 'utf8'))
   const events = [], navigation = []
   const props = vue.reactive({ visible: true, session: null, loading: false, sending: false, finishing: false, confirmingToolCall: false, switchingIntent: false, switchingMemoryAuthorization: false, errorMessage: '', ...initial })
-  const exports = name === 'AgentChatSheet' ? 'input, scrollAnchor, messages, material, isEnded, awaitingRetry, canSend, phaseText, currentIntent, memoryEnabled, canEnableMemory, memoryHint, toggleMemoryAuthorization, assistantSources, sourceKicker, sourceLabel, openSource, pendingToolCall, toolCallNotice, toolCallFailed, messageKey, submit, emit' : 'emit'
+  const exports = name === 'AgentChatSheet' ? 'input, scrollAnchor, messages, material, isEnded, awaitingRetry, canSend, phaseText, currentIntent, canSwitchIntent, switchIntent, memoryEnabled, canEnableMemory, memoryHint, toggleMemoryAuthorization, assistantSources, sourceKicker, sourceLabel, openSource, pendingToolCall, toolCallNotice, toolCallFailed, messageKey, submit, emit' : 'emit'
   const js = ts.transpileModule(descriptor.scriptSetup.content + '\nglobalThis.surface = {' + exports + '}', { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
   const context = { exports: {}, defineProps: () => props, defineEmits: () => (...args) => events.push(args), uni: { navigateTo: x => navigation.push(x.url) }, require: spec => {
     if (spec === 'vue') return vue
@@ -30,6 +30,24 @@ function check(name, fn) { fn(); passed++; console.log('PASS ' + name) }
 check('选择与取消仍发出真实意图枚举', () => {
   const c = mount('AgentIntentChooser'); c.select('intent-option').forEach(n => n.props.onTap()); c.tap('intent-mask')
   assert.equal(JSON.stringify(c.events), JSON.stringify([['choose', 'LISTEN'], ['choose', 'UNTANGLE'], ['close']]))
+})
+check('无会话加载/失败仍显示两个意图，加载不可切换且选中态遵循入口选择', () => {
+  const c = mount('AgentChatSheet', { session: null, loading: true, selectedIntent: 'UNTANGLE' })
+  assert.equal(c.select('intent-switch-item').length, 2)
+  assert.equal(c.scope.currentIntent.value, 'UNTANGLE')
+  c.select('intent-switch-item').forEach(n => n.props.onTap())
+  assert.equal(c.events.length, 0)
+  c.props.loading = false; c.props.errorMessage = 'synthetic start failure'
+  assert.equal(c.select('intent-switch-item').length, 2)
+  c.select('intent-switch-item').forEach(n => n.props.onTap())
+  assert.equal(c.events.length, 0)
+  c.props.errorMessage = ''; c.props.session = session()
+  assert.equal(c.scope.currentIntent.value, 'LISTEN')
+  c.select('intent-switch-item')[1].props.onTap()
+  assert.equal(JSON.stringify(c.events), JSON.stringify([['switchIntent', 'UNTANGLE']]))
+  c.props.switchingIntent = true; c.select('intent-switch-item')[0].props.onTap()
+  assert.equal(c.events.length, 1)
+  c.props.session.sessionStatus = 'ENDED'; assert.equal(c.select('intent-switch-item').length, 0)
 })
 check('输入栏发送后清空；忙碌、失败待重试和结束禁止新发送', () => {
   const c = mount('AgentChatSheet', { session: session() }); c.scope.input.value = '  synthetic message  '; c.tap('send-btn'); c.tap('send-btn')

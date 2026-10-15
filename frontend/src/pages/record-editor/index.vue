@@ -2073,6 +2073,7 @@ onUnload(() => {
   <AgentChatSheet
     :visible="showAgentChat"
     :session="agentChatStore.session"
+    :selected-intent="selectedAgentIntent"
     :loading="agentChatStore.loading"
     :sending="agentChatStore.sending"
     :finishing="agentChatStore.finishing"

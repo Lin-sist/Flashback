@@ -8925,3 +8925,14 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 用户书写正常态认可仅覆盖1506ab4；本版两浮层的微信绘制/字体/中文键盘/焦点/长消息触摸滚动及真机安全区未实操，当前无可控原生UI。新模板检查不模拟原生v-model，withDirectives离线上下文提示保留；CSS/事件合成不等于微信验收。OpenSpec CLI既有缺失、未改Requirement/Scenario，不假称validate。旧file浏览器拒绝不绕过。真实业务API/provider/对象存储0。
 - **Commit**: pending（已授简短本地提交；不push/PR/部署/接受delta/归档）
 - **Next**: 用户重新编译最终Standard dist，复验选择/书写浮层居中标题/双纸卡/朱砂线/输入栏，手验中文键盘及消息滚动。F-32回看对话与完整E验收、F-21平台矩阵及F-27仍pending。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：修复加载分区隐藏与发送飞机图标｜Type B（F-32书写浮层内）
+
+- **Scope**: 用户提供6717a74版实际截图，要求修复发送图标缺失、倾诉/理一理分区未显示。起点clean HEAD 6717a74（补录上轮真实commit）；沿用局部修复/简短本地commit授权。仅AgentChatSheet、编辑器展示prop一行、现有agent-sheets-offline脚本与当前ACTIVE/实施证据/本条追加，不改任务范围或契约。
+- **Cause / Changes**: session非空才显示分区导致加载时整行隐藏，实际SFC编译模板加载态复现0个标签FAIL。改为未结束时展示，加载时用现有入口selectedAgentIntent作选中态，真实会话优先；无session/加载/切换忙碌不能emit切换。用户画面发送按钮只有外圈，内联SVG未画出；改原生view五条细线纸飞机保留圆圈，将禁用透明度升至0.6。SVG原生解码失败具体原因未直接验证，不将推测称已证实平台规则。
+- **Verification PASS**: 回归复现先FAIL（0!=2），修复后7/7浮层实际setup/编译模板事件PASS，包含加载/启动失败仍有两意图、busy不发事件、入口/真实会话选中态与ended隐藏；14/14已有状态回归PASS。vue-tsc、Preview/Standard mp-weixin build退出0，各19项WXSS/几何PASS；最终Standard产物，dist不入库。构建WXML/WXSS包含原生飞机边线和意图栏，无内联SVG image。
+- **Verification PASS**: 编辑器setup与6717a74字节一致，AgentChatSheet仅展示fallback/切换guard增加，原submit/记忆许可/来源/工具/素材/重试接线保护。精确6文件范围、git diff --check、隐私检查提交前复核；日志原743517字节SHA256 58812d7da6165ce3a54bb1be1d83839a2fbfd5c5348d9fd035fac51a071c7eed只追加前缀校验PASS。无调试日志/临时产物入库、无截图/真实原文/secret复制。
+- **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新版纸飞机实绘、两个分区的间距/触摸/中文键盘/真机安全区仍待手验；合成模板不模拟原生v-model，Vue离线上下文withDirectives提示保留，不作为平台PASS。旧file拒绝不绕过；不改后端/services/stores/types/权限、package/lockfile、其它页/回看浮层、demo、accepted specs/archive。真实业务API/provider/对象存储0。
+- **Commit**: pending（沿用本地简短提交；不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载最终Standard构建复验图标及加载/失败状态下意图分区；F-32完整平台验收保持pending。
