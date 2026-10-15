@@ -8970,3 +8970,16 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新正文在原霜层下的实际可见度/模糊/字体/真机仍待手验；合成模板不模拟原生v-model，既有Vue离线上下文提示保留，不以源码/构建称视觉通过。不绕过旧file拒绝。真实业务API/provider/对象存储0，完整F-25仍pending。
 - **Commit**: pending（已有本地简短提交授权；不push/PR/部署/接受delta/归档）
 - **Next**: 用户加载Standard构建只复验霜下正文片段，标题继续居中，其它页面和元素不扩展。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：F-25回看UNLOCKED页demo接入｜已批准Type C展示切片
+
+- **Scope**: 用户明确继续回看页demo接入、功能多时以简洁克制为主。clean HEAD aa9a8ae（补录上轮真实commit），沿用本地简短提交授权。仅record-detail UNLOCKED展示、ReadOnlyRecordMedia独立review变体、两份既有回归脚本及当前tasks/证据/交接/本条追加，不扩展SAVED/SEALED视觉或ReviewChatSheet浮层、后端/provider行为。
+- **Changes**: 按demo look源码落实居中品牌/存档地点/季节/大标题/阅印，朱砂侧线与折角正文信笺（原文换行保留/卡内地点），双列真图/真实封面/细圈原始声音及真实时长。后来其实改纸卡横线/轻保存并保留0—2次数和只读条件，对话轻链接置于正常流回应药丸之前。次要篇章/完整地点坐标/提醒/当时以为/参考编辑/删除确认进默认关闭更多，所有原动作/字段仍可达。无静态假媒体、demo-store/flow迁入或翻页效果。
+- **Verification PASS**: vue-tsc退出0，11/11详情合成（新增主线/更多、后来其实失败与两次限制、回应互斥/失败/读回重试/已回应禁重、Preview拒绝、独立媒体review与SAVED保护）+14/14原状态+7/7浮层PASS。异步读回用例由过早取节点失败修正为等待replyLoading完成后通过，不改业务等待逻辑。Preview/Standard build退出0，各23项WXSS/布局PASS，最终Standard。既有更新提示保留，未改依赖。
+- **Verification PASS**: 详情setup除新增reviewOptionsOpen展示ref外与aa9a8ae字节一致；SEALED完整模板分支字节一致；只读媒体setup仅增加review展示类型，访问/签名刷新/播放停止/销毁逻辑一致。精确8文件allowlist/git diff --check/隐私提交前复核；日志原754591字节SHA256 e1e44eb34eab3cbddbd3d00ed9f08a7cde128522c983906daedb84c6d32ea9cf只追加前缀校验。无截图真实日记/位置/签名URL/secret入库；后端/services/stores/types/features/权限、package/lockfile、其它页/回看浮层/demo/accepted specs/archive保护。
+- **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新版观感/字体/长文长地点/媒体真实播放与过期URL、后来其实/回应原生中文键盘/焦点、更多末项、小屏/真机未实操；合成模板不模拟原生v-model，withDirectives离线上下文提示保留。不以合成/构建称平台或服务持久化通过，不绕过旧file拒绝。真实业务API/provider/对象存储0，F-25整项/SAVED/全矩阵与F-32回看浮层仍pending。
+- **Commit**: pending（已有简短本地提交授权；不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载Standard审回看阅读层次/媒体/后来其实/轻入口/回应，并手验长文键盘和更多；按后续明确指令继续其它页面/浮层，不自动扩展。
+
+- **Verification补充PASS**: 回看后来其实新保存入口添加submittingLaterReflection点击拦截（只改模板，不改原提交方法）；合成双击只发一次请求且两次后仍只读，11项详情、类型、两模式构建/布局重新通过。

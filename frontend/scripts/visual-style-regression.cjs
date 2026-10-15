@@ -191,5 +191,20 @@ check('封存媒体可横排且窄屏换行，不因组件host缩成窄列', () 
   const gap = parseFloat(property(file, '.readonly-media--sealed .readonly-fragments', 'gap'))
   assert.ok(2 * thumb + 2 * gap + 220 <= 750 - 2 * 56, 'two photos and voice exceed paper width')
 })
+check('回看标题居中、正文保留换行、媒体host整宽与回应正常流', () => {
+  const file = 'pages/record-detail/index.wxss'
+  assert.equal(property(file, '.archive-page--review .unlock-quote', 'text-align'), 'center')
+  assert.equal(property(file, '.archive-page--review .unlock-card-text', 'white-space'), 'pre-wrap')
+  assert.equal(property(file, '.unlock-media', 'width'), '100%')
+  assert.equal(property(file, '.unlock-cta', 'position'), 'relative')
+  assert.equal(property(file, '.archive-page--review .unlock-cta', 'border-radius'), '50rpx')
+})
+check('回看媒体独立双列，不改SAVED默认三列或封存排版', () => {
+  const file = 'pages/record-detail/components/ReadOnlyRecordMedia.wxss'
+  assert.match(property(file, '.readonly-media--review .readonly-image-grid', 'grid-template-columns'), /repeat\(2,/)
+  assert.match(property(file, '.readonly-image-grid', 'grid-template-columns'), /repeat\(3,/)
+  assert.equal(property(file, '.readonly-media--review .readonly-image-item', 'height'), '184rpx')
+  assert.equal(property(file, '.readonly-media--review', 'box-sizing'), 'border-box')
+})
 if (failures) { console.error('STYLE REGRESSION failures=' + failures); process.exitCode = 1 }
 else console.log('STYLE REGRESSION PASS; compiled CSS/geometry only, WeChat drawing still requires manual confirmation')

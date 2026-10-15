@@ -38,7 +38,7 @@ function setup(file,extra={}) {
  const nodes=()=>{const all=[];function walk(n){if(!n||typeof n!=='object')return;all.push(n);if(Array.isArray(n.children))n.children.forEach(walk)}walk(render(ctx,[]));return all}
  const select=cls=>nodes().filter(n=>vue.normalizeClass(n.props?.class).split(' ').includes(cls))
  if(scope.currentRecordId){scope.currentRecordId.value=30;scope.applyMemoryPolicy(store.detail)}
- return{scope,props,store,state,clock,timers,cleanups,calls,toasts,modals,nodes,select,setUpdate:fn=>{update=fn}}
+ return{scope,props,store,state,clock,timers,cleanups,calls,toasts,modals,nodes,select,setUpdate:fn=>{update=fn},setService:(name,value)=>Object.assign(services[name]||(services[name]={}),value)}
 }
 let passed=0
 async function check(name,fn){await fn();passed++;console.log('PASS '+name)}
@@ -86,6 +86,46 @@ async function main(){
   h.scope.markImageFailed(1);assert.equal(h.scope.imageAccessUrls[1],undefined);await h.scope.previewImage(h.props.attachments[0]);assert.equal(h.scope.imageAccessUrls[1],'synthetic://media/1')
   h.props.attachments=[];assert.equal(h.select('readonly-media').length,0);h.cleanups.forEach(fn=>fn())
  })
- console.log('SEALED DETAIL '+passed+'/'+passed+' PASS; synthetic API/timer only; real provider/network/storage=0')
+ await check('回看默认保留阅读/后来其实/轻对话/回应，辅助功能收更多',()=>{
+  const h=setup('pages/record-detail/index.vue');Object.assign(h.store.detail,{status:'UNLOCKED',canReply:true,realityLaterSubmitCount:0,location:{name:'synthetic place',address:'synthetic address'}})
+  assert.equal(h.select('unlock-hero').length,1);assert.equal(h.select('unlock-card-text')[0].children,h.store.detail.content)
+  assert.equal(h.select('reflection-textarea').length,1);assert.equal(h.select('review-entry').length,1);assert.equal(h.select('unlock-cta').length,1)
+  assert.equal(h.select('chapter-membership-panel').length,0);assert.equal(h.select('memory-policy').length,0);assert.equal(h.select('ownership-delete').length,0)
+  h.select('review-more-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy').length,1);assert.equal(h.select('ownership-delete').length,1);assert.equal(h.select('unlock-location').length,1)
+ })
+ await check('后来其实失败保留输入、响应后更新、两次后只读',async()=>{
+  const h=setup('pages/record-detail/index.vue');Object.assign(h.store.detail,{status:'UNLOCKED',realityLaterSubmitCount:0});h.scope.laterReflectionDraft.value='synthetic reflection'
+  h.setService('recordService',{updateLaterReflection:async(id,text)=>{h.calls.push(['reflection',id,text]);throw Error('synthetic failure')}})
+  await h.scope.submitLaterReflection();assert.equal(h.scope.laterReflectionDraft.value,'synthetic reflection');assert.equal(h.scope.submittingLaterReflection.value,false)
+  let release;h.setService('recordService',{updateLaterReflection:async(id,text)=>{h.calls.push(['reflection',id,text]);return new Promise(resolve=>{release=resolve})}})
+  const countBefore=h.calls.length,pending=h.select('reflection-save')[0].props.onTap();h.select('reflection-save')[0].props.onTap();assert.equal(h.calls.length,countBefore+1)
+  release({...h.store.detail,realityLater:'synthetic reflection',realityLaterSubmitCount:1});await pending;assert.equal(h.store.detail.realityLater,'synthetic reflection');assert.equal(h.scope.laterReflectionCount.value,1)
+  h.store.detail.realityLaterSubmitCount=2;assert.equal(h.select('reflection-textarea').length,0);assert.equal(h.select('reflection-save').length,0)
+  const count=h.calls.length;await h.scope.submitLaterReflection();assert.equal(h.calls.length,count)
+ })
+ await check('回应浮层互斥、失败保输入、已回应不重复提交、读回失败可重试',async()=>{
+  const h=setup('pages/record-detail/index.vue');Object.assign(h.store.detail,{status:'UNLOCKED',canReply:true,hasReply:false});h.scope.showReviewChat.value=true
+  h.select('unlock-cta')[0].props.onTap();assert.equal(h.scope.showReplySheet.value,true);assert.equal(h.scope.showReviewChat.value,false)
+  h.scope.replyContent.value='synthetic response'
+  h.setService('replyService',{submitReply:async()=>{throw Error('synthetic failure')}})
+  await h.scope.submitReply();assert.equal(h.scope.replyContent.value,'synthetic response');assert.equal(h.scope.showReplySheet.value,true)
+  h.setService('replyService',{submitReply:async()=>{h.calls.push(['reply']);h.store.detail.hasReply=true},getReply:async()=>{throw Error('synthetic read failure')}})
+  await h.scope.submitReply();assert.equal(h.scope.replyContent.value,'');assert.equal(h.scope.replyLoadFailed.value,true);assert.equal(h.select('unlock-replied-retry').length,1);assert.equal(h.select('unlock-cta').length,0)
+  h.setService('replyService',{getReply:async()=>({content:'synthetic saved response'})});h.select('unlock-replied-retry')[0].props.onTap();for(let tick=0;tick<8&&h.scope.replyLoading.value;tick++)await Promise.resolve()
+  assert.equal(h.scope.replyLoading.value,false);assert.equal(h.scope.replyLoadFailed.value,false);assert.equal(h.select('unlock-replied-text')[0].children,'synthetic saved response')
+  const count=h.calls.length;h.scope.replyContent.value='blocked duplicate';await h.scope.submitReply();assert.equal(h.calls.length,count)
+ })
+ await check('回看Preview仍拒绝回应/后来其实与真实对话调用',async()=>{
+  const h=setup('pages/record-detail/index.vue');Object.assign(h.store.detail,{status:'UNLOCKED',canReply:true});h.state.auth=false;h.state.preview=true
+  h.scope.replyContent.value='synthetic';h.scope.laterReflectionDraft.value='synthetic'
+  await h.scope.submitReply();await h.scope.submitLaterReflection();await h.scope.openReviewChat()
+  assert.equal(h.calls.length,0);assert.equal(h.scope.showReviewChat.value,false);assert.ok(h.toasts.every(x=>x==='preview readonly'))
+ })
+ await check('回看媒体用独立变体、真实时长与封面且不改SAVED变体',async()=>{
+  const h=setup('pages/record-detail/components/ReadOnlyRecordMedia.vue',{recordId:30,variant:'review',coverId:1,attachments:[{id:1,type:'IMAGE',status:'AVAILABLE'},{id:2,type:'IMAGE',status:'AVAILABLE'},{id:3,type:'VOICE',status:'AVAILABLE',durationSeconds:18}]})
+  await vue.nextTick();assert.equal(h.select('readonly-image-item').length,2);assert.equal(h.select('readonly-cover-label').length,1);assert.equal(h.select('readonly-voice-caption')[0].children,'00:18 原始声音')
+  h.props.variant='unlocked';assert.equal(h.select('readonly-voice-caption').length,0);assert.equal(h.select('readonly-voice-name').length,1);h.cleanups.forEach(fn=>fn())
+ })
+ console.log('DETAIL '+passed+'/'+passed+' PASS; synthetic API/timer only; real provider/network/storage=0')
 }
 main().catch(error=>{console.error(error);process.exitCode=1})

@@ -8,7 +8,7 @@ const props = withDefaults(defineProps<{
   recordId: number
   attachments?: RecordAttachmentVO[]
   coverId?: number | null
-  variant?: 'sealed' | 'unlocked'
+  variant?: 'sealed' | 'unlocked' | 'review'
 }>(), {
   attachments: () => [],
   coverId: null,
@@ -217,8 +217,11 @@ onUnmounted(() => {
             <view v-if="variant === 'sealed'" class="readonly-voice-wave" aria-hidden="true">
               <view v-for="(height, bar) in [12,24,18,34,28,42,36,50,40,46,42,50,46,36,50,40,42,32,38,26,34,24,30,20,26,24,20,24,14,20,16,12]" :key="bar" :style="{ height: height + 'rpx' }" />
             </view>
-            <text class="readonly-voice-name">语音记录 {{ index + 1 }}</text>
-            <text class="readonly-voice-duration">{{ formatVoiceDuration(attachment.durationSeconds) }}</text>
+            <text v-if="variant === 'review'" class="readonly-voice-caption">{{ formatVoiceDuration(attachment.durationSeconds) }} 原始声音</text>
+            <template v-else>
+              <text class="readonly-voice-name">语音记录 {{ index + 1 }}</text>
+              <text class="readonly-voice-duration">{{ formatVoiceDuration(attachment.durationSeconds) }}</text>
+            </template>
             <text v-if="voiceAccessErrors[attachment.id]" class="readonly-media-error">
               {{ voiceAccessErrors[attachment.id] }}
             </text>
@@ -456,5 +459,77 @@ onUnmounted(() => {
   flex-shrink: 0;
   width: 2rpx;
   background: #9e9890;
+}
+
+/* 回看独立变体，SAVED与封存仍沿用各自布局。 */
+.readonly-media--review {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 64rpx 0 0;
+  padding: 0;
+  border: none;
+}
+.readonly-media--review .readonly-media-head {
+  margin-bottom: 24rpx;
+}
+.readonly-media--review .readonly-media-title {
+  font-family: 'Noto Serif SC','Songti SC','STSong','SimSun',serif;
+  font-size: 24rpx;
+  color: #9e9890;
+  letter-spacing: 2rpx;
+}
+.readonly-media--review .readonly-media-count {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
+.readonly-media--review .readonly-image-grid {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 20rpx;
+}
+.readonly-media--review .readonly-image-item {
+  height: 184rpx;
+  aspect-ratio: auto;
+  box-shadow: 0 6rpx 20rpx rgba(120,100,70,.2);
+}
+.readonly-media--review .readonly-cover-label {
+  top: 16rpx;
+  left: 16rpx;
+  padding: 4rpx 14rpx;
+  height: auto;
+  font-family: 'Noto Serif SC','Songti SC','STSong','SimSun',serif;
+  font-size: 20rpx;
+  line-height: 1.6;
+  letter-spacing: 2rpx;
+  background: rgba(48,46,41,.85);
+}
+.readonly-media--review .readonly-voice-list {
+  margin-top: 24rpx;
+}
+.readonly-media--review .readonly-voice-row {
+  min-height: 76rpx;
+  border: none;
+  gap: 24rpx;
+}
+.readonly-media--review .readonly-voice-play {
+  width: 58rpx;
+  height: 58rpx;
+  border-color: rgba(107,101,96,.5);
+  color: #6b6560;
+  font-size: 22rpx;
+}
+.readonly-media--review .readonly-voice-play--active {
+  color: #b5352a;
+  border-color: #b5352a;
+  background: transparent;
+}
+.readonly-voice-caption {
+  font-family: 'Noto Serif SC','Songti SC','STSong','SimSun',serif;
+  color: #6b6560;
+  font-size: 26rpx;
+  line-height: 1.8;
+  letter-spacing: 1rpx;
 }
 </style>

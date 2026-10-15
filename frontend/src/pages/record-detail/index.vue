@@ -37,6 +37,7 @@ const savingMemoryPolicy = ref(false)
 const switchingReviewMemory = ref(false)
 const chapterActionLoading = ref(false)
 const sealedOptionsOpen = ref(false)
+const reviewOptionsOpen = ref(false)
 
 // C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
 const showReviewChat = ref(false)
@@ -672,7 +673,7 @@ onLoad(async (query) => {
 </script>
 
 <template>
-  <view class="archive-page" :class="{ 'archive-page--sealed': isSealed }" :style="pageStyle">
+  <view class="archive-page" :class="{ 'archive-page--sealed': isSealed, 'archive-page--review': isUnlocked }" :style="pageStyle">
     <PreviewModeNotice />
     <!-- 宣纸底纹 -->
     <view class="archive-backdrop" />
@@ -683,7 +684,7 @@ onLoad(async (query) => {
       <view class="archive-top-safe__nav" :style="topNavStyle">
         <!-- 品牌名居中（所有状态统一显示） -->
         <view class="archive-top-safe__logo">
-          <text class="archive-top-safe__logo-text">{{ isSealed ? '时光回序' : '时 光 回 序' }}</text>
+          <text class="archive-top-safe__logo-text">{{ isSealed || isUnlocked ? '时光回序' : '时 光 回 序' }}</text>
         </view>
         <!-- 关闭按钮 -->
         <view class="archive-close" :style="closeRailStyle" @tap="closePage">
@@ -716,7 +717,7 @@ onLoad(async (query) => {
       <!-- 有详情内容 -->
       <view v-else-if="detail" class="archive-stage">
 
-        <view v-if="!isDraft && !isSealed" class="chapter-membership-panel">
+        <view v-if="!isDraft && !isSealed && !isUnlocked" class="chapter-membership-panel">
           <view class="chapter-membership-head">
             <text class="chapter-membership-title">时间篇章</text>
             <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
@@ -817,71 +818,27 @@ onLoad(async (query) => {
           </view>
         </view>
 
-        <!-- ══════ UNLOCKED：时间回看（回看.html 结构） ══════ -->
+        <!-- UNLOCKED：demo阅读主线，次要信息默认收起。 -->
         <view v-else-if="isUnlocked" class="unlock-hero">
-
-          <!-- 存档元信息行 -->
           <view class="unlock-archive">
             <text class="unlock-archive-no">{{ archiveNoCN }}</text>
-            <view v-if="archiveLocationPrimary" class="unlock-archive-loc">
-              <view class="unlock-loc-dot" />
-              <text class="unlock-loc-text">{{ archiveLocationPrimary }}</text>
-            </view>
+            <text v-if="archiveLocationPrimary" class="unlock-loc-text" :aria-label="archiveLocationPrimary">· {{ archiveLocationPrimary }}</text>
           </view>
-
-          <!-- 季节 -->
           <text class="unlock-season">{{ archiveSeasonCN }}</text>
-
-          <!-- 装饰横线 -->
-          <view class="unlock-deco" />
-
-          <!-- 大引句 -->
-          <text class="unlock-quote">{{ unlockQuote }}</text>
-
-          <!-- 印章行 -->
+          <text class="unlock-quote">{{ unlockQuote || '“未命名片段”' }}</text>
           <view class="unlock-seal-row">
-            <view class="unlock-seal">
-              <text class="unlock-seal-char">阅</text>
-            </view>
+            <view class="unlock-seal"><text class="unlock-seal-char">阅</text></view>
             <text class="unlock-seal-label">{{ archiveWrittenText }}</text>
           </view>
-
-          <!-- 信件卡片（可读） -->
           <view class="unlock-card">
-            <view class="unlock-card-vline" />
-            <view class="unlock-card-corner" />
-            <view class="unlock-card-body">
-              <text class="unlock-card-text">{{ detail.content }}</text>
-            </view>
-            <text class="unlock-sparkle">✦</text>
+            <view class="unlock-card-vline" aria-hidden="true" />
+            <view class="unlock-card-corner" aria-hidden="true" />
+            <text class="unlock-card-text">{{ detail.content || '这是一段由图片或声音留下的记录。' }}</text>
+            <text v-if="archiveLocationPrimary" class="unlock-card-where">当时所在 · {{ archiveLocationPrimary }}</text>
           </view>
-
-          <view v-if="archiveLocation" class="unlock-location">
-            <text class="unlock-location-label">当时所在</text>
-            <text class="unlock-location-name">{{ archiveLocationPrimary }}</text>
-            <text v-if="archiveLocationAddress" class="unlock-location-detail">{{ archiveLocationAddress }}</text>
-            <text
-              v-if="archiveLocationCoordinates && archiveLocationCoordinates !== archiveLocationPrimary"
-              class="unlock-location-coordinates"
-            >{{ archiveLocationCoordinates }}</text>
-          </view>
-
-          <ReadOnlyRecordMedia
-            :record-id="detail.id"
-            :attachments="detail.attachments || []"
-            :cover-id="detail.cover?.id || null"
-            variant="unlocked"
-          />
-
+          <ReadOnlyRecordMedia class="unlock-media" :record-id="detail.id" :attachments="detail.attachments || []" :cover-id="detail.cover?.id || null" variant="review" />
           <view class="reflection-panel">
-            <view class="reflection-block">
-              <text class="reflection-label">订阅提醒</text>
-              <text class="reflection-text">{{ unlockReminderStatusText }}</text>
-            </view>
-            <view class="reflection-block">
-              <text class="reflection-label">那时的我 · 你当时以为</text>
-              <text class="reflection-text">{{ detail.beliefThen || '当时的想法还没有整理出来。' }}</text>
-            </view>
+            <view class="unlock-card-corner" aria-hidden="true" />
             <view class="reflection-block">
               <view class="reflection-head">
                 <text class="reflection-label">现在的我 · 后来其实</text>
@@ -891,9 +848,10 @@ onLoad(async (query) => {
                 v-if="canEditLaterReflection"
                 v-model="laterReflectionDraft"
                 class="reflection-textarea"
+                :disabled="submittingLaterReflection"
                 auto-height
                 maxlength="1000"
-                placeholder="写下后来你真正理解到的事"
+                placeholder="后来的你，想对当时说些什么"
                 placeholder-class="reflection-placeholder"
               />
               <text v-else class="reflection-text">{{ detail.realityLater || '还没有写下后来其实。' }}</text>
@@ -901,17 +859,14 @@ onLoad(async (query) => {
                 v-if="canEditLaterReflection"
                 class="reflection-save"
                 :class="{ 'reflection-save--loading': submittingLaterReflection }"
-                @tap="submitLaterReflection"
+                @tap="!submittingLaterReflection && submitLaterReflection()"
               >
                 {{ submittingLaterReflection ? '保存中…' : (detail.realityLater ? '修改' : '保存') }}
               </view>
             </view>
           </view>
-
-          <!-- 操作区 -->
+          <view v-if="canOpenReviewChat" class="review-entry" @tap="openReviewChat"><text class="review-entry-text">和它聊聊那时候</text></view>
           <view class="unlock-actions">
-            <text class="unlock-reply-hint">此刻，想对当时的自己说句什么…</text>
-
             <!-- 已提交回应 -->
             <template v-if="hasSubmittedReply">
               <view class="unlock-replied-slot">
@@ -931,20 +886,10 @@ onLoad(async (query) => {
 
             <!-- 可留回应 -->
             <view v-else-if="canSubmitReply" class="unlock-cta" @tap="openReplySheet">
-              <view class="unlock-cta-corner unlock-cta-corner--tl" />
-              <view class="unlock-cta-corner unlock-cta-corner--br" />
               <view class="unlock-cta-dot" />
               <text class="unlock-cta-text">留 下 回 应</text>
             </view>
 
-            <!--
-              C3b 回看对话入口。被动召唤：只在用户点击时开启，
-              不弹窗、不自动展开。表达刻意比「留下回应」更轻，
-              避免抢掉回应这个既有主动作。
-            -->
-            <view v-if="canOpenReviewChat" class="review-entry" @tap="openReviewChat">
-              <text class="review-entry-text">和它聊聊那时候</text>
-            </view>
           </view>
         </view>
 
@@ -979,6 +924,68 @@ onLoad(async (query) => {
             <text class="sealed-reference-note">之后不再参考，不会撤回已经发出去的那一轮。</text>
           </view>
         </view>
+        <view v-else-if="isUnlocked" class="review-more">
+          <button class="review-more-toggle" :aria-expanded="reviewOptionsOpen" @tap="reviewOptionsOpen = !reviewOptionsOpen">{{ reviewOptionsOpen ? '收起更多' : '更多 · 篇章与参考' }}</button>
+          <view v-if="reviewOptionsOpen" class="review-more-content">
+            <view class="chapter-membership-panel">
+              <view class="chapter-membership-head">
+                <text class="chapter-membership-title">时间篇章</text>
+                <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
+                <text v-else class="chapter-membership-current">尚未归入篇章</text>
+              </view>
+              <view class="chapter-membership-actions">
+                <view class="chapter-membership-action" @tap="chooseChapter">
+                  {{ chapterActionLoading ? '处理中…' : chapterActionText }}
+                </view>
+                <view v-if="currentChapter" class="chapter-membership-action chapter-membership-action--quiet" @tap="removeFromChapter">
+                  移出篇章
+                </view>
+              </view>
+            </view>
+            <view v-if="archiveLocation" class="unlock-location">
+              <text class="unlock-location-label">当时所在</text>
+              <text class="unlock-location-name">{{ archiveLocationPrimary }}</text>
+              <text v-if="archiveLocationAddress" class="unlock-location-detail">{{ archiveLocationAddress }}</text>
+              <text
+                v-if="archiveLocationCoordinates && archiveLocationCoordinates !== archiveLocationPrimary"
+                class="unlock-location-coordinates"
+              >{{ archiveLocationCoordinates }}</text>
+            </view>
+            <view class="reflection-block">
+              <text class="reflection-label">订阅提醒</text>
+              <text class="reflection-text">{{ unlockReminderStatusText }}</text>
+            </view>
+            <view class="reflection-block">
+              <text class="reflection-label">那时的我 · 你当时以为</text>
+              <text class="reflection-text">{{ detail.beliefThen || '当时的想法还没有整理出来。' }}</text>
+            </view>
+
+            <view class="memory-policy">
+              <text class="memory-policy-title">Agent 参考</text>
+              <text class="memory-policy-hint">之后不再参考，不会撤回已经发出去的那一轮。</text>
+              <view class="memory-policy-row" @tap="memoryExcluded = !memoryExcluded">
+                <text class="memory-policy-label">不再供 Agent 参考</text>
+                <view class="memory-switch" :class="{ 'memory-switch--on': memoryExcluded }">
+                  <view class="memory-switch-knob" />
+                </view>
+              </view>
+              <textarea
+                v-model="memoryNoteDraft"
+                class="memory-policy-note"
+                auto-height
+                maxlength="255"
+                placeholder="只代表当时，不代表现在"
+                placeholder-class="memory-policy-placeholder"
+              />
+              <view
+                class="memory-policy-save"
+                :class="{ 'memory-policy-save--loading': savingMemoryPolicy }"
+                @tap="saveAgentMemoryPolicy"
+              >{{ savingMemoryPolicy ? '保存中…' : '保存' }}</view>
+            </view>
+            <view class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
+          </view>
+        </view>
         <view v-else class="memory-policy">
           <text class="memory-policy-title">Agent 参考</text>
           <text class="memory-policy-hint">之后不再参考，不会撤回已经发出去的那一轮。</text>
@@ -1003,7 +1010,7 @@ onLoad(async (query) => {
           >{{ savingMemoryPolicy ? '保存中…' : '保存' }}</view>
         </view>
 
-        <view v-if="!isSealed" class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
+        <view v-if="!isSealed && !isUnlocked" class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
       </view>
 
       <!-- 无 detail 兜底 -->
@@ -2096,4 +2103,263 @@ onLoad(async (query) => {
 .memory-policy-save{margin-top:16rpx;text-align:right;color:#9d6649;font-size:24rpx}
 .memory-policy-save--loading{opacity:.45}
 .ownership-delete{margin:60rpx auto 24rpx;text-align:center;color:#9e4a43;font-size:24rpx;letter-spacing:.08em;padding:24rpx}
+
+/* 回看主画面以信笺阅读为主，仅此状态使用新展示。 */
+.archive-page--review {
+  padding-bottom: calc(64rpx + env(safe-area-inset-bottom));
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+}
+.archive-page--review .archive-main {
+  margin-top: 0;
+}
+.archive-page--review .archive-stage {
+  gap: 0;
+}
+.archive-page--review .archive-top-safe__logo-text {
+  font-family: inherit;
+  font-size: 22rpx;
+  letter-spacing: 8rpx;
+  color: #9e9890;
+}
+.archive-page--review .archive-close {
+  width: 72rpx;
+  height: 72rpx;
+  border: none;
+  background: transparent;
+}
+.archive-page--review .archive-close__icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+.archive-page--review .archive-close__line {
+  background: #6b6560;
+  height: 2rpx;
+}
+.archive-page--review .unlock-hero {
+  padding: 40rpx 0 0;
+}
+.archive-page--review .unlock-archive {
+  justify-content: center;
+  gap: 10rpx;
+  margin: 0;
+  font-size: 24rpx;
+  line-height: 1.8;
+  letter-spacing: 2rpx;
+  color: #6b6560;
+}
+.archive-page--review .unlock-archive-no {
+  flex-shrink: 0;
+  max-width: 58%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+.archive-page--review .unlock-loc-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+.archive-page--review .unlock-season {
+  margin: 20rpx 0 0;
+  font-family: inherit;
+  font-size: 24rpx;
+  line-height: 1.8;
+  font-style: normal;
+  letter-spacing: 3rpx;
+  color: #6b6560;
+}
+.archive-page--review .unlock-quote {
+  margin: 56rpx 0 0;
+  text-align: center;
+  font-family: inherit;
+  font-size: 60rpx;
+  font-weight: 400;
+  letter-spacing: 4rpx;
+  color: #302e29;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.archive-page--review .unlock-seal-row {
+  margin: 36rpx 0 0;
+  justify-content: center;
+  gap: 24rpx;
+}
+.archive-page--review .unlock-seal {
+  width: 50rpx;
+  height: 50rpx;
+  border: 1rpx solid #b5352a;
+}
+.archive-page--review .unlock-seal-char {
+  font-family: inherit;
+  font-size: 24rpx;
+  color: #b5352a;
+}
+.archive-page--review .unlock-seal-label {
+  font-family: inherit;
+  font-size: 24rpx;
+  line-height: 1.8;
+  letter-spacing: 2rpx;
+  color: #8a847c;
+}
+.archive-page--review .unlock-card {
+  margin-top: 48rpx;
+  padding: 48rpx 44rpx 36rpx 52rpx;
+  border-color: #e3dacc;
+  background: #fbf8f1;
+  box-shadow: 0 4rpx 10rpx rgba(125,105,75,.1), 0 20rpx 40rpx rgba(125,105,75,.12);
+}
+.archive-page--review .unlock-card-text {
+  display: block;
+  font-family: inherit;
+  font-size: 30rpx;
+  line-height: 2.05;
+  letter-spacing: 1rpx;
+  color: #6b6560;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.archive-page--review .unlock-card-vline {
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(180deg,transparent,rgba(181,53,42,.5) 15%,rgba(181,53,42,.5) 85%,transparent);
+}
+.archive-page--review .unlock-card-corner {
+  width: 34rpx;
+  height: 34rpx;
+  border: none;
+  background: linear-gradient(225deg,#f4efe5 49%,#e3dbc9 50%);
+  box-shadow: -3rpx 3rpx 5rpx rgba(120,100,70,.16);
+}
+.unlock-card-where {
+  display: block;
+  margin-top: 32rpx;
+  color: #9e9890;
+  font-size: 20rpx;
+  line-height: 1.8;
+  letter-spacing: 1rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.unlock-media {
+  display: block;
+  width: 100%;
+}
+.archive-page--review .reflection-panel {
+  position: relative;
+  margin-top: 40rpx;
+  padding: 36rpx 44rpx 32rpx;
+  border-color: #e3dacc;
+  background: #fbf8f1;
+  box-shadow: 0 4rpx 10rpx rgba(125,105,75,.1),0 16rpx 32rpx rgba(125,105,75,.1);
+}
+.archive-page--review .reflection-label {
+  font-family: inherit;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #9e9890;
+}
+.archive-page--review .reflection-count {
+  font-size: 20rpx;
+  color: #9e9890;
+}
+.archive-page--review .reflection-textarea {
+  min-height: 148rpx;
+  margin-top: 8rpx;
+  padding: 0;
+  font-family: inherit;
+  font-size: 28rpx;
+  line-height: 2.05;
+  color: #6b6560;
+  background: repeating-linear-gradient(180deg,transparent,transparent 58rpx,rgba(200,194,184,.6) 58rpx,rgba(200,194,184,.6) 60rpx);
+}
+.archive-page--review :deep(.reflection-placeholder) {
+  color: #c8c2b8;
+}
+.archive-page--review .reflection-text {
+  font-family: inherit;
+  font-size: 28rpx;
+  color: #6b6560;
+  line-height: 1.9;
+}
+.archive-page--review .reflection-save {
+  width: auto;
+  height: auto;
+  min-height: 64rpx;
+  justify-content: flex-end;
+  margin-top: 8rpx;
+  border: none;
+  color: #b5352a;
+  font-size: 22rpx;
+}
+.archive-page--review .review-entry {
+  margin-top: 48rpx;
+  text-align: center;
+}
+.archive-page--review .review-entry-text {
+  display: inline-block;
+  padding-bottom: 6rpx;
+  font-family: inherit;
+  font-size: 26rpx;
+  line-height: 1.8;
+  color: #6b6560;
+  border-bottom: 1rpx solid #bcb5ab;
+}
+.archive-page--review .unlock-actions {
+  margin-top: 56rpx;
+  padding-bottom: 0;
+  gap: 0;
+}
+.archive-page--review .unlock-cta {
+  min-height: 96rpx;
+  box-sizing: border-box;
+  justify-content: center;
+  padding: 20rpx 52rpx;
+  border: 2rpx solid rgba(255,255,255,.9);
+  border-radius: 50rpx;
+  background: #f5f1e8;
+  box-shadow: 0 12rpx 36rpx rgba(125,105,75,.14);
+}
+.archive-page--review .unlock-cta-text {
+  font-family: inherit;
+  font-size: 30rpx;
+  color: #403c37;
+  letter-spacing: 4rpx;
+}
+.archive-page--review .unlock-replied-slot {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fbf8f1;
+  border-color: #e3dacc;
+}
+.review-more {
+  margin-top: 48rpx;
+}
+.review-more-toggle {
+  min-height: 72rpx;
+  padding: 8rpx 0;
+  border: none;
+  background: transparent;
+  color: #9e9890;
+  font-family: inherit;
+  font-size: 21rpx;
+  text-align: center;
+  line-height: 2;
+}
+.review-more-toggle::after {
+  border: none;
+}
+.review-more-content {
+  padding-top: 16rpx;
+}
+.review-more-content .reflection-block {
+  margin-top: 24rpx;
+}
 </style>

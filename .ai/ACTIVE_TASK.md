@@ -4,7 +4,7 @@
 
 `ACTIVE`
 
-当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；2026-10-14 用户本轮明确授权先复刻 E 批意图选择/书写对话两个浮层；2026-10-15 用户追加授权 F-25 封存详情页接入并明确保留真实倒计时；不扩大 C/D/回看对话、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
+当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；2026-10-14 用户本轮明确授权先复刻 E 批意图选择/书写对话两个浮层；2026-10-15 用户追加授权 F-25 封存详情页接入并明确保留真实倒计时；2026-10-15 用户继续授权 F-25 回看UNLOCKED页面demo接入、以简洁克制为主；不扩大 C/D/回看对话浮层、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
@@ -143,6 +143,11 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-10-15 — **F-25 UNLOCKED回看页demo接入**
+  - **Scope / Authorization**：用户明确继续回看页demo接入，功能多时参考前轮做简洁收敛。clean起点aa9a8ae，沿用简短本地提交。仅UNLOCKED页面/独立只读媒体review变体、两份既有回归及当前记录；不改ReviewChatSheet浮层或业务契约。
+  - **Changes**：居中存档/标题/阅印，朱砂边线+折角正文信笺，卡内小号地点、双列真图与原始声音，带横线的后来其实卡，轻对话链接在回应药丸之前。篇章/完整地点/提醒/当时以为/参考设置/删除收进默认关闭更多，原动作保留。
+  - **Verification / Next**：类型、11项详情+14项既有状态+7项浮层合成、两模式build及各23项WXSS/布局PASS。详情setup仅新增reviewOptionsOpen；SEALED分支字节一致，媒体setup仅增加展示variant。最终Standard；微信观感/键盘/长文媒体/小屏真机未测，F-25完整验收及F-32回看浮层仍pending，业务外调0。
 
 - **This session**: 2026-10-15 — **仅增加霜下正文片段（F-25内Type B）**
   - **Scope**：用户认可4c38f6f方向，明确只加入部分主体文字并沿用霜态，标题继续居中，其他不改。clean起点4c38f6f，沿用简短本地提交；仅详情正文显示块/现有封存回归脚本与交接记录。
