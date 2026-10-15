@@ -8936,3 +8936,15 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新版纸飞机实绘、两个分区的间距/触摸/中文键盘/真机安全区仍待手验；合成模板不模拟原生v-model，Vue离线上下文withDirectives提示保留，不作为平台PASS。旧file拒绝不绕过；不改后端/services/stores/types/权限、package/lockfile、其它页/回看浮层、demo、accepted specs/archive。真实业务API/provider/对象存储0。
 - **Commit**: pending（沿用本地简短提交；不push/PR/部署/接受delta/归档）
 - **Next**: 用户加载最终Standard构建复验图标及加载/失败状态下意图分区；F-32完整平台验收保持pending。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：F-25封存页接入｜已批准Type C展示切片
+
+- **Scope**: 用户明确开始封存页接入，保留现有真实倒计时、其余按demo、参考模块改简洁按钮。clean HEAD b71b727（补录上轮真实commit）；沿用简短本地commit授权。仅record-detail SEALED展示与封存媒体变体、两份离线脚本、当前tasks/证据/交接与日志追加；不扩展SAVED/UNLOCKED重绘、回看浮层、其它批次或业务契约。
+- **Changes**: 对照demo sealed源码调整居中存档号/真实地点地址/季节、品牌与关闭安全区、宽霜卡/折角/朱砂封印/过去的你/真实标题、横排4:3真图及裸语音波形、抵达季节/原倒计时/脚注。霜为无filter静态遮盖，正文不进可读模板，不以正文首句代替封存标题。媒体host整宽，窄屏换行；波形仅装饰，不分析语音，播放/停止/加载/时长/失败重试仍走原脚本。
+- **Changes**: SEALED参考改轻开关/当前备注或默认提示，单次点击原saveAgentMemoryPolicy，响应确认/失败回滚/忙碌防重/Preview拒绝沿用；不自动发送Agent轮次。原篇章与备注编辑收更多，撤回边界提示保留；删除原双确认不改。其它状态引用卡原状。用户保留倒计时指令优先于demo HTML禁倒计时注释，未改计时语义或F-25验收范围。
+- **Verification PASS**: vue-tsc --noEmit退出0；5/5封存实际SFC/模板/媒体脚本合成回归（真实目标计时/归零权限不变/销毁、正文不渲染/更多能力、参考持久化字段/防重/失败回滚、Preview拒绝/取消删除、AVAILABLE过滤/签名刷新/空媒体）+14/14原状态+7/7浮层PASS；Preview/Standard build退出0，各21项WXSS/布局PASS，最终Standard。未安装依赖，既有构建更新提示保留。
+- **Verification PASS**: 原startCountdown/saveAgentMemoryPolicy/deleteOwnedRecord/openEditor/submitReply/submitLaterReflection方法与ReadOnlyRecordMedia整个setup字节与b71b727一致。精确8文件范围/git diff --check/隐私检查提交前复核；日志原746130字节SHA256 ac3bacf12b854065b16b57d6ae93d623c27c1f6bdff3baec33fc23fe6936af76只追加前缀校验。未复制截图真实内容、demo固定日期/照片/声音/正文；无secret/真实日记/签名URL入库。后端/services/stores/types/features/权限、package/lockfile、其它页/demo/accepted specs/archive零改动。
+- **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，实际绘制、字色、霜层/长标题/长地点、多图多声音真实播放/URL过期/更多编辑、小屏/真机安全区仍须手验。合成模板不模拟原生v-model，Vue withDirectives离线上下文提示保留，不称平台验收。OpenSpec CLI不在PATH，不改Requirement/Scenario且未假称validate；旧file拒绝不绕过。真实业务API/provider/对象存储0。F-25/SAVED/UNLOCKED及全矩阵不补勾。
+- **Commit**: pending（既有本地简短提交授权；不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载Standard产物审封存霜卡/媒体横排/倒计时/轻参考开关，并手验媒体与更多/失败回滚；其它页面/完整F-25验收待后续指令。

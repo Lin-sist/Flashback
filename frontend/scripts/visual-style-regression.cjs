@@ -168,5 +168,22 @@ check('Agent遮罩与纸底不依赖滤镜，输入区保留底部安全区', ()
   assert.match(property('pages/record-editor/components/AgentChatSheet.wxss', '.agent-sheet', 'padding'), /safe-area-inset-bottom/)
   assert.match(property('pages/record-editor/components/AgentIntentChooser.wxss', '.intent-panel', 'padding'), /safe-area-inset-bottom/)
 })
+check('封存霜卡与媒体为整宽正常布局，静态遮盖不依赖filter', () => {
+  const file = 'pages/record-detail/index.wxss'
+  assert.equal(property(file, '.sealed-card', 'width'), '100%')
+  assert.equal(property(file, '.sealed-card', 'box-sizing'), 'border-box')
+  assert.equal(property(file, '.sealed-media', 'width'), '100%')
+  css(file).walkRules(rule => {
+    if (rule.selector.includes('.sealed-')) rule.walkDecls(/filter/, () => { throw new Error('sealed layout requires filter') })
+  })
+})
+check('封存媒体可横排且窄屏换行，不因组件host缩成窄列', () => {
+  const file = 'pages/record-detail/components/ReadOnlyRecordMedia.wxss'
+  assert.equal(property(file, '.readonly-media--sealed', 'box-sizing'), 'border-box')
+  assert.equal(property(file, '.readonly-media--sealed .readonly-fragments', 'flex-wrap'), 'wrap')
+  const thumb = parseFloat(property(file, '.readonly-media--sealed .readonly-image-item', 'width'))
+  const gap = parseFloat(property(file, '.readonly-media--sealed .readonly-fragments', 'gap'))
+  assert.ok(2 * thumb + 2 * gap + 220 <= 750 - 2 * 56, 'two photos and voice exceed paper width')
+})
 if (failures) { console.error('STYLE REGRESSION failures=' + failures); process.exitCode = 1 }
 else console.log('STYLE REGRESSION PASS; compiled CSS/geometry only, WeChat drawing still requires manual confirmation')

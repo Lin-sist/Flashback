@@ -4,7 +4,7 @@
 
 `ACTIVE`
 
-当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；2026-10-14 用户本轮明确授权先复刻 E 批意图选择/书写对话两个浮层；不扩大 C/D/回看对话、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
+当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；2026-10-14 用户本轮明确授权先复刻 E 批意图选择/书写对话两个浮层；2026-10-15 用户追加授权 F-25 封存详情页接入并明确保留真实倒计时；不扩大 C/D/回看对话、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
@@ -143,6 +143,11 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-10-15 — **F-25 SEALED封存页demo接入**
+  - **Scope / Authorization**：用户明确开始封存页，倒计时保留、其它按demo复刻，Agent参考改为简洁开关。clean起点b71b727；仅详情SEALED分支/封存媒体样式、两份离线脚本及当前记录，沿用简短本地提交，不扩展SAVED/UNLOCKED视觉或回看浮层。
+  - **Changes**：物理居中品牌/关闭错开胶囊，存档号与真实地点/季节居中，带折角/红封印的霜卡、真实媒体横排/窄屏换行、真实抵达季节和原倒计时。静态霜无滤镜依赖，封存正文不进可读模板。Agent参考仅轻开关/当前备注，点击原接口保存，失败回滚/忙碌防重/Preview拒绝；篇章和备注编辑收进更多，删除确认保留。
+  - **Verification / Next**：vue-tsc、5项封存/14项原状态/7项浮层合成回归、两模式build及各21项WXSS/布局PASS；关键原方法和媒体setup字节保护，最终Standard产物。微信绘制/真实图片声音/更多触摸/小屏/真机未测，F-25整项验收保持pending；业务外调0，不接受/归档。
 
 - **This session**: 2026-10-15 — **F-32书写浮层加载分区与发送图标小修（Type B）**
   - **Scope / Cause**：用户6717a74版实际截图显示加载时无倾诉/理一理且发送按钮只有圆圈。源码分区要求session非空，与会话加载状态冲突；内联SVG图像在截图里为空，其原生渲染原因未直接实测。仅AgentChatSheet、编辑器一处展示属性、既有合成脚本与当前证据/日志；沿用本地简短commit授权。

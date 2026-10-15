@@ -36,6 +36,7 @@ const memoryNoteDraft = ref('')
 const savingMemoryPolicy = ref(false)
 const switchingReviewMemory = ref(false)
 const chapterActionLoading = ref(false)
+const sealedOptionsOpen = ref(false)
 
 // C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
 const showReviewChat = ref(false)
@@ -137,13 +138,25 @@ const unlockQuote = computed(() => {
   return first ? `"${first.slice(0, 40)}"` : ''
 })
 
+// 封存纸面只展示已返回的标题；正文不以可读文本置于霜层下。
+const sealedTitle = computed(() => detail.value?.title?.trim()
+  ? '“' + detail.value.title.trim() + '”' : '未命名片段')
+const sealedArrivalText = computed(() => {
+  const raw = detail.value?.unlockAt
+  if (!raw) return '等待约定的时间'
+  const date = new Date(raw)
+  if (!Number.isFinite(date.getTime())) return '等待约定的时间'
+  const season = ['冬','冬','春','春','春','夏','夏','夏','秋','秋','秋','冬'][date.getMonth()]
+  return '即将抵达 · ' + date.getFullYear() + ' 年' + season
+})
+
 const { cssVars, navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } =
   useWechatNavMetrics()
 
 const pageStyle = computed(() => ({ ...cssVars.value }))
 
 const topSafeStyle = computed(() => ({
-  minHeight: `calc(${navBarTotalHeight.value}px + 24rpx)`,
+  minHeight: `calc(${navBarTotalHeight.value}px + ${isSealed.value ? 88 : 24}rpx)`,
   paddingTop: `${statusBarHeight.value}px`,
 }))
 
@@ -402,6 +415,13 @@ const saveAgentMemoryPolicy = async () => {
   }
 }
 
+const toggleSealedMemoryPolicy = async () => {
+  if (!detail.value?.id || savingMemoryPolicy.value) return
+  if (!getToken() && hasPreviewSession()) { showPreviewReadonlyToast(); return }
+  memoryExcluded.value = !memoryExcluded.value
+  await saveAgentMemoryPolicy()
+}
+
 const switchReviewMemoryAuthorization = async (enabled: boolean) => {
   const sessionId = reviewSession.value?.sessionId
   if (!sessionId || switchingReviewMemory.value) return
@@ -654,7 +674,7 @@ onLoad(async (query) => {
 </script>
 
 <template>
-  <view class="archive-page" :style="pageStyle">
+  <view class="archive-page" :class="{ 'archive-page--sealed': isSealed }" :style="pageStyle">
     <PreviewModeNotice />
     <!-- 宣纸底纹 -->
     <view class="archive-backdrop" />
@@ -665,7 +685,7 @@ onLoad(async (query) => {
       <view class="archive-top-safe__nav" :style="topNavStyle">
         <!-- 品牌名居中（所有状态统一显示） -->
         <view class="archive-top-safe__logo">
-          <text class="archive-top-safe__logo-text">时 光 回 序</text>
+          <text class="archive-top-safe__logo-text">{{ isSealed ? '时光回序' : '时 光 回 序' }}</text>
         </view>
         <!-- 关闭按钮 -->
         <view class="archive-close" :style="closeRailStyle" @tap="closePage">
@@ -698,7 +718,7 @@ onLoad(async (query) => {
       <!-- 有详情内容 -->
       <view v-else-if="detail" class="archive-stage">
 
-        <view v-if="!isDraft" class="chapter-membership-panel">
+        <view v-if="!isDraft && !isSealed" class="chapter-membership-panel">
           <view class="chapter-membership-head">
             <text class="chapter-membership-title">时间篇章</text>
             <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
@@ -743,65 +763,36 @@ onLoad(async (query) => {
           <PrimaryButton text="继续补充" @tap="openEditor" />
         </view>
 
-        <!-- ══════ SEALED：封存页（封存.html 结构） ══════ -->
+        <!-- SEALED：demo信笺布局，保留真实倒计时与只读媒体。 -->
         <view v-else-if="isSealed" class="sealed-hero">
-
-          <!-- Archive meta（居中） -->
           <view class="sealed-meta">
-            <text class="sealed-meta__no">{{ archiveNoCN }}</text>
+            <text class="sealed-meta__no">{{ archiveNoCN }}<text v-if="archiveLocationPrimary"> · {{ archiveLocationPrimary }}</text></text>
+            <text v-if="archiveLocationAddress" class="sealed-meta__address">{{ archiveLocationAddress }}</text>
             <text class="sealed-meta__season">{{ archiveSeasonCN }}</text>
           </view>
-
-          <!-- 装饰横线 -->
-          <view class="sealed-deco-line" />
-
-          <!-- 信件卡片 -->
           <view class="sealed-card">
-            <view class="sealed-card__vline" />
-            <view class="sealed-card__corner" />
-
-            <!-- 卡片 meta 行 -->
+            <view class="sealed-card__corner" aria-hidden="true" />
             <view class="sealed-card__meta">
-              <view class="sealed-card__meta-left">
-                <view class="sealed-seal">
-                  <text class="sealed-seal__char">封</text>
-                </view>
-                <text class="sealed-card__tag">过去的你</text>
-              </view>
-              <view v-if="archiveLocationPrimary" class="sealed-card__location">
-                <view class="sealed-card__loc-dot" />
-                <text class="sealed-card__loc-text">{{ archiveLocationPrimary }}</text>
-              </view>
+              <view class="sealed-seal"><text class="sealed-seal__char">封</text></view>
+              <text class="sealed-card__tag">{{ archiveWrittenText }}</text>
             </view>
-
-            <!-- 引句（使用标题或正文首句） -->
-            <view class="sealed-quote">
-              <text class="sealed-quote__text">{{ unlockQuote || '"时间，是最温柔的旅人。"' }}</text>
-            </view>
-
-            <!-- 模糊正文 -->
-            <view class="sealed-body-wrap">
-              <text class="sealed-body">{{ detail.content || '内容已封存，等待解锁后方可阅读。' }}</text>
-              <view class="sealed-body__veil" />
-            </view>
-
-            <!-- 星形装饰 -->
-            <view class="sealed-sparkle">✦</view>
+            <text class="sealed-quote__text">{{ sealedTitle }}</text>
+            <view class="sealed-body-ink" aria-hidden="true"><view /><view /><view /><view /></view>
+            <view class="sealed-frost" aria-hidden="true" />
           </view>
-
           <ReadOnlyRecordMedia
+            class="sealed-media"
             :record-id="detail.id"
             :attachments="detail.attachments || []"
             :cover-id="detail.cover?.id || null"
             variant="sealed"
           />
-
-          <!-- 倒计时区 -->
           <view class="sealed-lock">
             <view class="sealed-lock__live">
-              <view class="sealed-lock__pulse" />
+              <view class="sealed-lock__pulse" aria-hidden="true" />
               <text class="sealed-lock__live-text">即将抵达，封印未解</text>
             </view>
+            <text class="sealed-expect">{{ sealedArrivalText }}</text>
             <view class="sealed-countdown">
               <text class="sealed-countdown__label">还 有</text>
               <view class="sealed-countdown__digits">
@@ -821,10 +812,8 @@ onLoad(async (query) => {
                 </view>
               </view>
             </view>
-            <view class="sealed-deco-line-sm" />
           </view>
-
-          <text class="sealed-sub-hint">解封后，过去的你将读到这封信</text>
+          <text class="sealed-sub-hint">解锁后，过去的你会读到这封信</text>
         </view>
 
         <!-- ══════ UNLOCKED：时间回看（回看.html 结构） ══════ -->
@@ -958,7 +947,34 @@ onLoad(async (query) => {
           </view>
         </view>
 
-        <view class="memory-policy">
+        <view v-if="isSealed" class="sealed-reference">
+          <view class="sealed-reference-toggle" role="switch" :aria-checked="memoryExcluded" :aria-disabled="savingMemoryPolicy" :class="{ 'sealed-reference-toggle--busy': savingMemoryPolicy }" @tap="toggleSealedMemoryPolicy">
+            <view class="sealed-reference-switch" :class="{ 'sealed-reference-switch--on': memoryExcluded }"><view /></view>
+            <text>{{ savingMemoryPolicy ? '保存中…' : '不再供参考' }} · {{ memoryNoteDraft.trim() || '只代表当时，不代表现在' }}</text>
+          </view>
+          <button class="sealed-options-toggle" :aria-expanded="sealedOptionsOpen" @tap="sealedOptionsOpen = !sealedOptionsOpen">{{ sealedOptionsOpen ? '收起更多' : '更多 · 篇章与附言' }}</button>
+          <view v-if="sealedOptionsOpen" class="sealed-options">
+            <view class="chapter-membership-panel">
+              <view class="chapter-membership-head">
+                <text class="chapter-membership-title">时间篇章</text>
+                <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
+                <text v-else class="chapter-membership-current">尚未归入篇章</text>
+              </view>
+              <view class="chapter-membership-actions">
+                <view class="chapter-membership-action" @tap="chooseChapter">
+                  {{ chapterActionLoading ? '处理中…' : chapterActionText }}
+                </view>
+                <view v-if="currentChapter" class="chapter-membership-action chapter-membership-action--quiet" @tap="removeFromChapter">
+                  移出篇章
+                </view>
+              </view>
+            </view>
+            <textarea v-model="memoryNoteDraft" class="memory-policy-note" auto-height maxlength="255" placeholder="只代表当时，不代表现在" placeholder-class="memory-policy-placeholder" />
+            <view class="memory-policy-save" :class="{ 'memory-policy-save--loading': savingMemoryPolicy }" @tap="saveAgentMemoryPolicy">{{ savingMemoryPolicy ? '保存中…' : '保存附言' }}</view>
+            <text class="sealed-reference-note">之后不再参考，不会撤回已经发出去的那一轮。</text>
+          </view>
+        </view>
+        <view v-else class="memory-policy">
           <text class="memory-policy-title">Agent 参考</text>
           <text class="memory-policy-hint">之后不再参考，不会撤回已经发出去的那一轮。</text>
           <view class="memory-policy-row" @tap="memoryExcluded = !memoryExcluded">
@@ -1226,341 +1242,303 @@ onLoad(async (query) => {
 /* ═══════════════════════════════════════
    SEALED：封存页（封存.html）
 ═══════════════════════════════════════ */
+.archive-page--sealed {
+  padding: 0 56rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+}
+.archive-page--sealed .archive-top-safe__logo-text {
+  font-family: inherit;
+  font-size: 22rpx;
+  letter-spacing: 8rpx;
+  color: #9e9890;
+}
+.archive-page--sealed .archive-close {
+  top: calc(100% + 12rpx);
+  transform: none;
+  width: 72rpx;
+  height: 72rpx;
+  border: none;
+  background: transparent;
+}
+.archive-page--sealed .archive-close__icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+.archive-page--sealed .archive-close__line {
+  background: #6b6560;
+  height: 2rpx;
+}
+.archive-page--sealed .archive-main {
+  margin-top: 0;
+}
+.archive-page--sealed .archive-stage {
+  gap: 0;
+}
 .sealed-hero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  /* 尽量撑满剩余视口，内容整体居中 */
-  min-height: calc(100vh - 260rpx);
-  justify-content: center;
-  padding: 48rpx 0 32rpx;
-  gap: 0;
+  align-items: stretch;
+  padding: 24rpx 0 0;
 }
-
-/* Archive meta */
 .sealed-meta {
   text-align: center;
-  margin-bottom: 56rpx;
+  margin: 0 0 48rpx;
 }
-
-.sealed-meta__no {
+.sealed-meta__no, .sealed-meta__season {
   display: block;
-  font-family: var(--font-secondary);
-  font-size: 20rpx;
-  font-weight: 300;
-  letter-spacing: 0.25em;
-  color: var(--ink-faint);
-  margin-bottom: 8rpx;
+  color: #6b6560;
+  font-size: 24rpx;
+  letter-spacing: 3rpx;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
 }
-
 .sealed-meta__season {
+  margin-top: 14rpx;
+}
+.sealed-meta__address {
   display: block;
-  font-family: var(--font-reading);
-  font-size: 26rpx;
-  font-weight: 300;
-  letter-spacing: 0.08em;
-  color: var(--ink-light);
+  margin-top: 8rpx;
+  color: #9e9890;
+  font-size: 21rpx;
+  line-height: 1.6;
 }
-
-/* 装饰横线 */
-.sealed-deco-line {
-  width: 64rpx;
-  height: 1rpx;
-  background: var(--ink-faint);
-  margin: 0 auto 64rpx;
-}
-
-/* 信件卡片 */
 .sealed-card {
   position: relative;
   width: 100%;
-  background: rgba(252, 249, 244, 0.72);
-  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  min-height: 500rpx;
+  padding: 52rpx 48rpx 68rpx 52rpx;
+  box-sizing: border-box;
+  border: 1rpx solid #e3dacc;
   border-radius: 2rpx;
-  padding: 56rpx 48rpx 48rpx 64rpx;
-  box-shadow:
-    0 2rpx 0 rgba(255, 255, 255, 0.6) inset,
-    0 4rpx 24rpx rgba(140, 120, 90, 0.06),
-    0 2rpx 6rpx rgba(140, 120, 90, 0.04);
-  margin-bottom: 56rpx;
+  background: #fbf8f1;
+  box-shadow: 0 4rpx 10rpx rgba(125,105,75,.1), 0 20rpx 40rpx rgba(125,105,75,.12);
 }
-
-.sealed-card__vline {
-  position: absolute;
-  left: 0;
-  top: 40rpx;
-  bottom: 40rpx;
-  width: 3rpx;
-  background: linear-gradient(to bottom, transparent, rgba(181,53,42,0.35) 25%, rgba(181,53,42,0.35) 75%, transparent);
-  border-radius: 2rpx;
-}
-
 .sealed-card__corner {
   position: absolute;
+  z-index: 3;
   top: 0;
   right: 0;
-  width: 28rpx;
-  height: 28rpx;
-  background: linear-gradient(225deg, rgba(230,218,200,0.9) 0%, rgba(230,218,200,0.9) 48%, rgba(252,249,244,0) 50%);
-  border-left: 1rpx solid rgba(188,174,152,0.22);
-  border-bottom: 1rpx solid rgba(188,174,152,0.22);
+  width: 34rpx;
+  height: 34rpx;
+  background: linear-gradient(225deg, #f4efe5 49%, #e3dbc9 50%);
+  box-shadow: -3rpx 3rpx 5rpx rgba(120,100,70,.16);
 }
-
 .sealed-card__meta {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 40rpx;
+  gap: 24rpx;
 }
-
-.sealed-card__meta-left {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
 .sealed-seal {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
-  border: 2rpx solid var(--vermilion);
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.75;
   flex-shrink: 0;
-}
-
-.sealed-seal__char {
-  font-family: var(--font-reading);
-  font-size: 20rpx;
-  color: var(--vermilion);
-}
-
-.sealed-card__tag {
-  font-family: var(--font-secondary);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--ink-light);
-  letter-spacing: 0.1em;
-}
-
-.sealed-card__location {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.sealed-card__loc-dot {
-  width: 8rpx;
-  height: 8rpx;
+  width: 50rpx;
+  height: 50rpx;
+  border: 1rpx solid #b5352a;
   border-radius: 50%;
-  background: var(--ink-faint);
+  opacity: .75;
 }
-
-.sealed-card__loc-text {
-  font-family: var(--font-secondary);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--ink-faint);
-  letter-spacing: 0.06em;
-  max-width: 200rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sealed-seal__char {
+  font-size: 24rpx;
+  color: #b5352a;
 }
-
-.sealed-quote { margin-bottom: 36rpx; }
-
+.sealed-card__tag {
+  color: #8a847c;
+  font-size: 24rpx;
+  line-height: 1.7;
+  letter-spacing: 2rpx;
+}
 .sealed-quote__text {
-  font-family: var(--font-reading);
-  font-size: 40rpx;
-  font-weight: 300;
-  color: var(--ink);
-  line-height: 1.6;
-  letter-spacing: 0.04em;
-}
-
-.sealed-body-wrap {
   position: relative;
-  margin-bottom: 20rpx;
+  z-index: 2;
+  display: block;
+  margin: 28rpx 0 0 74rpx;
+  font-size: 38rpx;
+  line-height: 1.8;
+  letter-spacing: 3rpx;
+  color: #9e9890;
+  overflow-wrap: anywhere;
 }
-
-.sealed-body {
-  font-family: var(--font-reading);
-  font-size: 28rpx;
-  font-weight: 300;
-  color: var(--ink-mid);
-  line-height: 1.85;
-  letter-spacing: 0.03em;
-  filter: blur(3px);
+.sealed-body-ink {
+  margin-top: 40rpx;
 }
-
-.sealed-body__veil {
+.sealed-body-ink view {
+  height: 16rpx;
+  margin-bottom: 28rpx;
+  background: rgba(107,101,96,.06);
+}
+.sealed-body-ink view:nth-child(2n) {
+  width: 85%;
+}
+.sealed-frost {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, transparent 0%, rgba(252,249,244,0.82) 80%);
+  left: 0;
+  right: 0;
+  top: 140rpx;
+  bottom: 0;
   pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.65), #fff 85%);
+  box-shadow: inset 0 0 52rpx 20rpx rgba(255,255,255,.95);
 }
-
-.sealed-sparkle {
-  text-align: right;
-  opacity: 0.35;
-  font-size: 32rpx;
-  color: var(--ink-faint);
+.sealed-media {
+  display: block;
+  width: 100%;
 }
-
-/* 倒计时区 */
 .sealed-lock {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 36rpx;
-  margin-bottom: 44rpx;
+  gap: 28rpx;
+  margin-top: 64rpx;
 }
-
 .sealed-lock__live {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  justify-content: center;
+  gap: 16rpx;
 }
-
 .sealed-lock__pulse {
-  width: 8rpx;
-  height: 8rpx;
+  width: 9rpx;
+  height: 9rpx;
   border-radius: 50%;
-  background: var(--vermilion);
-  opacity: 0.6;
-  animation: pulse 2s ease-in-out infinite;
+  background: #b5352a;
 }
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50%       { opacity: 1;   transform: scale(1.2); }
-}
-
 .sealed-lock__live-text {
-  font-family: var(--font-secondary);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--ink-light);
-  letter-spacing: 0.1em;
+  color: #8a847c;
+  font-size: 24rpx;
+  line-height: 1.7;
+  letter-spacing: 2rpx;
 }
-
-.sealed-countdown { text-align: center; }
-
+.sealed-expect {
+  color: #403c37;
+  font-size: 46rpx;
+  text-align: center;
+  line-height: 1.65;
+  letter-spacing: 3rpx;
+}
+.sealed-countdown {
+  text-align: center;
+}
 .sealed-countdown__label {
   display: block;
-  font-family: var(--font-secondary);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--ink-light);
-  letter-spacing: 0.12em;
   margin-bottom: 16rpx;
+  color: #9e9890;
+  font-size: 21rpx;
+  letter-spacing: 4rpx;
 }
-
 .sealed-countdown__digits {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 4rpx;
+  gap: 8rpx;
 }
-
 .digit-block {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 76rpx;
+  min-width: 64rpx;
 }
-
 .digit-num {
-  font-family: var(--font-reading);
-  font-size: 56rpx;
-  font-weight: 300;
-  color: var(--ink);
-  letter-spacing: 0.02em;
-  line-height: 1;
+  color: #403c37;
+  font-size: 58rpx;
+  line-height: 1.2;
 }
-
 .digit-unit {
-  font-family: var(--font-secondary);
-  font-size: 18rpx;
-  font-weight: 300;
-  color: var(--ink-faint);
-  letter-spacing: 0.1em;
-  margin-top: 6rpx;
+  margin-top: 8rpx;
+  color: #9e9890;
+  font-size: 20rpx;
 }
-
 .digit-sep {
-  font-family: var(--font-reading);
-  font-size: 44rpx;
-  font-weight: 300;
-  color: var(--ink-faint);
-  padding-bottom: 16rpx;
+  color: #c8c2b8;
+  font-size: 42rpx;
   margin: 0 4rpx;
 }
-
-.sealed-deco-line-sm {
-  width: 48rpx;
-  height: 1rpx;
-  background: var(--ink-faint);
-  margin: 0 auto;
+.sealed-sub-hint {
+  display: block;
+  margin: 84rpx 0 0;
+  text-align: center;
+  font-size: 22rpx;
+  line-height: 1.8;
+  letter-spacing: 2rpx;
+  color: #9e9890;
 }
-
-/* CTA */
-.sealed-cta-wrap {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 32rpx;
+.sealed-reference {
+  margin: 80rpx 0 0;
 }
-
-.sealed-cta {
-  position: relative;
+.sealed-reference-toggle {
   display: flex;
   align-items: center;
   gap: 20rpx;
-  padding: 26rpx 72rpx;
-  background: transparent;
-  border: 1rpx solid var(--ink-faint);
-  border-radius: 4rpx;
+  min-height: 88rpx;
+  color: #9e9890;
+  font-size: 24rpx;
+  line-height: 1.8;
+  letter-spacing: 1rpx;
 }
-
-.sealed-cta__corner {
-  position: absolute;
-  width: 12rpx;
-  height: 12rpx;
-  border-color: var(--ink-light);
-  border-style: solid;
+.sealed-reference-toggle--busy {
+  opacity: .6;
 }
-
-.sealed-cta__corner--tl { top: -2rpx; left: -2rpx; border-width: 2rpx 0 0 2rpx; }
-.sealed-cta__corner--br { bottom: -2rpx; right: -2rpx; border-width: 0 2rpx 2rpx 0; }
-
-.sealed-cta__dot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: var(--vermilion);
-  opacity: 0.7;
+.sealed-reference-switch {
+  position: relative;
   flex-shrink: 0;
+  width: 60rpx;
+  height: 36rpx;
+  box-sizing: border-box;
+  border: 1rpx solid #c8c2b8;
+  border-radius: 20rpx;
 }
-
-.sealed-cta__text {
-  font-family: var(--font-reading);
-  font-size: 28rpx;
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  color: var(--ink);
+.sealed-reference-switch view {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 50%;
+  background: #c8c2b8;
 }
-
-.sealed-sub-hint {
+.sealed-reference-switch--on {
+  border-color: #b5352a;
+}
+.sealed-reference-switch--on view {
+  left: 28rpx;
+  background: #b5352a;
+}
+.sealed-options-toggle {
+  margin: 8rpx 0 0;
+  padding: 8rpx 0;
+  min-height: 72rpx;
+  color: #9e9890;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  font-size: 21rpx;
+  line-height: 2;
+  border: none;
+}
+.sealed-options-toggle::after {
+  border: none;
+}
+.sealed-options {
+  padding: 8rpx 0 24rpx;
+}
+.sealed-reference-note {
   display: block;
-  text-align: center;
-  font-family: var(--font-secondary);
-  font-size: 20rpx;
+  margin-top: 24rpx;
+  color: #9e9890;
+  font-size: 21rpx;
+  line-height: 1.7;
+}
+.archive-page--sealed .ownership-delete {
+  margin: 24rpx 0 0;
+  color: #b5352a;
+  font-family: inherit;
+  font-size: 28rpx;
   font-weight: 300;
-  color: var(--ink-faint);
-  letter-spacing: 0.08em;
+  letter-spacing: 3rpx;
 }
 
 /* ═══════════════════════════════════════

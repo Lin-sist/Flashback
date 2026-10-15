@@ -177,47 +177,52 @@ onUnmounted(() => {
       <text class="readonly-media-count">{{ availableAttachments.length }} 项</text>
     </view>
 
-    <view v-if="imageAttachments.length" class="readonly-image-grid">
-      <view v-for="attachment in imageAttachments" :key="attachment.id" class="readonly-image-item">
-        <image
-          v-if="imageAccessUrls[attachment.id]"
-          class="readonly-image"
-          :src="imageAccessUrls[attachment.id]"
-          mode="aspectFill"
-          @tap="previewImage(attachment)"
-          @error="markImageFailed(attachment.id)"
-        />
-        <view v-else class="readonly-image-fallback" @tap="previewImage(attachment)">
-          <view class="readonly-image-icon" aria-hidden="true" />
-          <text v-if="imageAccessErrors[attachment.id]" class="readonly-media-error">图片暂不可用</text>
+    <view class="readonly-fragments">
+      <view v-if="imageAttachments.length" class="readonly-image-grid">
+        <view v-for="attachment in imageAttachments" :key="attachment.id" class="readonly-image-item">
+          <image
+            v-if="imageAccessUrls[attachment.id]"
+            class="readonly-image"
+            :src="imageAccessUrls[attachment.id]"
+            mode="aspectFill"
+            @tap="previewImage(attachment)"
+            @error="markImageFailed(attachment.id)"
+          />
+          <view v-else class="readonly-image-fallback" @tap="previewImage(attachment)">
+            <view class="readonly-image-icon" aria-hidden="true" />
+            <text v-if="imageAccessErrors[attachment.id]" class="readonly-media-error">图片暂不可用</text>
+          </view>
+          <text v-if="coverId === attachment.id" class="readonly-cover-label">封面</text>
         </view>
-        <text v-if="coverId === attachment.id" class="readonly-cover-label">封面</text>
       </view>
-    </view>
 
-    <view v-if="voiceAttachments.length" class="readonly-voice-list">
-      <view v-for="(attachment, index) in voiceAttachments" :key="attachment.id" class="readonly-voice-row">
-        <view
-          class="readonly-voice-play"
-          :class="{
-            'readonly-voice-play--active': playingVoiceId === attachment.id,
-            'readonly-voice-play--loading': voiceLoadingId === attachment.id,
-          }"
-          :aria-label="playingVoiceId === attachment.id
-            ? '停止播放'
-            : voiceLoadingId === attachment.id
-              ? '正在加载语音'
-              : '播放语音'"
-          @tap="playVoice(attachment)"
-        >
-          {{ playingVoiceId === attachment.id ? '■' : voiceLoadingId === attachment.id ? '…' : '▶' }}
-        </view>
-        <view class="readonly-voice-info">
-          <text class="readonly-voice-name">语音记录 {{ index + 1 }}</text>
-          <text class="readonly-voice-duration">{{ formatVoiceDuration(attachment.durationSeconds) }}</text>
-          <text v-if="voiceAccessErrors[attachment.id]" class="readonly-media-error">
-            {{ voiceAccessErrors[attachment.id] }}
-          </text>
+      <view v-if="voiceAttachments.length" class="readonly-voice-list">
+        <view v-for="(attachment, index) in voiceAttachments" :key="attachment.id" class="readonly-voice-row">
+          <view
+            class="readonly-voice-play"
+            :class="{
+              'readonly-voice-play--active': playingVoiceId === attachment.id,
+              'readonly-voice-play--loading': voiceLoadingId === attachment.id,
+            }"
+            :aria-label="playingVoiceId === attachment.id
+              ? '停止播放'
+              : voiceLoadingId === attachment.id
+                ? '正在加载语音'
+                : '播放语音'"
+            @tap="playVoice(attachment)"
+          >
+            {{ playingVoiceId === attachment.id ? '■' : voiceLoadingId === attachment.id ? '…' : '▶' }}
+          </view>
+          <view class="readonly-voice-info">
+            <view v-if="variant === 'sealed'" class="readonly-voice-wave" aria-hidden="true">
+              <view v-for="(height, bar) in [12,24,18,34,28,42,36,50,40,46,42,50,46,36,50,40,42,32,38,26,34,24,30,20,26,24,20,24,14,20,16,12]" :key="bar" :style="{ height: height + 'rpx' }" />
+            </view>
+            <text class="readonly-voice-name">语音记录 {{ index + 1 }}</text>
+            <text class="readonly-voice-duration">{{ formatVoiceDuration(attachment.durationSeconds) }}</text>
+            <text v-if="voiceAccessErrors[attachment.id]" class="readonly-media-error">
+              {{ voiceAccessErrors[attachment.id] }}
+            </text>
+          </view>
         </view>
       </view>
     </view>
@@ -231,11 +236,6 @@ onUnmounted(() => {
   padding: 28rpx 4rpx;
   border-top: 1rpx solid rgba(188, 174, 152, 0.24);
   border-bottom: 1rpx solid rgba(188, 174, 152, 0.24);
-}
-
-.readonly-media--sealed {
-  margin-top: 0;
-  margin-bottom: 48rpx;
 }
 
 .readonly-media-head {
@@ -370,5 +370,91 @@ onUnmounted(() => {
   color: #9a332a;
   word-break: break-all;
   text-align: center;
+}
+
+/* 仅封存页横排真实片段；波形为静态装饰，不分析语音。 */
+.readonly-media--sealed {
+  margin: 56rpx 0 0;
+  padding: 0;
+  border: none;
+  box-sizing: border-box;
+}
+.readonly-media--sealed .readonly-media-head {
+  justify-content: flex-start;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+}
+.readonly-media--sealed .readonly-media-title, .readonly-media--sealed .readonly-media-count {
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  font-size: 24rpx;
+  color: #9e9890;
+  letter-spacing: 2rpx;
+}
+.readonly-media--sealed .readonly-fragments {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20rpx;
+}
+.readonly-media--sealed .readonly-image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+  max-width: 100%;
+}
+.readonly-media--sealed .readonly-image-item {
+  flex-shrink: 0;
+  width: 156rpx;
+  height: 118rpx;
+  aspect-ratio: auto;
+  box-shadow: 0 6rpx 16rpx rgba(120,100,70,.18);
+}
+.readonly-media--sealed .readonly-voice-list {
+  flex: 1 1 220rpx;
+  min-width: 0;
+  margin: 0;
+}
+.readonly-media--sealed .readonly-voice-row {
+  min-height: 118rpx;
+  border: none;
+  gap: 16rpx;
+}
+.readonly-media--sealed .readonly-voice-play {
+  width: 58rpx;
+  height: 58rpx;
+  border-color: rgba(107,101,96,.5);
+  color: #6b6560;
+  font-size: 22rpx;
+}
+.readonly-media--sealed .readonly-voice-play--active {
+  background: transparent;
+  color: #b5352a;
+  border-color: #b5352a;
+}
+.readonly-media--sealed .readonly-voice-duration {
+  color: #9e9890;
+  font-size: 18rpx;
+}
+.readonly-media--sealed .readonly-voice-name, .readonly-media--sealed .readonly-cover-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+.readonly-voice-wave {
+  width: 100%;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rpx;
+}
+.readonly-voice-wave view {
+  flex-shrink: 0;
+  width: 2rpx;
+  background: #9e9890;
 }
 </style>
