@@ -49,13 +49,25 @@ async function main(){
   h.clock.now+=3723000;h.timers.values().next().value();assert.equal(h.scope.countdownH.value,'00');assert.equal(h.scope.isSealed.value,true)
   assert.equal(h.scope.canEditLaterReflection.value,false);h.cleanups.forEach(fn=>fn());assert.equal(h.timers.size,0);assert.equal(h.calls.length,0)
  })
- await check('封存正文不进入模板，默认简洁开关、更多仍可编辑旧备注/篇章',()=>{
+ await check('封存部分正文复用霜层，默认简洁开关、更多保留备注/篇章',()=>{
   const h=setup('pages/record-detail/index.vue');assert.equal(h.select('sealed-card').length,1);assert.equal(h.select('sealed-expect').length,0);assert.equal(h.select('sealed-sub-hint').length,0);assert.equal(h.select('ownership-delete').length,0)
-  assert.ok(!h.nodes().some(n=>typeof n.children==='string'&&n.children.includes('synthetic sealed body')))
+  assert.equal(h.select('sealed-body-excerpt')[0].children,h.scope.sealedExcerpt.value)
   assert.equal(h.select('memory-policy').length,0);assert.equal(h.select('chapter-membership-panel').length,0)
   const locationName='synthetic long location '.repeat(4);h.store.detail.location={name:locationName,address:'synthetic complete address'}
   assert.equal(h.select('sealed-meta__location')[0].props['aria-label'],locationName.trim());assert.equal(h.select('sealed-meta__address').length,0)
   h.select('sealed-options-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy-note').length,1);assert.equal(h.select('sealed-location-details').length,1);assert.equal(h.store.detail.location.name,locationName)
+ })
+ await check('正文只读截取72个字符且不拆emoji，空响应不补正文或发请求',()=>{
+  const h=setup('pages/record-detail/index.vue'),content='synthetic-🙂'.repeat(20)+'synthetic-tail-never-show'
+  h.store.detail.content=content
+  const expected=Array.from(content).slice(0,72).join('')+'…'
+  assert.equal(h.scope.sealedExcerpt.value,expected)
+  assert.equal(h.select('sealed-body-excerpt')[0].children,expected)
+  assert.equal(h.select('sealed-body-excerpt')[0].props.selectable,false)
+  assert.ok(!h.nodes().some(n=>typeof n.children==='string'&&n.children.includes('synthetic-tail-never-show')))
+  assert.equal(h.store.detail.content,content);assert.equal(h.scope.isSealed.value,true)
+  h.store.detail.content=null;assert.equal(h.scope.sealedExcerpt.value,'');assert.equal(h.select('sealed-body-excerpt').length,0)
+  assert.equal(h.select('sealed-body-ink').length,1);assert.equal(h.calls.length,0)
  })
  await check('简洁开关保存真实字段、忙碌防重、失败回滚且不清空原备注',async()=>{
   const h=setup('pages/record-detail/index.vue');let release;h.setUpdate(()=>new Promise(r=>{release=r}))

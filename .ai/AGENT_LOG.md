@@ -8959,3 +8959,14 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新霜态filter实效/静态回退、字体、长标题地址/底部对齐、小屏/真机仍待实操；当前用户画面只代表d60f415反馈FAIL。合成模板不模拟原生v-model，Vue离线withDirectives提示保留；不称视觉过审、不绕过旧file拒绝。真实业务API/provider/对象存储0，完整F-25 pending不补勾。
 - **Commit**: pending（已授本地简短提交；不push/PR/部署/接受delta/归档）
 - **Next**: 用户加载Standard产物，复验柔霜/标题中心/地点省略/倒计时/参考中心以及删繁；其它页与完整状态矩阵不扩展。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：仅增加霜下正文片段｜Type B（F-25内）
+
+- **Scope**: 用户明确仅添加部分主体文字并用相同霜态模糊，其他不改，特别保持标题居中。clean HEAD 4c38f6f（补录上一轮真实commit），沿用简短本地提交。仅详情正文显示块/计算/局部样式、现有sealed-detail-offline脚本与当前交接/证据/日志，不改任务范围、接口或权限。
+- **Changes**: 当前已返回content按Unicode字符取前72字并按需附省略号，在既有blur7rpx/透明度下以约3行正文显示并局部淡出，沿用原正文占位高度；空正文仍用原4条墨影。片段禁选并置于原aria-hidden正文区域，不称其为访问控制。只读核对后端detail所属记录映射会返回content，参考策略更新响应可剥离SEALED正文；不新取数、不缓存/恢复被剥离的内容。没有复制截图原文。
+- **Verification PASS**: 6/6封存合成（片段长度/emoji不拆/尾部不渲染/原数据不改/空响应无补请求）+14/14已有状态+7/7浮层、vue-tsc、Preview/Standard build退出0，各21项WXSS/布局PASS，最终Standard产物。移除唯一新增片段的computed/模板/局部样式后与4c38f6f整个详情文件逐字一致，标题/整卡霜层/地点/媒体/倒计时/参考及其它源码均保护；没有额外业务操作。
+- **Verification PASS**: 精确5文件allowlist/git diff --check与隐私检查提交前复核；日志原752167字节SHA256 68db9b4e642cb750c09fcac53e9b22ad1f158dc07c23eb204bf1d622469c20b3只追加前缀校验。后端/services/stores/types/权限、其它页面/ReadOnlyRecordMedia、package/lockfile/demo/accepted specs/archive零修改。日记片段仅运行态展示，未写日志/URL/存储/测试夹具，无真实正文或secret入库。
+- **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，新正文在原霜层下的实际可见度/模糊/字体/真机仍待手验；合成模板不模拟原生v-model，既有Vue离线上下文提示保留，不以源码/构建称视觉通过。不绕过旧file拒绝。真实业务API/provider/对象存储0，完整F-25仍pending。
+- **Commit**: pending（已有本地简短提交授权；不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载Standard构建只复验霜下正文片段，标题继续居中，其它页面和元素不扩展。

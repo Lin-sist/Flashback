@@ -138,9 +138,15 @@ const unlockQuote = computed(() => {
   return first ? `"${first.slice(0, 40)}"` : ''
 })
 
-// 封存纸面只展示已返回的标题；正文不以可读文本置于霜层下。
+// 标题保持现状；仅在既有霜层下展示已返回正文的有限片段。
 const sealedTitle = computed(() => detail.value?.title?.trim()
   ? '“' + detail.value.title.trim() + '”' : '未命名片段')
+
+const sealedExcerpt = computed(() => {
+  const characters = Array.from((detail.value?.content || '').trim())
+  const excerpt = characters.slice(0, 72).join('')
+  return characters.length > 72 ? excerpt + '…' : excerpt
+})
 
 const { cssVars, navBarHeight, navBarTotalHeight, rightSafeWidth, statusBarHeight } =
   useWechatNavMetrics()
@@ -771,7 +777,10 @@ onLoad(async (query) => {
               <text class="sealed-card__tag">{{ archiveWrittenText }}</text>
             </view>
             <text class="sealed-quote__text">{{ sealedTitle }}</text>
-            <view class="sealed-body-ink" aria-hidden="true"><view /><view /><view /><view /></view>
+            <view class="sealed-body-ink" :class="{ 'sealed-body-ink--excerpt': sealedExcerpt }" aria-hidden="true">
+              <text v-if="sealedExcerpt" class="sealed-body-excerpt" :selectable="false">{{ sealedExcerpt }}</text>
+              <template v-else><view /><view /><view /><view /></template>
+            </view>
             <view class="sealed-frost" aria-hidden="true" />
           </view>
           <ReadOnlyRecordMedia
@@ -1375,9 +1384,31 @@ onLoad(async (query) => {
   overflow-wrap: anywhere;
 }
 .sealed-body-ink {
+  height: 184rpx;
   margin-top: 40rpx;
   opacity: .5;
   filter: blur(7rpx);
+}
+.sealed-body-ink--excerpt {
+  position: relative;
+  z-index: 1;
+}
+.sealed-body-ink--excerpt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.9));
+}
+.sealed-body-excerpt {
+  display: block;
+  max-height: 156rpx;
+  overflow: hidden;
+  font-size: 28rpx;
+  line-height: 1.85;
+  color: #6b6560;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .sealed-body-ink view {
   height: 18rpx;
