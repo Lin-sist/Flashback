@@ -113,6 +113,35 @@ check('书写工具与保存按钮可在窄屏并排，且底部操作仍在正�
   assert.equal(property(file, '.editor-toolbar', 'flex-wrap'), 'wrap')
   assert.ok(!/\.(?:bottom-area|editor-toolbar)[^{]*\{[^}]*position:(?:fixed|absolute)/.test(fs.readFileSync(path.join(dist, file), 'utf8')))
 })
+check('首页已留下使用整宽轻纸卡，长标题省略且动作不收缩', () => {
+  const file = 'pages/home/index.wxss'
+  assert.equal(property(file, '.saved-entry', 'width'), '100%')
+  assert.equal(property(file, '.saved-entry', 'box-sizing'), 'border-box')
+  assert.equal(withoutTokens(property(file, '.saved-entry', 'background')), '#fcf9f4')
+  assert.equal(property(file, '.saved-entry-title', 'text-overflow'), 'ellipsis')
+  assert.equal(property(file, '.saved-entry .entry-action', 'flex-shrink'), '0')
+})
+check('已留下工具独立一行，双动作同宽同高并留出间隔', () => {
+  const file = 'pages/record-editor/index.wxss'
+  assert.equal(property(file, '.editor-toolbar--saved', 'flex-direction'), 'column')
+  assert.equal(property(file, '.editor-toolbar--saved .editor-actions', 'width'), '100%')
+  assert.equal(property(file, '.editor-toolbar--saved .seal-btn', 'flex'), '1')
+  assert.equal(property(file, '.editor-toolbar--saved .seal-btn', 'min-height'), '48px')
+  const gap = parseFloat(property(file, '.editor-toolbar--saved .editor-actions', 'gap'))
+  for (const width of [320,375,390,430]) {
+    const available = width * (750 - 128) / 750
+    const button = (available - gap * width / 750) / 2
+    assert.ok(button >= 4 * 28 * width / 750 + 2 * 24 * width / 750 + 22 * width / 750, 'saved action content clipped at ' + width)
+  }
+})
+check('封存确认有静态遮罩和可滚动纸面，滚轮与确认不同时遮挡', () => {
+  const file = 'pages/record-editor/index.wxss'
+  assert.equal(property(file, '.seal-layer', 'position'), 'fixed')
+  assert.equal(property(file, '.seal-panel', 'overflow-y'), 'auto')
+  assert.match(property(file, '.seal-panel', 'padding'), /safe-area-inset-bottom/)
+  assert.ok(property(file, '.seal-mask', 'background'))
+  assert.match(sourceFile('pages/record-editor/index.vue'), /v-if="showSealSheet && !showUnlockPicker && recordStatus === RecordStatus.SAVED"/)
+})
 const source = parse(sourceFile('components/common/AppTopSafeBar.vue')).descriptor.scriptSetup.content
 function titleGeometry(width, leftSlot, rightSlot, paddingX, sideWidth, centerTitle = false) {
   const script = ts.transpileModule(source + '\nglobalThis.testStyles = {titleStyle, rightRailStyle};', {

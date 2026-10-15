@@ -57,6 +57,8 @@ const showAgentChat = ref(false)
 const showAgentIntentChooser = ref(false)
 const selectedAgentIntent = ref<AgentConversationIntent>('LISTEN')
 const showUnlockPicker = ref(false)
+const showSealSheet = ref(false)
+const sealTimeDraft = ref('')
 const showLocationPanel = ref(false)
 const showCoverPicker = ref(false)
 const appendixOpen = ref(false) // 仅附言展开，不参与保存数据。
@@ -227,9 +229,9 @@ const locationLabel = computed(() => {
   return '已保存地点'
 })
 
-const unlockDisplayText = computed(() => {
-  if (!form.unlockAtInput) return ''
-  const parts = form.unlockAtInput.split(' ')
+const sealTimeDisplayText = computed(() => {
+  if (!sealTimeDraft.value) return ''
+  const parts = sealTimeDraft.value.split(' ')
   if (parts.length === 2) {
     const dateParts = parts[0].split('-')
     const timeParts = parts[1].split(':')
@@ -237,7 +239,7 @@ const unlockDisplayText = computed(() => {
       return `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeParts[0]}:${timeParts[1]}`
     }
   }
-  return form.unlockAtInput
+  return sealTimeDraft.value
 })
 
 const writingDateText = computed(() => {
@@ -1644,13 +1646,41 @@ const onAuxTap = (name: '地点' | '图片' | '语音') => {
   startVoiceRecording()
 }
 
-const onUnlockBarTap = () => {
+// 时间选择属于临时确认面板；取消不会把时间写进记录表单。
+const openSealSheet = () => {
+  if (loading.value || recordStatus.value !== RecordStatus.SAVED) return
+  sealTimeDraft.value = form.unlockAtInput
+  showSealSheet.value = true
+}
+
+const closeSealSheet = () => {
+  if (loading.value) return
+  showUnlockPicker.value = false
+  showSealSheet.value = false
+}
+
+const openSealTimePicker = () => {
+  if (loading.value || !showSealSheet.value || recordStatus.value !== RecordStatus.SAVED) return
   showUnlockPicker.value = true
 }
 
 const onUnlockConfirm = (datetime: string) => {
-  form.unlockAtInput = datetime
+  sealTimeDraft.value = datetime
   showUnlockPicker.value = false
+}
+
+const confirmSealSheet = async () => {
+  if (loading.value || !showSealSheet.value || showUnlockPicker.value || recordStatus.value !== RecordStatus.SAVED) return
+  if (!getToken() && hasPreviewSession()) { showPreviewReadonlyToast(); return }
+  const unlockAt = toLocalDateTime(sealTimeDraft.value)
+  const target = unlockAt ? new Date(unlockAt).getTime() : NaN
+  if (!Number.isFinite(target) || target <= Date.now()) {
+    uni.showToast({ title: '请选择未来的解封时间', icon: 'none' })
+    return
+  }
+  form.unlockAtInput = sealTimeDraft.value
+  await sealRecord()
+  if ((recordStatus.value as RecordStatus) === RecordStatus.SEALED) showSealSheet.value = false
 }
 
 onLoad(async (query) => {
@@ -1750,18 +1780,6 @@ onUnload(() => {
                   placeholder="写下一句话，也可以只留图片或声音..."
                   placeholder-class="editor-placeholder"
                 />
-              </view>
-            </view>
-
-            <!-- 解封时间设置区 -->
-            <view v-if="recordStatus === RecordStatus.SAVED" class="unlock-bar" @tap="onUnlockBarTap">
-              <text class="unlock-label">解封时间</text>
-              <view class="unlock-display">
-                <text
-                  class="unlock-text"
-                  :class="{ 'unlock-text--placeholder': !form.unlockAtInput }"
-                >{{ form.unlockAtInput ? unlockDisplayText : '选择未来开启的时间' }}</text>
-                <text class="unlock-arrow">›</text>
               </view>
             </view>
 
@@ -1998,7 +2016,7 @@ onUnload(() => {
           <text v-if="voiceStarting || voiceRecording || voiceStopping || voiceUploading || imageUploading || pendingImageUploads.length || pendingVoiceUploads.length" class="toolbar-status" aria-live="polite">
             {{ voiceRecording ? '录音中 · ' + formatVoiceDuration(recordingSeconds) + ' · 点击麦克风停止' : voiceStarting ? '正在启动录音' : voiceStopping ? '正在结束录音' : imageUploading || voiceUploading ? '媒体处理中，请稍候' : '有未完成的媒体，请在纸面中重试或移除' }}
           </text>
-          <view class="editor-toolbar">
+          <view class="editor-toolbar" :class="{ 'editor-toolbar--saved': recordStatus === RecordStatus.SAVED }">
             <view class="attach-bar">
               <view class="attach-item" aria-label="选择地点" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
                 <view class="attach-icon attach-icon--map" aria-hidden="true" />
@@ -2038,10 +2056,16 @@ onUnload(() => {
                 </text>
               </view>
             </view>
-            <button class="seal-btn" :disabled="loading" hover-class="seal-btn--pressed" @tap="saveDraft">
-              <view class="btn-dot" aria-hidden="true" />
-              <text class="seal-btn-text">{{ loading ? '正在留下...' : '留下这一刻' }}</text>
-            </button>
+            <view class="editor-actions">
+              <button class="seal-btn save-entry" :disabled="loading" hover-class="seal-btn--pressed" @tap="saveDraft">
+                <view class="btn-dot" aria-hidden="true" />
+                <text class="seal-btn-text">{{ loading ? '正在保存…' : recordStatus === RecordStatus.SAVED ? '保存补充' : '留下这一刻' }}</text>
+              </button>
+              <button v-if="recordStatus === RecordStatus.SAVED" class="seal-btn seal-entry" :disabled="loading" hover-class="seal-btn--pressed" @tap="openSealSheet">
+                <view class="btn-dot" aria-hidden="true" />
+                <text class="seal-btn-text">交给时间</text>
+              </button>
+            </view>
           </view>
 
           <view v-if="savedFeedback && !hasDirtyChanges()" class="seal-hint" aria-live="polite">
@@ -2050,22 +2074,31 @@ onUnload(() => {
             <view class="hint-line" aria-hidden="true" />
           </view>
 
-          <view
-            v-if="recordStatus === RecordStatus.SAVED"
-            class="draft-btn"
-            :class="{ 'draft-btn--disabled': loading }"
-            @tap="sealRecord"
-          >
-            <text class="draft-btn-text">{{ loading ? '处理中...' : '交给时间' }}</text>
-          </view>
+
         </view>
       </template>
     </view>
   </view>
 
+  <view v-if="showSealSheet && !showUnlockPicker && recordStatus === RecordStatus.SAVED" class="seal-layer">
+    <view class="seal-mask" @tap="closeSealSheet" />
+    <view class="seal-panel" role="dialog" aria-modal="true" aria-label="交给时间">
+      <view class="seal-handle" />
+      <button class="seal-close" :disabled="loading" aria-label="关闭封存确认" @tap="closeSealSheet">×</button>
+      <text class="seal-kicker">交给时间</text>
+      <text class="seal-title">约定再次打开的时刻</text>
+      <button class="seal-time-entry" :disabled="loading" @tap="openSealTimePicker">
+        <view class="seal-time-copy"><text class="seal-time-label">解封时间</text><text class="seal-time-value">{{ sealTimeDisplayText || '选择未来开启的时间' }}</text></view>
+        <text class="seal-time-arrow">›</text>
+      </button>
+      <text class="seal-description">封存后，等到约定的时间再打开。</text>
+      <button class="seal-btn seal-confirm" :disabled="loading || !sealTimeDraft" hover-class="seal-btn--pressed" @tap="confirmSealSheet"><view class="btn-dot" aria-hidden="true" /><text class="seal-btn-text">{{ loading ? '正在封存…' : '确认封存' }}</text></button>
+    </view>
+  </view>
+
   <DateTimeWheelPicker
     :visible="showUnlockPicker"
-    :initial-value="form.unlockAtInput || null"
+    :initial-value="sealTimeDraft || null"
     @confirm="onUnlockConfirm"
     @cancel="showUnlockPicker = false"
   />
@@ -2363,52 +2396,6 @@ onUnload(() => {
   font-size: 25rpx;
   line-height: 1.75;
   color: #4a4640;
-}
-
-/* 解封时间设置区 */
-.unlock-bar {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  padding: 24rpx 40rpx;
-  border-top: 1rpx solid rgba(192, 182, 165, 0.15);
-}
-
-.unlock-label {
-  flex-shrink: 0;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 20rpx;
-  color: #9e9890;
-  letter-spacing: 0.04em;
-}
-
-.unlock-display {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  min-height: 40rpx;
-  gap: 8rpx;
-}
-
-.unlock-text {
-  flex: 1;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 22rpx;
-  color: #6b6560;
-  letter-spacing: 0.03em;
-  line-height: 1.4;
-}
-
-.unlock-text--placeholder {
-  color: rgba(180, 170, 155, 0.7);
-}
-
-.unlock-arrow {
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 40rpx;
-  color: #c8c2b8;
-  flex-shrink: 0;
-  line-height: 1;
 }
 
 .location-summary {
@@ -3032,22 +3019,6 @@ onUnload(() => {
   line-height: 1.8;
 }
 
-/* 草稿按钮 */
-.draft-btn {
-  margin-top: 24rpx;
-  padding: 12rpx 32rpx;
-}
-
-.draft-btn--disabled {
-  opacity: 0.6;
-}
-
-.draft-btn-text {
-  font-size: 26rpx;
-  color: var(--fb-ink-mid, #6b6560);
-  line-height: 1.8;
-}
-
 /* ── 状态页（初始化中 / 失败） ── */
 .state-paper {
   position: relative;
@@ -3111,4 +3082,25 @@ onUnload(() => {
 .image-grid--single .image-tile { aspect-ratio: 4 / 3; box-shadow: 0 6rpx 20rpx rgba(120,100,70,.16); }
 .editor-field--with-media { min-height: 184rpx; }
 .toolbar-status { display: block; margin-bottom: 16rpx; font-size: 22rpx; line-height: 1.7; color: var(--fb-ink-mid, #6b6560); }
+
+/* 已留下记录：工具轻列与两个等权动作。新记录保持原来的单按钮。 */
+.editor-actions { display: flex; justify-content: flex-end; width: 300rpx; flex: 0 0 auto; }
+.editor-toolbar--saved { flex-direction: column; align-items: stretch; gap: 16rpx; }
+.editor-toolbar--saved .editor-actions { width: 100%; gap: 24rpx; }
+.editor-toolbar--saved .seal-btn { flex: 1; width: 0; min-width: 0; min-height: 48px; }
+.seal-layer { position: fixed; inset: 0; z-index: 1190; display: flex; align-items: flex-end; }
+.seal-mask { position: absolute; inset: 0; background: rgba(96,89,79,.42); }
+.seal-panel { position: relative; width: 100%; max-height: 90vh; overflow-y: auto; box-sizing: border-box; padding: 22rpx 46rpx calc(44rpx + env(safe-area-inset-bottom)); border-radius: 28rpx 28rpx 0 0; background: #f9f5ed; box-shadow: 0 -12rpx 48rpx rgba(77,65,48,.08); font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); }
+.seal-handle { width: 70rpx; height: 8rpx; margin: 0 auto 48rpx; border-radius: 8rpx; background: #c9c2b8; }
+.seal-close { position: absolute; top: 26rpx; right: 24rpx; width: 72rpx; height: 72rpx; margin: 0; padding: 0; background: transparent; color: #6b6560; font-size: 44rpx; font-weight: 300; line-height: 68rpx; }
+.seal-close::after, .seal-time-entry::after { border: none; }
+.seal-kicker { display: block; text-align: center; color: #aaa398; font-size: 21rpx; letter-spacing: 5rpx; }
+.seal-title { display: block; margin: 26rpx 0 38rpx; text-align: center; color: #403c37; font-size: 36rpx; font-weight: 400; line-height: 1.6; }
+.seal-time-entry { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; min-height: 112rpx; margin: 0; padding: 22rpx 24rpx; border: 1rpx solid #e5ddd0; border-radius: 0; background: #fcfaf5; text-align: left; font-family: inherit; }
+.seal-time-copy { flex: 1; min-width: 0; }
+.seal-time-label { display: block; color: #aaa398; font-size: 21rpx; line-height: 1.7; }
+.seal-time-value { display: block; margin-top: 8rpx; color: #6b6560; font-size: 27rpx; line-height: 1.7; overflow-wrap: anywhere; }
+.seal-time-arrow { flex-shrink: 0; color: #aaa398; font-size: 36rpx; }
+.seal-description { display: block; margin-top: 20rpx; color: #aaa398; font-size: 22rpx; line-height: 1.8; }
+.seal-confirm { width: 320rpx; margin: 34rpx auto 0; }
 </style>

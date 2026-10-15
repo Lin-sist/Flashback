@@ -9006,3 +9006,28 @@ Commit: pending
 - **Verification SKIPPED / Risks**: 无可控微信UI/自动化会话，原生中文键盘避让/焦点、实际浮层观感/触摸、小屏/真机和后端真实持久化未实操。源码/合成/构建不称平台验收，不绕过旧file拒绝。真实业务API/provider/对象存储调用0，F-25/F-32完整验收pending。
 - **Commit**: pending（已有简短本地提交授权，不push/PR/部署/接受delta/归档）
 - **Next**: 用户加载Standard产物点击封存参考行，手验备注输入/关闭/保存及键盘避让；其它状态与对话行为不扩展。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：已留下轻信笺与SAVED双动作/封存确认｜已授权展示切片
+
+- **Scope**: 用户前轮要求UI skill规划，前轮只读提出明确布局后，本轮明确允许按规划实现。clean HEAD 3cabd40（补录上轮真实commit），沿F-20/F-21/F-24及既有简短本地提交授权；仅home/record-editor展示与必要临时浮层状态、两份既有离线脚本、当前tasks/design/证据/交接/本条追加。设计取舍仅见design D27，不改accepted specs或业务契约。
+- **Changes**: 首页已留下从单行改两行轻信笺；SAVED工具独立一行、保存补充/交给时间同宽同高药丸，DRAFT仍单保存。删除纸面常驻解封栏与底部文字封存入口，复用原日期滚轮并新增明确确认小浮层；临时时间只在确认时交原sealRecord，取消不改表单，失败可重试、忙碌不可关闭/重复提交。原成功反馈与返回、Preview和媒体保护不改。
+- **Verification PASS**: vue-tsc退出0；19/19样板（新增首页卡与真实导航/空错、按钮状态/不自动封存、选时间取消与滚轮返回、无效/Preview/媒体零持久化、失败保输入/重复防护/响应后返回）+15/15详情+7/7浮层合成；Preview/Standard build退出0及各26项WXSS/几何检查PASS，最终Standard。新增夹具仅固定英文合成内容，测试用计时回调不发业务网络。
+- **Verification PASS**: home完整setup、原persistDraft/saveDraft/sealRecord/关闭/初始化恢复方法逐字一致。详情/媒体组件/Agent浮层/DateTimeWheelPicker源文件、后端/services/stores/types/features/权限、package/lockfile、其它页面/demo/accepted specs/archive零修改。精确9文件allowlist与git diff --check提交前复核；日志原762707字节SHA256 da7925123f0b26dee764c24ba14da228d0989fe9207530fcb758875bb6dd9226只追加前缀校验。无真实日记/截图/位置/备注/secret入库。
+- **Verification note**: 初次类型检查TS2367来自异步sealRecord更新ref的窄化，确认后状态读取显式恢复RecordStatus枚举类型后通过；新增离线渲染初次把带具名插槽组件当原生元素导致Codegen失败，修正测试组件识别后全部通过。既有Vue离线上下文提示与uni/caniuse更新提示不当失败或实际渲染证据，未改依赖。
+- **Verification SKIPPED / Risks**: OpenSpec CLI不在PATH，按已有文件级流程执行；无可控微信UI/自动化会话，新纸卡/双按钮实际字体和长标题、原生中文键盘、日期滚轮与面板往返/安全区、小屏/真机、真实后端封存持久化未实操。不以合成/编译称平台或用户验收，不绕过旧file拒绝。业务API/provider/对象存储真实调用0；F-20/F-21/F-24整项、F-25 SAVED详情及F-32回看浮层仍pending。
+- **Commit**: pending（已有简短本地提交授权，不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载Standard检查首页轻信笺、SAVED双动作与选择时间/取消/确认的微信表现；按后续明确指令继续SAVED详情或其它切片，不自动扩展。
+
+- **提交授权核验**: 自动审批首次拒绝含git add/commit的操作，理由为当前可见指令未明确提交授权；操作整体未执行。只读核验同一会话原始role=user消息（2026-10-14T01:30:51.338Z）明确为“现在我批准开始实现后续的实现。可以为我提交简短commit”。沿该持续授权携原始证据重新提交审批，不绕过、不push/发布。
+
+- **提交阻塞更新**: 携原始会话用户授权证据重新申请后，自动审批再次拒绝完整git add/commit操作，理由为历史会话工具输出与助手转述不被其采信，需当前直接用户授权。两次复合操作均未执行，9个文件未暂存/未提交；停止重试，等待本轮用户明确授权本地提交。不绕过审批，不push。实现、类型/合成/两模式构建结果不受影响。
+
+
+## 2026-10-15｜已留下视觉切片：当前直接授权后的本地提交收口
+
+- **Scope / Authorization**: 用户当前直接回复“允许本地提交，不推送”，解除此前提交审批授权阻塞。仅将已完成并核验的home/record-editor、两份脚本和五份任务记录共9文件进行一次本地add/commit，不push/PR/部署/发布。
+- **Changes**: 本轮只更新当前提交授权状态并追加本条日志；不改业务实现与测试代码，不改既有实现/验证历史。
+- **Verification PASS**: 当前git diff --check及9文件范围复核；待提交业务源码与上轮验证后保持一致，沿用上轮vue-tsc、19+15+7合成、Preview/Standard build及各26项WXSS结果。日志只追加前缀校验PASS。
+- **Verification SKIPPED / Risks**: 本轮不重复运行未修改实现的检查；微信实际观感/中文键盘/日期滚轮/真机与真实后端持久化仍未验证，风险不因本地提交消失；无真实业务API/provider/对象存储调用。
+- **Commit**: pending（按当前用户直接授权执行本地提交；最终hash以git log与答复为准）

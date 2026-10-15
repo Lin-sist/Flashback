@@ -6,13 +6,14 @@ const vm = require('node:vm')
 const ts = require('typescript')
 const vue = require('vue')
 const { parse } = require('vue/compiler-sfc')
+const { compile } = require(require.resolve('@vue/compiler-dom', { paths: [path.dirname(require.resolve('vue'))] }))
 const root = path.resolve(__dirname, '..')
 const src = path.join(root, 'src')
 let passed = 0
 
 function harness() {
   const storage = new Map([['flashback:token', 'synthetic-offline-token']])
-  const requests = [], toasts = [], navigation = [], hooks = {}
+  const requests = [], toasts = [], navigation = [], timers = [], hooks = {}
   let response = () => ({ code: 0, data: {} })
   const uni = {
     getStorageSync: key => storage.get(key),
@@ -56,11 +57,17 @@ function harness() {
   function page(name, services = {}, store = {}) {
     const file = path.join(src, 'pages', name, 'index.vue')
     const descriptor = parse(fs.readFileSync(file, 'utf8')).descriptor
-    const exports = name === 'home'
-      ? 'loadHomeSummary, draftState, sealedState, unlockedState, latestDraft, draftCount, latestSealed, showArrivalCard, goDraftEntry, goEditor'
-      : name === 'timeline'
-        ? 'loadTimeline, timelineGroups, timelineLoadFailed, loadMoreFailed, currentPage, loading, loadingMore, appliedFilters, hasMore, decoratedGroups, applyFilters, draftTagId, availableTags, filterPanelVisible, filterApplyFailed, openNode'
-        : 'form, saveDraft, savedFeedback, recordStatus, loading, recordId, pendingImageUploads, pendingVoiceUploads, attachments, hasDirtyChanges, markSnapshot, appendixOpen'
+    const names = [], ast = ts.createSourceFile(file, descriptor.scriptSetup.content, ts.ScriptTarget.Latest, true)
+    const collect = node => { if (ts.isIdentifier(node)) names.push(node.text); else for (const element of node.elements) if (element.name) collect(element.name) }
+    for (const statement of ast.statements) {
+      if (ts.isVariableStatement(statement)) for (const declaration of statement.declarationList.declarations) collect(declaration.name)
+      if (ts.isImportDeclaration(statement) && statement.importClause && !statement.importClause.isTypeOnly) {
+        const clause = statement.importClause
+        if (clause.name) names.push(clause.name.text)
+        if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) for (const element of clause.namedBindings.elements) if (!element.isTypeOnly) names.push(element.name.text)
+      }
+    }
+    const exports = names.join(',')
     const source = descriptor.scriptSetup.content.replaceAll('import.meta.env', '__env') + '\nglobalThis.surface = {' + exports + '}\n'
     const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
     const deps = spec => {
@@ -75,11 +82,21 @@ function harness() {
       if (spec.endsWith('useRecordCoverUrls')) return { useRecordCoverUrls: () => ({ coverUrls: {}, coverErrors: {}, loadCovers: async () => {}, markCoverFailed() {} }) }
       throw new Error('Unexpected page dependency: ' + spec)
     }
-    const sandbox = { exports: {}, require: deps, uni, __env: {}, setInterval: () => 0, clearInterval() {}, setTimeout, clearTimeout }
+    const sandbox = { exports: {}, require: deps, uni, __env: {}, setInterval: () => 0, clearInterval() {}, setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length }, clearTimeout() {} }
     vm.runInNewContext(js, sandbox, { filename: name + '/index.vue' })
-    return sandbox.surface
+    const scope = sandbox.surface
+    const render = new Function('Vue', compile(descriptor.template.content, { mode: 'function', isCustomElement: tag => !/^[A-Z]/.test(tag) }).code)(vue)
+    const values = vue.proxyRefs({ ...scope })
+    const ctx = new Proxy(values, { has: (_, key) => key !== '_Vue' && key !== '_cache', get: (target, key) => key === Symbol.unscopables ? undefined : target[key] })
+    scope.$nodes = () => {
+      const nodes = []
+      function walk(node) { if (!node || typeof node !== 'object') return; nodes.push(node); if (Array.isArray(node.children)) node.children.forEach(walk) }
+      walk(render(ctx, [])); return nodes
+    }
+    scope.$select = name => scope.$nodes().filter(node => vue.normalizeClass(node.props?.class).split(' ').includes(name))
+    return scope
   }
-  return { page, service, mutation, storage, requests, toasts, navigation, setResponse: fn => { response = fn } }
+  return { page, service, mutation, storage, requests, toasts, navigation, timers, setResponse: fn => { response = fn } }
 }
 
 const deferred = () => {
@@ -231,6 +248,60 @@ async function main() {
     assert.equal(p.savedFeedback.value, false)
     assert.equal(h.toasts.length, 3)
     assert.equal(h.requests.length, 0)
+  })
+  await check('首页轻信笺展示真实SAVED标题与入口，加载失败仍可重试', async () => {
+    const h = harness(), p = h.page('home', { recordService: { getRecordList: async status => ({ total: status === 'SAVED' ? 1 : 0, list: status === 'SAVED' ? [{ id: 99, title: 'synthetic saved title' }] : [] }), getUnlockedRecords: async () => ({ total: 0, list: [] }) } })
+    await p.loadHomeSummary()
+    assert.equal(p.$select('saved-entry').length, 1); assert.equal(p.$select('saved-entry-title')[0].children, 'synthetic saved title')
+    p.$select('saved-entry')[0].props.onTap(); assert.match(h.navigation.at(-1), /record-editor\/index\?id=99/)
+    p.draftState.value = 'error'; assert.equal(p.$select('saved-entry').length, 0); assert.equal(p.$select('retry').length, 1)
+    p.draftState.value = 'ready'; p.latestDraft.value = null; assert.equal(p.$select('saved-entry').length, 0); assert.equal(h.requests.length, 0)
+  })
+  await check('新记录只能留下，真实保存成功后显示两个同级动作且不自动封存', async () => {
+    const h = harness(), calls = [], p = h.page('record-editor', {}, { createDraft: async () => ({ id: 99, status: 'DRAFT' }), saveRecord: async () => { calls.push('save'); return { id: 99, status: 'SAVED' } } })
+    p.form.content = 'synthetic save content'
+    assert.equal(p.$select('seal-entry').length, 0); assert.equal(p.$select('save-entry').length, 1)
+    p.openSealSheet(); assert.equal(p.showSealSheet.value, false)
+    await p.$select('save-entry')[0].props.onTap()
+    assert.equal(p.$select('seal-entry').length, 1); assert.equal(p.$select('save-entry')[0].children.at(-1).children, '保存补充')
+    assert.equal(p.$select('unlock-bar').length, 0); assert.equal(p.savedFeedback.value, true); assert.equal(p.showSealSheet.value, false); assert.equal(h.navigation.length, 0); assert.deepEqual(calls, ['save'])
+  })
+  await check('封存浮层选择时间后取消不改表单，滚轮取消返回确认层且零请求', () => {
+    const h = harness(), p = h.page('record-editor')
+    p.recordStatus.value = 'SAVED'; p.recordId.value = 99; p.form.content = 'synthetic saved content'; p.form.unlockAtInput = ''; p.markSnapshot()
+    p.$select('seal-entry')[0].props.onTap(); assert.equal(p.$select('seal-panel').length, 1)
+    p.$select('seal-time-entry')[0].props.onTap(); assert.equal(p.$select('seal-panel').length, 0)
+    p.$nodes().find(node => node.type === 'DateTimeWheelPicker').props.onCancel(); assert.equal(p.$select('seal-panel').length, 1)
+    p.openSealTimePicker(); p.onUnlockConfirm(String(new Date().getFullYear() + 1) + '-06-01 12:00')
+    assert.equal(p.form.unlockAtInput, ''); assert.equal(p.hasDirtyChanges(), false)
+    p.$select('seal-mask')[0].props.onTap(); assert.equal(p.showSealSheet.value, false); assert.equal(h.requests.length, 0)
+    p.openSealSheet(); assert.equal(p.sealTimeDraft.value, '')
+  })
+  await check('封存确认拒绝无效时间、Preview和未完成媒体，不绕过原封存校验', async () => {
+    const h = harness(), calls = [], p = h.page('record-editor', {}, { updateDraft() { calls.push('update'); throw Error('must not persist') } })
+    p.recordStatus.value = 'SAVED'; p.recordId.value = 99; p.form.content = 'synthetic guarded content'; p.openSealSheet()
+    await p.confirmSealSheet(); p.sealTimeDraft.value = '2000-01-01 12:00'; await p.confirmSealSheet()
+    assert.equal(p.form.unlockAtInput, ''); assert.equal(p.showSealSheet.value, true)
+    p.sealTimeDraft.value = String(new Date().getFullYear() + 1) + '-06-01 12:00'
+    h.storage.delete('flashback:token'); h.storage.set('flashback:preview-session', { enabled: true }); await p.confirmSealSheet(); assert.equal(p.form.unlockAtInput, '')
+    h.storage.set('flashback:token', 'synthetic-token'); p.pendingVoiceUploads.value.push({ localId: 'synthetic pending' }); await p.confirmSealSheet()
+    assert.equal(p.recordStatus.value, 'SAVED'); assert.equal(p.showSealSheet.value, true); assert.equal(h.toasts.length, 4); assert.equal(h.requests.length, 0); assert.equal(calls.length, 0)
+  })
+  await check('封存失败保留正文时间可重试，忙碌防重，响应成功才离开', async () => {
+    const h = harness(), calls = [], wait = deferred(); let fail = true
+    const p = h.page('record-editor', {}, {
+      updateDraft: async (id, payload) => { calls.push(['update', id, payload.unlockAt]); return { id, status: 'SAVED' } },
+      sealRecord: async id => { calls.push(['seal', id]); if (fail) throw Error('synthetic seal failure'); return wait.promise },
+      updateUnlockReminderAuthorization: async () => ({ id: 99, status: 'SEALED' }),
+    })
+    p.recordStatus.value = 'SAVED'; p.recordId.value = 99; p.form.content = 'synthetic retained content'; p.openSealSheet()
+    p.sealTimeDraft.value = String(new Date().getFullYear() + 1) + '-06-01 12:00'; await p.confirmSealSheet()
+    assert.equal(p.recordStatus.value, 'SAVED'); assert.equal(p.showSealSheet.value, true); assert.equal(p.form.content, 'synthetic retained content'); assert.equal(h.navigation.length, 0)
+    fail = false; const work = p.confirmSealSheet(); for (let tick = 0; tick < 8 && calls.length < 4; tick++) await Promise.resolve()
+    const count = calls.length; await p.confirmSealSheet(); p.closeSealSheet(); assert.equal(calls.length, count); assert.equal(p.showSealSheet.value, true); assert.equal(p.$select('seal-confirm')[0].props.disabled, true)
+    wait.resolve({ id: 99, status: 'SEALED' }); await work
+    assert.equal(p.recordStatus.value, 'SEALED'); assert.equal(p.showSealSheet.value, false); assert.equal(h.navigation.length, 0)
+    assert.equal(h.timers.at(-1).delay, 300); h.timers.at(-1).fn(); assert.equal(h.navigation.at(-1), '/pages/home/index')
   })
   await check('真实recordService拒绝所有Preview记录写入且零请求', async () => {
     const h = harness()

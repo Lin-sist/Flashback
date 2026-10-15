@@ -144,6 +144,12 @@
 
 ## Current Progress
 
+- **This session**: 2026-10-15 — **已留下首页轻信笺、SAVED双按钮与封存确认（F-20/F-21/F-24展示切片）**
+  - **Scope / Authorization**：前轮已给出明确方案，用户本轮明确允许按规划实现；沿唯一active change与既有本地简短提交授权。clean起点3cabd40。仅首页/编辑器展示与必要浮层状态绑定、两份既有脚本及当前文档；非SAVED详情重绘，不扩大后端契约。
+  - **Commit / Authorization**：2026-10-15用户当前直接回复“允许本地提交，不推送”，提交授权阻塞解除。仅提交已核验的9文件切片；业务源码与上轮验证后保持一致，不push。此前两次自动审批拒绝与核验历史保留在日志。
+  - **Changes**：首页已留下改同宽轻纸卡；新记录仍单按钮，SAVED工具独立一行、保存补充/交给时间两个等宽暖白药丸。解封时间移到确认浮层，复用原滚轮；临时时间取消不改表单，仅确认后交给原sealRecord流程。普通保存不自动封存，成功/失败/Preview/媒体保护沿用。
+  - **Verification / Next**：vue-tsc，19项样板+15项详情+7项浮层合成，Preview/Standard build及各26项WXSS/几何检查PASS，最终Standard。首页setup、原persistDraft/saveDraft/sealRecord/关闭恢复初始化方法逐字保护。OpenSpec CLI不在PATH；微信键盘/滚轮触摸/真机与真实持久化未测，业务外调0；F-20/F-21/F-24/F-25整项验收仍pending。
+
 - **This session**: 2026-10-15 — **封存页复用参考备注浮层（F-25内Type B）**
   - **Scope / Authorization**：用户认可回看版后明确让封存页适配同款浮层；clean起点c40335c，沿用本地简短提交授权。仅SEALED参考入口/共享浮层状态条件、既有详情回归及本轮记录。
   - **Changes**：封存参考行点击打开现有暖纸小浮层，开关与备注确认保存；更多移除重复输入/保存/说明，地点与篇章保留。删除失去入口的即时切换方法，取消零请求/失败保留草稿/成功响应才关闭不变。

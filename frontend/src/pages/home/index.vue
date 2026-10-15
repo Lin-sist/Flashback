@@ -244,8 +244,11 @@ onUnmounted(() => {
           <view v-if="draftState === 'loading' && !latestDraft" class="inline-state">正在同步已留下的记录…</view>
           <button v-else-if="draftState === 'error'" class="inline-state retry" @tap="retryHomeSummary">已留下记录暂未同步 · 轻触重试</button>
           <button v-else-if="latestDraft" class="saved-entry" @tap="goDraftEntry">
-            <text class="entry-label">已留下 · {{ latestDraft.title || '未命名片段' }}</text>
-            <text class="entry-action">继续补充 ›</text>
+            <text class="entry-label">已留下</text>
+            <view class="saved-entry-main">
+              <text class="saved-entry-title">{{ latestDraft.title || '未命名片段' }}</text>
+              <text class="entry-action">继续补充 ›</text>
+            </view>
           </button>
           <view v-else class="inline-state">还没有留下记录，从此刻开始就好。</view>
         </view>
@@ -292,9 +295,11 @@ button::after { border: none; }
 .saved-summary { margin-top: 32rpx; }
 .inline-state { display: block; width: 100%; padding: 24rpx 0; font-size: 26rpx; color: var(--fb-ink-mid, #6b6560); line-height: 1.8; }
 .retry { text-decoration: underline; text-underline-offset: 6rpx; }
-.saved-entry { width: 100%; padding: 20rpx 0; display: flex; align-items: baseline; justify-content: space-between; gap: 16rpx; }
+.saved-entry { width: 100%; min-height: 152rpx; padding: 24rpx 38rpx 24rpx 48rpx; box-sizing: border-box; border: 1rpx solid var(--fb-letter-line, rgba(188,174,152,.28)); background: var(--fb-letter-paper, #fcf9f4); box-shadow: 0 2rpx 4rpx rgba(125,105,75,.06), 0 10rpx 24rpx rgba(125,105,75,.06); }
+.saved-entry-main { display: flex; align-items: baseline; justify-content: space-between; gap: 20rpx; margin-top: 8rpx; }
+.saved-entry-title { flex: 1; min-width: 0; font-size: 30rpx; line-height: 1.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .saved-entry .entry-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.saved-entry .entry-action { flex-shrink: 0; margin-top: 0; }
+.saved-entry .entry-action { flex-shrink: 0; margin-top: 0; font-size: 24rpx; border-bottom: 1rpx solid rgba(107,101,96,.45); }
 .entry-label { display: block; font-size: 24rpx; color: var(--fb-ink-mid, #6b6560); line-height: 1.8; }
 .record-title { display: block; font-size: 32rpx; line-height: 1.65; margin: 12rpx 0; overflow-wrap: anywhere; word-break: break-all; }
 .entry-action { display: block; font-size: 26rpx; color: var(--fb-ink-mid, #6b6560); margin-top: 16rpx; }
