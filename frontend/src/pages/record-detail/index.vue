@@ -38,6 +38,9 @@ const switchingReviewMemory = ref(false)
 const chapterActionLoading = ref(false)
 const sealedOptionsOpen = ref(false)
 const reviewOptionsOpen = ref(false)
+const showMemoryNoteSheet = ref(false)
+const memorySheetNote = ref('')
+const memorySheetExcluded = ref(false)
 
 // C3b 友人回看对话状态。与回应浮层互斥（见 openReviewChat / openReplySheet）。
 const showReviewChat = ref(false)
@@ -391,10 +394,10 @@ const applyMemoryPolicy = (record: { agentMemoryExcluded?: boolean, agentMemoryC
 }
 
 const saveAgentMemoryPolicy = async () => {
-  if (!detail.value?.id || savingMemoryPolicy.value) return
+  if (!detail.value?.id || savingMemoryPolicy.value) return false
   if (!getToken() && hasPreviewSession()) {
     showPreviewReadonlyToast()
-    return
+    return false
   }
   savingMemoryPolicy.value = true
   try {
@@ -406,12 +409,34 @@ const saveAgentMemoryPolicy = async () => {
     recordStore.detail = updated
     applyMemoryPolicy(updated)
     uni.showToast({ title: memoryExcluded.value ? '之后不再参考这条记录' : '记忆设置已保存', icon: 'none' })
+    return true
   } catch (error) {
     if (detail.value) applyMemoryPolicy(detail.value)
     uni.showToast({ title: toUserMessage(error), icon: 'none' })
+    return false
   } finally {
     savingMemoryPolicy.value = false
   }
+}
+
+// 备注只在确认保存时交给原接口，取消和失败都不丢失已确认的参考设置。
+const openMemoryNoteSheet = () => {
+  if (!isUnlocked.value || !detail.value || savingMemoryPolicy.value) return
+  memorySheetNote.value = detail.value.agentMemoryContextNote || ''
+  memorySheetExcluded.value = detail.value.agentMemoryExcluded === true
+  showMemoryNoteSheet.value = true
+}
+
+const closeMemoryNoteSheet = () => {
+  if (!savingMemoryPolicy.value) showMemoryNoteSheet.value = false
+}
+
+const saveMemoryNoteSheet = async () => {
+  if (!showMemoryNoteSheet.value || !isUnlocked.value || !detail.value || savingMemoryPolicy.value) return
+  if (!getToken() && hasPreviewSession()) { showPreviewReadonlyToast(); return }
+  memoryNoteDraft.value = memorySheetNote.value
+  memoryExcluded.value = memorySheetExcluded.value
+  if (await saveAgentMemoryPolicy()) showMemoryNoteSheet.value = false
 }
 
 const toggleSealedMemoryPolicy = async () => {
@@ -925,6 +950,10 @@ onLoad(async (query) => {
           </view>
         </view>
         <view v-else-if="isUnlocked" class="review-more">
+          <button class="memory-note-entry" aria-label="编辑 Agent 参考设置与备注" @tap="openMemoryNoteSheet">
+            <view class="memory-note-indicator" :class="{ 'memory-note-indicator--on': memoryExcluded }" aria-hidden="true"><view /></view>
+            <text class="memory-note-entry-label">不再供参考 · {{ memoryNoteDraft || '只代表当时，不代表现在' }}</text>
+          </button>
           <button class="review-more-toggle" :aria-expanded="reviewOptionsOpen" @tap="reviewOptionsOpen = !reviewOptionsOpen">{{ reviewOptionsOpen ? '收起更多' : '更多 · 篇章与参考' }}</button>
           <view v-if="reviewOptionsOpen" class="review-more-content">
             <view class="chapter-membership-panel">
@@ -960,29 +989,6 @@ onLoad(async (query) => {
               <text class="reflection-text">{{ detail.beliefThen || '当时的想法还没有整理出来。' }}</text>
             </view>
 
-            <view class="memory-policy">
-              <text class="memory-policy-title">Agent 参考</text>
-              <text class="memory-policy-hint">之后不再参考，不会撤回已经发出去的那一轮。</text>
-              <view class="memory-policy-row" @tap="memoryExcluded = !memoryExcluded">
-                <text class="memory-policy-label">不再供 Agent 参考</text>
-                <view class="memory-switch" :class="{ 'memory-switch--on': memoryExcluded }">
-                  <view class="memory-switch-knob" />
-                </view>
-              </view>
-              <textarea
-                v-model="memoryNoteDraft"
-                class="memory-policy-note"
-                auto-height
-                maxlength="255"
-                placeholder="只代表当时，不代表现在"
-                placeholder-class="memory-policy-placeholder"
-              />
-              <view
-                class="memory-policy-save"
-                :class="{ 'memory-policy-save--loading': savingMemoryPolicy }"
-                @tap="saveAgentMemoryPolicy"
-              >{{ savingMemoryPolicy ? '保存中…' : '保存' }}</view>
-            </view>
             <view class="ownership-delete" @tap="deleteOwnedRecord">{{ deletingRecord ? '正在确认…' : '删除这条记录' }}</view>
           </view>
         </view>
@@ -1019,6 +1025,24 @@ onLoad(async (query) => {
         <PrimaryButton text="重试加载" ghost @tap="retryLoadDetail" />
       </view>
 
+    </view>
+
+    <!-- 备注小浮层：遮罩与纸面为兄弟节点，原生输入点击不触发关闭。 -->
+    <view v-if="isUnlocked && showMemoryNoteSheet" class="memory-note-layer">
+      <view class="memory-note-mask" @tap="closeMemoryNoteSheet" />
+      <view class="memory-note-panel" role="dialog" aria-modal="true" aria-label="Agent 参考备注">
+        <view class="memory-note-handle" />
+        <button class="memory-note-close" :disabled="savingMemoryPolicy" aria-label="关闭备注" @tap="closeMemoryNoteSheet">×</button>
+        <text class="memory-note-kicker">供它回看时参考</text>
+        <text class="memory-note-title">给当时的自己，留个备注</text>
+        <button class="memory-note-toggle" role="switch" :aria-checked="memorySheetExcluded" :disabled="savingMemoryPolicy" @tap="memorySheetExcluded = !memorySheetExcluded">
+          <text>不再供 Agent 参考</text>
+          <view class="memory-switch" :class="{ 'memory-switch--on': memorySheetExcluded }"><view class="memory-switch-knob" /></view>
+        </button>
+        <textarea v-model="memorySheetNote" class="memory-note-input" :disabled="savingMemoryPolicy" maxlength="255" :cursor-spacing="24" placeholder="只代表当时，不代表现在" placeholder-class="memory-policy-placeholder" />
+        <text class="memory-note-hint">之后不再参考，不会撤回已经发出去的那一轮。</text>
+        <button class="memory-note-save" :disabled="savingMemoryPolicy" @tap="saveMemoryNoteSheet"><view class="unlock-cta-dot" /><text>{{ savingMemoryPolicy ? '保存中…' : '保存备注' }}</text></button>
+      </view>
     </view>
 
     <!--
@@ -2362,4 +2386,50 @@ onLoad(async (query) => {
 .review-more-content .reflection-block {
   margin-top: 24rpx;
 }
+
+/* 回看参考入口与轻量备注纸面，仅此入口使用。 */
+.memory-note-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+  width: 100%;
+  min-height: 80rpx;
+  padding: 12rpx 0;
+  background: transparent;
+  color: #aaa398;
+  font-family: inherit;
+  font-size: 23rpx;
+  line-height: 1.6;
+  text-align: left;
+}
+.memory-note-entry::after, .memory-note-panel button::after { border: none; }
+.memory-note-entry-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memory-note-indicator { position: relative; flex-shrink: 0; width: 58rpx; height: 32rpx; border: 1rpx solid #cfc8bd; border-radius: 32rpx; }
+.memory-note-indicator > view { position: absolute; top: 4rpx; left: 4rpx; width: 24rpx; height: 24rpx; border-radius: 50%; background: #c7c0b5; }
+.memory-note-indicator--on { border-color: #bd9584; }
+.memory-note-indicator--on > view { left: 30rpx; background: #9c6447; }
+.memory-note-layer { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: flex-end; }
+.memory-note-mask { position: absolute; inset: 0; background: rgba(96,89,79,.42); }
+.memory-note-panel {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 22rpx 46rpx calc(42rpx + env(safe-area-inset-bottom));
+  border-radius: 28rpx 28rpx 0 0;
+  background: #f9f5ed;
+  box-shadow: 0 -12rpx 48rpx rgba(77,65,48,.08);
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+}
+.memory-note-handle { width: 70rpx; height: 8rpx; margin: 0 auto 48rpx; border-radius: 8rpx; background: #c9c2b8; }
+.memory-note-close { position: absolute; top: 26rpx; right: 24rpx; width: 72rpx; height: 72rpx; padding: 0; background: transparent; color: #6b6560; font-size: 44rpx; font-weight: 300; line-height: 68rpx; }
+.memory-note-kicker { display: block; text-align: center; color: #aaa398; font-size: 21rpx; letter-spacing: 5rpx; }
+.memory-note-title { display: block; margin: 26rpx 0 38rpx; text-align: center; color: #403c37; font-size: 34rpx; line-height: 1.6; }
+.memory-note-toggle { display: flex; align-items: center; justify-content: space-between; min-height: 72rpx; padding: 0; background: transparent; color: #817970; font-family: inherit; font-size: 25rpx; }
+.memory-note-input { width: 100%; height: 160rpx; margin-top: 16rpx; padding: 22rpx; box-sizing: border-box; border: 1rpx solid #e5ddd0; background: #fcfaf5; color: #6b6560; font-family: inherit; font-size: 27rpx; line-height: 1.8; }
+.memory-note-hint { display: block; margin-top: 18rpx; color: #aaa398; font-size: 20rpx; line-height: 1.7; }
+.memory-note-save { display: flex; align-items: center; justify-content: center; gap: 20rpx; width: 280rpx; min-height: 84rpx; margin: 30rpx auto 0; border: 2rpx solid #fff; border-radius: 48rpx; background: #f5f0e7; color: #403c37; font-family: inherit; font-size: 27rpx; letter-spacing: 3rpx; box-shadow: 0 10rpx 26rpx rgba(125,105,75,.12); }
+.memory-note-panel button[disabled] { opacity: .5; }
 </style>

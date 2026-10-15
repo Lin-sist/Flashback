@@ -180,3 +180,11 @@ F-20/F-21/F-22 代码已完成，页级微信验收未完成，复选框保留 p
 - 新增媒体review展示variant仅UNLOCKED使用，SAVED继续旧unlocked变体、SEALED继续原sealed变体；签名URL刷新、失败、重试、播放/停止/销毁脚本不改。
 - PASS：vue-tsc；11项详情（含新增5项回看/媒体）+14项原状态+7项浮层，Preview/Standard build，各23项WXSS/布局。新回应重试用例按实际异步结束等待后通过；最终Standard。详情setup除reviewOptionsOpen一行字节一致，SEALED模板分支与基线字节一致，媒体setup除variant类型字面量一致。
 - SKIPPED：无可控微信UI/自动化会话，实际画面/长标题地点/长正文/原生textarea键盘、真实多图/声音与URL过期、窄屏/真机仍待手验；合成模板/构建不代表真实设备或后端持久化通过。业务API/provider/对象存储调用0，不绕过旧file拒绝，F-25整项不补勾。
+
+
+## 2026-10-15 回看参考按钮与备注小浮层
+
+- 按用户新指令将UNLOCKED更多内的大参考卡替换为默认可见的居中单行按钮，开关样式标识展示原排除状态，已存备注过长省略；点击打开暖纸小浮层，含排除参考开关、255字输入、关闭和保存。仅既有字段展示/交互调整，不新增能力契约。
+- 浮层使用独立草稿；取消不调用接口，失败仍保留输入和开关选择可重试。共享原保存方法只补显式成功/失败返回，响应确认成功才关浮层；忙碌防重且不可关闭，Preview拒绝写入。遮罩与纸面为兄弟节点，不在输入祖先挂关闭事件。
+- PASS：vue-tsc，14项详情+14项原状态+7项浮层合成；Preview/Standard构建及各23项原WXSS检查，最终Standard。SEALED分支/参考区、UNLOCKED阅读主线/媒体/回应与全部既有CSS逐字保持。未改ReviewChatSheet、媒体组件、后端/services/stores/types、依赖与accepted specs。
+- SKIPPED：无可控微信UI/自动化会话，实际字体/遮罩/小屏/textarea中文键盘与焦点、真机及真实持久化未实操。不绕过旧file拒绝，不以合成/构建称平台验收。真实业务API/provider/对象存储调用0；F-25/F-32整项不补勾。

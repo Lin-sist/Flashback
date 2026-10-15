@@ -91,7 +91,40 @@ async function main(){
   assert.equal(h.select('unlock-hero').length,1);assert.equal(h.select('unlock-card-text')[0].children,h.store.detail.content)
   assert.equal(h.select('reflection-textarea').length,1);assert.equal(h.select('review-entry').length,1);assert.equal(h.select('unlock-cta').length,1)
   assert.equal(h.select('chapter-membership-panel').length,0);assert.equal(h.select('memory-policy').length,0);assert.equal(h.select('ownership-delete').length,0)
-  h.select('review-more-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy').length,1);assert.equal(h.select('ownership-delete').length,1);assert.equal(h.select('unlock-location').length,1)
+  h.select('review-more-toggle')[0].props.onTap();assert.equal(h.select('chapter-membership-panel').length,1);assert.equal(h.select('memory-policy').length,0);assert.equal(h.select('memory-note-entry').length,1);assert.equal(h.select('ownership-delete').length,1);assert.equal(h.select('unlock-location').length,1)
+ })
+ await check('参考小浮层预填原值，取消不写入且其他状态不显示入口',()=>{
+  const h=setup('pages/record-detail/index.vue');h.store.detail.status='UNLOCKED'
+  assert.equal(h.select('memory-note-entry').length,1);assert.equal(h.select('memory-note-panel').length,0)
+  h.select('memory-note-entry')[0].props.onTap();assert.equal(h.select('memory-note-panel').length,1)
+  assert.equal(h.scope.memorySheetNote.value,'synthetic existing note');assert.equal(h.scope.memorySheetExcluded.value,false)
+  h.scope.memorySheetNote.value='synthetic unsaved note';h.select('memory-note-toggle')[0].props.onTap()
+  h.select('memory-note-mask')[0].props.onTap();assert.equal(h.scope.showMemoryNoteSheet.value,false)
+  assert.equal(h.scope.memoryNoteDraft.value,'synthetic existing note');assert.equal(h.scope.memoryExcluded.value,false);assert.equal(h.calls.length,0)
+  h.scope.openMemoryNoteSheet();assert.equal(h.scope.memorySheetNote.value,'synthetic existing note');h.select('memory-note-close')[0].props.onTap()
+  for(const status of ['SEALED','SAVED','DRAFT']){h.store.detail.status=status;h.scope.openMemoryNoteSheet();assert.equal(h.select('memory-note-entry').length,0);assert.equal(h.select('memory-note-panel').length,0)}
+ })
+ await check('备注保存失败保留输入可重试，忙碌防重且响应成功才关闭',async()=>{
+  const h=setup('pages/record-detail/index.vue');h.store.detail.status='UNLOCKED';h.scope.openMemoryNoteSheet()
+  h.scope.memorySheetNote.value='  synthetic new note  ';h.scope.memorySheetExcluded.value=true
+  h.setUpdate(async()=>{throw Error('synthetic failure')});await h.scope.saveMemoryNoteSheet()
+  assert.equal(h.scope.showMemoryNoteSheet.value,true);assert.equal(h.scope.memorySheetNote.value,'  synthetic new note  ')
+  assert.equal(h.store.detail.agentMemoryContextNote,'synthetic existing note');assert.equal(h.scope.memoryExcluded.value,false)
+  let release;h.setUpdate(()=>new Promise(r=>{release=r}));const count=h.calls.length,pending=h.select('memory-note-save')[0].props.onTap()
+  await h.scope.saveMemoryNoteSheet();h.scope.closeMemoryNoteSheet();assert.equal(h.calls.length,count+1);assert.equal(h.scope.showMemoryNoteSheet.value,true)
+  assert.equal(h.select('memory-note-input')[0].props.disabled,true)
+  assert.equal(JSON.stringify(h.calls.at(-1)),JSON.stringify(['memory',30,true,'synthetic new note']))
+  release({...h.store.detail,agentMemoryExcluded:true,agentMemoryContextNote:'synthetic confirmed note'});await pending
+  assert.equal(h.scope.showMemoryNoteSheet.value,false);assert.equal(h.scope.memoryNoteDraft.value,'synthetic confirmed note');assert.equal(h.scope.memoryExcluded.value,true)
+  h.scope.openMemoryNoteSheet();assert.equal(h.scope.memorySheetNote.value,'synthetic confirmed note')
+  h.scope.memorySheetNote.value='   ';h.setUpdate(async(id,excluded,note)=>({...h.store.detail,agentMemoryExcluded:excluded,agentMemoryContextNote:note}));await h.scope.saveMemoryNoteSheet()
+  assert.equal(h.calls.at(-1)[3],null)
+ })
+ await check('备注Preview保存拒绝且保留草稿，零请求与已确认设置不变',async()=>{
+  const h=setup('pages/record-detail/index.vue');h.store.detail.status='UNLOCKED';h.state.auth=false;h.state.preview=true
+  h.scope.openMemoryNoteSheet();h.scope.memorySheetNote.value='synthetic preview note';h.scope.memorySheetExcluded.value=true;await h.scope.saveMemoryNoteSheet()
+  assert.equal(h.calls.length,0);assert.equal(h.scope.showMemoryNoteSheet.value,true);assert.equal(h.scope.memorySheetNote.value,'synthetic preview note')
+  assert.equal(h.scope.memoryExcluded.value,false);assert.equal(h.scope.memoryNoteDraft.value,'synthetic existing note');assert.equal(h.toasts.at(-1),'preview readonly')
  })
  await check('后来其实失败保留输入、响应后更新、两次后只读',async()=>{
   const h=setup('pages/record-detail/index.vue');Object.assign(h.store.detail,{status:'UNLOCKED',realityLaterSubmitCount:0});h.scope.laterReflectionDraft.value='synthetic reflection'

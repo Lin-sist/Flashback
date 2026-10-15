@@ -8983,3 +8983,15 @@ Commit: pending
 - **Next**: 用户加载Standard审回看阅读层次/媒体/后来其实/轻入口/回应，并手验长文键盘和更多；按后续明确指令继续其它页面/浮层，不自动扩展。
 
 - **Verification补充PASS**: 回看后来其实新保存入口添加submittingLaterReflection点击拦截（只改模板，不改原提交方法）；合成双击只发一次请求且两次后仍只读，11项详情、类型、两模式构建/布局重新通过。
+
+
+## 2026-10-15｜frontend-visual-language-evolution：回看参考入口与备注小浮层｜Type B（F-25内）
+
+- **Scope**: 用户明确将Agent参考大卡改为简洁按钮，点击小浮层输入备注。clean HEAD f7082a9（补录上一轮真实commit），沿用本地简短提交授权；仅UNLOCKED参考展示、已有详情回归与本轮交接/证据/追加日志。不新建change，不改API/持久化/权限/Agent行为。
+- **Changes**: 居中开关样式标识与单行备注按钮；参考设置和255字输入移至暖纸小浮层，独立遮罩/关闭/保存药丸。独立草稿取消不保存，失败保留输入可重试；原共享保存方法仅补布尔结果，真实响应成功才关闭；忙碌禁止重复保存/关闭，Preview仍零请求拒绝。SEALED参考与DRAFT/SAVED原卡不改。
+- **Verification PASS**: vue-tsc退出0；14/14详情合成（新增取消预填/状态保护、失败重试/忙碌防重/响应确认/空备注、Preview隔离）+14/14原状态+7/7原浮层；Preview和Standard build退出0，各23项WXSS/布局PASS，最终Standard。合成只用固定英文假数据，未访问真实业务。
+- **Verification PASS**: SEALED完整模板/参考区、UNLOCKED阅读主线/媒体/回应模板及全部既有CSS逐字保护；ReviewChatSheet、只读媒体组件、services/stores/types/features/后端、package/lockfile/demo/accepted specs/archive零修改。精确5文件allowlist与git diff --check提交前复核。日志原757789字节SHA256 8508e5711551c0e676ffc5b588417cfd7d63930aefa802ddace21e49c65e2d05只追加前缀校验。无真实备注/日记/地点/签名URL/secret入库。
+- **Verification note**: 尝试新增WXSS检查时脚本路径重复frontend前缀导致ENOENT，未修改该脚本或业务代码；两模式后续构建与已有23项检查均通过，未将未添加的新检查计入。既有uni/caniuse更新提示及离线Vue withDirectives提示保留，未改依赖。
+- **Verification SKIPPED / Risks**: 当前无可控微信UI/自动化会话，小浮层真实观感/字体/长备注、原生textarea键盘与焦点、小屏/真机及后端真实持久化未实操。源码/合成/构建不称平台或视觉验收，不绕过旧file拒绝。业务API/provider/对象存储真实调用0；完整F-25/F-32保持pending。
+- **Commit**: pending（已有本地简短提交授权；不push/PR/部署/接受delta/归档）
+- **Next**: 用户加载最终Standard产物，点击回看页参考入口，手验输入/关闭/保存及键盘避让；其它页面与回看对话浮层不扩展。
