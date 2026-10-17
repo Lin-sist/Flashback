@@ -44,6 +44,7 @@ type EditorSource = 'home' | 'archive' | 'timeline'
 const loading = ref(false)
 const recordId = ref<number | null>(null)
 const recordStatus = ref<RecordStatus>(RecordStatus.DRAFT)
+const canPrepareSeal = computed(() => recordStatus.value === RecordStatus.DRAFT || recordStatus.value === RecordStatus.SAVED)
 const savedFeedback = ref(false)
 const isNewlyCreatedDraft = ref(false)
 const source = ref<EditorSource>('home')
@@ -1648,7 +1649,7 @@ const onAuxTap = (name: '地点' | '图片' | '语音') => {
 
 // 时间选择属于临时确认面板；取消不会把时间写进记录表单。
 const openSealSheet = () => {
-  if (loading.value || recordStatus.value !== RecordStatus.SAVED) return
+  if (loading.value || !canPrepareSeal.value) return
   sealTimeDraft.value = form.unlockAtInput
   showSealSheet.value = true
 }
@@ -1660,7 +1661,7 @@ const closeSealSheet = () => {
 }
 
 const openSealTimePicker = () => {
-  if (loading.value || !showSealSheet.value || recordStatus.value !== RecordStatus.SAVED) return
+  if (loading.value || !showSealSheet.value || !canPrepareSeal.value) return
   showUnlockPicker.value = true
 }
 
@@ -2016,7 +2017,7 @@ onUnload(() => {
           <text v-if="voiceStarting || voiceRecording || voiceStopping || voiceUploading || imageUploading || pendingImageUploads.length || pendingVoiceUploads.length" class="toolbar-status" aria-live="polite">
             {{ voiceRecording ? '录音中 · ' + formatVoiceDuration(recordingSeconds) + ' · 点击麦克风停止' : voiceStarting ? '正在启动录音' : voiceStopping ? '正在结束录音' : imageUploading || voiceUploading ? '媒体处理中，请稍候' : '有未完成的媒体，请在纸面中重试或移除' }}
           </text>
-          <view class="editor-toolbar" :class="{ 'editor-toolbar--saved': recordStatus === RecordStatus.SAVED }">
+          <view class="editor-toolbar" :class="{ 'editor-toolbar--dual': canPrepareSeal }">
             <view class="attach-bar">
               <view class="attach-item" aria-label="选择地点" :class="{ 'attach-item--active': showLocationPanel || location }" @tap="onAuxTap('地点')">
                 <view class="attach-icon attach-icon--map" aria-hidden="true" />
@@ -2061,7 +2062,7 @@ onUnload(() => {
                 <view class="btn-dot" aria-hidden="true" />
                 <text class="seal-btn-text">{{ loading ? '正在保存…' : recordStatus === RecordStatus.SAVED ? '保存补充' : '留下这一刻' }}</text>
               </button>
-              <button v-if="recordStatus === RecordStatus.SAVED" class="seal-btn seal-entry" :disabled="loading" hover-class="seal-btn--pressed" @tap="openSealSheet">
+              <button v-if="canPrepareSeal" class="seal-btn seal-entry" :disabled="loading" hover-class="seal-btn--pressed" @tap="openSealSheet">
                 <view class="btn-dot" aria-hidden="true" />
                 <text class="seal-btn-text">交给时间</text>
               </button>
@@ -2080,7 +2081,7 @@ onUnload(() => {
     </view>
   </view>
 
-  <view v-if="showSealSheet && !showUnlockPicker && recordStatus === RecordStatus.SAVED" class="seal-layer">
+  <view v-if="showSealSheet && !showUnlockPicker && canPrepareSeal" class="seal-layer">
     <view class="seal-mask" @tap="closeSealSheet" />
     <view class="seal-panel" role="dialog" aria-modal="true" aria-label="交给时间">
       <view class="seal-handle" />
@@ -2091,8 +2092,10 @@ onUnload(() => {
         <view class="seal-time-copy"><text class="seal-time-label">解封时间</text><text class="seal-time-value">{{ sealTimeDisplayText || '选择未来开启的时间' }}</text></view>
         <text class="seal-time-arrow">›</text>
       </button>
-      <text class="seal-description">封存后，等到约定的时间再打开。</text>
-      <button class="seal-btn seal-confirm" :disabled="loading || !sealTimeDraft" hover-class="seal-btn--pressed" @tap="confirmSealSheet"><view class="btn-dot" aria-hidden="true" /><text class="seal-btn-text">{{ loading ? '正在封存…' : '确认封存' }}</text></button>
+      <text class="seal-description">{{ recordStatus === RecordStatus.DRAFT ? '先留下这一刻，再确认封存。保存后仍可取消封存。' : '封存后，等到约定的时间再打开。' }}</text>
+      <!-- DRAFT只显式保存；真实SAVED后，用户另点确认封存。 -->
+      <button v-if="recordStatus === RecordStatus.DRAFT" class="seal-btn seal-save" :disabled="loading" hover-class="seal-btn--pressed" @tap="saveDraft"><view class="btn-dot" aria-hidden="true" /><text class="seal-btn-text">{{ loading ? '正在保存…' : '留下这一刻' }}</text></button>
+      <button v-else-if="recordStatus === RecordStatus.SAVED" class="seal-btn seal-confirm" :disabled="loading || !sealTimeDraft" hover-class="seal-btn--pressed" @tap="confirmSealSheet"><view class="btn-dot" aria-hidden="true" /><text class="seal-btn-text">{{ loading ? '正在封存…' : '确认封存' }}</text></button>
     </view>
   </view>
 
@@ -3083,11 +3086,11 @@ onUnload(() => {
 .editor-field--with-media { min-height: 184rpx; }
 .toolbar-status { display: block; margin-bottom: 16rpx; font-size: 22rpx; line-height: 1.7; color: var(--fb-ink-mid, #6b6560); }
 
-/* 已留下记录：工具轻列与两个等权动作。新记录保持原来的单按钮。 */
+/* 新建/恢复与已留下共用工具轻列和两个等权动作。 */
 .editor-actions { display: flex; justify-content: flex-end; width: 300rpx; flex: 0 0 auto; }
-.editor-toolbar--saved { flex-direction: column; align-items: stretch; gap: 16rpx; }
-.editor-toolbar--saved .editor-actions { width: 100%; gap: 24rpx; }
-.editor-toolbar--saved .seal-btn { flex: 1; width: 0; min-width: 0; min-height: 48px; }
+.editor-toolbar--dual { flex-direction: column; align-items: stretch; gap: 16rpx; }
+.editor-toolbar--dual .editor-actions { width: 100%; gap: 24rpx; }
+.editor-toolbar--dual .seal-btn { flex: 1; width: 0; min-width: 0; min-height: 48px; }
 .seal-layer { position: fixed; inset: 0; z-index: 1190; display: flex; align-items: flex-end; }
 .seal-mask { position: absolute; inset: 0; background: rgba(96,89,79,.42); }
 .seal-panel { position: relative; width: 100%; max-height: 90vh; overflow-y: auto; box-sizing: border-box; padding: 22rpx 46rpx calc(44rpx + env(safe-area-inset-bottom)); border-radius: 28rpx 28rpx 0 0; background: #f9f5ed; box-shadow: 0 -12rpx 48rpx rgba(77,65,48,.08); font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); }
@@ -3102,5 +3105,5 @@ onUnload(() => {
 .seal-time-value { display: block; margin-top: 8rpx; color: #6b6560; font-size: 27rpx; line-height: 1.7; overflow-wrap: anywhere; }
 .seal-time-arrow { flex-shrink: 0; color: #aaa398; font-size: 36rpx; }
 .seal-description { display: block; margin-top: 20rpx; color: #aaa398; font-size: 22rpx; line-height: 1.8; }
-.seal-confirm { width: 320rpx; margin: 34rpx auto 0; }
+.seal-save, .seal-confirm { width: 320rpx; margin: 34rpx auto 0; }
 </style>

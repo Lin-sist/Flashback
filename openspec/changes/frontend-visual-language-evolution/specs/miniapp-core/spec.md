@@ -38,6 +38,35 @@
 - **THEN** 对应实施 SHALL 停止并回规划确认
 - **AND** SHALL NOT 以样式精修名义绕过契约确认
 
+### Requirement: New Writing Must Expose Time Preparation Without Bypassing Explicit Save / 新建书写 MUST 显示时间准备入口并保留显式保存
+
+> 2026-10-16增补，用户直接回复“批准并允许实现”，本切片Gate 1规划批准、Gate 2实现授权分别通过；见proposal增补、design D28与tasks W-01—W-06。进入实施，未接受进baseline。
+
+新建/恢复DRAFT与SAVED编辑页 SHALL 使用相同的工具独立行与双等宽药丸布局。DRAFT SHALL 显示“留下这一刻 / 交给时间”，SAVED SHALL 显示“保存补充 / 交给时间”。DRAFT的时间入口 SHALL 仅进入准备面板，SHALL NOT 提供可直接执行seal的动作，也不得静默串联save/seal；accepted的显式保存后可选封存边界保持。
+
+#### Scenario: A new writer prepares a time without writing / 新建用户进入时间准备面板
+
+- **GIVEN** 当前是尚无id的新建或恢复DRAFT
+- **WHEN** 用户点击交给时间、选择时间或在显式保存前取消
+- **THEN** SHALL 只打开/操作/关闭现有浮层与临时时间，不调用create/update/save/seal
+- **AND** SHALL 明示先留下这一刻再确认封存，保留原输入/媒体/表单时间
+
+#### Scenario: Saving and sealing remain two explicit actions / 保存与封存仍为两个显式动作
+
+- **GIVEN** DRAFT用户处于时间准备面板
+- **WHEN** 用户点击面板的留下这一刻
+- **THEN** SHALL 仅走原saveDraft和既有校验，真实响应确认SAVED前不得呈现保存成功或允许seal
+- **AND** SAVED确认后SHALL保留面板并显示确认封存，只有用户再次点击才允许调用原seal路径
+- **AND** 普通左按钮保存成功SHALL NOT自动打开时间面板，面板内保存成功SHALL NOT自动seal
+
+#### Scenario: A user cancels or a stage fails / 用户取消或某阶段失败
+
+- **GIVEN** 用户尚未保存、已经保存或封存失败
+- **WHEN** 关闭或重试当前步骤
+- **THEN** 保存前取消SHALL零写入，显式保存后取消SHALL保留真实SAVED；保存/封存失败SHALL保留输入和可重试上下文
+- **AND** 封存失败SHALL NOT假称成功或自动重做显式save，忙碌SHALL阻止重复提交
+- **AND** Preview拒绝、空内容/未完成媒体与封存不可修改location/attachments/cover边界SHALL保持
+
 ### Requirement: Formal Migration Must Advance In Verified Slices / 正式迁移 MUST 按已验证切片推进
 
 正式迁移 SHALL 先做首页/编辑器/时光轴样板及保存/时间回看闭环，再分批扩展 C–E。每批 SHALL 明确文件范围、状态覆盖、验证证据、回退点和剩余风险；SHALL NOT 一次性重构全站。当前 SHALL NOT 迁移翻页、登录新视觉/薄雾或引入依赖。
