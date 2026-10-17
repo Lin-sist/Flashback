@@ -691,7 +691,7 @@ onLoad(async (query) => {
 </script>
 
 <template>
-  <view class="archive-page" :class="{ 'archive-page--sealed': isSealed, 'archive-page--review': isUnlocked }" :style="pageStyle">
+  <view class="archive-page" :class="{ 'archive-page--saved': isSaved, 'archive-page--sealed': isSealed, 'archive-page--review': isUnlocked }" :style="pageStyle">
     <PreviewModeNotice />
     <!-- 宣纸底纹 -->
     <view class="archive-backdrop" />
@@ -702,7 +702,7 @@ onLoad(async (query) => {
       <view class="archive-top-safe__nav" :style="topNavStyle">
         <!-- 品牌名居中（所有状态统一显示） -->
         <view class="archive-top-safe__logo">
-          <text class="archive-top-safe__logo-text">{{ isSealed || isUnlocked ? '时光回序' : '时 光 回 序' }}</text>
+          <text class="archive-top-safe__logo-text">{{ isSaved || isSealed || isUnlocked ? '时光回序' : '时 光 回 序' }}</text>
         </view>
         <!-- 关闭按钮 -->
         <view class="archive-close" :style="closeRailStyle" @tap="closePage">
@@ -735,22 +735,6 @@ onLoad(async (query) => {
       <!-- 有详情内容 -->
       <view v-else-if="detail" class="archive-stage">
 
-        <view v-if="!isDraft && !isSealed && !isUnlocked" class="chapter-membership-panel">
-          <view class="chapter-membership-head">
-            <text class="chapter-membership-title">时间篇章</text>
-            <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
-            <text v-else class="chapter-membership-current">尚未归入篇章</text>
-          </view>
-          <view class="chapter-membership-actions">
-            <view class="chapter-membership-action" @tap="chooseChapter">
-              {{ chapterActionLoading ? '处理中…' : chapterActionText }}
-            </view>
-            <view v-if="currentChapter" class="chapter-membership-action chapter-membership-action--quiet" @tap="removeFromChapter">
-              移出篇章
-            </view>
-          </view>
-        </view>
-
         <!-- ══════ DRAFT ══════ -->
         <view v-if="isDraft" class="archive-intro">
           <view class="archive-intro__copy">这封信还在写作途中，可以继续补完后再封存。</view>
@@ -765,19 +749,23 @@ onLoad(async (query) => {
         </view>
 
         <!-- ══════ SAVED：已留下，仍可补充 ══════ -->
-        <view v-else-if="isSaved" class="fallback-panel">
-          <PaperContainer radius="xl" class="status-card">
-            <view class="panel-title">这一刻已经留下</view>
-            <view class="panel-content">{{ detail.content || '这是一段由图片或声音留下的记录。' }}</view>
-            <view class="panel-time">留下于：{{ formatDateTime(detail.createdAt) }}</view>
-          </PaperContainer>
+        <view v-else-if="isSaved" class="saved-hero">
+          <text class="saved-confirmation">这一刻已经留下</text>
+          <view class="saved-letter">
+            <view class="saved-letter-redline" aria-hidden="true" />
+            <view class="saved-letter-fold" aria-hidden="true" />
+            <text v-if="detail.title" class="saved-record-title">{{ detail.title }}</text>
+            <text class="saved-record-body">{{ detail.content || '这是一段由图片或声音留下的记录。' }}</text>
+            <text class="saved-record-time">留下于 {{ formatDateTime(detail.createdAt) }}</text>
+            <view class="saved-stamp" aria-hidden="true">留</view>
+          </view>
           <ReadOnlyRecordMedia
             :record-id="detail.id"
             :attachments="detail.attachments || []"
             :cover-id="detail.cover?.id || null"
             variant="unlocked"
           />
-          <PrimaryButton text="继续补充" @tap="openEditor" />
+          <button class="saved-continue" @tap="openEditor"><view class="saved-action-dot" aria-hidden="true" /><text>继续补充</text></button>
         </view>
 
         <!-- SEALED：demo信笺布局，保留真实倒计时与只读媒体。 -->
@@ -908,6 +896,20 @@ onLoad(async (query) => {
               <text class="unlock-cta-text">留 下 回 应</text>
             </view>
 
+          </view>
+        </view>
+
+        <view v-if="isSaved" class="chapter-membership-panel">
+          <view class="chapter-membership-head">
+            <text class="chapter-membership-title">时间篇章</text>
+            <text v-if="currentChapter" class="chapter-membership-current">当前：{{ currentChapter.name }}</text>
+            <text v-else class="chapter-membership-current">尚未归入篇章</text>
+          </view>
+          <view class="chapter-membership-actions">
+            <view class="chapter-membership-action" @tap="chooseChapter">
+              {{ chapterActionLoading ? '处理中…' : chapterActionText }}
+            </view>
+            <view v-if="currentChapter" class="chapter-membership-action chapter-membership-action--quiet" @tap="removeFromChapter">移出篇章</view>
           </view>
         </view>
 
@@ -2422,4 +2424,48 @@ onLoad(async (query) => {
 .memory-note-hint { display: block; margin-top: 18rpx; color: #aaa398; font-size: 20rpx; line-height: 1.7; }
 .memory-note-save { display: flex; align-items: center; justify-content: center; gap: 20rpx; width: 280rpx; min-height: 84rpx; margin: 30rpx auto 0; border: 2rpx solid #fff; border-radius: 48rpx; background: #f5f0e7; color: #403c37; font-family: inherit; font-size: 27rpx; letter-spacing: 3rpx; box-shadow: 0 10rpx 26rpx rgba(125,105,75,.12); }
 .memory-note-panel button[disabled] { opacity: .5; }
+
+/* 已留下：沿现有暖纸/信笺/浅色动作语言，仅作用于 SAVED。 */
+.archive-page--saved {
+  box-sizing: border-box;
+  padding-bottom: calc(64rpx + env(safe-area-inset-bottom));
+  color: #302e29;
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
+}
+.archive-page--saved .archive-main { margin-top: 28rpx; }
+.archive-page--saved .archive-stage { gap: 0; }
+.archive-page--saved .archive-top-safe__logo-text { color: #9e9890; font-family: inherit; font-size: 22rpx; letter-spacing: 8rpx; }
+.archive-page--saved .archive-close { width: 72rpx; height: 72rpx; border: 0; background: transparent; }
+.archive-page--saved .archive-close__icon { width: 36rpx; height: 36rpx; }
+.archive-page--saved .archive-close__line { height: 2rpx; background: #6b6560; }
+.saved-hero { padding-top: 42rpx; }
+.saved-confirmation { display: block; text-align: center; color: #4c4842; font-size: 36rpx; font-weight: 400; line-height: 1.7; letter-spacing: .16em; text-indent: .16em; }
+.saved-letter { position: relative; margin-top: 46rpx; padding: 48rpx 44rpx 64rpx; box-sizing: border-box; border: 1rpx solid rgba(188,174,152,.28); border-radius: 2rpx; background: #fcf9f4; box-shadow: 0 2rpx 4rpx rgba(125,105,75,.1), 0 18rpx 44rpx rgba(125,105,75,.12); }
+.saved-letter-redline { position: absolute; left: 0; top: 0; bottom: 0; width: 3rpx; background: linear-gradient(to bottom, transparent, rgba(181,53,42,.4) 15%, rgba(181,53,42,.4) 85%, transparent); pointer-events: none; }
+.saved-letter-fold { position: absolute; top: -1rpx; right: -1rpx; width: 34rpx; height: 34rpx; background: linear-gradient(225deg, #f4efe5 49%, #e3dbc9 50%); box-shadow: -3rpx 3rpx 5rpx rgba(120,100,70,.16); pointer-events: none; }
+.saved-record-title { display: block; margin-bottom: 24rpx; padding-right: 10rpx; color: #302e29; font-size: 40rpx; font-weight: 400; line-height: 1.6; letter-spacing: .1em; overflow-wrap: anywhere; }
+.saved-record-body { display: block; color: #6b6560; font-size: 30rpx; font-weight: 300; line-height: 2; letter-spacing: .04em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.saved-record-time { display: block; margin-top: 34rpx; padding-right: 72rpx; color: #9e9890; font-size: 23rpx; font-weight: 300; line-height: 1.8; letter-spacing: .04em; overflow-wrap: anywhere; }
+.saved-stamp { position: absolute; right: 30rpx; bottom: 26rpx; display: flex; align-items: center; justify-content: center; width: 50rpx; height: 50rpx; box-sizing: border-box; border: 1rpx solid rgba(181,53,42,.65); border-radius: 50%; color: #b5352a; font-size: 25rpx; font-weight: 300; }
+.saved-continue { display: flex; align-items: center; justify-content: center; gap: 18rpx; width: 100%; min-height: 94rpx; margin: 38rpx 0 0; padding: 18rpx 36rpx; box-sizing: border-box; border: 2rpx solid #fffdfa; border-radius: 99rpx; background: #f3eee4; color: #6b6560; font-family: inherit; font-size: 29rpx; font-weight: 300; line-height: 1.6; letter-spacing: .12em; box-shadow: 0 8rpx 26rpx rgba(125,105,75,.1); }
+.saved-continue::after { border: none; }
+.saved-action-dot { flex-shrink: 0; width: 8rpx; height: 8rpx; border-radius: 50%; background: #b5352a; opacity: .7; }
+.archive-page--saved .chapter-membership-panel { margin: 52rpx 0 0; padding: 28rpx; border: 1rpx solid rgba(188,174,152,.28); border-radius: 2rpx; background: rgba(252,249,244,.6); }
+.archive-page--saved .chapter-membership-head { align-items: flex-start; flex-wrap: wrap; gap: 14rpx; }
+.archive-page--saved .chapter-membership-title { color: #6b6560; font-family: inherit; font-size: 26rpx; line-height: 1.8; }
+.archive-page--saved .chapter-membership-current { max-width: 100%; color: #9e9890; font-size: 23rpx; line-height: 1.8; white-space: normal; overflow-wrap: anywhere; }
+.archive-page--saved .chapter-membership-actions { flex-wrap: wrap; margin-top: 20rpx; gap: 18rpx; }
+.archive-page--saved .chapter-membership-action { padding: 12rpx 24rpx; border: 1rpx solid rgba(107,101,96,.35); border-radius: 2rpx; color: #6b6560; font-size: 23rpx; line-height: 1.6; }
+.archive-page--saved .memory-policy { display: flex; flex-direction: column; margin: 28rpx 0 0; padding: 28rpx; border: 1rpx solid rgba(188,174,152,.28); border-radius: 2rpx; background: rgba(252,249,244,.6); }
+.archive-page--saved .memory-policy-title { color: #6b6560; font-size: 24rpx; line-height: 1.8; letter-spacing: .06em; }
+.archive-page--saved .memory-policy-hint { color: #9e9890; font-size: 21rpx; line-height: 1.8; }
+.archive-page--saved .memory-policy-row { gap: 20rpx; margin-top: 22rpx; }
+.archive-page--saved .memory-policy-label { flex: 1; min-width: 0; color: #6b6560; font-size: 26rpx; line-height: 1.8; }
+.archive-page--saved .memory-switch { flex-shrink: 0; width: 64rpx; height: 36rpx; box-sizing: border-box; border: 1rpx solid #c8c2b8; background: transparent; }
+.archive-page--saved .memory-switch-knob { width: 26rpx; height: 26rpx; top: 4rpx; left: 4rpx; background: #c8c2b8; }
+.archive-page--saved .memory-switch--on { border-color: #9e9890; background: #e4ded2; }
+.archive-page--saved .memory-switch--on .memory-switch-knob { left: 32rpx; background: #6b6560; }
+.archive-page--saved .memory-policy-note { width: 100%; min-height: 132rpx; margin-top: 22rpx; padding: 20rpx; box-sizing: border-box; border: 1rpx solid rgba(188,174,152,.35); border-radius: 2rpx; background: #faf7f2; color: #6b6560; font-family: inherit; font-size: 26rpx; line-height: 1.9; }
+.archive-page--saved .memory-policy-save { display: inline-flex; align-items: center; justify-content: center; align-self: flex-end; min-height: 68rpx; margin-top: 20rpx; padding: 10rpx 28rpx; box-sizing: border-box; border: 1rpx solid rgba(188,174,152,.35); border-radius: 99rpx; background: #f3eee4; color: #6b6560; font-size: 24rpx; line-height: 1.8; }
+.archive-page--saved .ownership-delete { margin: 44rpx auto 0; padding: 22rpx; min-height: 80rpx; box-sizing: border-box; color: #b5352a; opacity: .75; font-size: 23rpx; line-height: 1.8; letter-spacing: .14em; }
 </style>

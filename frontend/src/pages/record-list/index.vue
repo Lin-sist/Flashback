@@ -367,12 +367,13 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
             class="secondary-tab"
             :class="{ 'secondary-tab--active': viewMode === 'records' }"
             @tap="setViewMode('records')"
-          >记录</view>
+          >记录<view v-if="viewMode === 'records'" class="secondary-tab__underline" /></view>
+          <view class="secondary-divider" />
           <view
             class="secondary-tab"
             :class="{ 'secondary-tab--active': viewMode === 'chapters' }"
             @tap="setViewMode('chapters')"
-          >篇章</view>
+          >篇章<view v-if="viewMode === 'chapters'" class="secondary-tab__underline" /></view>
         </view>
 
         <template v-if="viewMode === 'records'">
@@ -494,6 +495,8 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
             maxlength="100"
             placeholder="篇章名称（必填）"
             placeholder-class="chapter-compose__placeholder"
+            :adjust-position="true"
+            :cursor-spacing="120"
           />
           <textarea
             v-model="chapterNote"
@@ -502,6 +505,8 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
             auto-height
             placeholder="写一句自述（可选）"
             placeholder-class="chapter-compose__placeholder"
+            :adjust-position="true"
+            :cursor-spacing="120"
           />
           <view class="chapter-compose__actions">
             <text class="chapter-compose__cancel" @tap="cancelCompose">稍后再写</text>
@@ -1211,21 +1216,44 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
 
 .secondary-tabs {
   display: flex;
-  gap: 34rpx;
+  align-items: center;
+  justify-content: center;
+  gap: 50rpx;
   margin: 18rpx 0 34rpx;
-  border-bottom: 1rpx solid rgba(157, 145, 131, 0.25);
+  min-height: 56rpx;
 }
 
 .secondary-tab {
+  position: relative;
   padding: 0 4rpx 14rpx;
   color: #9e9890;
-  font-size: 27rpx;
-  letter-spacing: 0.12em;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 30rpx;
+  font-weight: 400;
+  line-height: 42rpx;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
 }
 
 .secondary-tab--active {
   color: #302e29;
-  border-bottom: 3rpx solid #b5352a;
+}
+
+.secondary-tab__underline {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 2rpx;
+  background: #b5352a;
+}
+
+.secondary-divider {
+  flex-shrink: 0;
+  width: 1rpx;
+  height: 30rpx;
+  margin-bottom: 14rpx;
+  background: #c8c2b8;
 }
 
 .section-actions {
@@ -1249,14 +1277,14 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
   margin-right: 14rpx;
   border: 1rpx solid #c8c2b8;
   border-radius: 50%;
-  color: #b5352a;
+  color: #6b6560;
   font-size: 24rpx;
   flex-shrink: 0;
 }
 
 .record-select-mark--on {
-  border-color: #b5352a;
-  background: rgba(181, 53, 42, 0.08);
+  border-color: #9e9890;
+  background: #eee8dd;
 }
 
 .record-select-mark--disabled {
@@ -1265,7 +1293,7 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
 }
 
 .card--selected {
-  box-shadow: 0 0 0 2rpx rgba(181, 53, 42, 0.22);
+  box-shadow: 0 0 0 2rpx rgba(107, 101, 96, 0.26);
 }
 
 .card-chapter-name {
@@ -1280,32 +1308,47 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
 
 .chapter-compose {
   margin: 28rpx 0 10rpx;
-  padding: 28rpx;
-  border: 1rpx solid rgba(157, 145, 131, 0.35);
-  background: rgba(255, 252, 247, 0.56);
+  padding: 32rpx;
+  border: 1rpx solid rgba(188, 174, 152, 0.28);
+  background: #fcf9f4;
+  box-shadow: 0 12rpx 32rpx rgba(91, 72, 43, 0.07);
 }
 
 .chapter-compose__heading {
-  margin-bottom: 20rpx;
-  color: #302e29;
+  margin-bottom: 26rpx;
+  color: #6b6560;
   font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 27rpx;
+  font-size: 30rpx;
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.06em;
 }
 
 .chapter-compose__input,
 .chapter-compose__note {
   box-sizing: border-box;
   width: 100%;
-  margin-bottom: 16rpx;
-  padding: 18rpx 20rpx;
-  border: 1rpx solid #d8d0c5;
-  background: rgba(255, 255, 255, 0.42);
-  color: #302e29;
-  font-size: 25rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(188, 174, 152, 0.45);
+  border-radius: 2rpx;
+  background: #faf7f2;
+  color: #4c4842;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 27rpx;
+}
+
+.chapter-compose__input {
+  /* 原生 input 显式留足文字高度，避免默认高度被上下 padding 挤掉。 */
+  height: 88rpx;
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  line-height: normal;
 }
 
 .chapter-compose__note {
-  min-height: 96rpx;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  line-height: 1.8;
 }
 
 .chapter-compose__placeholder {
@@ -1316,19 +1359,34 @@ onShow(() => (viewMode.value === 'chapters' ? loadChapters() : loadList()))
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 24rpx;
+  gap: 28rpx;
+  flex-wrap: wrap;
+  margin-top: 8rpx;
 }
 
 .chapter-compose__cancel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 80rpx;
   color: #9e9890;
-  font-size: 23rpx;
+  font-size: 25rpx;
 }
 
 .chapter-compose__submit {
-  padding: 16rpx 28rpx;
-  background: #b5352a;
-  color: #fffaf5;
-  font-size: 23rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 80rpx;
+  padding: 16rpx 32rpx;
+  border: 2rpx solid #fffdfa;
+  border-radius: 99rpx;
+  background: #f3eee4;
+  box-shadow: 0 6rpx 20rpx rgba(91, 72, 43, 0.07);
+  color: #6b6560;
+  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  font-size: 25rpx;
+  letter-spacing: 0.08em;
 }
 
 .chapter-compose__submit--loading {
