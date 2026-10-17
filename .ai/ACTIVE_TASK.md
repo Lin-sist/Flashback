@@ -4,12 +4,32 @@
 
 `ACTIVE`
 
+2026-10-17 最新：用户明确授权按改动内容分批提交并推送；本轮作为Type B提交整理，不新增产品能力或接受/归档。已完成7批源码/回归提交，最后文档收口随第8批提交；52项页面+12项浮层+15项详情离线、类型、Preview/Standard构建及各39项样式检查PASS，最终Standard。Git远程同步确认无分叉；只普通推送origin/main，结果以最终Git远端核验为准。个人学习/面试Skill及简历图片保持未跟踪、不上传；微信/真机与真实业务联调继续待验。
+
+2026-10-16 最新：用户明确继续整理近况、改为demo书信浮层，沿F-31既有summary映射实施。结果由内嵌卡转为压暗个人中心上的折角信笺，长文内部滚动，真实日期/计数/AI或本地来源保留；重新整理/收起固定可见，收起重开零生成请求。48项离线、类型/两模式构建及各36项WXSS/几何PASS，最终Standard；微信实图/触摸/长文/安全区/真机仍待验，真实外调0。
+
+2026-10-16 最新：用户明确继续整理近况、改为demo书信浮层，沿F-31既有summary映射实施。结果由内嵌卡转为压暗个人中心上的折角信笺，长文内部滚动，真实日期/计数/AI或本地来源保留；重新整理/收起固定可见，收起重开零生成请求。48项离线、类型/两模式构建及各36项WXSS/几何PASS，最终Standard；微信实图/触摸/长文/安全区/真机仍待验，真实外调0。
+
+2026-10-16 最新：用户明确继续篇章页、完全接入demo风格，已完成既有F-30的篇章展示切片。居中标题/状态、自述/真实汇集说明、折角成员信笺与底部三动作已实现；编辑/排序/信息/删除收进更多，成员选择复用既有查询/加入/转移/移出及版本契约。46项离线、类型/两模式构建与各34项WXSS/几何通过，最终Standard；微信观感/菜单/输入键盘/触摸/真机及真实持久化仍待验。不扩展我的记录页/服务/后端/外调/接受delta/归档。
+
+2026-10-16 最新：用户明确继续篇章页、完全接入demo风格，已完成既有F-30的篇章展示切片。居中标题/状态、自述/真实汇集说明、折角成员信笺与底部三动作已实现；编辑/排序/信息/删除收进更多，成员选择复用既有查询/加入/转移/移出及版本契约。46项离线、类型/两模式构建与各34项WXSS/几何通过，最终Standard；微信观感/菜单/输入键盘/触摸/真机及真实持久化仍待验。不扩展我的记录页/服务/后端/外调/接受delta/归档。
+
+2026-10-16 最新：用户明确继续数据与所有权页demo接入，按既有F-31的ownership映射完成本页展示与按需操作面板，覆盖上一批不扩展数据页的局部限制。托管信笺/真实保管说明/构建信息/标语已实现，原导出策略、短语确认、阶段/重试/下载与Preview保留；37项合成、类型/两模式构建及各32项WXSS通过。下一步为用户审阅Standard产物并补微信输入/键盘/下载保存与真机验证；不含真实外调/push/接受delta/归档。
+
+2026-10-16 最新：用户明确继续个人中心并要求按demo复刻，进入既有F-31的个人中心展示切片，覆盖此前不扩大D批的批次限制。已落实demo门厅构图、真实资料/原计数、三入口与守印托管卡/浮动导航；代码及离线/构建检查完成，实际微信观感与设备验收待补。仅本页与回归/当前记录，不扩展数据页/新路由/服务/外调/接受delta/归档。
+
+2026-10-16 当前状态：用户直接回复“批准并允许实现”，D28新建书写双入口规划批准（W-02）与按任务实现授权（W-03）分别通过；W-04代码、W-05离线/构建与W-06分级证据/SKIPPED记录完成。新建/恢复已显示双入口，时间准备面板内先显式save，真实SAVED后用户再次确认才seal；下一步为用户审阅Standard产物、补微信/键盘/真机手验。原F-10/F-11授权、上轮浮层成果保留，不含真实外调/接受delta/归档。
+
+2026-10-16 补充：用户明确继续回看页 demo 接入并优化回看 Agent 浮层，现已实施 F-32 的 ReviewChatSheet 展示切片；本轮授权取代此前“回看对话浮层不扩展”的批次限制。F-32 完整微信/真机验收仍 pending，不扩大 C/D 或业务契约。
+
+2026-10-16 补充：用户明确继续回看页 demo 接入并优化回看 Agent 浮层，现已实施 F-32 的 ReviewChatSheet 展示切片；本轮授权取代此前“回看对话浮层不扩展”的批次限制。F-32 完整微信/真机验收仍 pending，不扩大 C/D 或业务契约。
+
 当前唯一 active Type C change 为 `frontend-visual-language-evolution`。2026-10-14 用户明确已完整阅读当前正式迁移规划并批准后续实现；Gate 1 规划批准与 Gate 2 实现授权分别登记通过，同时允许 Agent 简短本地 commit。当前 A 批首页/编辑器/时光轴样板代码已实现，平台验收仍待补；2026-10-14 用户本轮明确授权先复刻 E 批意图选择/书写对话两个浮层；2026-10-15 用户追加授权 F-25 封存详情页接入并明确保留真实倒计时；2026-10-15 用户继续授权 F-25 回看UNLOCKED页面demo接入、以简洁克制为主；不扩大 C/D/回看对话浮层、不接受 delta、不归档。登录新视觉暂缓、翻页不推广、玻璃回弹仅候选；历史未完成证据保留。
 - Active change：`openspec/changes/frontend-visual-language-evolution/`
 - 最近归档：`openspec/changes/archive/2026-08-29-time-chapter-foundation/`
 - 前一归档：`openspec/changes/archive/2026-08-28-safety-response-minimum/`
-- 当前闸门：F-10/F-11 通过，F-12—F-14 完成状态映射/基线/环境清单；F-15/F-20—F-22 平台验收 pending，后续按样板/批次验收顺序推进。demo R/M 待验证和 L 暂缓保留，不补勾旧任务；Gate 3 未授权
-- 提交责任：2026-10-14 本次迁移用户明确允许 Agent 简短本地 add/commit；未授权 push/PR/部署/发布、接受 delta 或归档
+- 当前闸门：F-10/F-11 通过，F-12—F-14 完成状态映射/基线/环境清单；F-15/F-20—F-22 平台验收 pending，后续按样板/批次验收顺序推进。demo R/M 待验证和 L 暂缓保留，不补勾旧任务；真实业务联调 Gate 3 未授权，Git push 已于2026-10-17单独获授权
+- 提交责任：2026-10-17 用户明确授权Agent按现有改动分批add/commit并推送origin/main；覆盖此前仅本地提交/手动提交限制，不含PR/部署/发布、接受delta或归档
 - 外部调用：仅公开 Inspora/Awwwards 研究；Open Design Cloud 未启动；`open-design` MCP 已可调用，Local Codex 递归加载该 MCP 导致的桌面接管/EPIPE 冲突已做本地隔离修复；当前任务的旧 MCP transport 已关闭，原型重试仍须新任务；真实用户内容、真实 Agent provider、对象存储调用均为 0
 
 **Phase 1（M4 → C1 → C2 → C4 → C3a → C3b → C5）已全部完成。**
@@ -143,6 +163,61 @@
 - 开工清单：`Docs/agent-iteration/workflow/prompt-snippets/type-c-checklist.md`
 
 ## Current Progress
+
+- **This session**: 2026-10-17 — **既有成果分批提交与推送授权收口**
+  - **Scope / Authorization**：用户明确要求按修改内容分批提交并推送；仅整理既有19个tracked修改文件，新增交接与追加日志，不重做业务实现。保留个人技能目录/简历图片，不改依赖/后端/accepted baseline/archive，不创建PR或部署。
+  - **Completed**：3527f69 style(records): 统一已留下详情与记录列表布局；51a4d03 style(review): 复刻时间回看对话信笺；02083bf feat(editor): 新建双入口显式分离保存与封存；09089b3 style(profile): 统一个人中心、近况信笺与数据托管页；f5af98c feat(chapters): 复刻篇章信笺并接入成员选择；b27f5ed style(timeline): 精简短文字节点并贴合底部导航；68ba349 test(frontend): 补齐页面交互与样式回归；本条及既有规划/分级证据纳入最后文档批次。原18个本地提交历史不改写。
+  - **Verification / Next**：vue-tsc、52/12/15项零网络合成、Preview/Standard build及各39项WXSS检查PASS，最终Standard；提交逐批精确路径/暂存差异检查，源码SHA256保持。fetch确认origin/main是本地祖先；文档提交后普通push并核对HEAD/远端一致，推送结果见Git回执与最终答复。微信/真机/真实业务外调SKIPPED，不补勾F-22/F-30/F-31/F-41/F-42或归档。
+
+- **This session**: 2026-10-16 — **F-31近况书信浮层复刻，平台待验**
+  - **Scope / Authorization**：用户明确继续整理近况并要求demo书信浮层，沿唯一active change的F-31 summary映射与现有Gate 1/当前展示实现授权。仅个人中心本模块、两份已有回归脚本、D32/tasks/证据/交接/追加日志；保护上轮记录列表小修及其它页面，不改服务/API/AI行为契约或新增路由。
+  - **Changes**：压暗原个人中心、独立纸质信笺/折角/朱砂细线、近况标题、真实正文/生成日期/计数/来源、长文内滚与固定重新整理/收起。仅真实结果后打开，收起保留结果，重开不生成；重新整理沿原方法，忙碌防重/防误关闭，失败保旧信和日期，FALLBACK如实标注。
+  - **Verification / Next**：48项样板（新增2项浮层状态）、vue-tsc、Preview/Standard build及各36项WXSS/几何PASS，最终Standard。原generateStageSummary仅增展示开启/滚动重置两行，业务部分逐字保持；服务、demo和前轮页面保护，日志只追加。微信纸面/字号/遮罩/折角/内部滚动/触摸/安全区/真机未实操，F-31/F-41/F-42继续pending；真实业务API/provider/对象存储0，未提交/push/接受delta/归档。下一步用户加载Standard审阅书信及重整/收起。
+
+- **This session**: 2026-10-16 — **F-31近况书信浮层复刻，平台待验**
+  - **Scope / Authorization**：用户明确继续整理近况并要求demo书信浮层，沿唯一active change的F-31 summary映射与现有Gate 1/当前展示实现授权。仅个人中心本模块、两份已有回归脚本、D32/tasks/证据/交接/追加日志；保护上轮记录列表小修及其它页面，不改服务/API/AI行为契约或新增路由。
+  - **Changes**：压暗原个人中心、独立纸质信笺/折角/朱砂细线、近况标题、真实正文/生成日期/计数/来源、长文内滚与固定重新整理/收起。仅真实结果后打开，收起保留结果，重开不生成；重新整理沿原方法，忙碌防重/防误关闭，失败保旧信和日期，FALLBACK如实标注。
+  - **Verification / Next**：48项样板（新增2项浮层状态）、vue-tsc、Preview/Standard build及各36项WXSS/几何PASS，最终Standard。原generateStageSummary仅增展示开启/滚动重置两行，业务部分逐字保持；服务、demo和前轮页面保护，日志只追加。微信纸面/字号/遮罩/折角/内部滚动/触摸/安全区/真机未实操，F-31/F-41/F-42继续pending；真实业务API/provider/对象存储0，未提交/push/接受delta/归档。下一步用户加载Standard审阅书信及重整/收起。
+
+- **This session**: 2026-10-16 — **F-30篇章页demo复刻，平台验收待补**
+  - **Scope / Authorization**：用户明确继续篇章页，依当前唯一change的F-30章页映射/Gate 1与展示实现授权，仅本页、两份既有回归脚本、D31/tasks/证据/交接/追加日志。保护前轮个人中心/所有权/书写/回看成果和untracked技能目录；不改我的记录页/新路由/服务/契约。
+  - **Changes**：原生返回/更多，居中名称与状态小签、自述直接落纸、真实建立时间/数量、折角摘要信笺、正常流三等分浮动动作栏。更多保留编辑/排序/覆盖时间/结束时间/只删篇章；添加/移出用暖纸选择层调用原记录分页与成员API，转移显式确认来源，移出不删记录，expectedVersion沿真实值，失败重新读取后重新选择；已结束禁加入但可移出/重开，Preview拒绝变更。
+  - **Verification / Next**：46项样板（新增篇章9项）、vue-tsc、Preview/Standard build及各34项WXSS/几何PASS，最终Standard。原ensureVisible至confirmDelete连续业务方法逐字保护，前轮页/篇章服务/store/共享安全栏/demo按SHA256保护，日志只追加。真实业务API/provider/对象存储0；微信纸面/字体/胶囊、菜单/成员选择/编辑键盘、窄屏/安全区/真机与真实持久化未实操，F-30/F-41/F-42不补勾。下一步用户加载Standard对照demo手验本页；未提交/push/接受delta/归档。
+
+- **This session**: 2026-10-16 — **F-30篇章页demo复刻，平台验收待补**
+  - **Scope / Authorization**：用户明确继续篇章页，依当前唯一change的F-30章页映射/Gate 1与展示实现授权，仅本页、两份既有回归脚本、D31/tasks/证据/交接/追加日志。保护前轮个人中心/所有权/书写/回看成果和untracked技能目录；不改我的记录页/新路由/服务/契约。
+  - **Changes**：原生返回/更多，居中名称与状态小签、自述直接落纸、真实建立时间/数量、折角摘要信笺、正常流三等分浮动动作栏。更多保留编辑/排序/覆盖时间/结束时间/只删篇章；添加/移出用暖纸选择层调用原记录分页与成员API，转移显式确认来源，移出不删记录，expectedVersion沿真实值，失败重新读取后重新选择；已结束禁加入但可移出/重开，Preview拒绝变更。
+  - **Verification / Next**：46项样板（新增篇章9项）、vue-tsc、Preview/Standard build及各34项WXSS/几何PASS，最终Standard。原ensureVisible至confirmDelete连续业务方法逐字保护，前轮页/篇章服务/store/共享安全栏/demo按SHA256保护，日志只追加。真实业务API/provider/对象存储0；微信纸面/字体/胶囊、菜单/成员选择/编辑键盘、窄屏/安全区/真机与真实持久化未实操，F-30/F-41/F-42不补勾。下一步用户加载Standard对照demo手验本页；未提交/push/接受delta/归档。
+
+- **This session**: 2026-10-16 — **F-31数据与所有权托管信笺复刻，平台与真实操作待验**
+  - **Scope / Authorization**：用户明确继续本页、按demo复刻，沿已有ownership映射/Gate 1与直接展示实现授权。仅data-backup/index.vue、两份既有样板/样式脚本、design D30/tasks/证据/交接/追加日志；原个人中心/书写/回看、服务/共享安全栏/demo与untracked目录保护。
+  - **Changes**：原生安全栏/居中标题，真实保管说明，带朱砂侧线/折角/守印的托管卡、括线导出/清理入口、构建信息与正常流页尾。导出/清理详细控制收暖纸面板，保留两种封存策略、准确短语确认、真实operation/重试/下载与实际有效期。原六个加载/操作方法逐字保护，准备忙碌包装只防重复点击，关闭保留意图/输入。
+  - **Verification / Next**：37项样板（新增所有权7项）、vue-tsc、两模式build及各32项WXSS/几何PASS，最终Standard。真实业务API/provider/对象存储0；日志前缀与精确范围收尾核验。微信纸面/字距/胶囊、面板滚动/确认输入/键盘、系统文件保存、小屏/真机与真实持久化未实操；历史Gate3脚本未运行，完整F-31/F-41/F-42仍pending。未提交/push/接受delta/归档。
+
+- **This session**: 2026-10-16 — **F-31个人中心按demo门厅复刻，平台观感待手验**
+  - **Scope / Authorization**：用户明确继续优化个人中心、按demo复刻；沿F-31既有映射与当前直接展示实施授权调整批次顺序。仅user-center/index.vue、两份既有样板/样式脚本、design D29/tasks/证据/交接/追加日志。前轮书写/回看代码与现有untracked目录保护，不新增路由或改数据/关于页面。
+  - **Changes**：真实头像/墨韵占位与昵称、原真实保管计数一句话，三条四角取景框入口，守印托管卡/导出清理、单个关于与三Tab浮动导航。近况只在主动生成后呈现原结果/来源，导出清理仍进入原数据页，关于原生菜单保留关于/退出。原加载/统计/生成/Preview/导航/logout方法未变。
+  - **Verification / Next**：30项样板（新增个人中心5项）、vue-tsc、Preview/Standard build及各30项WXSS/布局检查PASS，最终Standard。390px比例检查与长昵称/空错/旧资料/近况防重/成功与fallback/Preview/退出等仅合成；无真实业务API/provider/对象存储。微信实际纸面/字体/胶囊/菜单/小屏真机未实操，F-31/F-41/F-42不补勾。用户加载Standard审阅本页；未提交/push/接受delta/归档。
+
+- **This session**: 2026-10-16 — **D28新建/恢复书写双入口实施完成，平台待手验**
+  - **Authorization / Scope**：用户直接“批准并允许实现”，W-02规划批准与W-03实现授权分别通过。仅record-editor/index.vue、样板/样式两份既有脚本与当前工件/证据/交接/追加日志；上轮未提交ReviewChatSheet和agent-sheets脚本按字节保护，原untracked目录不动。
+  - **Changes**：新建/恢复与SAVED共享工具独立行、双等宽药丸；DRAFT左为留下这一刻，SAVED左为保存补充，右均为交给时间。DRAFT进入准备浮层只显式save，响应SAVED后保留面板、用户再次确认才seal。取消前零写入、保存后取消保留SAVED，失败保输入与临时时间。原persistDraft/saveDraft/sealRecord/confirmSealSheet逐字保护。
+  - **Verification / Next**：25项样板+12项浮层+15项详情合成、vue-tsc、两模式build及各28项WXSS/布局PASS，最终Standard。W-01—W-06完成（W-06仅记录SKIPPED，不等于平台验收）；日志历史前缀/精确范围检查在收尾复核。微信双按钮观感/触摸、中文键盘/滚轮、窄屏真机与真实持久化仍待手验，真实业务API/provider/对象存储0。保留未提交，不push/接受delta/归档。
+
+- **This session**: 2026-10-16 — **新建书写双入口规划增补，待两道闸门**
+  - **Scope / User feedback**：用户确认回看浮层完成（正常态观感反馈，不补齐旧设备矩阵），要求书写页也使用同款工具行与双按钮。现有record-editor在DRAFT只有留下这一刻、SAVED才有时间入口；accepted miniapp-core明确不允许未显式保存的DRAFT执行seal，backend同样拒绝直接DRAFT seal。
+  - **Proposal**：同一active change的D28拟将新建/恢复改双入口；交给时间仅开准备面板，DRAFT面板按钮显式save，真实SAVED后保留面板，用户再次确认才seal。普通保存不自动开层；取消/失败/Preview/媒体/忙碌仍沿原保护。只改六份规划/进度/日志，不改accepted specs或业务代码。
+  - **Progress / Next**：W-01完成，W-02规划批准与W-03实现授权分别pending，不能由此前仅SAVED的D27授权自动放行。待用户审阅后按W-04实现、W-05离线/构建与W-06平台验证；真实业务API/provider/对象存储预算0。上轮未提交浮层/脚本/证据保持原样，本轮不add/commit/push。
+
+- **This session**: 2026-10-16 — **F-32 回看 Agent 信笺浮层复刻**
+  - **Scope / Authorization**：用户以 demo/现状两图明确要求继续回看浮层，按已批准展示映射落实。起点 HEAD 6b6f192，tracked 工作区干净；原有三组 untracked 技能目录保持不动。仅 ReviewChatSheet、两份既有离线脚本、当前 tasks/证据/交接与追加日志。
+  - **Changes**：72vh 暖纸底与居中回看标题，左右折角纸条、卡内来源药丸与红点，底部轻授权/原状态说明、药丸输入及原生细线圆形纸飞机。只读边界收为底部脚注；消息区独立伸缩滚动，输入/授权不压缩。setup 业务代码仅注释有变，原会话/发送/权限/来源/重试保持。
+  - **Verification / Next**：vue-tsc、12项浮层（含5项新增回看）+19项样板+15项详情合成、两模式构建及各28项WXSS/布局检查PASS，最终Standard。原日志前缀与精确范围校验；真实业务API/provider/对象存储0。微信画面/字体/折角/长文滚动、中文键盘/小屏真机仍待手验，F-32不补勾。改动保留未提交，不push/接受delta/归档。
+
+- **This session**: 2026-10-16 — **F-32 回看 Agent 信笺浮层复刻**
+  - **Scope / Authorization**：用户以 demo/现状两图明确要求继续回看浮层，按已批准展示映射落实。起点 HEAD 6b6f192，tracked 工作区干净；原有三组 untracked 技能目录保持不动。仅 ReviewChatSheet、两份既有离线脚本、当前 tasks/证据/交接与追加日志。
+  - **Changes**：72vh 暖纸底与居中回看标题，左右折角纸条、卡内来源药丸与红点，底部轻授权/原状态说明、药丸输入及原生细线圆形纸飞机。只读边界收为底部脚注；消息区独立伸缩滚动，输入/授权不压缩。setup 业务代码仅注释有变，原会话/发送/权限/来源/重试保持。
+  - **Verification / Next**：vue-tsc、12项浮层（含5项新增回看）+19项样板+15项详情合成、两模式构建及各28项WXSS/布局检查PASS，最终Standard。原日志前缀与精确范围校验；真实业务API/provider/对象存储0。微信画面/字体/折角/长文滚动、中文键盘/小屏真机仍待手验，F-32不补勾。改动保留未提交，不push/接受delta/归档。
 
 - **This session**: 2026-10-15 — **已留下首页轻信笺、SAVED双按钮与封存确认（F-20/F-21/F-24展示切片）**
   - **Scope / Authorization**：前轮已给出明确方案，用户本轮明确允许按规划实现；沿唯一active change与既有本地简短提交授权。clean起点3cabd40。仅首页/编辑器展示与必要浮层状态绑定、两份既有脚本及当前文档；非SAVED详情重绘，不扩大后端契约。

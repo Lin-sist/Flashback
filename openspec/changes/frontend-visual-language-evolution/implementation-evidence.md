@@ -206,3 +206,55 @@ F-20/F-21/F-22 代码已完成，页级微信验收未完成，复选框保留 p
 - PASS：vue-tsc；19项样板合成（新增纸卡真实标题/导航与空错、新记录/SAVED按钮映射、普通保存不封存、取消不改表单/滚轮返回、无效时间/Preview/媒体零持久化、封存失败重试与忙碌防重/响应确认后返回）+15项详情+7项浮层。Preview/Standard build及各26项WXSS/几何检查，最终Standard。固定合成内容，业务API/provider/对象存储真实调用0。
 - 工程验证修正：异步方法更新ref后的状态窄化使用RecordStatus显式恢复枚举类型，保留原方法不变；离线模板初始将具名插槽组件当原生元素导致Codegen失败，修正测试编译器的组件识别后19项通过。既有Vue离线组件/指令上下文及uni/caniuse更新提示保留，未改依赖。
 - SKIPPED：OpenSpec CLI不在PATH，沿现有文件级流程；无可控微信UI/自动化会话，纸卡观感/长标题、双动作实际触摸/中文键盘、滚轮层级与取消/安全区、小屏真机及真实封存持久化未实操。不绕过旧file拒绝，不将合成/构建当平台验收；F-20/F-21/F-24完整页级与F-25 SAVED详情仍pending。
+
+## 2026-10-16 F-32 回看 Agent 浮层信笺复刻
+
+- 用户提供 demo/当前样式两图并明确继续回看页面 Agent 浮层，按现有 design 的 agent-review 映射实施展示切片。起点 HEAD 6b6f192，既有 untracked 技能目录不触碰；本轮改动保留未提交。无范围/canonical mapping/验收标准变化，不改 proposal/design/delta 或 accepted specs。
+- 对照 demo/pages/agent-review.html 与共享组件样式：72vh 暖纸、细拉手、右上关闭、居中回看对话/和它聊聊那时候；左侧浅纸条与右侧暖纸便签共用折角/轻影。真实来源放入对应助手纸条，保留当前/跨记录说明、可用性及原导航。底部为原记忆授权与原状态说明、药丸输入框及圆形细线飞机；只读边界收为脚注。消息区 min-height:0/height:0 独立伸缩，头部/授权/输入/安全区不压缩，无滤镜/动画依赖或新素材。
+- PASS：vue-tsc；浮层12/12（新增回看来源对应/删除来源与用户消息隔离、授权忙碌/待重试/撤销、发送防重/失败/结束/重试/关闭、无会话状态/独立遮罩、100条长消息与长来源）；已有样板19/19、详情15/15。Preview/Standard build退出0，各28项WXSS/布局检查PASS，最终Standard。Standard WXML含全部5条原生飞机线，不依赖image/SVG。
+- 业务保护：ReviewChatSheet从import起的完整setup在行尾归一化后与HEAD完全一致，仅开头说明注释更新。record-detail/index.vue、其它组件/页面、backend/services/stores/types/features、package/lockfile、demo、历史快照与accepted specs不改。真实业务API/provider/对象存储0；图片里的真实对话不进入源码/日志/夹具，回归仅使用固定合成内容。
+- 验证修正：新增WXSS检查初次将构建压缩后的:after与源码::after视为不同选择器，导致1项假阴性；检查器按CSS等价语法归一化后两模式各28项通过，业务CSS无相应改动。既有Vue离线指令上下文及uni/caniuse更新提示保留，未改依赖。
+- SKIPPED：OpenSpec CLI不在PATH，按已有文件级流程；当前无可控微信UI/自动化会话，真实材质/字体/折角、长消息滚动、中文键盘/焦点/底部安全区、小屏与真机未实操。不绕过旧file拒绝，不以合成或编译认定实际观感通过；F-32及完整F-27/F-41/F-42保持pending。用户可加载最终Standard产物审阅新版浮层。
+
+## 2026-10-16 D28 / W-01—W-06 新建书写双入口
+
+- 用户直接回复“批准并允许实现”：本切片规划批准与实现授权分别通过，按D28实现。书写页新建/技术恢复/SAVED共享工具独立行与双等宽药丸；左按钮按原真实状态显示留下这一刻/保存补充，右按钮为交给时间。记录仍为DRAFT时，右入口仅开准备浮层/临时时间及原滚轮，面板按钮仅调用原saveDraft。响应SAVED后面板保留，只有用户再次点击确认封存才走原confirmSealSheet/sealRecord。
+- 验证PASS：vue-tsc；样板25/25（更新原新建单按钮用例、新增6项分阶段/取消/失败/忙碌/Preview/媒体合成），既有浮层12/12和详情15/15；Preview/Standard build退出0，各28项WXSS/布局PASS，最终Standard。布局几何覆盖320/375/390/430px、最长6字忙碌文案、工具正常流。新增合成覆盖新建/恢复两种id状态、延迟保存/封存响应、重复提交、保存前取消零写入/临时时间不改表单、create/save失败保输入与时间、保存后取消保留SAVED、封存失败只重试原封存路径、图片/声音单独保存以及未选解封时间仍可显式保存。
+- 保护PASS：persistDraft、saveDraft、sealRecord、confirmSealSheet从HEAD提取后逐字一致（行尾归一化）；仅增加canPrepareSeal展示computed、放开准备入口/选时间的DRAFT门控、模板复用save动作和双按钮样式。已完成ReviewChatSheet及agent-sheets-offline脚本保持当前轮起点字节一致；后端/services/stores/types/features/权限、媒体组件、其它页面、DateTimeWheelPicker、package/lockfile/demo/accepted specs/archive不改。真实业务API/provider/对象存储0；回归只用固定合成内容，截图原文不入库。
+- 提示：既有Vue离线组件/指令上下文警告及uni/caniuse更新提示保留，不代表原生渲染，也未为消除提示更新依赖。新建两个动作没有新路由/服务端状态/隐式save+seal。
+- SKIPPED：本轮未取得可控微信/真机会话，实际按钮字体/触摸、原生中文键盘、滚轮返回与焦点/安全区、窄屏和真机、真实保存与封存持久化未实操；不绕过旧file拒绝。OpenSpec CLI不在PATH，使用文件级检查不称CLI通过。W-06只完成上述SKIPPED记录，F-21/F-24/F-41/F-42平台验收保持pending；未提交/push/接受delta/归档。
+
+## 2026-10-16 F-31 个人中心demo门厅复刻
+
+- 用户提供demo/当前两图，明确继续个人中心并要求按demo复刻；按F-31既有页面映射与本轮直接授权实施，取舍见D29。以demo/pages/user-center.html为视觉源，转译390px画布的28px页边、100px头像、58px取景框入口、守印托管纸卡和浮动三Tab；保留AppTopSafeBar原生状态栏/胶囊安全区，未复制设备壳或状态栏。字体沿本机/平台系统回退，无新外链素材或依赖。
+- 正常态：墨韵头像仅作为缺省占位，真实头像及昵称优先；原SEALED+UNLOCKED合计与SEALED数改为保管陈述，不填demo静态姓名或14/0。我的记录/时间回看沿原记录列表/时光轴；近况按钮沿原服务，主动生成后才出现原SUCCESS/FALLBACK/来源结果。托管卡/导出/清理进入原数据与所有权页，不直接发导出或删除请求；关于原生菜单保留关于页与退出。原加载/失败/旧资料重试/Preview门控仍在。
+- PASS：vue-tsc；样板30/30（新增个人中心5项：延迟加载/真实资料和原计数/图像失败、空错与长昵称/旧资料重试、各入口/数据/关于退出/三Tab、近况防重/成功/fallback/失败/Preview、登录与Preview资料）；Preview/Standard build退出0，各30项WXSS/布局PASS，最终Standard。390px换算头像/页边/入口高度/字号误差小于1px仅为计算值，8条括线进入WXSS；长名字/计数换行、滚动区收缩、卡内按钮宽度、导航安全区检查不代替实际绘制。
+- 保护：原loadCenterData/计数/导航/generateStageSummary/Preview/logout逻辑与HEAD逐字一致，脚本仅增加AppTopSafeBar展示导入和about动作菜单。前轮书写/回看组件、共享AppTopSafeBar、demo源文件按当前起点SHA256保持。后端/services/stores/types/features/权限、数据/关于页、其它页面/组件、package/lockfile、accepted specs/archive不改。真实业务API/provider/对象存储0，图片真实姓名/记录内容未写入夹具。
+- 验证修正：新增超时用例初次由宿主Error跨VM上下文，组件原instanceof Error未命中而返回通用失败文案；测试沙箱统一Error构造器后30项通过，未为测试修改业务错误处理。既有Vue离线组件/指令上下文及uni/caniuse更新提示保留。
+- SKIPPED：本轮未取得可控微信/真机会话，纸面/字体/头像渐变/阴影/四角细线、真实昵称长文、小屏/滚动末项、胶囊与底部安全区、原生关于菜单/实际触摸和真实服务未实操。OpenSpec CLI不在PATH，文件级流程不称CLI通过；不绕过旧file拒绝，不把编译/合成/几何结果称1:1视觉验收。F-31整批/F-41/F-42继续pending，仅当前个人中心展示代码完成。
+
+## 2026-10-16 F-31 数据与所有权demo托管信笺复刻
+
+- 用户明确继续当前数据页、按demo复刻；沿当前F-31既有ownership映射实施，取舍见D30。主页依demo/pages/ownership.html转译：安全栏返回/居中标题、真实保管说明、红线/折角/守印托管卡、括线导出按钮/清理文字、构建信息与页尾标语。系统状态栏与胶囊依现有AppTopSafeBar，不复制设备壳；窄屏标题减字距、返回左侧视觉仍对齐54rpx页边。主画面保管数沿个人中心SEALED+UNLOCKED/SEALED，四态全量/媒体/清理范围保留面板，不能混同。
+- 导出/清理入口仅展开互斥暖纸面板，展开/关闭不调用变更API；保留原两种封存策略、显式生成、下载与保存回调、准备意图/服务端确认短语/确认提交。准备包装防重，等待中不能关闭；取消不丢失当前意图与输入，可继续确认。确认成功仅按原响应清空确认状态，尚在PENDING的真实记录计数不本地伪置零。operation进度/失败码/重试/下载常态有结果才展示；真实artifactExpiresAt或EXPIRED优先，未生成保留原默认24小时说明。
+- PASS：vue-tsc；样板37/37（新增所有权7项），覆盖加载/计数/默认简洁与展开零副作用、两策略与忙碌防重/响应前无下载、服务端有效期/下载保存失败重试、导出失败/过期/各阶段、准备意图/准确短语/确认防重/取消可继续/PENDING不假清零、失败保输入与同id重试、实际Preview service拒绝全部外调、认证/加载重试/空记录及返回。Preview/Standard build退出0，各32项WXSS/几何PASS，最终Standard；390px页边/印章/导出按钮换算、四条括线和320/375/390/430px下106px合成胶囊占位的标题空间检查均为计算/编译证据。
+- 保护PASS：原totalRecords/mediaSize/operationText/goBack/notifyError及loadSummary/startExport/downloadExport/prepareClearAll/confirmClearAll/retryOperation连续源码与HEAD逐字相同（行尾归一化）；新内容为展示computed、临时面板/准备忙碌包装及构建信息导航。原个人中心、书写、回看、共享安全栏、dataOwnershipService、demo源文件SHA256保持；后端/services/stores/types/features/权限、依赖/lockfile、其它页面、accepted specs/archive不改。日志只追加、精确范围/diff检查收尾核验；真实业务API/provider/对象存储0。
+- 工程记录：PowerShell/.NET整体替换遇文件Access denied，检查确认目标在工作区、无只读或链接属性，后用标准apply_patch完成同一授权文件修改；未改ACL/权限或路径。旧方法完整性复核通过。测试沙箱复用实际ownership service的Preview路径并统一VM Error构造器；既有Vue离线上下文及uni/caniuse提示保留，不改依赖。
+- SKIPPED：本轮未取得可控微信/真机会话；页面像素/字体/折角/朱砂线/阴影、胶囊与返回、面板滚动/确认短语原生输入和键盘/安全区、系统文件保存、真机与真实MySQL/对象存储/清理操作均未实操。旧P3.2 Gate3脚本基于展开布局，未运行或作为新版验收；将来真实平台联调需先按新入口适配并独立授权，不扩用历史外调预算。OpenSpec CLI不在PATH，仅文件级检查；不绕过旧file拒绝，不以合成/编译称1:1视觉通过。F-31/F-41/F-42完整验收pending。
+
+## 2026-10-16 F-30 篇章页demo纸上自述复刻
+
+- 用户明确继续篇章页、完全接入demo风格；沿F-30既有chapter映射/Gate 1与当前展示实现授权，取舍见D31。依demo/pages/chapter.html与用户参考图转译居中标题/描边状态、自述无框落纸、真实建立日期/汇集数量、折角信笺/两行摘要与底部三等分动作。原生AppTopSafeBar避状态栏/胶囊，不复制设备壳或外链字体；长名称/自述换行，滚动区可收缩，底栏正常流独立安全区不覆盖末项，实色材质不依赖blur。
+- 更多菜单保留原编辑、正倒序、覆盖时间/建立/结束信息与只删除篇章；默认不展示旧工具排/日期堆叠。底部添加/移出通过暖纸选择层复用原记录分页和addMembers/removeMembers：DRAFT/本篇章过滤、其他来源转移明确确认、目标expectedVersion从当前detail取值；移出不删记录。取消零写入，等待防重/防误关闭，成功仅重新读取detail，失败不改本地归属/数量，读取新版本后重新选择，无自动写重试。ENDED禁加入但允许移出/重开，Preview入口/实际service均拒绝。
+- PASS：vue-tsc；46/46样板（新增篇章9项），覆盖真实名称/自述/数量/摘要与长文空态/ENDED、无效参数/跨id缓存/加载失败重试/认证、更多排序/信息/编辑取消与版本失败/忙碌、成员分页、记录状态导航、结束/重开/只删篇章确认、候选查询失败/分页/排除DRAFT/当前归属、来源转移/取消/响应前无假成功/expectedVersion、结束后移出失败重读、Preview实际service全部变更拒绝、普通加入/移出成功刷新最新版本、等待防重/关闭与错误状态隔离。真实网络/provider/对象存储均0；合成不验证原生v-model/键盘。
+- PASS：Preview/Standard构建退出0，各34项编译WXSS/几何PASS，最终Standard；390px换算页边/标题/小签/自述误差小于1px、长文与两行摘要/折角、滚动区域/底部安全区、320/375/390/430px三动作宽度及胶囊106px合成占位检查仅为计算/源码证据。原ensureVisible至confirmDelete连续业务方法逐字保持；原onLoad/onShow保持。前轮个人中心/所有权/书写/回看、篇章service/store、共享安全栏与demo源SHA256保持，后端/契约/其它页/依赖/accepted specs/archive零改。
+- 验证修正：生命周期确认的原回调不返回异步工作，初次合成测试仅等待两个microtask，随后更多菜单仍处于真实忙碌态；改为让宿主事件循环完成后断言，不改生产方法。既有Vue离线组件/指令上下文与uni/caniuse更新提示保留，未改依赖。
+- SKIPPED：本轮未取得可控微信/真机会话，实际纸面/字体/折角/阴影、长文/胶囊/安全区/末项滚动、原生菜单/确认弹窗/触摸、编辑输入键盘及真机与真实业务持久化未实操。未绕过旧file拒绝；OpenSpec CLI不在PATH，仅文件级检查。没有将合成/编译结果称为1:1视觉验收，F-30/F-41/F-42继续pending，未提交/push/接受delta/归档。
+
+## 2026-10-16 F-31 整理近况demo书信浮层
+
+- 用户明确继续整理近况、按demo改为书信浮层；沿既有F-31 summary映射与当前展示实现授权，取舍见D32。参考demo/pages/summary.html的压暗背景/独立信笺、44px左右页边、30px上边/26px标题/14px正文及2.15行距、右上折角/朱砂细线、两枚描边动作。真实个人中心保持背景，不新增静态结果页、不复制设备壳/图中日记或demo正文。
+- 近况由内嵌长卡改为固定层，纸质非玻璃；长正文/真实日期/计数/来源仅在内部滚动，标题与重新整理/收起独立保留，背景滚动暂禁。真实SUCCESS/FALLBACK后才开；无generatedAt不填假日期，AI/本地来源沿原分类。收起保留结果，重开零生成，明确重新整理才复用原方法；忙碌不重复生成/关闭，错误沿原toast，旧信与原日期保留，成功后重新定位信内顶部。
+- PASS：vue-tsc；48/48样板（新增2项），覆盖真实响应后开层、长文/换行/真实日期/计数/来源、点信内不收起、背景/按钮收起与重开零生成/零导航、背景滚动恢复、Preview含缓存结果拒绝、初次失败不开、重新整理明确触发/防重/忙碌保旧/禁止误关闭、超时保旧日期与来源、fallback不假标AI、无日期不伪填、成功重置信内滚动key。原46项保留通过，真实业务API/provider/对象存储0。
+- PASS：Preview/Standard build退出0，各36项WXSS/几何PASS，最终Standard；390px页边/内边/字号与demo比例误差小于1px、正文保换行、折角/红线不拦截、层级高于个人中心导航、320/375/390/430px下两动作宽度与568/667/844/932px视口正文余量均为计算/编译证据。服务方法15s与Preview保持；generateStageSummary去除两行展示赋值后与HEAD业务部分逐字相同。前轮记录列表/篇章/所有权/书写/回看与服务、demo源起点SHA256保护，不改后端/权限/其它模块/依赖/accepted规格/archive。
+- SKIPPED：本轮未取得可控微信/真机会话，真实纸面/字号/长文内滚/重新整理后的滚动位置、折角阴影/遮罩/底部安全区、触摸事件与背景防穿透、系统胶囊/真机与真实provider内容未实操；不绕过旧file拒绝。OpenSpec CLI不在PATH，仅文件级记录。既有离线Vue组件/指令上下文及uni/caniuse提示保留，无依赖调整；不把源码/计算/构建称1:1视觉验收通过，F-31/F-41/F-42完整矩阵继续pending。

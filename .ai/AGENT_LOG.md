@@ -9031,3 +9031,174 @@ Commit: pending
 - **Verification PASS**: 当前git diff --check及9文件范围复核；待提交业务源码与上轮验证后保持一致，沿用上轮vue-tsc、19+15+7合成、Preview/Standard build及各26项WXSS结果。日志只追加前缀校验PASS。
 - **Verification SKIPPED / Risks**: 本轮不重复运行未修改实现的检查；微信实际观感/中文键盘/日期滚轮/真机与真实后端持久化仍未验证，风险不因本地提交消失；无真实业务API/provider/对象存储调用。
 - **Commit**: pending（按当前用户直接授权执行本地提交；最终hash以git log与答复为准）
+
+
+## 2026-10-16｜frontend-visual-language-evolution：F-32回看Agent信笺浮层｜已授权展示切片
+
+- **Scope**: 用户以demo/当前两图明确要求继续回看页面并优化Agent浮层，按既有F-32映射实施；Type B展示精修归入唯一active Type C，不开新change。起点HEAD 6b6f192（补录上轮真实commit），tracked工作区干净；原有.agent/skills/lin-interviewer、.agent/skills/lin-study-coach和.agents untracked目录不触碰。仅ReviewChatSheet、两份既有离线脚本、当前tasks/证据/交接及本条追加。
+- **Changes**: 暖纸底/居中标题/拉手与右上关闭，助手与用户左右折角纸条、轻影，真实来源移入对应纸条并保留来源类别/可用性；底部轻授权与原状态说明、药丸输入、圆形原生细线飞机，只读边界收为脚注。消息区独立伸缩滚动，头/授权/输入不收缩、保留安全区；遮罩与内容仍为兄弟层。未拷入demo消息、演示存储/DOM脚本或新图片依赖。
+- **Verification PASS**: vue-tsc退出0；12/12浮层合成（原7项+新增回看5项：来源对应与失效/用户来源隔离、记忆默认关闭/忙碌/待重试/撤销、发送防重/失败/结束/重试/关闭、无会话加载/错误/独立遮罩、100条长消息与长来源/结束只读）；已有19/19样板、15/15详情合成。Preview/Standard build退出0，各28项WXSS/布局检查PASS，最终Standard；WXML含5条原生飞机线，无image/SVG依赖。合成模板不验证原生v-model/键盘。
+- **Verification PASS**: ReviewChatSheet从import起的完整setup行尾归一化后与HEAD逐字相同，仅顶部说明注释更改；既有会话、发送/记忆授权/重试/来源导航与结束规则不变。精确7文件allowlist/git diff --check/隐私及只追加前缀校验在收尾复核。原日志767843字节SHA256 c4fccb041705cf9e0131f950454fc3c783a861f423032aa1853fdcc289a1b2c6。backend/services/stores/types/features/权限、其它页面/组件、package/lockfile、demo、历史快照、accepted specs/archive零修改；截图真实对话/日记/位置/secret未入库，固定合成测试真实业务API/provider/对象存储调用0。
+- **Verification note**: 初次新增WXSS检查以::after匹配构建压缩的:after导致1项假阴性；检查器按CSS等价语法归一化后两模式各28项通过，未为测试修改业务CSS。初次多文件patch因脚本目标行不完整被整体拒绝，后以完整上下文成功应用；未残留半成品。既有Vue离线指令上下文及uni/caniuse更新提示保留，未改依赖。
+- **Verification SKIPPED / Risks**: OpenSpec CLI不在PATH；无可控微信UI/自动化会话，真实材质/字体/折角绘制、长消息滚动、中文键盘/焦点、底部安全区、小屏真机及真实provider对话未实操。不绕过旧file拒绝，不以构建/合成冒充平台或视觉验收，F-32/F-27/F-41/F-42不补勾；不扩大C/D或接受/归档。
+- **Commit**: pending（本轮改动保留未提交，未执行git add/commit/push）
+- **Next**: 用户加载最终Standard构建，打开UNLOCKED的和它聊聊那时候，审阅新版排版并手验长对话/来源/授权/输入/键盘；仅依据实际反馈继续本浮层精修。
+
+
+## 2026-10-16｜frontend-visual-language-evolution：新建书写双入口规划增补｜Type C规划，业务代码未改
+
+- **Scope**: 用户确认上一轮回看浮层完成，并要求新建书写页复用已留下页双按钮UI。核验record-editor/index.vue、accepted miniapp/backend相关保存封存条款及当前D27，发现旧映射仅SAVED有交给时间；本需求改变DRAFT入口/面板映射，不能按纯样式默认放行。沿唯一active change增补proposal/design D28/tasks W-01—W-06/miniapp delta与进度，本轮只改六份文档，保留此前未提交浮层成果与untracked目录。
+- **Changes**: 拟议DRAFT显示留下这一刻/交给时间、SAVED显示保存补充/交给时间，同款工具独立行与等宽药丸。DRAFT右入口仅开时间准备面板；面板内先明确save，真实SAVED后用户再次确认才seal，禁止静默合并。取消前后、各阶段失败/重试、Preview、内容/媒体/忙碌保护及代码allowlist和验收矩阵已明确。D27历史保留，D28待批准后才覆盖其展示限制；不改accepted spec或后端状态机。
+- **Verification PASS**: 规划四工件与W-01完成/W-02及W-03未勾选、D28拟议状态和accepted显式save/独立seal边界逐项对照；只读确认现有saveDraft成功留在本页，不需要新增路由。六文档范围与前轮浮层/脚本/证据及书写页保护、git diff --check、日志历史前缀在收尾核验。原日志771116字节SHA256 0a672442e3e9050c7e13fbd4b9ec5756cbcbda478a48f978157e3d7871bec7cf。
+- **Verification SKIPPED / Risks**: 当前仅规划，无业务代码变化，因此不复跑类型/构建/回归；新UI与阶段切换尚未实现，微信/键盘/滚轮/真机及真实持久化均未验收。OpenSpec CLI上一轮已确认不在PATH，本轮文件级核验不称CLI通过。真实业务API/provider/对象存储0；未复制截图里的日记原文。
+- **Gate / Next**: W-01完成；按AGENTS Gates 1/2及当前delta语义冲突规则，先由用户批准具体D28规划，另获按W-04—W-06实现授权后才改业务代码，分别记录，不推导外调/接受delta/归档。
+- **Commit**: pending（本轮未执行git add/commit/push，前轮未提交成果保持）
+
+
+## 2026-10-16｜frontend-visual-language-evolution：D28新建书写双入口实施｜Type C已授权切片
+
+- **Scope / Authorization**: 用户直接回复“批准并允许实现”，W-02规划批准与W-03按W-04—W-06实现授权分别通过；无真实外调/接受delta/归档授权。沿唯一active change，保留HEAD 6b6f192之后上轮未提交成果与原untracked技能目录。仅record-editor/index.vue、visual-samples-offline.cjs、visual-style-regression.cjs和本change proposal/design/tasks/miniapp delta/证据、ACTIVE_TASK与本条追加。
+- **Changes**: 新建/恢复/SAVED共用工具独立行与双等宽药丸；新建留下这一刻/交给时间，SAVED保存补充/交给时间。canPrepareSeal仅允许DRAFT/SAVED进入时间准备面板；时间与滚轮仍为临时值。DRAFT主按钮只复用原saveDraft，真实响应SAVED后保留面板，用户再次点击原确认封存才seal；不静默合并，不在普通保存后自动开层。保存前取消零写入/不改表单时间，保存后取消保留SAVED；保存/封存失败保输入与重试边界。
+- **Verification PASS**: vue-tsc退出0；25/25样板（原19项调整1项并新增6项），12/12浮层、15/15详情合成；Preview/Standard build退出0，各28项WXSS/布局检查PASS，最终Standard。新增用例覆盖新建/恢复入口、临时时间/滚轮往返/取消、延迟真实响应门控与两次独立点击、save/封存防重、create/save失败保输入、保存后取消、封存失败不重复save、Preview/空内容/未完成媒体/录音、图片或声音单独保存与无时间仍可保存。几何覆盖320/375/390/430px及最长忙碌文案，合成不验证原生v-model或键盘。
+- **Verification PASS**: 原persistDraft/saveDraft/sealRecord/confirmSealSheet行尾归一化后与HEAD逐字一致；只修改准备入口与模板/样式。上轮ReviewChatSheet和agent-sheets-offline脚本按当前起点SHA256保护。原日志773366字节SHA256 ff830e1e6fd1f580bf330bc3c92605603f5e9b847474b3b17adbaae05d88a9a9只追加前缀、精确范围/git diff --check在收尾复核。后端/services/stores/types/features/权限、其它页面/媒体/时间滚轮、package/lockfile、demo、accepted specs/archive不改；截图日记/位置/secret不入库，真实业务API/provider/对象存储0。
+- **Verification note**: 既有Vue离线组件/指令上下文与uni/caniuse更新提示保留；未为消除提示修改依赖，未把编译或模板执行当原生画面。
+- **Verification SKIPPED / Risks**: 本轮未取得可控微信/真机会话，按钮实际字体/触摸、中文键盘、滚轮往返/焦点/安全区、窄屏真机及真实持久化未实操；不绕过旧file拒绝。OpenSpec CLI不在PATH，文件级检查不称CLI验证。W-06完成仅指SKIPPED记录义务，F-21/F-24/F-41/F-42平台验收仍pending。
+- **Progress / Next**: W-01—W-06实现与分级证据记录完成；用户加载Standard构建，手验新建页双按钮、交给时间的显式保存/确认封存和取消；根据真实反馈继续本切片，不自动扩展其它页。
+- **Commit**: pending（本轮未执行git add/commit/push，保留可审阅修改）
+
+
+## 2026-10-16｜frontend-visual-language-evolution：F-31个人中心demo门厅复刻｜已授权展示切片
+
+- **Scope / Authorization**: 用户明确继续个人中心优化、按demo复刻，依当前直接指令调整此前C/D批次顺序；沿唯一active change的F-31既有映射/Gate 1与实现授权实施当前页面。仅user-center/index.vue、样板/样式两份既有脚本与design D29/tasks/证据/ACTIVE_TASK/本条追加，不扩大数据页/关于页或新增结果路由。
+- **Changes**: 390px demo的头像/页边/字号/三条四角取景框、守印/分隔线/托管卡/导出清理、关于与三Tab浮动导航转为本页展示。真实头像与昵称/原SEALED+UNLOCKED及SEALED计数继续优先，缺省头像使用同款墨韵渐变；不复制demo静态姓名和14/0。近况入口保留原生成/来源/失败与Preview，仅主动生成结果后出现结果卡；关于原生动作菜单收纳原关于/退出。导出清理沿原数据页，不直接外调/删除。
+- **Verification PASS**: vue-tsc退出0；30/30样板（原25项+个人中心5项）覆盖延迟加载真实资料/计数与无假零、头像失败、长昵称与空错/旧资料重试、记录/时间/近况/托管/关于退出/三Tab接线、近况防重/成功/FALLBACK/错误/Preview、登录与Preview资料。Preview/Standard build退出0，各30项WXSS/几何PASS，最终Standard；390px换算/8条括线/正常流与可伸缩滚动/长文/卡内动作宽度/底部安全区只作编译或计算证据。
+- **Verification PASS**: 原ensureLogin/导航/generateStageSummary/loadCenterData/计数/Preview/logout方法与HEAD逐字保护，新增导入/菜单为展示接线。前轮record-editor、ReviewChatSheet、agent-sheets脚本、共享AppTopSafeBar及demo源按当前起点字节保护。原日志776575字节SHA256 75790843f6cad48dc414a3de3d04f4b580deb9e4f65729ad0065849c11e72ff5只追加前缀、精确范围/git diff --check提交前复核。后端/services/stores/types/features/权限、其它页面/数据/关于/组件、package/lockfile、accepted specs/archive不改；无真实用户正文/昵称/位置/secret入库，真实业务API/provider/对象存储0。
+- **Verification note**: 首次新增超时用例因宿主Error跨VM上下文未通过组件原instanceof Error而走通用失败提示；仅统一测试沙箱Error构造器后30项PASS，未改业务错误处理。原Vue离线组件/指令上下文及uni/caniuse更新提示保留，不当原生画面证据。
+- **Verification SKIPPED / Risks**: 本轮未取得可控微信/真机会话，实际纸面/字体/墨韵头像/阴影/四角细线、长昵称/计数、小屏与末项滚动、系统胶囊/安全区、原生动作菜单/触摸与真实服务未实操；不绕过旧file拒绝。OpenSpec CLI不在PATH，文件级检查不称CLI验证；不把合成/几何/构建宣称为1:1视觉通过。F-31/F-41/F-42完整验收pending，数据页/其它页面不扩展。
+- **Progress / Next**: 个人中心展示代码与离线/构建完成；用户加载最终Standard产物对照demo查看，并手验三入口、关于/退出与数据页跳转。原C/D其它批次需按用户后续明确范围推进。
+- **Commit**: pending（本轮未执行git add/commit/push；工作区含前轮未提交成果，不混入提交）
+
+
+## 2026-10-16｜frontend-visual-language-evolution：F-31数据与所有权demo托管信笺复刻｜已授权展示切片
+
+- **Scope / Authorization**: 用户明确继续数据与所有权页按demo复刻，沿当前F-31 ownership映射与本轮直接展示实施授权，仅修改data-backup/index.vue、样板/样式两份既有脚本与design D30/tasks/证据/ACTIVE_TASK/本条追加。覆盖前轮局部不扩展数据页限制，不新增路由或改服务/后端/权限/状态机，保留原未提交成果和untracked目录。
+- **Changes**: 原生安全栏/居中标题，按demo的保管说明、红侧线/折角/守印托管卡、括线导出/清理入口、构建信息与正常流标语。导出/清理控制收进互斥暖纸面板，仍通过原两策略/生成/下载保存与准备意图/服务端准确短语/确认提交；准备中防重、等待中不关闭，关闭保留意图和输入。主画面保管数沿个人中心SEALED+UNLOCKED/SEALED，原四态总量与媒体估算/清理范围保留面板。实际有效期/过期状态优先，未生成只保留原默认24小时说明。
+- **Verification PASS**: vue-tsc；37/37样板（原30项+所有权7项）覆盖打开/关闭零写入、真实计数/加载/空错重试、两种策略、生成忙碌/无假下载、实际有效期、保存文件失败重试、导出失败/过期/操作阶段、准备/确认防重、准确短语/错误拒绝、取消后继续/PENDING不假清零、失败保输入与同operation id重试、实际Preview service全部变更/下载拒绝及认证/返回。Preview/Standard build退出0，各32项WXSS/几何PASS，最终Standard；合成胶囊106px占位下320/375/390/430px标题空间与390px卡片比例只作计算证据，原生输入/系统文件保存未模拟。
+- **Verification PASS**: 原totalRecords至retryOperation的全部连续源码（含loadSummary/startExport/downloadExport/prepareClearAll/confirmClearAll/goBack/notifyError/统计）与HEAD逐字一致，行尾归一化；新代码仅展示状态/computed/忙碌包装/导航。个人中心/书写/回看、共享AppTopSafeBar、dataOwnershipService及demo源按当前起点SHA256保护；后端/services/stores/types/features/权限、依赖/lockfile、其它页面、accepted specs/archive零修改。原日志779902字节SHA256 2061bdec081e8ef045a14bedbadd215adedf5125457321e64008daaccf40055b只追加前缀、精确范围与git diff --check收尾复核；无真实日记/用户名/位置/secret入库，真实业务API/provider/对象存储0。
+- **Verification note**: .NET写入同一授权文件被Access denied，检查路径处于工作区且无只读/链接后采用标准apply_patch完成，未改ACL或扩大权限；源文件原方法保护通过。测试模块VM统一Error构造器使实际Preview service异常与页面相同上下文。原Vue离线上下文与uni/caniuse提示保留，未改依赖。
+- **Verification SKIPPED / Risks**: 未取得可控微信/真机会话，实际纸面/字体/折角/朱砂/阴影、系统胶囊/返回、面板/原生确认输入与键盘/安全区、系统保存文件、小屏真机与真实持久化/清理未实操；不绕过旧file拒绝。历史P3.2 Gate3脚本依旧展开布局，未执行/未作为新版证据；未来真实平台联调先适配入口且另获授权，不复用旧外调预算。OpenSpec CLI不在PATH，文件级检查不称CLI或1:1视觉验收通过，F-31/F-41/F-42完整验收pending。
+- **Progress / Next**: 本页代码与离线/构建完成；用户加载Standard对照demo并手验面板/策略/取消/确认输入与构建信息跳转，真实导出/清理须独立授权和合成数据预算。
+- **Commit**: pending（本轮未执行git add/commit/push；原未提交切片保留，不混入提交）
+
+## 2026-10-16｜frontend-visual-language-evolution：F-30篇章页demo纸上自述复刻｜已授权展示切片
+
+- **Scope / Authorization**: 用户明确继续篇章页、完全接入demo风格，沿唯一active change的F-30既有chapter映射/Gate 1与当前展示实现授权。仅time-chapter-detail/index.vue、visual-samples-offline.cjs、visual-style-regression.cjs、design D31/tasks/证据/ACTIVE_TASK/本条追加；不扩大我的记录页或新业务契约，保护前轮未提交成果与untracked技能目录。
+- **Changes**: 原生安全栏返回/更多，居中篇章名和描边小签、自述直接落纸、真实建立时间/成员数、折角信笺及两行摘要、正常流三等分底部动作。编辑/排序/覆盖时间/建立结束时间/只删篇章收更多；添加和移出用暖纸选择层复用既有recordService分页与timeChapterService成员契约，草稿/本篇章过滤、他篇章来源明确转移确认，expectedVersion沿当前detail。取消零写入，等待防重/防误关闭，响应前不乐观改数量/归属，失败重读后重选不自动重写；ENDED禁加入但可移出/重开，Preview拒绝变更。
+- **Verification PASS**: vue-tsc；46/46样板（原37项+篇章9项），覆盖真实/长文/空态/ENDED、无效参数/跨id缓存/加载失败重试/认证、更多编辑/取消/版本失败与忙碌、排序/成员分页/记录状态导航、结束/重开/只删篇章确认、候选分页/失败重试/排除DRAFT和本篇章、显式转移/取消/等待/版本、结束后移出失败重读/不删记录、普通加入/移出成功重新读取最新数量/版本、等待防重关闭和错误隔离、实际Preview service全部变更拒绝。真实业务API/provider/对象存储0，原生v-model/键盘不由模板执行代替。
+- **Verification PASS**: Preview/Standard build退出0，各34项WXSS/几何PASS，最终Standard。390px页边/标题/小签/自述换算误差小于1px、两行摘要/折角、320/375/390/430px三动作宽度和胶囊106px合成占位、滚动区/安全区只作计算/编译证据，不称实际绘制。原ensureVisible至confirmDelete的连续业务方法逐字保护，onLoad/onShow保留；前轮个人中心/数据所有权/书写/回看、篇章service/store、共享安全栏/demo源当前起点SHA256均保持。后端/services/stores/types/权限、其它页/依赖/lockfile、accepted specs/archive零改。
+- **Verification PASS**: 原日志783694字节SHA256 38f830a0678f88ad8e3c16b82cc12c61d13502a62dfc39226f23b822b0cf55b8历史前缀保护；git diff --check已修正新增文档EOF空行后通过（LF/CRLF提示保留）。精确8文件本轮范围、前缀追加与无临时文件在收尾复核；无截图日记/姓名/secret写入测试或日志。
+- **Verification note**: 初次生命周期合成仅等两个microtask，原异步确认尚未释放忙碌态，后续菜单不存在；测试等待宿主事件循环完成后46项通过，未修改原生命周期实现。原Vue离线组件/指令上下文与uni/caniuse更新提示保留，不改依赖。
+- **Verification SKIPPED / Risks**: 本轮未取得可控微信/真机会话，纸面/字体/折角阴影、长文/真实胶囊/安全区与末项滚动、原生更多菜单/确认弹窗/成员选择触摸、编辑输入/键盘及小屏真机/真实持久化未实操；不绕过旧file拒绝。OpenSpec CLI不在PATH，文件级核对不称CLI或1:1视觉通过。F-30/F-41/F-42完整验收继续pending。
+- **Progress / Next**: 本页实现与离线/构建完成；用户加载Standard对照demo查看并手验更多/编辑、添加与来源转移确认、移出取消、结束/重开。仅按后续反馈继续本切片，不自动扩展其它批次，不接受delta/归档。
+- **Commit**: pending（本轮未执行git add/commit/push；保留前轮修改供用户审阅）
+- **Closeout verification**: 日志历史前缀和8份受保护源SHA256通过，临时快照文件已删除，精确范围保持本轮8文件/累积15 tracked文件，原untracked目录未动。文档EOF清理曾遇Node写入EPERM，改用标准apply_patch完成，未修改ACL或升级权限；最终git diff --check退出0。
+
+## 2026-10-16｜我的记录：组成篇章输入裁切与二级切换居中｜Type B样式小修
+
+- **Scope / Authorization**: 用户明确只修组成篇章确认输入遮盖/旧偏红UI，以及顶部记录/篇章按demo居中，其余保持。先读ACTIVE_TASK、F-30及最近日志，判定既有契约内样式bugfix Type B；只改record-list/index.vue与本条追加，不改ACTIVE_TASK/OpenSpec/其它页面/已有回归脚本。前轮未提交成果和untracked目录保护，不新建change或扩展批次。
+- **Changes**: 名称框原无显式高度却有上下padding，代码层面可挤压原生文字区，与截图裁切一致；增加88rpx高度/min-height、仅水平24rpx内边距和正常行高，两个输入显式adjust-position/cursor-spacing为键盘抬升留空间。自述区留足min-height和行距，组成篇章局部确认区域改暖纸/细线/墨灰与浅色药丸，选中标记/外沿改暖灰。二级切换居中、细竖分隔和短朱砂线；普通记录卡/状态色/搜索/筛选/计数/列表/其它页面保持。
+- **Verification PASS**: vue-tsc退出0；Preview/Standard build退出0，各34项既有WXSS/几何检查通过，最终Standard。额外一次性读取实际Preview WXSS确认88rpx高度/零垂直padding/正常行高、居中与分隔线、浅色药丸；320/375/390/430px的文字高度余量及切换组宽度仅为计算证据。原script setup逐字相同，创建/取消/选择/筛选/分页/Preview方法未变。前轮所有15个tracked修改文件SHA256保持（本日志仅核验起点前缀）；原日志787901字节SHA256 2a016d5fbebc7a22016a1ffde1f9e934a7f6171c8d470f966df2702ee204d664只追加；最终diff范围检查收尾执行。
+- **Verification SKIPPED / Risks**: 当前无可控微信/真机会话，原生input实际绘制/placeholder/中文长输入、textarea自动增高、键盘抬升与光标滚动、安全区/实际居中观感未实操；源码/计算/构建不当成实际遮盖回归通过。纯局部模板属性/CSS未新增测试文件、不复跑业务合成；截图日记原文未入库。既有uni/caniuse更新提示保留，不改依赖；真实业务API/provider/对象存储0。
+- **Scope safety / Next**: 不改后端/services/stores/types/权限/封存、依赖/lockfile、demo/accepted规格/archive或其它布局；用户加载Standard重点检查名称/自述输入与键盘，以及顶部记录/篇章居中。完整微信矩阵不补勾。
+- **Commit**: pending（未执行git add/commit/push，原未提交成果保留）
+
+## 2026-10-16｜frontend-visual-language-evolution：F-31整理近况demo书信浮层｜已授权展示切片
+
+- **Scope / Authorization**: 用户明确继续整理近况、改为demo书信浮层并要求1:1复刻，沿唯一active change的F-31 summary映射/Gate 1及当前展示实现授权。仅user-center/index.vue近况模块、两份既有样板/样式回归脚本、design D32/tasks/证据/ACTIVE_TASK/本条追加；保护上一轮记录列表输入框/居中小修与其它未提交页面。范围/canonical mapping/验收标准不变，不改proposal/delta或接受baseline。
+- **Changes**: 原内嵌近况卡改为压暗个人中心上的纸质书信，44px左右页边/标题/正文/2.15行距按390px demo转译，右上折角/朱砂细线、真实生成日期/计数与AI或本地来源。长文及元信息只滚动信内，标题/重新整理/收起保持可见，浮层高于底部导航，背景暂禁滚动。真实响应后才开；收起保结果、重开不生成，明确重新整理才调原方法，忙碌防重/防误关闭，失败保旧信/旧日期，成功后重置信内滚动。
+- **Verification PASS**: vue-tsc；48/48样板（原46项+书信2项），覆盖真实结果开层、长文换行/服务端日期/计数来源、信内点击不收起、遮罩/按钮收起与重开零生成/零导航、背景滚动恢复、缓存结果在Preview拒绝、初次失败不开、重新整理明确触发/防重/等待保旧/忙碌不可关闭、超时保正文/日期/来源、fallback标本地、无日期不伪填及成功重置滚动key。无真实业务API/provider/对象存储调用；合成不能证明原生滚动/触摸。
+- **Verification PASS**: Preview/Standard build退出0，各36项WXSS/几何PASS，最终Standard。390px页边/内边/字号比例误差小于1px，字距/行距/折角/红线/遮罩层级进入WXSS；320/375/390/430px、568/667/844/932px下正文可用高度与两动作忙碌文案宽度仅为计算。原generateStageSummary去除2行展示赋值后与HEAD业务逻辑逐字一致，15s服务/Preview/超时/fallback不变。前轮记录列表/篇章/所有权/书写/回看、stageSummaryService及demo源SHA256保持；无后端/API/store/types/权限/依赖/lockfile/accepted规格/archive改动。
+- **Verification PASS / Notes**: git diff --check退出0；日志原790446字节SHA256 3612e686208d7508ae3f2da69539249775dc19b88b066611ff564a1726185742历史前缀保护，本轮8文件范围及追加前缀收尾核验。无截图日记原文/真实身份/secret入库；原Vue离线上下文与uni/caniuse更新提示保留，未改依赖。
+- **Verification SKIPPED / Risks**: 本轮未取得可控微信/真机会话，实际字体/纸面/折角阴影/遮罩、长文内滚与重整后滚动位置、触摸/背景防穿透、胶囊/安全区/窄屏真机及真实provider内容未实操；不绕过旧file拒绝。OpenSpec CLI不在PATH，文件级记录不称CLI通过；不把合成/几何/构建称1:1视觉验收，完整F-31/F-41/F-42继续pending。
+- **Progress / Next**: 本模块展示及离线/构建完成；用户加载最终Standard查看书信、长文滚动、重新整理/收起与再次打开，依实际反馈继续本切片，不自动扩大其它页面/外调/接受delta/归档。
+- **Commit**: pending（本轮未执行git add/commit/push，保留原未提交成果）
+
+## 2026-10-16｜已留下记录详情：暖纸信笺与次级操作统一｜Type B样式精修
+
+- **Scope / Authorization**: 用户提供保存为留下这一刻后的详情图，要求按现有页面UI统一。先读ACTIVE_TASK/F-25/最近日志，定位record-detail的SAVED分支；判定现有契约内展示精修Type B，只改record-detail/index.vue与本条追加，不改ACTIVE_TASK/OpenSpec或其它页面。上轮书信浮层/记录列表/篇章及未提交成果保护。
+- **Changes**: SAVED增加独立样式类，保存确认置主视觉，真实可选标题/正文/创建时间进入带折角、朱砂细线和留印的暖纸信笺，继续补充由旧红实心按钮改浅色药丸。篇章移到主内容下方、原加入/转移/移出入口保留；Agent参考沿原内联开关/备注/保存流程，仅本状态改细线纸面/墨灰/浅色按钮。顶部品牌/关闭与整体字号颜色统一，删除仍为低调危险操作。SEALED/UNLOCKED/DRAFT样式不变，原媒体unlocked变体和全部业务script逐字保持。
+- **Verification PASS**: vue-tsc退出0；15/15既有详情离线合成通过；Preview/Standard build退出0，各36项既有WXSS/几何PASS，最终Standard。额外一次性复用真实SFC脚本/模板验证SAVED长标题/多段正文/真实时间、继续补充原事件绑定、原只读媒体变体、确认/补充/篇章/参考顺序、无标题/纯媒体占位与其它三态不出现saved-hero。只读Standard WXSS核对暖纸/非红CTA/折角/长文换行/篇章名换行/参考方角和安全区，320/375/390/430px动作宽度仅为计算证据，不新增测试文件。
+- **Verification PASS**: 原script setup逐字一致；除本页和追加日志外，当前起点全部tracked修改文件SHA256保护。日志原793817字节SHA256 704d4e4ccbb1ba966135e22cbc36a5fdfcc2a739f5a0b206cdf029fd6e381e83仅追加，git diff --check与精确两文件范围收尾核验。后端/services/stores/types/权限/封存、依赖/lockfile、共享组件/demo/accepted规格/archive零改；未复制截图日记原文，真实业务API/provider/对象存储0。
+- **Verification SKIPPED / Risks**: 当前无可控微信/真机会话，实际暖纸/字体/折角阴影、长标题/长正文滚动与末项、原生参考备注输入/键盘/开关、触摸/关闭/安全区/真机未实操；合成与WXSS不代替真实画面。源码/业务方法未变，未重复其它模块业务合成；既有Vue离线上下文与uni/caniuse更新提示保留，不改依赖。
+- **Next**: 用户加载Standard查看已留下详情，重点核对记录内容/图片声音、继续补充、篇章/Agent参考和删除的视觉层级；按实际反馈继续本状态，不扩展其它模块或真实外调。
+- **Commit**: pending（未执行git add/commit/push，保留前轮未提交成果）
+
+## 2026-10-17｜三个一级Tab底栏：固定悬浮与半透明背景模糊｜Type B展示精修
+
+- **Scope / Authorization**: 用户明确希望底部导航固定在普通内容上方，滑动时隐约透出下方内容并有透明模糊效果。先读ACTIVE_TASK/现有导航任务/最近日志；判定既有导航CSS展示精修Type B，只改home/timeline/user-center三页底栏与滚动尾部样式、既有visual-style-regression脚本和本条追加。无脚本/模板/路由/服务/业务语义变更，不改ACTIVE_TASK/OpenSpec或扩展其它玻璃表面。
+- **Changes**: 三页bottom-nav-shell改fixed、透明外壳，普通内容可滚至栏下；栏体支持时使用64%暖色底/18px背景模糊/125%饱和度，不支持时90%暖纸底兜底。只允许导航栏内背景模糊，内容卡不加filter；保留WebKit与标准声明。外壳pointer-events none/栏体auto，透明边距不截留内容点击；末尾190rpx加真实安全区留白，home/timeline补height0以收缩滚动区。导航层级30高于正文，低于既有筛选40/近况120，临时浮层动作不被固定菜单盖住。
+- **Verification PASS**: vue-tsc退出0；最终按顺序重新执行Preview build/37项WXSS检查、Standard build/37项WXSS检查，全部退出0，最终Standard。新增既有样式回归覆盖三页fixed四边/透明外壳与点击范围、完整滚动高度、无模糊fallback与supports增强分层、两种背景模糊声明、末项留白大于栏高及筛选/书信层级。原实色导航预期和个人中心全面禁blur断言只针对本次用户授权调整；仍禁止门厅纸卡/其它控件依赖模糊。
+- **Verification note**: 首轮Preview仍运行时误读旧产物并启动Standard，该次样式失败与重叠构建结果作废，等待两进程退出后重跑串行链。有效Preview首次检查发现构建前缀处理删去WebKit声明；仅在三处增强规则内加autoprefixer off，未改构建配置/依赖，随后两模式串行重建与各37项检查PASS。原uni/caniuse更新提示保留。
+- **Verification PASS**: 前轮详情/记录列表/篇章/所有权/书写/回看、业务回归及OpenSpec工件等起点SHA256保持；日志原796661字节SHA256 6dfbd9587cd4bc7bc5f6f810f427f4e3e10a9f7505160d04cc53b95f85babff5只追加前缀，精确本轮5文件范围/git diff --check收尾核验。不改后端/services/stores/types/权限、依赖/lockfile、demo/accepted规格/archive，不使用截图日记原文，真实业务API/provider/对象存储0。
+- **Verification SKIPPED / Risks**: 当前无可控微信/真机会话，实际backdrop-filter/WebKit支持、滚动透出/模糊强度与合成性能、点击透传/菜单触摸、末项滚动、安全区/筛选弹层和不同设备未实操；编译含声明和feature query不证明实际渲染支持，不支持增强时按较实底色显示。纯CSS未复跑业务合成，不把几何/构建称真实画面通过；原完整平台矩阵继续pending。
+- **Next**: 用户加载最终Standard，在三个Tab滚动核对导航透底、文字可读性、末项与筛选/近况浮层操作；依真实设备观感微调本导航表面，不扩展其它模块。
+- **Commit**: pending（未执行git add/commit/push，前轮未提交成果保留）
+
+## 2026-10-17｜底部导航小幅下移｜Type B样式小修
+
+- **Scope / Changes**: 用户反馈导航偏高，要求适当下移。只将home/timeline/user-center的bottom-nav-shell底部额外padding统一为安全区+4rpx，原16/14rpx减少12/10rpx；在390—430px宽度下约下移5—7px。fixed、半透明/模糊、栏体高度、左右边距、点击/层级与末项滚动留白均不改。仅三页各一行CSS与本条追加；不改脚本/模板/其它页面/依赖/OpenSpec或ACTIVE_TASK。
+- **Verification PASS**: Preview构建完成后37项样式检查通过，再执行Standard构建及37项检查通过，最终Standard；未并行写同一产物。日志起点799946字节SHA256 9e5193014a7f7a3c733c3610204ce31ebaf622707a58866b578838c40cc99b30只追加，diff检查收尾核验。真实业务API/provider/对象存储0，无截图原文入库。
+- **Verification SKIPPED / Risks**: 纯padding微调未重复类型检查/业务合成；本轮无可控微信/真机会话，实际下移观感、触摸和不同设备安全区仍待手验；构建不替代实际画面。原uni/caniuse提示保留，不改依赖。
+- **Commit**: pending（未执行git add/commit/push，保留前轮成果）
+
+## 2026-10-17｜底部导航与屏幕下沿/系统横条区域贴合｜Type B展示精修
+
+- **Scope / Changes**: 用户进一步要求菜单贴合屏幕下沿及iPhone底部横条区域。三页导航外壳padding清零，背景全宽贴底；将安全区padding移到半透明栏体内部，仅保留上方圆角/顶细线、下方直边，content-box保证文字活动区高度不被安全区挤占。系统横条区域与导航共用同一玻璃背景，菜单内容仍在安全区上方；原模糊/层级/末项留白/导航事件保留。仅home/timeline/user-center样式、既有样式回归与本条追加，不改脚本/模板/依赖/OpenSpec/ACTIVE_TASK。
+- **Verification PASS**: Preview构建/37项样式检查、Standard构建/37项样式检查依次通过，最终Standard。回归核对贴底零外边距、安全区位于栏内、底角为0及末项余量，原fallback/模糊与浮层层级仍通过。首次多文件补丁返回上下文不匹配，复读确认三页目标CSS已写入而回归脚本尚未更新，按实际文件状态单独补齐回归后验证，未撤回或覆盖前轮成果。
+- **Verification PASS / SKIPPED**: 日志起点801166字节SHA256 5e04d854e3baf6e92468309a22ca004c28587a442f424e1cf9ba17b94ca3cd1f只追加；git diff --check收尾核验。纯CSS未复跑类型/业务测试；当前无可控微信/真机会话，实际iPhone底栏贴合、系统横条与触摸/字体/模糊仍待设备手验，构建不等于实际绘制。业务/其它页不改，真实业务API/provider/对象存储0，无截图原文入库。
+- **Commit**: pending（未执行git add/commit/push，保留前轮成果）
+
+## 2026-10-17｜时光轴：年月手账与私人影集｜Type B既有契约内展示精修
+
+- **Scope / Authorization**: 用户在公开参考调研后明确“同意这个方案”，并允许结合设计Skill进行更优美的实现。沿当前唯一active frontend-visual-language-evolution的F-22页面范围，仅调整timeline/index.vue、已有visual-samples-offline/visual-style-regression及本条追加。使用better-layout、better-typography、better-colors约束层级、中文排印、小字与静态颜色对比。本轮不改变能力/接口/DTO/canonical mapping/验收标准，故不改OpenSpec或ACTIVE_TASK、不补勾F-22完整验收；原未提交成果保护，保留用户手动提交。
+- **Changes**: 由单根贯穿轴/重复圆点改为服务端原年月分组的中文月份标题、年份侧注、日号/时分日期栏与同月局部细线；无图SAVED/UNLOCKED直接排印，有真实cover才显示相纸框与封面，SEALED使用暖纸/小方印、真实“封存中”，不推断“即将抵达”。标题/节点标签/去重标签沿真实DTO，四态保留原详情或编辑入口；筛选条件按需可见并复用原面板。保留原筛选/分页/去重/失败重试/认证/封面composable/Tab导航与末项安全区。标题自然增长，小屏小字保留12px下限，静态终态无新增动画/模糊。
+- **Contract limitation**: TimelineItemVO无正文摘句/多图/篇章内容字段，本轮不逐条请求详情、不增加DTO或接口、不虚构正文/篇章/倒计时；纯文字通过真实标题与可选标签呈现。日期只拆分原formatDateTime输出，不改时区/分组/排序口径；异常年月或日期不补造今天。
+- **Verification PASS**: vue-tsc --noEmit退出0；已有离线脚本51/51（新增3项，覆盖同月分页去重与跨年顺序、四态原导航/长标题/缺失日期、cover失败/无图），真实网络/provider/对象存储0。Preview build完成后39项WXSS/几何/静态对比检查PASS；随后Standard build及39项检查PASS，最终Standard；两个模式串行写产物。新增样式检查首轮因构建压缩相邻选择器空格而FAIL，修正测试匹配后PASS，无生产行为修复。uni/caniuse版本提示保留，不改依赖。
+- **Verification PASS / browser-only**: 本地临时只读排版预览复用实际SFC模板、Vue渲染和CSS/rpx换算，固定合成记录与SVG占位封面，顶部安全栏为预览stub，非正式Uniapp/微信运行时。实际查看390px修改前后对照；320x568长中文/连续英文/长标签自然换行，无横向溢出，滚动后末条/页尾位于导航上方；390x844封面错误、空态/错误和正常态；430x932长筛选条件换行无溢出。390px读数：标题18.72px、标签12.48px，日期rgb(107,101,96)、纸面rgb(250,247,242)。对照/新版PNG保存在仓外visualizations，本机/用户真实记录与媒体未进入夹具或tracked文件。预览无真实API/外链，临时浏览器视口已恢复。
+- **Verification PASS / color**: 对声明的实色纸面计算WCAG2对比：正文#302e29/纸#faf7f2=12.69:1；侧注#6b6560/纸=5.38:1、相纸#fcf9f4=5.47:1、封存纸#f3eee4=4.97:1；封存标记#8a271f/封存纸=7.60:1。只覆盖本次指定静态正文/日期/标签/标记组合，不宣称全页面或半透明导航的全面无障碍合规。
+- **Scope safety PASS**: 原ensureLogin至onShow的连续业务方法与底部导航/安全区样式逐字保持；起点其余tracked修改文件SHA256保持。AGENT_LOG起点按字节保留、只追加，git diff --check及精确4文件范围收尾复核。不改backend/services/stores/types/composables/权限/封存契约/依赖/锁文件、其它页面、共享token/demo/accepted baseline/archive；不动untracked技能目录，无git add/commit/push或真实外调。
+- **Verification SKIPPED / Risks**: 本轮无可控微信开发者工具/物理真机会话，原生字体/宋体回退、image/aspectFill/scroll-view绘制、触摸/筛选/分页实操、动态安全区及导航合成性能未验证；浏览器SSR排版与静态WXSS不能替代微信证据。未测试浏览器200%缩放/RTL（唯一工程目标为中文微信小程序），不扩展平台合规结论。OpenSpec CLI不在PATH，且本轮无规格变动未运行。完整F-22及平台验收继续pending。
+- **Next**: 用户加载最终Standard审阅月份/日期层级、纯文字与照片/封存记录节奏及末项滚动；实机反馈后继续本页精修。正文摘句若后续需要，先明确独立契约范围。
+- **Commit**: pending（未执行git add/commit/push，保留前轮未提交成果）
+
+
+## 2026-10-17｜时光轴：纯文字优先的轻纸片与弱时间线｜Type B既有契约内展示精修
+
+- **Scope / Authorization**: 用户指出上一版无封面、短标题、跨月稀疏记录显得堆字，部分区域比修改前复杂；经只读调研与方案讨论，用户明确“同意，可以结合相关skill辅助你实现方案”。先读ACTIVE_TASK及Type B清单，沿现有F-22页面展示范围实施；应用better-layout、better-typography、better-colors。仅timeline/index.vue、既有visual-samples-offline/visual-style-regression及本条追加；不改ACTIVE_TASK/OpenSpec，不补勾完整平台验收，提交由用户手动处理。
+- **Changes**: 普通/封存/已抵达/草稿统一微暖纸底、极细边线、自然高度的轻纸片，去掉月标题/重复年份、此时此刻横线、大日号侧栏、每条独立操作footer与重复封字印。年份首次及跨年显示，日期/时分回到卡内一行，必要状态仅一个小签，标题为主；整条原tap入口及可访问状态保留。左侧小圆点/细线仅作引导，不占大日期栏宽度。照片仅在原cover存在时出现在同一纸片，普通无图记录不预留图片区/正文空白，不加阴影/折角/红侧线。
+- **Contract / scope**: 只映射现有createdAt/title/status/cover/可选真实节点及标签，不造正文摘句/倒计时/临近抵达，不逐条查详情，不增请求或改变时区/服务端分页分组顺序；原筛选/重试/认证/去重/封面composable/底栏安全区与路由保留。
+- **Verification PASS**: vue-tsc --noEmit退出0；离线52/52（沿原三项更新分页/跨年/四态入口/异常日期/封面断言，增加跨月纯短文字场景），真实业务网络/provider/对象存储0。Preview build完成后39项WXSS/几何/静态文字对比PASS；再执行Standard build及39项检查PASS，最终Standard，未并行写产物。原uni/caniuse更新提示保留，不改依赖/lockfile。
+- **Verification PASS / browser-only**: 临时只读SSR预览使用实际两版SFC模板/CSS、固定合成内容、局部顶部栏stub和本地矢量封面；上一版仅适配旧年月/日期展示数据以公平对照。实看390x844跨三个月纯短标题对照与图文/四态混排、封面失败、空态/失败提示；320x568中英文连续长标题/长标签自然换行、滚至末项后处于导航上方，无横向溢出；430x932长筛选条件完整换行。390px短标题卡高86.08px/宽313.06px，标题18.72px/日期状态12.48px，卡背景rgb(252,249,244)、shadow none；320px标题18px、日期/标签12px、文字宽230.98px。截图为仓外timeline-lightpaper-text-compare/text/mixed/320-long PNG，不使用截图日记原文或真实媒体。临时视口已恢复，服务器收尾停止。
+- **Verification PASS / color**: 本轮指定日期/标题/可选标签/状态/箭头与实际对应不透明纸面的静态颜色对比均达到4.5:1；窄屏小字12px下限。该检查不代表整个产品/半透明底栏全面无障碍合规。
+- **Scope safety PASS**: 原ensureLogin至onShow业务方法、底部导航/安全区CSS逐字保持；其余15个起点tracked修改文件SHA256不变，无新增范围外tracked变更。日志起点807467字节SHA256 76bf4eac2f53bf4bc17265c217fb66cd466288fa82cee4b743361d823e4ed864按字节保留只追加；git diff --check收尾通过。不改backend/services/types/stores/composables、依赖/锁文件、其它页面、共享token、untracked技能目录、accepted规格或archive；无git add/commit/push/部署/真实外调。
+- **Verification SKIPPED / Risks**: 无可控微信开发者工具/物理真机会话，原生字体回退、image/aspectFill/scroll-view真实绘制、触摸/筛选/分页实操、动态安全区未验；SSR仅排版，导航入口/分页/筛选行为证据来自零网络离线脚本，不把截图当微信或真实持久化通过。原F-22完整平台验收继续pending。OpenSpec无变动未运行CLI；不扩展正文摘句契约。
+- **Next**: 用户导入最终Standard审阅纯文字短标题节奏、封存小签及实机字体/滚动/触摸；按本页实际反馈精修。
+- **Commit**: pending（未执行git add/commit/push，保留前轮未提交成果）
+
+
+## 2026-10-17｜既有视觉迭代成果分批提交与推送｜Type B提交整理
+
+- **Scope / Authorization**: 用户直接要求“根据修改内容为我分批次提交并推送这些内容”，据此提交责任改为Agent提交，并单独授权Git push。起点main/HEAD 6b6f192，19个tracked修改文件，origin/main落后本地18个提交。只整理已有成果，既有OpenSpec增补随对应实现或收口文档入库；不重写历史、不新开change、不补勾平台验收，不接受delta/归档/PR/部署/发布或真实业务联调。
+- **Grouping / Changes**: 8批按阅读与列表、回看浮层、书写双入口、个人中心/近况/托管、篇章成员、时光轴/导航、综合回归、决策与交接拆分；每批用精确文件allowlist暂存，提交前验证暂存名称集合与diff --check。保留旧18个本地commit，不squash/amend/rebase。源码文件在本轮提交前逐个SHA256核对等于验证快照，无额外业务改动。
+- **Verification PASS**: 本轮重新执行vue-tsc退出0；52/52页面、12/12 Agent浮层、15/15详情离线回归PASS；Preview build完成后39项样式/几何/指定颜色检查PASS，再Standard build/39项检查PASS，最终Standard，两模式串行。合成仅用固定测试内容，真实业务API/provider/对象存储0；保留既有Vue上下文与uni/caniuse更新提示，不改依赖。
+- **Privacy / Scope safety PASS**: 对原18个未推送提交与本轮working diff的新增文本执行私钥/GitHub/provider/云AK/带凭据URL模式检查，未命中；该模式检查不等同完整安全审计。未跟踪的.agent/skills/lin-interviewer、.agent/skills/lin-study-coach、.agents及其中个人简历图片保持本地，不暂存/上传；不改变ignore规则或这些文件。未纳入backend/services/stores/types/composables/依赖/lockfile或新媒体，日志只追加、历史pending保留。
+- **Git / Next**: git fetch origin成功，origin/main...HEAD为0/18，远端无本地缺失提交；本轮已有前7批成功commit如下，最后本条与ACTIVE_TASK/既有design/tasks/证据随第8批文档提交。文档提交后普通git push origin main（禁止force），再fetch/ls-remote核对远端HEAD；推送成功或阻塞以该操作回执和最终答复为准，不预写成功。
+- 3527f69 style(records): 统一已留下详情与记录列表布局
+- 51a4d03 style(review): 复刻时间回看对话信笺
+- 02083bf feat(editor): 新建双入口显式分离保存与封存
+- 09089b3 style(profile): 统一个人中心、近况信笺与数据托管页
+- f5af98c feat(chapters): 复刻篇章信笺并接入成员选择
+- b27f5ed style(timeline): 精简短文字节点并贴合底部导航
+- 68ba349 test(frontend): 补齐页面交互与样式回归
+- **Verification SKIPPED / Risks**: 无可控微信/物理真机会话，真实字体/触摸/键盘/安全区/性能和真实业务持久化仍未验证；本轮仅提交整理，不以构建/离线检查替代设备验收。未修改OpenSpec内容范围，未运行CLI接受/归档；私有配置与个人技能未动。首次普通fetch因.git写权限失败，使用已获用户授权范围内的提权fetch成功，未改ACL/网络安全配置。
+- **Commit**: 前7批真实hash如上；本条随第8批文档提交，自身hash由Git历史记录，不回改旧pending。
