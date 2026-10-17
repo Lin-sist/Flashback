@@ -23,6 +23,8 @@ interface DecoratedItem {
   title: string
   kind: NodeKind
   dateText: string
+  dateLabel: string
+  contextText: string
   hasImage: boolean
 }
 
@@ -116,19 +118,40 @@ const resolveNodeKind = (status: RecordStatus): NodeKind => {
   return 'draft'
 }
 
-const decoratedGroups = computed(() =>
-  timelineGroups.value.map((group) => ({
+// 仅整理展示日期；保留服务端分组/顺序和既有时区口径。
+const decorateYear = (yearMonth: string) => {
+  const match = /^(\d{4})-(\d{1,2})$/.exec(yearMonth)
+  const month = match ? Number(match[2]) : 0
+  return match && month >= 1 && month <= 12
+    ? match[1]
+    : '日期待确认'
+}
+const decorateItem = (item: TimelineItemVO): DecoratedItem => {
+  const dateText = formatDateTime(item.createdAt)
+  const dateParts = /^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(dateText)
+  const context = [item.lifeNodeLabel?.trim(), ...(item.tagNames || []).map((tag) => tag.trim())]
+    .filter((text): text is string => Boolean(text))
+  return {
+    id: item.id,
+    raw: item,
+    title: item.title?.trim() || '未命名片段',
+    kind: resolveNodeKind(item.status),
+    dateText,
+    dateLabel: dateParts ? `${Number(dateParts[1])}月${Number(dateParts[2])}日 · ${dateParts[3]}` : '日期待确认',
+    contextText: [...new Set(context)].join(' · '),
+    hasImage: Boolean(item.cover),
+  }
+}
+const decoratedGroups = computed(() => {
+  const groups = timelineGroups.value.filter((group) => group.items.length > 0)
+  return groups.map((group, index) => ({
     yearMonth: group.yearMonth,
-    items: group.items.map<DecoratedItem>((item) => ({
-      id: item.id,
-      raw: item,
-      title: item.title?.trim() || '未命名片段',
-      kind: resolveNodeKind(item.status),
-      dateText: formatDateTime(item.createdAt),
-      hasImage: Boolean(item.cover),
-    })),
+    yearText: decorateYear(group.yearMonth),
+    showYear: index === 0 || decorateYear(group.yearMonth) !== decorateYear(groups[index - 1].yearMonth),
+    isLastGroup: index === groups.length - 1,
+    items: group.items.map(decorateItem),
   }))
-)
+})
 
 const ensureLogin = () => {
   if (!hasAuthenticatedSession()) {
@@ -431,129 +454,59 @@ onShow(() => {
       <view class="page-header">
         <text class="page-title">时光轴</text>
         <text class="page-subtitle">沿着时间，读一读曾经留下的此刻。</text>
-        <view class="deco-line" />
+        <button v-if="hasAppliedFilter" class="applied-filter" @tap="openFilterPanel">
+          <text>当前：{{ appliedFilterText }}</text><text class="applied-filter-action">更改</text>
+        </button>
         <view v-if="showStaleNotice" class="stale-notice">
           <text>同步稍慢，当前仍显示 {{ appliedFilterText }}</text>
           <text class="stale-action" @tap="retryTimeline">重试</text>
         </view>
       </view>
 
-      <!-- timeline body -->
+      <!-- 每条记录是一个阅读单元；时间、状态收在同一行。 -->
       <view class="timeline-wrap">
-        <view class="timeline-track" />
-
-        <!-- loading skeleton -->
-        <view v-if="loading" class="tl-content">
-          <view v-for="n in 3" :key="`sk-${n}`" class="tl-item">
-            <view class="tl-dot"><view class="tl-dot-inner" /></view>
-            <view class="skeleton-date" />
-            <view class="skeleton-title" />
+        <view v-if="loading" class="tl-content" aria-label="正在展开时光轴">
+          <view v-for="n in 3" :key="`sk-${n}`" class="skeleton-entry">
+            <view class="skeleton-date" /><view class="skeleton-title" />
           </view>
         </view>
 
-        <!-- load failure -->
-        <view v-else-if="showLoadFailureState" class="tl-content">
-          <view class="state-block">
-            <text class="state-title">暂时没有展开</text>
-            <text class="state-desc">网络稍慢，请再试一次</text>
-            <view class="state-action" @tap="retryTimeline">重新整理</view>
-          </view>
+        <view v-else-if="showLoadFailureState" class="state-block">
+          <text class="state-title">暂时没有展开</text>
+          <text class="state-desc">网络稍慢，请再试一次</text>
+          <view class="state-action" @tap="retryTimeline">重新整理</view>
         </view>
 
-        <!-- empty -->
-        <view v-else-if="showEmptyState" class="tl-content">
-          <view class="state-block">
-            <text class="state-title">这一段还很安静</text>
-            <text class="state-desc">{{ emptyStateText }}</text>
-          </view>
+        <view v-else-if="showEmptyState" class="state-block">
+          <text class="state-title">这一段还很安静</text>
+          <text class="state-desc">{{ emptyStateText }}</text>
         </view>
 
-        <!-- timeline groups -->
         <view v-else class="tl-content">
-          <!-- "此时此刻" node at top -->
-          <view class="tl-item">
-            <view class="tl-dot tl-dot-now">
-              <view class="tl-dot-inner tl-dot-inner-now" />
-            </view>
-            <text class="now-tag">此时此刻</text>
-          </view>
+          <view v-for="group in decoratedGroups" :key="group.yearMonth" class="timeline-group">
+            <view v-if="group.showYear" class="year-heading"><text>{{ group.yearText }}</text></view>
 
-          <view v-for="group in decoratedGroups" :key="group.yearMonth">
-            <view v-for="item in group.items" :key="item.id" class="tl-item" :class="{ 'tl-item--text': !item.hasImage && (item.kind === 'saved' || item.kind === 'unlocked') }" @tap="openNode(item.raw)">
-
-              <!-- sealed / arriving card -->
-              <template v-if="item.kind === 'sealed'">
-                <view class="tl-dot tl-dot-sealed">
-                  <view class="tl-dot-inner tl-dot-inner-sealed" />
-                </view>
-                <text class="tl-date">{{ item.dateText }}</text>
-                <view class="card-locked card-arriving">
-                  <view v-if="item.hasImage" class="card-img-placeholder card-img-placeholder--compact">
-                    <image
-                      v-if="coverUrls[item.id]"
-                      class="card-cover-image"
-                      :src="coverUrls[item.id]"
-                      mode="aspectFill"
-                      @error="markCoverFailed(item.id)"
-                    />
-                    <view v-else class="card-img-fallback">
-                      <view class="card-img-icon" />
-                      <text v-if="coverErrors[item.id]" class="card-img-error">封面暂不可用</text>
-                    </view>
-                  </view>
-                  <view class="card-meta">
-                    <view class="seal"><text class="seal-char">待</text></view>
-                    <text class="card-tag">即将抵达</text>
-                  </view>
-                  <text class="card-title card-title-dim">{{ item.title }}</text>
-                  <view class="countdown-badge">
-                    <view class="countdown-dot" />
-                    <text class="countdown-text">封存中</text>
-                  </view>
-                </view>
-              </template>
-
-              <!-- unlocked card with image placeholder -->
-              <template v-else-if="item.kind === 'unlocked' || item.kind === 'saved'">
-                <view class="tl-dot tl-dot-open">
-                  <view class="tl-dot-inner tl-dot-inner-open" />
-                </view>
-                <text class="tl-date">{{ item.dateText }}</text>
+            <view
+              v-for="(item, itemIndex) in group.items"
+              :key="item.id"
+              class="tl-item"
+              :class="{ 'tl-item--last': group.isLastGroup && itemIndex === group.items.length - 1 }"
+              hover-class="tl-item--pressed"
+              role="button"
+              :aria-label="item.dateText + '，' + item.title + '，' + (item.kind === 'sealed' ? '封存中' : item.kind === 'unlocked' ? '已抵达' : item.kind === 'saved' ? '已留下' : '草稿')"
+              @tap="openNode(item.raw)"
+            >
+              <view class="entry-thread" />
+              <view class="entry-marker" />
+              <view class="entry-body">
                 <view class="card">
-                  <view v-if="item.hasImage" class="card-img-placeholder">
-                    <image
-                      v-if="item.hasImage && coverUrls[item.id]"
-                      class="card-cover-image"
-                      :src="coverUrls[item.id]"
-                      mode="aspectFill"
-                      @error="markCoverFailed(item.id)"
-                    />
-                    <view v-else class="card-img-fallback">
-                      <view class="card-img-icon" />
-                      <text v-if="item.hasImage && coverErrors[item.id]" class="card-img-error">封面暂不可用</text>
-                    </view>
-                  </view>
-                  <view class="card-meta">
-                    <view class="seal seal-open"><text class="seal-char seal-char-open">{{ item.kind === 'saved' ? '留' : '阅' }}</text></view>
-                    <text class="card-tag">{{ item.kind === 'saved'
-                      ? (item.hasImage ? '已留下 · 图文记录' : '已留下 · 当下记录')
-                      : (item.hasImage ? '已抵达 · 图文记录' : '已抵达 · 时间回看') }}</text>
+                  <view class="entry-meta">
+                    <text class="entry-date">{{ item.dateLabel }}</text>
+                    <text v-if="item.kind !== 'saved'" class="entry-status" :class="{ 'entry-status--sealed': item.kind === 'sealed' }">{{ item.kind === 'unlocked' ? '已抵达' : item.kind === 'sealed' ? '封存中' : '草稿' }}</text>
+                    <text class="entry-arrow" aria-hidden="true">›</text>
                   </view>
                   <text class="card-title">{{ item.title }}</text>
-                  <view class="card-footer">
-                    <text class="card-footer-tag">{{ item.kind === 'saved' ? '读一读 ›' : '时间回看 ›' }}</text>
-                  </view>
-                </view>
-              </template>
-
-              <!-- draft / locked card -->
-              <template v-else>
-                <view class="tl-dot tl-dot-locked">
-                  <view class="tl-dot-inner tl-dot-inner-locked" />
-                </view>
-                <text class="tl-date">{{ item.dateText }}</text>
-                <view class="card-locked">
-                  <view v-if="item.hasImage" class="card-img-placeholder card-img-placeholder--compact">
+                  <view v-if="item.hasImage" class="card-photo">
                     <image
                       v-if="coverUrls[item.id]"
                       class="card-cover-image"
@@ -563,20 +516,12 @@ onShow(() => {
                     />
                     <view v-else class="card-img-fallback">
                       <view class="card-img-icon" />
-                      <text v-if="coverErrors[item.id]" class="card-img-error">封面暂不可用</text>
+                      <text class="card-img-error">{{ coverErrors[item.id] ? '封面暂不可用' : '封面正在展开' }}</text>
                     </view>
                   </view>
-                  <view class="card-locked-title">
-                    <view class="lock-icon" />
-                    <text>{{ item.title }}</text>
-                  </view>
-                  <view class="countdown-badge countdown-badge-dim">
-                    <view class="countdown-dot countdown-dot-dim" />
-                    <text class="countdown-text">草稿</text>
-                  </view>
+                  <text v-if="item.contextText" class="entry-context">{{ item.contextText }}</text>
                 </view>
-              </template>
-
+              </view>
             </view>
           </view>
         </view>
@@ -638,6 +583,7 @@ onShow(() => {
   position: relative;
   z-index: 1;
   flex: 1;
+  height: 0;
   min-height: 0;
   width: 100%;
 }
@@ -844,7 +790,7 @@ onShow(() => {
 
 /* ── page header ── */
 .page-header {
-  padding: 52rpx 56rpx 0;
+  padding: 40rpx 56rpx 0;
 }
 
 .page-title {
@@ -863,12 +809,25 @@ onShow(() => {
   line-height: 1.8;
 }
 
-.deco-line {
-  width: 64rpx;
-  height: 1rpx;
-  background: var(--fb-ink-faint, #c8c2b8);
-  margin-top: 36rpx;
+.applied-filter {
+  margin: 24rpx 0 0;
+  padding: 16rpx 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  border: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
+  border-radius: 4rpx;
+  background: var(--fb-paper-2, #f5f0e8);
+  font-size: var(--fb-font-meta, 24rpx);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--fb-ink-mid, #6b6560);
+  text-align: left;
+  overflow-wrap: break-word;
 }
+.applied-filter-action { flex-shrink: 0; color: var(--fb-verm-dim, #8a271f); }
+.applied-filter::after { border: 0; }
 
 .stale-notice {
   margin-top: 20rpx;
@@ -882,420 +841,140 @@ onShow(() => {
   color: var(--fb-vermilion, #b5352a);
 }
 
-/* ── timeline ── */
+/* 纸片承载完整记录，时间线仅作轻引导；无封面也保持清晰边界。 */
 .timeline-wrap {
-  position: relative;
-  margin-top: 48rpx;
-  padding: 0 56rpx 0 112rpx;
+  margin-top: 40rpx;
+  padding: 0 56rpx;
 }
 
-.timeline-track {
-  position: absolute;
-  left: 68rpx;
-  top: 0;
-  bottom: 0;
-  width: 1rpx;
-  background: var(--fb-ink-faint, #c8c2b8);
+.tl-content { min-width: 0; }
+.timeline-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
-
-.tl-content {
-  position: relative;
-  z-index: 1;
+.year-heading {
+  margin-bottom: 24rpx;
+  padding-left: 36rpx;
+  font-size: 32rpx;
+  font-weight: 400;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--fb-ink-mid, #6b6560);
 }
-
-/* ── timeline item ── */
 .tl-item {
   position: relative;
-  padding-left: 0;
-  margin-bottom: 72rpx;
+  padding-left: 36rpx;
+  margin-bottom: 32rpx;
+  min-width: 0;
 }
-
-/* ── dots ── */
-.tl-dot {
-  position: absolute;
-  left: -44rpx;
-  top: 8rpx;
-  width: 24rpx;
-  height: 24rpx;
-  border-radius: 50%;
-  border: 2rpx solid var(--fb-ink-mid, #6b6560);
-  background: var(--fb-paper, #faf7f2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateX(-50%);
-}
-
-.tl-dot-now {
-  border-color: rgba(181, 53, 42, 0.65);
-  background: rgba(181, 53, 42, 0.09);
-}
-
-.tl-dot-sealed {
-  border-color: rgba(181, 53, 42, 0.5);
-  background: rgba(181, 53, 42, 0.07);
-}
-
-.tl-dot-open {
-  border-color: var(--fb-ink-faint, #c8c2b8);
-}
-
-.tl-dot-locked {
-  border-color: var(--fb-ink-faint, #c8c2b8);
-  opacity: 0.5;
-}
-
-.tl-dot-inner {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: var(--fb-ink-faint, #c8c2b8);
-}
-
-.tl-dot-inner-now {
-  background: var(--fb-vermilion, #b5352a);
-  opacity: 1;
-}
-
-.tl-dot-inner-sealed {
-  background: var(--fb-vermilion, #b5352a);
-  opacity: 0.8;
-}
-
-.tl-dot-inner-open {
-  background: var(--fb-ink-mid, #6b6560);
-  opacity: 0.8;
-}
-
-.tl-dot-inner-locked {
-  background: var(--fb-ink-faint, #c8c2b8);
-  opacity: 0.6;
-}
-
-/* "此时此刻" tag */
-.now-tag {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--fb-vermilion, #b5352a);
-  letter-spacing: 0.1em;
-  opacity: 0.9;
-  padding-left: 8rpx;
-  gap: 10rpx;
-}
-
-.now-tag::before {
-  content: '';
-  display: block;
-  width: 7rpx;
-  height: 7rpx;
-  border-radius: 50%;
-  background: var(--fb-vermilion, #b5352a);
-  flex-shrink: 0;
-}
-
-/* date label */
-.tl-date {
-  display: block;
-  font-size: 24rpx;
-  color: var(--fb-ink-mid, #6b6560);
-  margin-bottom: 16rpx;
-}
-
-/* ── regular card (unlocked) ── */
-.card {
-  position: relative;
-  background: var(--fb-letter-paper, #fcf9f4);
-  border: 1rpx solid rgba(188, 174, 152, 0.28);
-  border-radius: 2rpx;
-  overflow: hidden;
-  box-shadow: var(--fb-letter-shadow, 0 2rpx 4rpx rgba(125, 105, 75, 0.10), 0 16rpx 40rpx rgba(125, 105, 75, 0.10));
-}
-
-.card::before {
-  content: '';
+.tl-item--last { margin-bottom: 0; }
+.tl-item--pressed .entry-body { opacity: 0.72; }
+.entry-marker {
   position: absolute;
   left: 0;
-  top: 32rpx;
-  bottom: 32rpx;
-  width: 3rpx;
-  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.55) 25%, rgba(181, 53, 42, 0.55) 75%, transparent);
+  top: 38rpx;
+  width: 16rpx;
+  height: 16rpx;
+  box-sizing: border-box;
+  border: 1rpx solid var(--fb-ink-faint, #c8c2b8);
+  border-radius: 50%;
+  background: var(--fb-paper, #faf7f2);
+  z-index: 1;
+}
+.entry-thread {
+  position: absolute;
+  top: 46rpx;
+  bottom: -78rpx;
+  left: 8rpx;
+  width: 1rpx;
+  background: var(--fb-letter-line, rgba(188, 174, 152, 0.28));
+}
+.tl-item--last .entry-thread { display: none; }
+.entry-body { min-width: 0; width: 100%; }
+.card {
+  box-sizing: border-box;
+  padding: 28rpx;
+  background: var(--fb-letter-paper, #fcf9f4);
+  border: 1rpx solid var(--fb-letter-line, rgba(188, 174, 152, 0.28));
+  border-radius: 4rpx;
+  box-shadow: none;
+}
+.entry-meta { display: flex; align-items: center; gap: 12rpx; }
+.entry-date {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--fb-font-sans, 'Noto Sans SC', 'PingFang SC', sans-serif);
+  font-size: var(--fb-font-meta, 24rpx);
+  font-weight: 400;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--fb-ink-mid, #6b6560);
+  overflow-wrap: break-word;
+}
+.entry-status {
+  flex-shrink: 0;
+  padding: 2rpx 10rpx;
+  border-radius: 3rpx;
+  background: var(--fb-paper-2, #f5f0e8);
+  font-size: var(--fb-font-meta, 24rpx);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--fb-ink-mid, #6b6560);
+}
+.entry-status--sealed { color: var(--fb-verm-dim, #8a271f); }
+.entry-arrow { flex-shrink: 0; font-size: 30rpx; line-height: 1; color: var(--fb-ink-mid, #6b6560); }
+.card-photo {
+  margin-top: 22rpx;
+  height: 280rpx;
+  width: 100%;
+  overflow: hidden;
+  background: var(--fb-paper-2, #f5f0e8);
   border-radius: 2rpx;
 }
-
-.card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 24rpx;
-  height: 24rpx;
-  background: linear-gradient(225deg, rgba(230, 218, 200, 0.9) 0%, rgba(230, 218, 200, 0.9) 48%, rgba(252, 249, 244, 0) 50%);
-  border-left: 1rpx solid rgba(188, 174, 152, 0.22);
-  border-bottom: 1rpx solid rgba(188, 174, 152, 0.22);
-}
-
-/* image placeholder */
-.card-img-placeholder {
-  width: 100%;
-  height: 240rpx;
-  background: linear-gradient(135deg, #e8e0d5 0%, #d0c7ba 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-img-placeholder--compact {
-  height: 180rpx;
-}
-
-.card-cover-image,
-.card-img-fallback {
-  width: 100%;
-  height: 100%;
-}
-
-.card-cover-image {
-  display: block;
-}
-
+.card-cover-image, .card-img-fallback { display: block; width: 100%; height: 100%; }
 .card-img-fallback {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10rpx;
+  gap: 16rpx;
 }
-
-.card-img-error {
-  font-size: 18rpx;
-  color: #7f756a;
-}
-
 .card-img-icon {
-  width: 96rpx;
-  height: 72rpx;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 36' fill='none'><path d='M0 28L12 14L20 22L30 8L48 28' stroke='%239e9890' stroke-width='1' fill='none'/><ellipse cx='38' cy='8' rx='5' ry='5' stroke='%239e9890' stroke-width='1'/></svg>");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.25;
-}
-
-.card-meta {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  margin-bottom: 20rpx;
-  padding: 36rpx 40rpx 0 44rpx;
-}
-
-.seal {
   width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  border: 2rpx solid var(--fb-vermilion, #b5352a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  opacity: 0.8;
-  box-shadow: 0 0 0 1rpx rgba(181, 53, 42, 0.1);
-}
-
-.seal-open {
-  border-color: var(--fb-ink-mid, #6b6560);
-  opacity: 0.6;
-}
-
-.seal-char {
-  font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 18rpx;
-  color: var(--fb-vermilion, #b5352a);
-}
-
-.seal-char-open {
-  color: var(--fb-ink-mid, #6b6560);
-}
-
-.card-tag {
-  font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--fb-ink-light, #9e9890);
-  letter-spacing: 0.08em;
-}
-
-.card-title {
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  display: block;
-  font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 30rpx;
-  font-weight: 300;
-  color: var(--fb-ink, #302e29);
-  letter-spacing: 0.03em;
-  line-height: 1.6;
-  margin-bottom: 12rpx;
-  padding: 0 40rpx 0 44rpx;
-}
-
-.card-title-dim {
-  color: var(--fb-ink-mid, #6b6560);
-}
-
-.card-footer {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 0 40rpx 36rpx 44rpx;
-  margin-top: 20rpx;
-}
-
-.card-footer-tag {
-  font-family: var(--fb-font-sans, 'Noto Sans SC', 'PingFang SC', sans-serif);
-  font-size: 24rpx;
-  font-weight: 300;
-  color: var(--fb-ink-mid, #6b6560);
-  letter-spacing: 0.12em;
+  height: 36rpx;
   border: 1rpx solid var(--fb-ink-faint, #c8c2b8);
-  padding: 4rpx 16rpx;
   border-radius: 2rpx;
 }
-
-/* ── locked / sealed card ── */
-.card-locked {
-  position: relative;
-  background: var(--fb-letter-paper, #fcf9f4);
-  box-shadow: var(--fb-letter-shadow, 0 2rpx 4rpx rgba(125, 105, 75, 0.10), 0 16rpx 40rpx rgba(125, 105, 75, 0.10));
-  border: 1rpx solid rgba(188, 174, 152, 0.18);
-  border-radius: 2rpx;
-  padding: 28rpx 40rpx 28rpx 44rpx;
-  overflow: hidden;
-}
-
-.card-locked::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 24rpx;
-  bottom: 24rpx;
-  width: 3rpx;
-  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.3) 25%, rgba(181, 53, 42, 0.3) 75%, transparent);
-}
-
-.card-arriving {
-  background: linear-gradient(145deg, #fffdf9, #efede7);
-  border-color: var(--fb-letter-line, rgba(188, 174, 152, 0.28));
-}
-
-.card-arriving::before {
-  background: linear-gradient(to bottom, transparent, rgba(181, 53, 42, 0.5) 25%, rgba(181, 53, 42, 0.5) 75%, transparent);
-}
-
-.card-arriving .card-meta {
-  padding: 0;
-  margin-bottom: 12rpx;
-}
-
-.card-arriving .card-title {
-  padding: 0;
-  margin-bottom: 0;
-}
-
-.card-locked-title {
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 28rpx;
-  font-weight: 300;
-  color: var(--fb-ink-light, #9e9890);
-  letter-spacing: 0.03em;
-}
-
-.lock-icon {
-  width: 22rpx;
-  height: 26rpx;
-  position: relative;
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-
-.lock-icon::before {
-  content: '';
-  position: absolute;
-  width: 18rpx;
-  height: 12rpx;
-  border-radius: 2rpx;
-  background: var(--fb-ink-light, #9e9890);
-  bottom: 0;
-  left: 2rpx;
-}
-
-.lock-icon::after {
-  content: '';
-  position: absolute;
-  width: 14rpx;
-  height: 12rpx;
-  border: 3rpx solid var(--fb-ink-light, #9e9890);
-  border-bottom: none;
-  border-radius: 8rpx 8rpx 0 0;
-  top: 0;
-  left: 4rpx;
-}
-
-.countdown-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-top: 12rpx;
-}
-
-.countdown-badge-dim {
-  opacity: 0.45;
-}
-
-.countdown-dot {
-  width: 6rpx;
-  height: 6rpx;
-  border-radius: 50%;
-  background: var(--fb-vermilion, #b5352a);
-  opacity: 0.8;
-}
-
-.countdown-dot-dim {
-  background: var(--fb-ink-faint, #c8c2b8);
-  opacity: 0.7;
-}
-
-.countdown-text {
-  font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 24rpx;
-  font-weight: 300;
+.card-img-error {
+  font-size: var(--fb-font-meta, 24rpx);
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--fb-ink-mid, #6b6560);
-  letter-spacing: 0.06em;
 }
-
-/* ── skeleton ── */
-.skeleton-date {
-  width: 160rpx;
-  height: 20rpx;
-  border-radius: 999rpx;
-  background: rgba(200, 194, 184, 0.3);
-  margin-bottom: 16rpx;
+.card-title {
+  display: block;
+  margin-top: 14rpx;
+  font-size: var(--fb-font-title-sub, 36rpx);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--fb-ink, #302e29);
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
-
-.skeleton-title {
-  width: 80%;
-  height: 28rpx;
-  border-radius: 999rpx;
-  background: rgba(200, 194, 184, 0.2);
+.entry-context {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--fb-font-meta, 24rpx);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--fb-ink-mid, #6b6560);
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
+.skeleton-entry { margin: 0 0 32rpx 36rpx; padding: 28rpx; background: var(--fb-letter-paper, #fcf9f4); }
+.skeleton-date { width: 180rpx; height: 20rpx; background: var(--fb-paper-2, #f5f0e8); }
+.skeleton-title { width: 60%; height: 28rpx; margin-top: 22rpx; background: var(--fb-paper-2, #f5f0e8); }
 
 /* ── state block ── */
 .state-block {
@@ -1338,8 +1017,9 @@ onShow(() => {
 
 .load-more-text,
 .load-more-retry {
-  color: var(--fb-ink-light, #9e9890);
-  font-size: 22rpx;
+  color: var(--fb-ink-mid, #6b6560);
+  font-size: var(--fb-font-meta, 24rpx);
+  line-height: 1.6;
 }
 
 .load-more-retry {
@@ -1359,34 +1039,51 @@ onShow(() => {
 
 .tail-text {
   font-family: var(--fb-font-serif, 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
-  font-size: 20rpx;
-  font-weight: 300;
-  color: var(--fb-ink-faint, #c8c2b8);
+  font-size: var(--fb-font-meta, 24rpx);
+  font-weight: 400;
+  color: var(--fb-ink-mid, #6b6560);
   letter-spacing: 0.12em;
 }
 
 /* ── nav safe area ── */
 .nav-safe-area {
-  height: 24rpx;
+  height: calc(190rpx + env(safe-area-inset-bottom));
 }
 
 /* ── bottom navigation ── */
 .bottom-nav-shell {
-  position: relative;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   flex-shrink: 0;
-  z-index: 80;
-  padding: 14rpx 24rpx calc(env(safe-area-inset-bottom) + 16rpx);
-  background: var(--fb-paper, #faf7f2);
+  z-index: 30;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 .bottom-nav {
   min-height: 112rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box;
   display: flex;
   align-items: stretch;
-  border: 1rpx solid rgba(188,174,152,.35);
-  border-radius: 24rpx;
-  background: #f7f2e9;
+  border: 0;
+  border-top: 1rpx solid rgba(188,174,152,.35);
+  border-radius: 24rpx 24rpx 0 0;
+  background: rgba(247,242,233,.9);
   box-shadow: 0 -4rpx 36rpx rgba(125,105,75,.10);
+  pointer-events: auto;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-nav {
+    /* autoprefixer: off */
+    background: rgba(250,247,242,.64);
+    -webkit-backdrop-filter: blur(18px) saturate(125%);
+    backdrop-filter: blur(18px) saturate(125%);
+  }
 }
 
 .nav-item {
@@ -1421,10 +1118,13 @@ onShow(() => {
   margin-top: 4rpx;
 }
 
-/* 无平台动效证据时使用完整静态终态；封存只表达已有状态。 */
-.tl-item--text .card { background: transparent; border: 0; box-shadow: none; }
-.tl-item--text .card::before, .tl-item--text .card::after, .tl-item--text .seal { display: none; }
-.tl-item--text .card-meta, .tl-item--text .card-title, .tl-item--text .card-footer { padding-left: 0; padding-right: 0; }
-.tl-item--text .card-meta { padding-top: 0; }
 .filter-trigger::after { border: none; }
+
+/* 窄屏保留可读字级；不把日期与操作文字一起等比缩小。 */
+@media (max-width: 360px) {
+  .entry-date, .entry-status, .entry-context, .card-img-error,
+  .applied-filter, .load-more-text, .load-more-retry, .tail-text { font-size: 12px; }
+  .card-title { font-size: 18px; }
+  .year-heading { font-size: 16px; }
+}
 </style>

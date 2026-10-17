@@ -274,9 +274,9 @@ onUnmounted(() => {
   color: var(--fb-ink, #302e29);
   font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif);
 }
-.scroll-body { flex: 1; min-height: 0; width: 100%; }
+.scroll-body { flex: 1; height: 0; min-height: 0; width: 100%; }
 .brand-mark { font-family: var(--fb-letter-font, 'Songti SC', 'STSong', 'SimSun', Georgia, serif); font-size: 24rpx; font-weight: 400; letter-spacing: 8rpx; text-indent: 8rpx; color: var(--fb-ink-light, #9e9890); white-space: nowrap; }
-.home-content { padding: 52rpx 56rpx 48rpx; }
+.home-content { padding: 52rpx 56rpx calc(190rpx + env(safe-area-inset-bottom)); }
 .hero { text-align: center; margin-bottom: 64rpx; }
 .headline { display: block; font-size: 60rpx; font-weight: 400; line-height: 1.5; letter-spacing: 3rpx; }
 .headline-second { font-size: 54rpx; }
@@ -317,8 +317,16 @@ button::after { border: none; }
 .cover-wrap { height: 200rpx; background: var(--fb-letter-surface, #f3eee4); }
 .cover-image { width: 100%; height: 100%; display: block; }
 .cover-fallback { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24rpx; color: var(--fb-ink-mid, #6b6560); }
-.bottom-nav-shell { flex-shrink: 0; padding: 14rpx 24rpx calc(env(safe-area-inset-bottom) + 16rpx); background: var(--fb-paper, #faf7f2); }
-.bottom-nav { display: flex; min-height: 112rpx; border: 1rpx solid rgba(188,174,152,.35); border-radius: 24rpx; background: #f7f2e9; box-shadow: 0 -4rpx 36rpx rgba(125,105,75,.10); }
+.bottom-nav-shell { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; flex-shrink: 0; padding: 0; background: transparent; pointer-events: none; }
+.bottom-nav { display: flex; min-height: 112rpx; padding-bottom: env(safe-area-inset-bottom); box-sizing: content-box; border: 0; border-top: 1rpx solid rgba(188,174,152,.35); border-radius: 24rpx 24rpx 0 0; background: rgba(247,242,233,.9); box-shadow: 0 -4rpx 36rpx rgba(125,105,75,.10); pointer-events: auto; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-nav {
+    /* autoprefixer: off */
+    background: rgba(250,247,242,.64);
+    -webkit-backdrop-filter: blur(18px) saturate(125%);
+    backdrop-filter: blur(18px) saturate(125%);
+  }
+}
 .nav-item { flex: 1; min-width: 0; min-height: 88rpx; padding: 14rpx 8rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx; font-size: 26rpx; color: var(--fb-ink-mid, #6b6560); text-align: center; }
 .nav-item.active { color: var(--fb-ink, #302e29); }
 </style>
