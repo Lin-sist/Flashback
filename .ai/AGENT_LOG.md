@@ -9202,3 +9202,12 @@ Commit: pending
 - 68ba349 test(frontend): 补齐页面交互与样式回归
 - **Verification SKIPPED / Risks**: 无可控微信/物理真机会话，真实字体/触摸/键盘/安全区/性能和真实业务持久化仍未验证；本轮仅提交整理，不以构建/离线检查替代设备验收。未修改OpenSpec内容范围，未运行CLI接受/归档；私有配置与个人技能未动。首次普通fetch因.git写权限失败，使用已获用户授权范围内的提权fetch成功，未改ACL/网络安全配置。
 - **Commit**: 前7批真实hash如上；本条随第8批文档提交，自身hash由Git历史记录，不回改旧pending。
+
+
+## 2026-10-17｜分批提交推送回执补录｜Type B文档收尾
+
+- **Scope / Changes**: 前8批成果已提交并推送，本条仅更新ACTIVE_TASK交接与追加日志，不再改源码/回归脚本或规划契约。第8批真实commit为f310ec60741f5b29a115cdccd9504f05a56cab86；前7批hash见上一条。原18个本地commit完整保留，本次首次推送共26个commit。
+- **Approval / Verification PASS**: 首次git push被自动审批拒绝，理由为现有证据尚未验证远端归属；未改用其它协议/间接执行绕过。随后用已登录GitHub连接核实当前用户Lin-sist/id179838618，与仓库Lin-sist/Flashback（repo1189566547）的owner一致，admin/push权限为true、默认main，与origin SSH地址一致。携带该新增归属证据重新审核同一普通git push origin main，获准并成功；未更换目的地/放宽安全设置。无需额外用户确认，原直接推送授权保留。
+- **Git verification PASS**: 成功回执b6afb01..f310ec6 main -> main；随后git ls-remote origin refs/heads/main返回f310ec60741f5b29a115cdccd9504f05a56cab86，与本地HEAD及origin/main完全一致，ahead/behind=0/0。tracked暂存/工作区差异为空；个人技能和简历目录仍未跟踪。源码及原change文档哈希与本轮验证起点保持（仅两份交接日志发生本轮管理性更新），无新业务变更。
+- **Verification / Risks**: 仅文档回执，未重复已通过的类型/79项离线及两模式构建/各39项样式检查；git diff --check收尾核验。微信/真机与真实业务联调仍SKIPPED，原因及权限不变；无PR/部署/发布/接受delta/归档。该回执独立commit后再普通push并核对最终远端，最终hash以Git记录为准，不回写历史pending。
+- **Commit**: 本条随独立回执commit入库，执行时pending；自身hash以Git历史/最终答复查询。

@@ -4,7 +4,7 @@
 
 `ACTIVE`
 
-2026-10-17 最新：用户明确授权按改动内容分批提交并推送；本轮作为Type B提交整理，不新增产品能力或接受/归档。已完成7批源码/回归提交，最后文档收口随第8批提交；52项页面+12项浮层+15项详情离线、类型、Preview/Standard构建及各39项样式检查PASS，最终Standard。Git远程同步确认无分叉；只普通推送origin/main，结果以最终Git远端核验为准。个人学习/面试Skill及简历图片保持未跟踪、不上传；微信/真机与真实业务联调继续待验。
+2026-10-17 最新：用户明确授权按改动内容分批提交并推送；本轮作为Type B提交整理，不新增产品能力或接受/归档。已完成8批成果提交及普通推送，原18个本地提交同时同步；新增一条文档回执补录，不改源码；52项页面+12项浮层+15项详情离线、类型、Preview/Standard构建及各39项样式检查PASS，最终Standard。Git远程归属由已登录GitHub连接核实，origin/main与本地f310ec6当次一致；最终回执提交后再次核对同步。个人学习/面试Skill及简历图片保持未跟踪、不上传；微信/真机与真实业务联调继续待验。
 
 2026-10-16 最新：用户明确继续整理近况、改为demo书信浮层，沿F-31既有summary映射实施。结果由内嵌卡转为压暗个人中心上的折角信笺，长文内部滚动，真实日期/计数/AI或本地来源保留；重新整理/收起固定可见，收起重开零生成请求。48项离线、类型/两模式构建及各36项WXSS/几何PASS，最终Standard；微信实图/触摸/长文/安全区/真机仍待验，真实外调0。
 
@@ -167,7 +167,7 @@
 - **This session**: 2026-10-17 — **既有成果分批提交与推送授权收口**
   - **Scope / Authorization**：用户明确要求按修改内容分批提交并推送；仅整理既有19个tracked修改文件，新增交接与追加日志，不重做业务实现。保留个人技能目录/简历图片，不改依赖/后端/accepted baseline/archive，不创建PR或部署。
   - **Completed**：3527f69 style(records): 统一已留下详情与记录列表布局；51a4d03 style(review): 复刻时间回看对话信笺；02083bf feat(editor): 新建双入口显式分离保存与封存；09089b3 style(profile): 统一个人中心、近况信笺与数据托管页；f5af98c feat(chapters): 复刻篇章信笺并接入成员选择；b27f5ed style(timeline): 精简短文字节点并贴合底部导航；68ba349 test(frontend): 补齐页面交互与样式回归；本条及既有规划/分级证据纳入最后文档批次。原18个本地提交历史不改写。
-  - **Verification / Next**：vue-tsc、52/12/15项零网络合成、Preview/Standard build及各39项WXSS检查PASS，最终Standard；提交逐批精确路径/暂存差异检查，源码SHA256保持。fetch确认origin/main是本地祖先；文档提交后普通push并核对HEAD/远端一致，推送结果见Git回执与最终答复。微信/真机/真实业务外调SKIPPED，不补勾F-22/F-30/F-31/F-41/F-42或归档。
+  - **Verification / Next**：vue-tsc、52/12/15项零网络合成、Preview/Standard build及各39项WXSS检查PASS，最终Standard；提交逐批精确路径/暂存差异检查，源码SHA256保持。fetch确认origin/main是本地祖先；8批提交与原18个提交已普通push至origin/main，ls-remote核对f310ec6与本地一致；该回执再作独立文档补录，最终同步状态见Git回执与最终答复。微信/真机/真实业务外调SKIPPED，不补勾F-22/F-30/F-31/F-41/F-42或归档。
 
 - **This session**: 2026-10-16 — **F-31近况书信浮层复刻，平台待验**
   - **Scope / Authorization**：用户明确继续整理近况并要求demo书信浮层，沿唯一active change的F-31 summary映射与现有Gate 1/当前展示实现授权。仅个人中心本模块、两份已有回归脚本、D32/tasks/证据/交接/追加日志；保护上轮记录列表小修及其它页面，不改服务/API/AI行为契约或新增路由。
