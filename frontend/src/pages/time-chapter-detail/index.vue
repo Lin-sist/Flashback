@@ -2,18 +2,16 @@
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import EmptyState from '../../components/common/EmptyState.vue'
-import PaperContainer from '../../components/common/PaperContainer.vue'
+import AppTopSafeBar from '../../components/common/AppTopSafeBar.vue'
 import PreviewModeNotice from '../../components/common/PreviewModeNotice.vue'
 import PrimaryButton from '../../components/common/PrimaryButton.vue'
 import { hasPreviewSession, showPreviewReadonlyToast } from '../../features/preview/preview-session'
-import { useWechatNavMetrics } from '../../composables/useWechatNavMetrics'
-import { timeChapterService } from '../../services'
+import { recordService, timeChapterService } from '../../services'
 import { useTimeChapterStore } from '../../stores'
 import type { RecordListItemVO, TimeChapterOrder } from '../../types'
 import { TimeChapterStatus } from '../../types'
 import { formatDateTime, formatDayText, hasAuthenticatedSession, toUserMessage } from '../../utils'
 
-const { statusBarHeight } = useWechatNavMetrics()
 const chapterStore = useTimeChapterStore()
 const chapterId = ref<number | null>(null)
 const order = ref<TimeChapterOrder>('DESC')
@@ -28,7 +26,6 @@ const chapter = computed(() => {
   return Number(chapterStore.detail.id) === chapterId.value ? chapterStore.detail : null
 })
 
-const topStyle = computed(() => ({ paddingTop: `${statusBarHeight.value}px` }))
 const members = computed(() => chapter.value?.members.list || [])
 const statusText = computed(() => chapter.value?.status === TimeChapterStatus.ACTIVE ? '进行中' : '已结束')
 const coverageText = computed(() => {
@@ -172,6 +169,130 @@ const confirmDelete = () => {
   })
 }
 
+// 只组合既有记录查询和篇章成员契约；选择与确认不会提前改变归属。
+const memberMode = ref<'add' | 'remove' | null>(null)
+const candidateRecords = ref<RecordListItemVO[]>([])
+const candidatePage = ref(0)
+const candidateTotal = ref(0)
+const candidateLoading = ref(false)
+const candidateFailed = ref(false)
+const confirmingMember = ref(false)
+const pageBusy = computed(() => mutationLoading.value || chapterStore.loading || confirmingMember.value)
+const pickerRecords = computed(() => memberMode.value === 'remove' ? members.value : candidateRecords.value.filter(
+  (item) => item.status !== 'DRAFT' && Number(item.chapter?.id) !== chapter.value?.id,
+))
+const pickerHasMore = computed(() => memberMode.value === 'remove'
+  ? members.value.length < (chapter.value?.members.total || 0)
+  : candidateRecords.value.length < candidateTotal.value)
+
+const loadCandidates = async (append = false) => {
+  if (candidateLoading.value || memberMode.value !== 'add') return
+  candidateLoading.value = true
+  candidateFailed.value = false
+  const pageNum = append ? candidatePage.value + 1 : 1
+  try {
+    const result = await recordService.getRecordList('ALL', { pageNum, pageSize: 50 })
+    candidateRecords.value = append ? [...candidateRecords.value, ...result.list] : result.list
+    candidatePage.value = result.pageNum
+    candidateTotal.value = result.total
+  } catch (error) {
+    candidateFailed.value = true
+    uni.showToast({ title: toUserMessage(error), icon: 'none' })
+  } finally {
+    candidateLoading.value = false
+  }
+}
+
+const openMemberPicker = async (mode: 'add' | 'remove') => {
+  if (!chapter.value || pageBusy.value || editing.value || memberMode.value) return
+  if (hasPreviewSession()) { showPreviewReadonlyToast(); return }
+  if (!ensureVisible()) return
+  if (mode === 'add' && chapter.value.status !== TimeChapterStatus.ACTIVE) return
+  if (mode === 'remove' && chapter.value.memberCount === 0) return
+  candidateFailed.value = false
+  memberMode.value = mode
+  if (mode === 'add') {
+    candidateRecords.value = []
+    candidatePage.value = 0
+    candidateTotal.value = 0
+    await loadCandidates()
+  }
+}
+
+const closeMemberPicker = () => {
+  if (pageBusy.value || candidateLoading.value) return
+  memberMode.value = null
+}
+
+const loadMorePicker = () => {
+  if (pageBusy.value) return
+  return memberMode.value === 'remove' ? loadMoreMembers() : loadCandidates(candidatePage.value > 0)
+}
+
+const chooseMember = (item: RecordListItemVO) => {
+  const current = chapter.value
+  const mode = memberMode.value
+  if (!current || !mode || pageBusy.value || candidateLoading.value || !pickerRecords.value.some((row) => row.id === item.id)) return
+  if (hasPreviewSession()) { showPreviewReadonlyToast(); return }
+  if (!ensureVisible()) return
+  if (mode === 'add' && (current.status !== TimeChapterStatus.ACTIVE || item.status === 'DRAFT' || Number(item.chapter?.id) === current.id)) return
+  confirmingMember.value = true
+  const transfers = mode === 'add' && item.chapter ? [{ recordId: item.id, fromChapterId: item.chapter.id }] : []
+  uni.showModal({
+    title: mode === 'remove' ? '移出这条记录？' : transfers.length ? '确认转移篇章' : '确认加入篇章',
+    content: mode === 'remove' ? '只从当前篇章移出，不会删除记录。'
+      : item.chapter ? `从“${item.chapter.name}”转移到“${current.name}”？` : `把这条记录加入“${current.name}”？`,
+    confirmColor: '#b5352a',
+    success: async (result) => {
+      confirmingMember.value = false
+      if (!result.confirm || mutationLoading.value || hasPreviewSession() || !hasAuthenticatedSession()) return
+      mutationLoading.value = true
+      try {
+        if (mode === 'remove') {
+          await timeChapterService.removeMembers(current.id, { recordIds: [item.id], expectedVersion: current.version })
+        } else {
+          await timeChapterService.addMembers(current.id, { recordIds: [item.id], expectedVersion: current.version, transfers })
+        }
+        memberMode.value = null
+        await loadDetail()
+      } catch (error) {
+        // 不以本地移除冒充成功；重新读取当前版本，下一次由用户重新选择确认。
+        memberMode.value = null
+        await loadDetail()
+        uni.showToast({ title: toUserMessage(error), icon: 'none' })
+      } finally {
+        mutationLoading.value = false
+      }
+    },
+    fail: () => { confirmingMember.value = false },
+  })
+}
+
+const openMore = () => {
+  if (!chapter.value || pageBusy.value || editing.value || memberMode.value) return
+  uni.showActionSheet({
+    itemList: ['编辑篇章', order.value === 'DESC' ? '改为正序浏览' : '改为倒序浏览', '篇章信息', '只删除篇章'],
+    success: ({ tapIndex }) => {
+      if (pageBusy.value || editing.value || memberMode.value) return
+      if (tapIndex === 0) {
+        if (hasPreviewSession()) { showPreviewReadonlyToast(); return }
+        beginEdit()
+      } else if (tapIndex === 1) toggleOrder()
+      else if (tapIndex === 2 && chapter.value) uni.showModal({
+        title: '篇章信息', showCancel: false,
+        content: `${coverageText.value}\n建立于 ${formatDateTime(chapter.value.createdAt)}${chapter.value.endedAt ? `\n结束于 ${formatDateTime(chapter.value.endedAt)}` : ''}`,
+      })
+      else if (tapIndex === 3) confirmDelete()
+    },
+  })
+}
+
+const submitEdit = () => {
+  if (pageBusy.value) return
+  if (hasPreviewSession()) { showPreviewReadonlyToast(); return }
+  return saveEdit()
+}
+
 onLoad((options) => {
   const parsed = Number((options as { id?: string }).id)
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -189,14 +310,13 @@ onShow(() => {
 
 <template>
   <view class="chapter-page">
+    <AppTopSafeBar transparent padding-x="54rpx" side-width="96rpx">
+      <template #left><button class="chapter-back" @tap="closePage"><view class="back-chevron" /><text>返回</text></button></template>
+      <template #right><button v-if="chapter && !loadFailed" class="chapter-more" :disabled="pageBusy || editing" @tap="openMore">更多</button></template>
+    </AppTopSafeBar>
     <PreviewModeNotice />
-    <view class="chapter-top" :style="topStyle">
-      <view class="chapter-back" @tap="closePage">‹ <text>返回</text></view>
-      <text class="chapter-top__title">时间篇章</text>
-      <view class="chapter-top__spacer" />
-    </view>
 
-    <scroll-view scroll-y class="chapter-scroll" enhanced show-scrollbar="false">
+    <scroll-view scroll-y class="chapter-scroll" enhanced :show-scrollbar="false">
       <view v-if="chapterStore.loading && !chapter" class="chapter-state">
         <EmptyState text="正在打开这段时间…" />
       </view>
@@ -205,265 +325,128 @@ onShow(() => {
         <PrimaryButton text="重试加载" ghost @tap="retry" />
       </view>
       <view v-else class="chapter-content">
-        <PaperContainer radius="xl" class="chapter-summary">
-          <view v-if="!editing" class="chapter-summary__head">
-            <view>
-              <text class="chapter-name">{{ chapter.name }}</text>
-              <text class="chapter-status">{{ statusText }}</text>
-            </view>
-            <text class="chapter-edit" @tap="beginEdit">编辑</text>
-          </view>
-          <view v-else class="chapter-edit-form">
-            <input v-model="editName" maxlength="100" class="chapter-input" placeholder="篇章名称" />
-            <textarea v-model="editNote" maxlength="1000" auto-height class="chapter-note-input" placeholder="写一句自述（可选）" />
-            <view class="chapter-edit-actions">
-              <text @tap="cancelEdit">取消</text>
-              <text class="chapter-edit-actions__save" @tap="saveEdit">{{ mutationLoading ? '保存中…' : '保存' }}</text>
-            </view>
-          </view>
-          <text v-if="!editing && chapter.note" class="chapter-note">{{ chapter.note }}</text>
-          <view class="chapter-summary__meta">
-            <text>{{ chapter.memberCount }} 个片段</text>
-            <text>{{ coverageText }}</text>
-          </view>
-          <text class="chapter-created">建立于 {{ formatDateTime(chapter.createdAt) }}</text>
-          <text v-if="chapter.status === TimeChapterStatus.ENDED && chapter.endedAt" class="chapter-created">
-            结束于 {{ formatDateTime(chapter.endedAt) }}
-          </text>
-        </PaperContainer>
-
-        <view class="chapter-actions">
-          <view class="chapter-action" @tap="toggleOrder">{{ order === 'DESC' ? '倒序' : '正序' }}浏览</view>
-          <view v-if="chapter.status === 'ACTIVE'" class="chapter-action" @tap="confirmLifecycle(TimeChapterStatus.ENDED)">结束篇章</view>
-          <view v-else class="chapter-action" @tap="confirmLifecycle(TimeChapterStatus.ACTIVE)">重新打开</view>
+        <view v-if="!editing" class="chapter-heading">
+          <text class="chapter-name">{{ chapter.name }}</text>
+          <text class="chapter-status">{{ statusText }}</text>
         </view>
-
-        <view class="member-heading">
-          <text>成员片段</text>
-          <text>{{ members.length }} / {{ chapter.members.total }}</text>
+        <view v-else class="chapter-edit-form">
+          <input v-model="editName" maxlength="100" :disabled="mutationLoading" class="chapter-input" placeholder="篇章名称" />
+          <textarea v-model="editNote" maxlength="1000" auto-height :disabled="mutationLoading" class="chapter-note-input" placeholder="写一句自述（可选）" :adjust-position="true" :cursor-spacing="140" />
+          <view class="chapter-edit-actions">
+            <button :disabled="mutationLoading" @tap="cancelEdit">取消</button>
+            <button class="edit-save" :disabled="pageBusy" @tap="submitEdit">{{ mutationLoading ? '保存中…' : '保存' }}</button>
+          </view>
         </view>
+        <text v-if="!editing && chapter.note" class="chapter-note">{{ chapter.note }}</text>
+        <text class="chapter-meta">始于 {{ formatDayText(chapter.createdAt) }} · 汇集 {{ chapter.memberCount }} 篇此刻</text>
+
         <view v-if="members.length" class="member-list">
-          <view v-for="member in members" :key="member.id" class="member-card" @tap="openRecord(member)">
-            <view class="member-card__top">
-              <text class="member-title">{{ member.title || '未命名片段' }}</text>
-              <text class="member-date">{{ formatDayText(member.createdAt) }}</text>
-            </view>
+          <button v-for="member in members" :key="member.id" class="member-card" :disabled="pageBusy || editing" @tap="openRecord(member)">
+            <view class="member-fold" />
+            <text class="member-title">{{ member.title || '未命名片段' }}</text>
             <text class="member-preview">{{ member.contentPreview || '一段由图片或声音留下的记录' }}</text>
-          </view>
-          <view
-            v-if="members.length < chapter.members.total"
-            class="chapter-load-more"
-            @tap="loadMoreMembers"
-          >
+          </button>
+          <button v-if="members.length < chapter.members.total" class="chapter-load-more" :disabled="chapterStore.loading" @tap="loadMoreMembers">
             {{ chapterStore.loading ? '正在加载…' : '加载更多片段' }}
-          </view>
+          </button>
         </view>
-        <EmptyState v-else text="这个篇章暂时没有成员，记录仍然保留在我的记录中" />
-
-        <view class="chapter-delete" @tap="confirmDelete">只删除篇章</view>
+        <view v-else class="chapter-empty"><EmptyState text="还没有片段，记录仍然保留在我的记录中" /></view>
       </view>
     </scroll-view>
+
+    <view v-if="chapter && !loadFailed && !editing" class="chapter-actions-shell">
+      <view class="chapter-actions">
+        <button class="chapter-action add-entry" :disabled="pageBusy || chapter.status !== TimeChapterStatus.ACTIVE" @tap="openMemberPicker('add')">添加记录</button>
+        <view class="action-divider" />
+        <button class="chapter-action remove-entry" :disabled="pageBusy || chapter.memberCount === 0" @tap="openMemberPicker('remove')">移出</button>
+        <view class="action-divider" />
+        <button class="chapter-action lifecycle-entry" :disabled="pageBusy" @tap="confirmLifecycle(chapter.status === TimeChapterStatus.ACTIVE ? TimeChapterStatus.ENDED : TimeChapterStatus.ACTIVE)">{{ chapter.status === TimeChapterStatus.ACTIVE ? '结束篇章' : '重新打开' }}</button>
+      </view>
+    </view>
+
+    <view v-if="memberMode" class="member-layer" @tap="closeMemberPicker">
+      <view class="member-sheet" role="dialog" aria-modal="true" :aria-label="memberMode === 'add' ? '添加记录' : '移出记录'" @tap.stop>
+        <view class="sheet-handle" />
+        <view class="sheet-heading">
+          <text class="sheet-title">{{ memberMode === 'add' ? '把此刻放进篇章' : '选择要移出的记录' }}</text>
+          <button class="sheet-close" :disabled="pageBusy || candidateLoading" @tap="closeMemberPicker">关闭</button>
+        </view>
+        <text class="sheet-description">{{ memberMode === 'add' ? '选择已留下的记录，加入前会再向你确认。' : '只移出当前篇章，记录仍然为你保管。' }}</text>
+        <scroll-view scroll-y class="picker-scroll" :show-scrollbar="false">
+          <view class="picker-content">
+            <text v-if="candidateLoading && !candidatePage" class="picker-state">正在翻找记录…</text>
+            <text v-else-if="!pickerRecords.length && !candidateFailed" class="picker-state">{{ pickerHasMore ? '这一页没有可选记录，可以继续翻找。' : '暂时没有可选记录' }}</text>
+            <button v-for="item in pickerRecords" :key="item.id" class="picker-record" :disabled="pageBusy || candidateLoading" @tap="chooseMember(item)">
+              <text class="picker-record-title">{{ item.title || '未命名片段' }}</text>
+              <text class="picker-record-meta">{{ formatDayText(item.createdAt) }}{{ memberMode === 'add' && item.chapter ? ' · 来自其他篇章，需确认转移' : '' }}</text>
+            </button>
+            <button v-if="candidateFailed || pickerHasMore" class="chapter-load-more picker-more" :disabled="pageBusy || candidateLoading" @tap="loadMorePicker">
+              {{ candidateLoading || chapterStore.loading ? '正在加载…' : candidateFailed ? '加载失败，轻触重试' : '继续翻找' }}
+            </button>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
   </view>
 </template>
 
 <style scoped>
 .chapter-page {
-  min-height: 100vh;
-  padding: 0 48rpx;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
   background: linear-gradient(170deg, #faf7f2 0%, #f5f0e8 58%, #f0ebe0 100%);
   color: #302e29;
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', Georgia, serif;
+  font-weight: 300;
 }
-
-.chapter-top {
-  display: flex;
-  align-items: center;
-  min-height: 104rpx;
-  gap: 20rpx;
-}
-
-.chapter-back {
-  width: 150rpx;
-  color: #6b6560;
-  font-size: 26rpx;
-}
-
-.chapter-back:first-letter {
-  color: #b5352a;
-  font-size: 42rpx;
-}
-
-.chapter-top__title {
-  flex: 1;
-  text-align: center;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 30rpx;
-  letter-spacing: 0.12em;
-}
-
-.chapter-top__spacer {
-  width: 150rpx;
-}
-
-.chapter-scroll {
-  height: calc(100vh - 104rpx);
-}
-
-.chapter-content {
-  padding: 20rpx 0 80rpx;
-}
-
-.chapter-summary {
-  background: rgba(255, 252, 247, 0.82);
-}
-
-.chapter-summary__head,
-.chapter-summary__meta,
-.chapter-edit-actions,
-.chapter-actions,
-.member-heading,
-.member-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-}
-
-.chapter-name {
-  display: block;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 38rpx;
-}
-
-.chapter-status {
-  display: block;
-  margin-top: 12rpx;
-  color: #b5352a;
-  font-size: 22rpx;
-}
-
-.chapter-edit {
-  color: #9e9890;
-  font-size: 23rpx;
-}
-
-.chapter-note {
-  display: block;
-  margin-top: 24rpx;
-  color: #6b6560;
-  font-size: 25rpx;
-  line-height: 1.7;
-}
-
-.chapter-summary__meta {
-  margin-top: 28rpx;
-  color: #817a72;
-  font-size: 22rpx;
-}
-
-.chapter-created {
-  display: block;
-  margin-top: 14rpx;
-  color: #b7afa5;
-  font-size: 20rpx;
-}
-
-.chapter-input,
-.chapter-note-input {
-  box-sizing: border-box;
-  width: 100%;
-  margin-bottom: 16rpx;
-  padding: 16rpx 18rpx;
-  border: 1rpx solid #d8d0c5;
-  color: #302e29;
-  font-size: 26rpx;
-}
-
-.chapter-note-input {
-  min-height: 90rpx;
-}
-
-.chapter-edit-actions {
-  justify-content: flex-end;
-  color: #9e9890;
-  font-size: 23rpx;
-}
-
-.chapter-edit-actions__save {
-  color: #b5352a;
-}
-
-.chapter-actions {
-  margin: 26rpx 0 38rpx;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-}
-
-.chapter-action {
-  padding: 15rpx 22rpx;
-  border: 1rpx solid #c8c2b8;
-  color: #6b6560;
-  font-size: 22rpx;
-}
-
-.member-heading {
-  margin-bottom: 18rpx;
-  color: #6b6560;
-  font-size: 23rpx;
-  letter-spacing: 0.08em;
-}
-
-.member-heading text:last-child {
-  color: #b7afa5;
-  font-size: 20rpx;
-}
-
-.member-card {
-  margin-bottom: 16rpx;
-  padding: 24rpx;
-  border-left: 3rpx solid #c8c2b8;
-  background: rgba(255, 252, 247, 0.76);
-}
-
-.member-title {
-  max-width: 72%;
-  overflow: hidden;
-  font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  font-size: 28rpx;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.member-date {
-  color: #b7afa5;
-  font-size: 20rpx;
-}
-
-.member-preview {
-  display: block;
-  margin-top: 14rpx;
-  overflow: hidden;
-  color: #817a72;
-  font-size: 22rpx;
-  line-height: 1.6;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chapter-delete {
-  margin-top: 46rpx;
-  text-align: center;
-  color: #b5352a;
-  font-size: 22rpx;
-}
-
-.chapter-load-more {
-  padding: 28rpx 0 12rpx;
-  text-align: center;
-  color: #806b5c;
-  font-size: 24rpx;
-}
-
-.chapter-state {
-  padding-top: 120rpx;
+button { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; line-height: inherit; }
+button::after { border: 0; }
+button[disabled] { background: transparent; color: #b7afa5; opacity: .55; }
+.chapter-back { display: flex; align-items: center; gap: 14rpx; min-height: 80rpx; color: #6b6560; font-size: 27rpx; letter-spacing: 2rpx; }
+.back-chevron { width: 18rpx; height: 18rpx; border-left: 2rpx solid #6b6560; border-bottom: 2rpx solid #6b6560; transform: rotate(45deg); }
+.chapter-more { min-height: 80rpx; min-width: 80rpx; color: #9e9890; font-size: 23rpx; letter-spacing: 3rpx; }
+.chapter-scroll { flex: 1; height: 0; min-height: 0; }
+.chapter-content { box-sizing: border-box; padding: 44rpx 54rpx 40rpx; }
+.chapter-heading { text-align: center; }
+.chapter-name { display: block; font-size: 50rpx; font-weight: 400; line-height: 1.55; letter-spacing: .14em; text-indent: .14em; overflow-wrap: anywhere; }
+.chapter-status { display: inline-flex; align-items: center; box-sizing: border-box; margin-top: 30rpx; min-height: 54rpx; padding: 6rpx 31rpx; border: 1rpx solid rgba(107,101,96,.5); border-radius: 99rpx; color: #817a72; font-size: 23rpx; letter-spacing: .16em; text-indent: .16em; }
+.chapter-note { display: block; margin-top: 50rpx; font-size: 32rpx; line-height: 2.1; letter-spacing: .05em; color: #817a72; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chapter-meta { display: block; margin-top: 38rpx; text-align: center; font-size: 23rpx; line-height: 1.8; letter-spacing: .08em; color: #b7afa5; overflow-wrap: anywhere; }
+.member-card { display: block; position: relative; box-sizing: border-box; width: 100%; margin-top: 34rpx; padding: 38rpx 42rpx 38rpx 50rpx; border: 1rpx solid rgba(188,174,152,.28); background: #fcf9f4; box-shadow: 0 16rpx 40rpx rgba(91,72,43,.10), 0 2rpx 4rpx rgba(91,72,43,.04); text-align: left; }
+.member-card[disabled] { background: #fcf9f4; opacity: .7; }
+.member-fold { position: absolute; top: 0; right: 0; width: 36rpx; height: 36rpx; background: linear-gradient(45deg,#e4ddca 0%,#e4ddca 49%,#f5f0e8 50%,#f5f0e8 100%); box-shadow: -3rpx 3rpx 5rpx rgba(91,72,43,.10); pointer-events: none; }
+.member-title { display: block; padding-right: 8rpx; color: #4c4842; font-size: 33rpx; font-weight: 400; line-height: 1.6; letter-spacing: .06em; overflow-wrap: anywhere; }
+.member-preview { display: -webkit-box; margin-top: 18rpx; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: pre-wrap; font-size: 26rpx; line-height: 1.8; letter-spacing: .03em; color: #9e9890; overflow-wrap: anywhere; }
+.chapter-load-more { width: 100%; min-height: 84rpx; margin-top: 24rpx; font-size: 25rpx; line-height: 1.8; color: #9e9890; }
+.chapter-state { padding: 120rpx 54rpx 40rpx; }
+.chapter-empty { padding: 52rpx 0; }
+.chapter-actions-shell { flex-shrink: 0; padding: 0 24rpx calc(30rpx + env(safe-area-inset-bottom)); }
+.chapter-actions { display: flex; align-items: center; min-height: 104rpx; border-radius: 24rpx; border: 1rpx solid rgba(188,174,152,.35); background: #f7f2e9; box-shadow: 0 -4rpx 35rpx rgba(125,105,75,.10); }
+.chapter-action { display: flex; flex: 1; align-items: center; justify-content: center; min-width: 0; min-height: 104rpx; padding: 12rpx 6rpx; box-sizing: border-box; color: #9e9890; font-size: 27rpx; letter-spacing: .18em; text-indent: .18em; }
+.action-divider { flex-shrink: 0; width: 1rpx; height: 38rpx; background: rgba(188,174,152,.35); }
+.chapter-edit-form { padding-top: 4rpx; }
+.chapter-input, .chapter-note-input { width: 100%; box-sizing: border-box; padding: 18rpx 20rpx; border: 1rpx solid #d8d0c5; background: #fcf9f4; color: #4c4842; font: inherit; font-size: 30rpx; }
+.chapter-input { height: 88rpx; }
+.chapter-note-input { margin-top: 24rpx; min-height: 192rpx; line-height: 2; }
+.chapter-edit-actions { display: flex; justify-content: flex-end; gap: 36rpx; margin-top: 20rpx; color: #9e9890; font-size: 27rpx; }
+.chapter-edit-actions button { min-height: 80rpx; min-width: 100rpx; }
+.edit-save { color: #b5352a; }
+.member-layer { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; background: rgba(48,46,41,.28); }
+.member-sheet { display: flex; flex-direction: column; width: 100%; height: 68vh; box-sizing: border-box; padding: 18rpx 54rpx calc(24rpx + env(safe-area-inset-bottom)); border-radius: 30rpx 30rpx 0 0; background: #faf7f2; box-shadow: 0 -10rpx 48rpx rgba(48,46,41,.10); }
+.sheet-handle { flex-shrink: 0; width: 68rpx; height: 6rpx; margin: 0 auto 32rpx; border-radius: 9rpx; background: #c8c2b8; }
+.sheet-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 20rpx; }
+.sheet-title { flex: 1; min-width: 0; font-size: 34rpx; overflow-wrap: anywhere; }
+.sheet-close { flex-shrink: 0; min-width: 80rpx; min-height: 80rpx; color: #9e9890; font-size: 25rpx; }
+.sheet-description { flex-shrink: 0; display: block; margin: 10rpx 0 24rpx; color: #9e9890; font-size: 24rpx; line-height: 1.8; }
+.picker-scroll { flex: 1; height: 0; min-height: 0; }
+.picker-content { padding-bottom: 30rpx; }
+.picker-state { display: block; padding: 60rpx 0; text-align: center; font-size: 26rpx; color: #9e9890; line-height: 1.8; }
+.picker-record { display: block; width: 100%; padding: 28rpx 0; border-bottom: 1rpx solid rgba(188,174,152,.28); text-align: left; }
+.picker-record-title { display: block; color: #4c4842; font-size: 30rpx; line-height: 1.6; overflow-wrap: anywhere; }
+.picker-record-meta { display: block; margin-top: 10rpx; color: #9e9890; font-size: 22rpx; line-height: 1.8; overflow-wrap: anywhere; }
+@media (max-width: 340px) {
+  .chapter-action { font-size: 25rpx; letter-spacing: .10em; }
 }
 </style>
